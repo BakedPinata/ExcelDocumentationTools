@@ -14,16 +14,9 @@ See [Requirements.md](Requirements.md) for the full specification.
 
 ## Status
 
-| Stage | | |
-|---|---|---|
-| 0 | Solution skeleton, vendored d3 and Mermaid | done |
-| 1 | Extract VBA from workbooks and export source files | done |
-| 2 | Parser: declarations and member line ranges | next |
-| 3 | Reference resolution and dependency model | |
-| 4 | HTML page and dependency graph | |
-| 5 | Class diagram | |
-| 6 | UserForm controls | |
-| 7 | Polish | |
+Work in progress. Exporting the source files works. The HTML page is not built yet.
+See [docs/PLAN.md](docs/PLAN.md) for the stages and progress, and [docs/DECISIONS.md](docs/DECISIONS.md)
+for the design decisions behind them.
 
 ## Requirements
 
@@ -84,3 +77,7 @@ tests/VbaDocumenter.Tests/  xUnit tests
 | [d3](https://d3js.org) 7.9.0 | ISC | Dependency graph (vendored) |
 | [Mermaid](https://mermaid.js.org) 11.17.2 | MIT | Class diagram (vendored) |
 | [Apache POI](https://poi.apache.org) test data | Apache-2.0 | Test fixtures only |
+
+## Licence
+
+[MIT](LICENSE). The third-party components above keep their own licences.
