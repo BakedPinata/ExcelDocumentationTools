@@ -1,0 +1,6 @@
+# Keep these files byte-for-byte as committed, even with core.autocrlf on Windows:
+# - embedded resources are copied into the generated HTML, so converting their line endings
+#   would make the tool's output differ between machines;
+# - test fixtures must match what the tests expect, byte for byte.
+src/VbaDocumenter.Core/Resources/** -text
+tests/**/Fixtures/** -text
