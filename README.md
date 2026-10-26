@@ -14,7 +14,8 @@ See [Requirements.md](Requirements.md) for the full specification.
 
 ## Status
 
-Work in progress. Exporting the source files works. The HTML page is not built yet.
+Work in progress. Exporting the source files and analysing dependencies work, and the console shows a report.
+The HTML page is not built yet.
 See [docs/PLAN.md](docs/PLAN.md) for the stages and progress, and [docs/DECISIONS.md](docs/DECISIONS.md)
 for the design decisions behind them.
 
@@ -64,6 +65,7 @@ src/VbaDocumenter/          console app (command line, output, exit codes)
 src/VbaDocumenter.Core/     all the logic
   Extraction/               reading the VBA project out of the workbook (MS-OVBA)
   Parsing/                  lightweight VBA parser: declarations, line ranges, procedure bodies
+  Analysis/                 reference resolution and the module/member dependency graphs
   Output/                   writing the source files
   Resources/Vendor/         d3 and Mermaid, embedded and inlined into the page
 tests/VbaDocumenter.Tests/  xUnit tests

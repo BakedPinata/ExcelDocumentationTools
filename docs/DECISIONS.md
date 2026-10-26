@@ -76,6 +76,41 @@ or that change it. Add to this file whenever a new decision is agreed.
 - **`--verbose`** lists every member with its line range. It isn't in the requirements, but it makes the parser's
   results visible from the command line.
 
+### Dependency model (stage 3)
+
+- **Node ids:**
+  - modules: the module name, e.g. `Order`. Each module has a node with that id in the member-level graph too,
+    so a selection can carry over between levels and tabs;
+  - members: `Module.Name`; properties `Module.Name[Get]` / `[Let]` / `[Set]`; enum values `Module.Enum.Value`;
+  - a name declared twice (under `#If`/`#Else`) gets `~2` on the second id.
+- **Edges carry a count** (how many references they stand for). Module edges add up member edges between different
+  modules, plus one Implements edge per `Implements` statement. Member-level Implements edges aren't added again.
+- **Name lookup order:** locals and parameters, then the module's own members, then module names, then public members of
+  standard modules and public Enum values, then Enum names. If two modules declare the same global name, the first
+  module in name order wins (VBA itself would report an ambiguous name).
+- **`New Order` links to the `Order` module node**, not to `Class_Initialize`.
+- **Accessing another module's Private member**, or a name that isn't a project member, counts as using that module.
+- **References to the member's own module node are dropped** (e.g. `Me.Range` in a sheet).
+- **`ThisWorkbook` also finds the workbook module under a localised name** (e.g. German `DieseArbeitsmappe`). It is
+  recognised by the Workbook class id in `VB_Base`.
+- **Late-bound** also covers member access on the result of `CreateObject`/`GetObject`. It is reported as an expression
+  such as `CreateObject(…).OpenTextFile`, with its line.
+- **Member roles** (entry points that are never flagged as unreferenced):
+  - macro: a public parameterless Sub in a standard module;
+  - worksheet function: a public Function in a standard module. This refines the earlier list, because such
+    functions may be used in cell formulas;
+  - built-in event handler: `Workbook_`, `Worksheet_`, `Chart_`, `UserForm_`, `Class_Initialize`/`Class_Terminate`;
+  - WithEvents handler;
+  - control event handler: any Sub with an underscore in a document or form module;
+  - interface implementation.
+- **Unreferenced** means nothing other than the member itself refers to it:
+  - enum values are never flagged;
+  - an Enum counts as used if any of its values is;
+  - declarations repeated under `#If` share one answer.
+- **Known limits:** names inside strings (`Application.Run "Foo"`, `OnAction = "Module.Foo"`) and calls through
+  collections such as `ThisWorkbook.Sheets("X").Foo` can't be seen. This is why unreferenced members are reported with
+  a caveat.
+
 ## Test fixtures
 
 - **`Fixtures/SampleVba`** stays unchanged. Its files have LF line endings and use `.doc.cls`; tests normalise them.

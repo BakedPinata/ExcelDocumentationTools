@@ -4,6 +4,7 @@
 // 3 = an unexpected error (a bug; the stack trace is printed).
 
 using VbaDocumenter;
+using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Extraction;
 using VbaDocumenter.Core.Output;
 using VbaDocumenter.Core.Parsing;
@@ -22,7 +23,11 @@ try
     Console.WriteLine($"Reading {options.WorkbookPath}");
     var project = WorkbookReader.Read(options.WorkbookPath);
     Console.WriteLine($"  Project '{project.Name}', code page {project.CodePage}, {project.Modules.Count} module(s)");
-    ConsoleReport.WriteModules(ProjectParser.Parse(project), options.Verbose);
+    var parsed = ProjectParser.Parse(project);
+    ConsoleReport.WriteModules(parsed, options.Verbose);
+
+    Console.WriteLine("Analysing dependencies");
+    ConsoleReport.WriteDependencies(DependencyAnalyzer.Analyze(parsed), options.Verbose);
 
     Console.WriteLine($"Exporting to {options.OutputFolder}");
     var result = ProjectExporter.Export(project, options.OutputFolder);

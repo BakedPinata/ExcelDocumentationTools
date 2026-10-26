@@ -1,10 +1,54 @@
+using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Parsing;
 
 namespace VbaDocumenter;
 
-/// <summary>Formats the parsed project for the console.</summary>
+/// <summary>Formats the parsed project and its dependencies for the console.</summary>
 static class ConsoleReport
 {
+    /// <summary>Lists longer than this are cut short unless --verbose is given.</summary>
+    const int ShortListLength = 20;
+
+    public static void WriteDependencies(DependencyModel model, bool verbose)
+    {
+        var interfaces = model.Modules.Where(m => m.IsInterface).Select(m => m.Id).ToList();
+        Console.WriteLine($"  {model.ModuleEdges.Count} module dependencies, {model.MemberEdges.Count} member dependencies" +
+                          (interfaces.Count > 0 ? $"; interfaces: {string.Join(", ", interfaces)}" : ""));
+
+        if (verbose)
+        {
+            foreach (var group in model.ModuleEdges.GroupBy(e => (e.From, e.Kind)))
+                Console.WriteLine($"    {group.Key.From} {KindVerb(group.Key.Kind)} {string.Join(", ", group.Select(e => e.To))}");
+        }
+
+        WriteList(
+            $"{model.LateBound.Count} late-bound reference(s), which can't be resolved without running the code:",
+            model.LateBound.Select(l => $"{l.FromId} (line {l.Line}): {l.Expression}").ToList(),
+            verbose);
+
+        var unreferenced = model.Members.Where(m => m.IsUnreferenced).ToList();
+        WriteList(
+            $"{unreferenced.Count} unreferenced member(s). They may still be used via Application.Run, buttons or late-bound calls:",
+            unreferenced.Select(m => $"{m.Id} (line {m.Member!.DeclarationLine})").ToList(),
+            verbose);
+    }
+
+    static void WriteList(string heading, List<string> items, bool verbose)
+    {
+        if (items.Count == 0) return;
+        Console.WriteLine($"  {heading}");
+        int shown = verbose ? items.Count : Math.Min(items.Count, ShortListLength);
+        foreach (var item in items.Take(shown)) Console.WriteLine($"    {item}");
+        if (shown < items.Count) Console.WriteLine($"    ... and {items.Count - shown} more (use --verbose to see all)");
+    }
+
+    static string KindVerb(EdgeKind kind) => kind switch
+    {
+        EdgeKind.Implements => "implements",
+        EdgeKind.Events => "handles events of",
+        _ => "uses",
+    };
+
     public static void WriteModules(ProjectModel project, bool verbose)
     {
         int nameWidth = project.Modules.Count == 0 ? 0 : project.Modules.Max(m => m.Name.Length);
