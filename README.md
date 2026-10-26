@@ -32,7 +32,7 @@ dotnet test
 ## Usage
 
 ```bash
-dotnet run --project src/VbaDocumenter -- <workbook> [--out <folder>] [--embed-source]
+dotnet run --project src/VbaDocumenter -- <workbook> [--out <folder>] [--embed-source] [--verbose]
 ```
 
 | Argument | |
@@ -40,6 +40,7 @@ dotnet run --project src/VbaDocumenter -- <workbook> [--out <folder>] [--embed-s
 | `<workbook>` | `.xlsm`, `.xlsb`, `.xlam`, `.xls` or `.xla` |
 | `--out <folder>` | Output folder. Default: a `VBAProject` folder next to the workbook |
 | `--embed-source` | Put the module source inside the HTML page (stage 4) |
+| `--verbose` | List every member found in each module, with its line range |
 
 Exit codes: `0` success, `1` bad arguments, `2` a problem with the workbook (the message explains it),
 `3` an unexpected error.
@@ -62,10 +63,12 @@ default `VBAProject` folder, so give one of them `--out`.
 src/VbaDocumenter/          console app (command line, output, exit codes)
 src/VbaDocumenter.Core/     all the logic
   Extraction/               reading the VBA project out of the workbook (MS-OVBA)
+  Parsing/                  lightweight VBA parser: declarations, line ranges, procedure bodies
   Output/                   writing the source files
   Resources/Vendor/         d3 and Mermaid, embedded and inlined into the page
 tests/VbaDocumenter.Tests/  xUnit tests
   Fixtures/SampleVba/       synthetic 12-module VBA project
+  Fixtures/SampleVbaExtras/ declarations SampleVba doesn't cover
   Fixtures/Workbooks/       real Excel workbooks from Apache POI's test data
 ```
 

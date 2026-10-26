@@ -6,6 +6,7 @@
 using VbaDocumenter;
 using VbaDocumenter.Core.Extraction;
 using VbaDocumenter.Core.Output;
+using VbaDocumenter.Core.Parsing;
 
 var options = CommandLineOptions.Parse(args, out var error);
 if (options == null)
@@ -21,8 +22,7 @@ try
     Console.WriteLine($"Reading {options.WorkbookPath}");
     var project = WorkbookReader.Read(options.WorkbookPath);
     Console.WriteLine($"  Project '{project.Name}', code page {project.CodePage}, {project.Modules.Count} module(s)");
-    foreach (var module in project.Modules)
-        Console.WriteLine($"    {module.Kind,-9} {module.Name}");
+    ConsoleReport.WriteModules(ProjectParser.Parse(project), options.Verbose);
 
     Console.WriteLine($"Exporting to {options.OutputFolder}");
     var result = ProjectExporter.Export(project, options.OutputFolder);

@@ -15,12 +15,13 @@ public class CommandLineOptionsTests
     }
 
     [Fact]
-    public void Accepts_an_output_folder_and_embed_source_in_any_order()
+    public void Accepts_options_in_any_order()
     {
-        var options = CommandLineOptions.Parse(["--embed-source", Workbook, "--out", "elsewhere"], out _);
+        var options = CommandLineOptions.Parse(["--embed-source", Workbook, "--verbose", "--out", "elsewhere"], out _);
 
         Assert.Equal(Path.GetFullPath("elsewhere"), options!.OutputFolder);
         Assert.True(options.EmbedSource);
+        Assert.True(options.Verbose);
     }
 
     [Theory]

@@ -58,6 +58,24 @@ or that change it. Add to this file whenever a new decision is agreed.
 - **Real files have `Attribute` lines inside procedures** (e.g. `Attribute TestMacro.VB_Description = "..."`), and the
   parser must skip them.
 
+### Parser (stage 2)
+
+- **The parser reads the exported file's text**, header included, so every line number matches the file on disk
+  and the source shown in the page.
+- **Procedure bodies are stored as a list of statements** (split at `:`, comments and labels removed), including
+  `Dim`/`Const`/`ReDim` lines, because their array bounds and values can reference other members. Locals are also
+  listed separately with their types. Interpreting statements is stage 3's job.
+- **Both branches of `#If … #Else` are parsed.** A Declare in both branches appears twice (same name, different lines),
+  so stage 3 must give members ids that stay unique in that case.
+- **VBA's own declaration rules are followed:**
+  - in `Dim a, b As String`, only `b` is a String (`a` is untyped, i.e. Variant);
+  - module-level `Dim` and `Const` are Private; procedures, Enums, Types and Declares default to Public;
+  - an identifier followed by `:` at the start of a line is a label (keywords such as `Else:` excepted).
+- **Parser warnings never stop a run.** Lines the parser doesn't understand are reported in the console and skipped.
+  All SampleVba, SampleVbaExtras and real-workbook modules parse with no warnings, and the tests require that.
+- **`--verbose`** lists every member with its line range. It isn't in the requirements, but it makes the parser's
+  results visible from the command line.
+
 ## Test fixtures
 
 - **`Fixtures/SampleVba`** stays unchanged. Its files have LF line endings and use `.doc.cls`; tests normalise them.

@@ -1,4 +1,5 @@
 using VbaDocumenter.Core.Extraction;
+using VbaDocumenter.Core.Parsing;
 
 namespace VbaDocumenter.Tests.Support;
 
@@ -6,6 +7,20 @@ namespace VbaDocumenter.Tests.Support;
 public static class Fixtures
 {
     public static string SampleVbaFolder => Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleVba");
+    public static string SampleVbaExtrasFolder => Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleVbaExtras");
+
+    /// <summary>Parses one fixture file, e.g. Parse("SampleVba", "Order.cls"). The module name is the file name up to the first dot.</summary>
+    public static ModuleModel Parse(string folder, string fileName)
+    {
+        var text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", folder, fileName));
+        return ModuleParser.Parse(fileName.Split('.')[0], KindFromFileName(fileName), text);
+    }
+
+    static VbaModuleKind KindFromFileName(string fileName) =>
+        fileName.EndsWith(".doc.cls") ? VbaModuleKind.Document
+        : fileName.EndsWith(".cls") ? VbaModuleKind.Class
+        : fileName.EndsWith(".frm") ? VbaModuleKind.Form
+        : VbaModuleKind.Standard;
 
     public static string Workbook(string fileName) => Path.Combine(AppContext.BaseDirectory, "Fixtures", "Workbooks", fileName);
 
@@ -19,10 +34,7 @@ public static class Fixtures
             .Select(path =>
             {
                 var fileName = Path.GetFileName(path);
-                var kind = fileName.EndsWith(".doc.cls") ? VbaModuleKind.Document
-                    : fileName.EndsWith(".cls") ? VbaModuleKind.Class
-                    : VbaModuleKind.Standard;
-                return new SyntheticModule(fileName.Split('.')[0], kind, File.ReadAllText(path));
+                return new SyntheticModule(fileName.Split('.')[0], KindFromFileName(fileName), File.ReadAllText(path));
             })
             .ToList();
 }
