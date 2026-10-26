@@ -14,8 +14,8 @@ See [Requirements.md](Requirements.md) for the full specification.
 
 ## Status
 
-Work in progress. Exporting the source files and analysing dependencies work, and the console shows a report.
-The HTML page is not built yet.
+Work in progress. Exporting the source files, analysing dependencies and the page's source browser work. The graph
+and class diagram views are still to come.
 See [docs/PLAN.md](docs/PLAN.md) for the stages and progress, and [docs/DECISIONS.md](docs/DECISIONS.md)
 for the design decisions behind them.
 
@@ -27,8 +27,12 @@ for the design decisions behind them.
 
 ```bash
 dotnet build
-dotnet test
+dotnet test                              # unit tests and browser tests
+dotnet test tests/VbaDocumenter.Tests    # unit tests only
 ```
+
+The browser tests check the generated page in headless Chromium. On their first run they download Playwright's
+Chromium (about 150 MB) into the user's cache folder.
 
 ## Usage
 
@@ -40,7 +44,7 @@ dotnet run --project src/VbaDocumenter -- <workbook> [--out <folder>] [--embed-s
 |---|---|
 | `<workbook>` | `.xlsm`, `.xlsb`, `.xlam`, `.xls` or `.xla` |
 | `--out <folder>` | Output folder. Default: a `VBAProject` folder next to the workbook |
-| `--embed-source` | Put the module source inside the HTML page (stage 4) |
+| `--embed-source` | Put the module source inside the page, so it works without Load folder |
 | `--verbose` | List every member found in each module, with its line range |
 
 Exit codes: `0` success, `1` bad arguments, `2` a problem with the workbook (the message explains it),
@@ -52,6 +56,11 @@ Exit codes: `0` success, `1` bad arguments, `2` a problem with the workbook (the
   Files use the project's code page and CRLF line endings, as the VBA editor's own Export does.
   Classes get the VBA editor's `VERSION 1.0 CLASS` header so they import back as classes.
 - A `.gitattributes` that stops git converting those files, unless the folder already has one.
+- `index.html`: a single self-contained page that documents the project. Open it from disk.
+  - By default it doesn't contain the source. Click **Load folder** and choose the output folder once per session;
+    browsers don't let a page read files next to it on their own.
+  - With `--embed-source` the source is inside the page instead. The page is larger, and code changes appear in its
+    git diff as well.
 
 On each run the folder is brought in line with the workbook. Module files (`.bas`, `.cls`, `.frm`) at the top level
 of the folder that are no longer in the workbook are deleted, so **don't keep hand-written module files there**.
@@ -66,12 +75,14 @@ src/VbaDocumenter.Core/     all the logic
   Extraction/               reading the VBA project out of the workbook (MS-OVBA)
   Parsing/                  lightweight VBA parser: declarations, line ranges, procedure bodies
   Analysis/                 reference resolution and the module/member dependency graphs
-  Output/                   writing the source files
+  Output/                   writing the source files and the page
+  Resources/Page/           the page's HTML template, CSS and JavaScript (plain files, no build step)
   Resources/Vendor/         d3 and Mermaid, embedded and inlined into the page
 tests/VbaDocumenter.Tests/  xUnit tests
   Fixtures/SampleVba/       synthetic 12-module VBA project
   Fixtures/SampleVbaExtras/ declarations SampleVba doesn't cover
   Fixtures/Workbooks/       real Excel workbooks from Apache POI's test data
+tests/VbaDocumenter.BrowserTests/  Playwright tests of the generated page in headless Chromium
 ```
 
 ## Third-party components
@@ -82,6 +93,7 @@ tests/VbaDocumenter.Tests/  xUnit tests
 | [d3](https://d3js.org) 7.9.0 | ISC | Dependency graph (vendored) |
 | [Mermaid](https://mermaid.js.org) 11.17.2 | MIT | Class diagram (vendored) |
 | [Apache POI](https://poi.apache.org) test data | Apache-2.0 | Test fixtures only |
+| [Playwright for .NET](https://playwright.dev/dotnet/) 1.63.0 | Apache-2.0 | Browser tests only |
 
 ## Licence
 

@@ -12,8 +12,9 @@ Guidance for Claude Code (and anyone else) working in this repository.
 
 ```bash
 dotnet build -warnaserror
-dotnet test
-dotnet run --project src/VbaDocumenter -- <workbook> [--out <folder>] [--embed-source]
+dotnet test                              # unit + browser tests (browser tests download Chromium on first run)
+dotnet test tests/VbaDocumenter.Tests    # unit tests only
+dotnet run --project src/VbaDocumenter -- <workbook> [--out <folder>] [--embed-source] [--verbose]
 ```
 
 ## Way of working
@@ -26,3 +27,4 @@ dotnet run --project src/VbaDocumenter -- <workbook> [--out <folder>] [--embed-s
 - Tests use xUnit. Use the fixtures in `tests/VbaDocumenter.Tests/Fixtures/`, and the `SyntheticWorkbook` helper for
   cases no real fixture covers.
 - The generated HTML must never load anything from the network.
+- Check page changes in the browser tests, and look at screenshots too: tests don't catch layout or colour problems.

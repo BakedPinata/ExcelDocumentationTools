@@ -121,6 +121,31 @@ or that change it. Add to this file whenever a new decision is agreed.
 
 ## Page (stages 4–5)
 
+### Built in stage 4a
+
+- **The page's data is indented JSON** in a `<script type="application/json">` block: one value per line, so git diffs
+  stay readable. `<`, `>` and `&` are escaped as `<` and so on, so the data can't end the script element.
+- **A Content-Security-Policy** (`default-src 'none'`, inline scripts and styles only) makes the browser itself refuse
+  any network request. "Nothing loads from the network" is enforced, not just intended.
+- **Embedded source** goes in hidden `<pre>` blocks (HTML-escaped, read back with `textContent`), not
+  `<script type="text/plain">`: VBA strings can contain `</script>`, which can't be escaped inside a script element.
+- **Load folder** reads only files directly in the chosen folder (so `.git/` is ignored), decodes them with
+  `TextDecoder` using the project's code page, and checks each against the SHA-256 recorded in the page. It warns about
+  files that changed or are missing.
+- **Theme:** a stored choice wins; otherwise the page follows `prefers-color-scheme`. **Chromium reports "light" when the
+  user has no preference** (indistinguishable from choosing light), so "can't report a preference" can only mean a
+  browser without the feature, which gets dark. The theme is set by a small script in `<head>` before the page is drawn,
+  so it doesn't flash.
+- **A search box in the top bar** selects any module or member by id (exact or partial match). This is the search box
+  agreed for the graph, made available to both views.
+- **Views plug into `window.vbadoc`:** `select(id)`, `selection()`, `onSelectionChange`, `theme()`, `onThemeChange`,
+  `activeView()`, `onViewChange`. There is one selection for the whole page, so it carries across tabs automatically.
+- **The page title is the workbook's file name.** The VBA project name is almost always "VBAProject".
+- **Browser tests are a separate project** (`tests/VbaDocumenter.BrowserTests`). It downloads Playwright's Chromium
+  (about 150 MB) on first run. `dotnet test tests/VbaDocumenter.Tests` runs only the unit tests, with no download.
+
+### Agreed for later stages
+
 - **Mermaid class IDs are generated** (e.g. `M1`), with the real name as the label, so non-ASCII names can't break parsing.
   Raise Mermaid's `maxTextSize` and `maxEdges` for large projects. Keep `securityLevel: 'strict'` and attach click
   handlers to the rendered SVG.

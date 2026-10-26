@@ -27,7 +27,8 @@ try
     ConsoleReport.WriteModules(parsed, options.Verbose);
 
     Console.WriteLine("Analysing dependencies");
-    ConsoleReport.WriteDependencies(DependencyAnalyzer.Analyze(parsed), options.Verbose);
+    var dependencies = DependencyAnalyzer.Analyze(parsed);
+    ConsoleReport.WriteDependencies(dependencies, options.Verbose);
 
     Console.WriteLine($"Exporting to {options.OutputFolder}");
     var result = ProjectExporter.Export(project, options.OutputFolder);
@@ -37,8 +38,10 @@ try
     if (result.CreatedGitAttributes)
         Console.WriteLine("  Created .gitattributes");
 
-    if (options.EmbedSource)
-        Console.WriteLine("Note: --embed-source has no effect yet; the HTML page is built in a later stage.");
+    var html = HtmlPageWriter.Build(dependencies, project, Path.GetFileName(options.WorkbookPath), options.EmbedSource);
+    bool pageWritten = HtmlPageWriter.Write(options.OutputFolder, html);
+    Console.WriteLine($"  {HtmlPageWriter.FileName} {(pageWritten ? "written" : "unchanged")}" +
+                      (options.EmbedSource ? " (source embedded)" : " (open it and use Load folder to see source)"));
     return 0;
 }
 catch (ExtractionException ex)

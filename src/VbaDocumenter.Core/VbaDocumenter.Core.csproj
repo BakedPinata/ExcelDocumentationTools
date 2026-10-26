@@ -18,6 +18,10 @@
     <EmbeddedResource Include="Resources\Vendor\d3.LICENSE.txt" LogicalName="Vendor/d3.LICENSE.txt" />
     <EmbeddedResource Include="Resources\Vendor\mermaid.min.js" LogicalName="Vendor/mermaid.min.js" />
     <EmbeddedResource Include="Resources\Vendor\mermaid.LICENSE.txt" LogicalName="Vendor/mermaid.LICENSE.txt" />
+    <EmbeddedResource Include="Resources\Page\page.html" LogicalName="Page/page.html" />
+    <EmbeddedResource Include="Resources\Page\page.css" LogicalName="Page/page.css" />
+    <EmbeddedResource Include="Resources\Page\page.js" LogicalName="Page/page.js" />
+    <EmbeddedResource Include="Resources\Page\vba-highlight.js" LogicalName="Page/vba-highlight.js" />
   </ItemGroup>
 
 </Project>
