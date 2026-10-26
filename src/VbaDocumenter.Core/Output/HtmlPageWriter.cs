@@ -14,7 +14,7 @@ public static class HtmlPageWriter
     public const string FileName = "index.html";
 
     /// <summary>Our own scripts, in load order after the vendored libraries.</summary>
-    static readonly string[] PageScripts = ["Page/vba-highlight.js", "Page/page.js"];
+    static readonly string[] PageScripts = ["Page/vba-highlight.js", "Page/page.js", "Page/graph.js"];
 
     public static string Build(DependencyModel model, VbaProject project, string title, bool embedSource)
     {

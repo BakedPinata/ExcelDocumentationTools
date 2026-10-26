@@ -24,6 +24,15 @@ html[data-theme="dark"] {
   --syn-number: #f78c6c;
   --syn-name: #82aaff;
   --syn-type: #ffcb6b;
+  /* Graph: three validated categorical hues (all-pairs) for module groups; edge kinds also differ by dash. */
+  --kind-code: #3987e5;
+  --kind-class: #d95926;
+  --kind-host: #199e70;
+  --edge-uses: #7d8691;
+  --edge-implements: #9085e9;
+  --edge-events: #008300;
+  --hull-fill: rgba(255, 255, 255, 0.035);
+  --hull-stroke: rgba(255, 255, 255, 0.16);
 }
 
 html[data-theme="light"] {
@@ -44,6 +53,14 @@ html[data-theme="light"] {
   --syn-number: #b5530b;
   --syn-name: #1f5fbf;
   --syn-type: #9a6700;
+  --kind-code: #2a78d6;
+  --kind-class: #eb6834;
+  --kind-host: #1baf7a;
+  --edge-uses: #8a939c;
+  --edge-implements: #6250d6;
+  --edge-events: #008300;
+  --hull-fill: rgba(11, 11, 11, 0.03);
+  --hull-stroke: rgba(11, 11, 11, 0.14);
 }
 
 * { box-sizing: border-box; }
@@ -191,6 +208,130 @@ html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
   user-select: none;
 }
 .code .lt { padding-right: 16px; }
+
+/* ---- Dependency graph (graph.js) ---- */
+
+.view-toolbar {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none; /* only the controls themselves take clicks; the graph stays pannable around them */
+}
+.view-toolbar > * { pointer-events: auto; }
+
+.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.segmented button {
+  padding: 5px 10px;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.segmented button + button { border-left: 1px solid var(--border); }
+.segmented button[aria-checked="true"] { background: var(--surface-2); color: var(--text); font-weight: 600; }
+.view-toolbar .button { background: var(--surface); padding: 5px 10px; }
+.view-toolbar .button:disabled { opacity: 0.5; cursor: default; }
+.view-toolbar .button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
+.graph-filters { position: relative; }
+.graph-filters summary { list-style: none; }
+.graph-filters summary::-webkit-details-marker { display: none; }
+.graph-filters .menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 220px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+.graph-filters label { display: flex; align-items: center; gap: 8px; padding: 3px 0; white-space: nowrap; }
+.graph-filters hr { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
+
+.graph-svg { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.graph-svg:active { cursor: grabbing; }
+
+.graph-art .node { cursor: pointer; }
+.graph-art .node .hit { fill: transparent; }
+.graph-art .node .shape { stroke: var(--bg); stroke-width: 2px; } /* surface ring separates overlapping marks */
+.graph-art .group-code .shape { fill: var(--kind-code); }
+.graph-art .group-class .shape { fill: var(--kind-class); }
+.graph-art .group-host .shape { fill: var(--kind-host); }
+.graph-art .group-neutral .shape { fill: var(--text-muted); }
+.graph-art .node.hollow .shape { fill: var(--bg); stroke-width: 2.5px; }
+.graph-art .group-class.hollow .shape { stroke: var(--kind-class); }
+.graph-art .node.module-node .shape { fill: var(--bg); stroke-width: 2.5px; }
+.graph-art .group-code.module-node .shape { stroke: var(--kind-code); }
+.graph-art .group-class.module-node .shape { stroke: var(--kind-class); }
+.graph-art .group-host.module-node .shape { stroke: var(--kind-host); }
+.graph-art .node.unreferenced .shape { stroke: var(--text-muted); stroke-width: 1.5px; stroke-dasharray: 2 2; }
+.graph-art .node.selected .shape { stroke: var(--text); stroke-width: 2.5px; stroke-dasharray: none; }
+
+.graph-art .label { fill: var(--text); font: 12px var(--font-ui); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; } /* clickable: names are what people aim for */
+.graph-art .label.minor { font-size: 10.5px; fill: var(--text-muted); display: none; }
+.graph-art.all-labels .label.minor,
+.graph-art .node.selected .label.minor,
+.graph-art .node.related .label.minor { display: inline; }
+
+.graph-art .hull { fill: var(--hull-fill); stroke: var(--hull-stroke); stroke-width: 1px; cursor: pointer; }
+.graph-art .hull-label { fill: var(--text-muted); font: 600 12px var(--font-ui); pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; }
+
+.graph-art .edge { fill: none; stroke-width: 1.25px; }
+.graph-art .edge.uses { stroke: var(--edge-uses); }
+.graph-art .edge.implements { stroke: var(--edge-implements); stroke-dasharray: 6 4; }
+.graph-art .edge.events { stroke: var(--edge-events); stroke-dasharray: 2 3; }
+.graph-art .arrow-uses { fill: var(--edge-uses); }
+.graph-art .arrow-implements { fill: var(--bg); stroke: var(--edge-implements); stroke-width: 1.25px; }
+.graph-art .arrow-events { fill: var(--edge-events); }
+
+.graph-art .dim { opacity: 0.12; }
+.graph-art .edge.highlighted { stroke-width: 2px; }
+
+.view-legend {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 2;
+  max-width: calc(100% - 16px);
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.view-legend summary { cursor: pointer; color: var(--text); }
+.view-legend ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px 14px; }
+.view-legend li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.view-legend h3 { margin: 8px 0 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.view-legend svg { flex: none; overflow: visible; }
+
+.graph-tooltip {
+  position: absolute;
+  z-index: 3;
+  max-width: 320px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  font-size: 12.5px;
+  pointer-events: none;
+}
+.graph-tooltip strong { display: block; color: var(--text); word-break: break-word; }
+.graph-tooltip span { display: block; color: var(--text-muted); }
+
+.view-message { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--text-muted); pointer-events: none; }
+.view-message[hidden] { display: none; }
 
 /* Syntax highlighting (classes from vba-highlight.js) */
 .tok-keyword { color: var(--syn-keyword); }

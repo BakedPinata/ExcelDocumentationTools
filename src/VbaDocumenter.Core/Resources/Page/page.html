@@ -48,7 +48,26 @@
 </header>
 <main class="layout">
   <section class="view" id="view-graph" role="tabpanel" aria-labelledby="tab-graph">
-    <p class="placeholder">The dependency graph is added in the next build stage.</p>
+    <div class="view-toolbar" role="toolbar" aria-label="Graph options">
+      <div class="segmented" role="radiogroup" aria-label="Level">
+        <button type="button" role="radio" data-level="modules" aria-checked="true">Modules</button>
+        <button type="button" role="radio" data-level="members" aria-checked="false">Members</button>
+      </div>
+      <div class="segmented" role="radiogroup" aria-label="Highlight">
+        <button type="button" role="radio" data-reach="direct" aria-checked="true" title="Highlight direct dependencies and dependents">Direct</button>
+        <button type="button" role="radio" data-reach="transitive" aria-checked="false" title="Highlight the whole chain in each direction">Transitive</button>
+      </div>
+      <button type="button" class="button" id="graph-focus" aria-pressed="false" disabled title="Show only the selection and what it's connected to">Focus</button>
+      <button type="button" class="button" id="graph-fit" title="Zoom to fit">Fit</button>
+      <details class="graph-filters" id="graph-filters" hidden>
+        <summary class="button">Show…</summary>
+        <div class="menu" id="graph-filter-menu"></div>
+      </details>
+    </div>
+    <svg class="graph-svg graph-art" id="graph-svg" aria-label="Dependency graph"></svg>
+    <p class="view-message" id="graph-message" hidden></p>
+    <details class="view-legend" id="graph-legend" open><summary>Legend</summary><div id="graph-legend-body"></div></details>
+    <div class="graph-tooltip" id="graph-tooltip" hidden></div>
   </section>
   <section class="view" id="view-classes" role="tabpanel" aria-labelledby="tab-classes" hidden>
     <p class="placeholder">The class diagram is added in a later build stage.</p>

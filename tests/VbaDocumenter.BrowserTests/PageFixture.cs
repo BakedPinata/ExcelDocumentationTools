@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using VbaDocumenter.Core.Analysis;
+using VbaModuleKind = VbaDocumenter.Core.Extraction.VbaModuleKind;
 using VbaDocumenter.Core.Extraction;
 using VbaDocumenter.Core.Output;
 using VbaDocumenter.Core.Parsing;
@@ -39,6 +40,34 @@ public sealed class PageFixture : IAsyncLifetime
         SampleEmbedded = Generate(sample, "SampleVba.xlsm", "sample-embedded", embedSource: true);
         SampleFolder = Generate(sample, "SampleVba.xlsm", "sample-folder", embedSource: false);
         RealFolder = Generate(File.ReadAllBytes(Fixtures.Workbook("57181.xlsm")), "57181.xlsm", "real-folder", embedSource: false);
+        LargeEmbedded = Generate(SyntheticWorkbook.Xlsm(LargeProject(150)), "Large.xlsm", "large-embedded", embedSource: true);
+    }
+
+    /// <summary>A generated project of 150 modules and about 1,350 members, to check the views stay usable.</summary>
+    public string LargeEmbedded { get; private set; } = "";
+
+    /// <summary>
+    /// Modules Mod000..ModNNN, every third one a class, each with a public variable and eight procedures that
+    /// call procedures in two other modules.
+    /// </summary>
+    static List<SyntheticModule> LargeProject(int count)
+    {
+        var modules = new List<SyntheticModule>();
+        for (int i = 0; i < count; i++)
+        {
+            var name = $"Mod{i:000}";
+            var code = new System.Text.StringBuilder($"Attribute VB_Name = \"{name}\"\r\nOption Explicit\r\nPublic Counter As Long\r\n");
+            for (int p = 0; p < 8; p++)
+            {
+                code.Append($"Public Sub P{p}()\r\n")
+                    .Append($"    Mod{(i + 1) % count:000}.P{p}\r\n")
+                    .Append($"    Mod{(i * 7 + 3) % count:000}.P{(p + 1) % 8}\r\n")
+                    .Append("    Counter = Counter + 1\r\n")
+                    .Append("End Sub\r\n");
+            }
+            modules.Add(new SyntheticModule(name, i % 3 == 0 ? VbaModuleKind.Class : VbaModuleKind.Standard, code.ToString()));
+        }
+        return modules;
     }
 
     public async Task DisposeAsync()

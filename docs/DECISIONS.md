@@ -144,6 +144,30 @@ or that change it. Add to this file whenever a new decision is agreed.
 - **Browser tests are a separate project** (`tests/VbaDocumenter.BrowserTests`). It downloads Playwright's Chromium
   (about 150 MB) on first run. `dotnet test tests/VbaDocumenter.Tests` runs only the unit tests, with no download.
 
+### Built in stage 4b (dependency graph)
+
+- **Colours were validated, not eyeballed**, using the dataviz palette validator. Any two graph nodes can be next to
+  each other, so all pairs must be distinguishable, and only three categorical hues pass that test. So:
+  - colour shows three module groups: standard module (blue), class or interface (orange), UserForm or document (aqua);
+  - shape shows all five kinds: square, circle, hollow circle (interface), diamond, triangle;
+  - edge kinds differ by dash pattern first (Uses solid, Implements dashed with a hollow UML-style arrow, Events
+    dotted) and by colour second (grey, violet, green);
+  - the palette's status green is deliberately not used.
+- **Member level groups each module's members** in a cluster with a shaded outline and the module's name. Member shape
+  shows the member kind; colour carries over from the module group. A module's own node (for references such as
+  `As Order`) is only drawn when something refers to it.
+- **Labels:** module names are always shown. Member names appear when zoomed in (scale ≥ 1.3), and always for the
+  selection and its neighbours. Labels are clickable, because people aim at names.
+- **Highlighting:** Direct highlights the edges touching the selection and the nodes at their other ends. Transitive
+  follows every chain downstream and upstream. A module selected at member level selects its whole cluster; a member
+  selected at module level shows as its module. The page's selection itself isn't changed by switching level.
+- **Layout is computed in one go** (d3-force ticks run before drawing, not animated). d3-force starts from fixed
+  positions, so the same project always gets the same picture. About 2 s for 1,350 members in headless Chromium.
+- **Focus re-lays out only the highlighted neighbourhood** and follows the selection while on. "Show all" leaves it.
+- **Remembered per browser:** level and Direct/Transitive. Member filters aren't remembered.
+- **Edge thickness grows slightly with the reference count.** Hovering an edge shows its count; hovering a node shows
+  its kind and how many things it uses and is used by.
+
 ### Agreed for later stages
 
 - **Mermaid class IDs are generated** (e.g. `M1`), with the real name as the label, so non-ASCII names can't break parsing.

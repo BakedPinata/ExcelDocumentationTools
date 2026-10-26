@@ -14,8 +14,8 @@ See [Requirements.md](Requirements.md) for the full specification.
 
 ## Status
 
-Work in progress. Exporting the source files, analysing dependencies and the page's source browser work. The graph
-and class diagram views are still to come.
+Work in progress. Exporting the source files, analysing dependencies, the page's source browser and the dependency
+graph work. The class diagram is still to come.
 See [docs/PLAN.md](docs/PLAN.md) for the stages and progress, and [docs/DECISIONS.md](docs/DECISIONS.md)
 for the design decisions behind them.
 
