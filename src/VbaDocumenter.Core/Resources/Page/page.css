@@ -257,8 +257,23 @@ html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
 .graph-filters label { display: flex; align-items: center; gap: 8px; padding: 3px 0; white-space: nowrap; }
 .graph-filters hr { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
 
+/* The settings panel: sections of labelled sliders, checkboxes and a select. */
+.settings-menu { width: 280px; max-height: calc(100vh - 170px); overflow-y: auto; }
+.settings-menu h3 { margin: 10px 0 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.settings-menu h3:first-child { margin-top: 2px; }
+.graph-filters .settings-menu label { white-space: normal; }
+.settings-menu label.field { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 4px 0 0; }
+.settings-menu label.check { align-items: flex-start; }
+.settings-menu label.check input { margin-top: 3px; }
+.settings-menu small { display: block; color: var(--text-muted); font-size: 11px; }
+.settings-menu output { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.settings-menu input[type="range"] { width: 100%; margin: 2px 0 4px; accent-color: var(--accent); }
+.settings-menu select { width: 100%; margin: 2px 0 4px; padding: 3px 4px; font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); }
+.settings-menu .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+.settings-menu .actions .button { padding: 3px 8px; }
+
 .graph-svg { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
-.graph-svg:active { cursor: grabbing; }
+.graph-svg:active, .graph-svg.dragging, .graph-svg.dragging .node, .graph-svg.dragging .hull { cursor: grabbing; }
 
 .graph-art .node { cursor: pointer; }
 .graph-art .node .hit { fill: transparent; }
@@ -274,18 +289,21 @@ html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
 .graph-art .group-class.module-node .shape { stroke: var(--kind-class); }
 .graph-art .group-host.module-node .shape { stroke: var(--kind-host); }
 .graph-art .node.unreferenced .shape { stroke: var(--text-muted); stroke-width: 1.5px; stroke-dasharray: 2 2; }
+.graph-art .node.pinned .shape { stroke: var(--accent); stroke-width: 2.5px; stroke-dasharray: none; }
 .graph-art .node.selected .shape { stroke: var(--text); stroke-width: 2.5px; stroke-dasharray: none; }
 
-.graph-art .label { fill: var(--text); font: 12px var(--font-ui); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; } /* clickable: names are what people aim for */
-.graph-art .label.minor { font-size: 10.5px; fill: var(--text-muted); display: none; }
+.graph-art .label { fill: var(--text); font: calc(var(--graph-label-size, 10.5px) + 1.5px) var(--font-ui); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; } /* clickable: names are what people aim for */
+.graph-art .label.minor { font-size: var(--graph-label-size, 10.5px); fill: var(--text-muted); display: none; }
 .graph-art.all-labels .label.minor,
 .graph-art .node.selected .label.minor,
 .graph-art .node.related .label.minor { display: inline; }
 
 .graph-art .hull { fill: var(--hull-fill); stroke: var(--hull-stroke); stroke-width: 1px; cursor: pointer; }
-.graph-art .hull-label { fill: var(--text-muted); font: 600 12px var(--font-ui); pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; }
+.graph-art.no-hulls .hull { fill: transparent; stroke: none; }
+.graph-art .hull-label { fill: var(--text-muted); font: 600 calc(var(--graph-label-size, 10.5px) + 1.5px) var(--font-ui); pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; }
 
-.graph-art .edge { fill: none; stroke-width: 1.25px; }
+.graph-art .edge { fill: none; stroke-width: 1.25px; stroke-opacity: var(--graph-edge-opacity, 1); }
+.graph-art .edge.highlighted { stroke-opacity: 1; }
 .graph-art .edge.uses { stroke: var(--edge-uses); }
 .graph-art .edge.implements { stroke: var(--edge-implements); stroke-dasharray: 6 4; }
 .graph-art .edge.events { stroke: var(--edge-events); stroke-dasharray: 2 3; }

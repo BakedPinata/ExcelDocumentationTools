@@ -105,6 +105,209 @@ public class GraphTests(PageFixture fixture)
         Assert.Empty(opened.Errors);
     }
 
+    /// <summary>Pairs of labels whose boxes on screen overlap (all labels are shown by default).</summary>
+    static async Task<string[]> OverlappingLabels(IPage page)
+    {
+        return await page.EvaluateAsync<string[]>(@"() => {
+            const boxes = [...document.querySelectorAll('#graph-svg g.node')].map(n => ({ id: n.dataset.id, r: n.querySelector('text.label').getBoundingClientRect() }));
+            const overlaps = [];
+            for (let i = 0; i < boxes.length; i++)
+                for (let j = i + 1; j < boxes.length; j++) {
+                    const a = boxes[i].r, b = boxes[j].r;
+                    if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) overlaps.push(boxes[i].id + ' / ' + boxes[j].id);
+                }
+            return overlaps;
+        }");
+    }
+
+    [Fact]
+    public async Task Member_names_never_overlap()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        await ShowMembers(opened.Page);
+
+        Assert.Empty(await OverlappingLabels(opened.Page));
+    }
+
+    const string CrossModuleEdge = "#graph-svg path.edge[data-from='Order.Describe'][data-to='Utils.FormatMoney']";
+
+    static async Task OpenSettings(IPage page)
+    {
+        await page.ClickAsync("#graph-settings summary");
+        await page.WaitForSelectorAsync("#graph-settings-menu", new() { State = WaitForSelectorState.Visible });
+    }
+
+    static Task WaitUntilStill(IPage page) => page.WaitForFunctionAsync("() => !window.vbadocGraph.moving()", null, new() { Timeout = 20000 });
+
+    static Task<double[]> Position(IPage page, string id) =>
+        page.EvaluateAsync<double[]>("id => { const p = window.vbadocGraph.position(id); return [p.x, p.y]; }", id);
+
+    /// <summary>Drags from the middle of an element by (dx, dy) screen pixels in small steps, like a person would.</summary>
+    static async Task Drag(IPage page, string selector, float dx, float dy)
+    {
+        var box = (await page.Locator(selector).BoundingBoxAsync())!;
+        await DragFrom(page, box.X + box.Width / 2, box.Y + box.Height / 2, dx, dy);
+    }
+
+    static async Task DragFrom(IPage page, float x, float y, float dx, float dy)
+    {
+        await page.Mouse.MoveAsync(x, y);
+        await page.Mouse.DownAsync();
+        for (int i = 1; i <= 10; i++) await page.Mouse.MoveAsync(x + dx * i / 10, y + dy * i / 10);
+        await page.Mouse.UpAsync();
+    }
+
+    [Fact]
+    public async Task Member_names_are_shown_without_a_selection_unless_the_setting_says_otherwise()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await ShowMembers(page);
+        var label = page.Locator("#graph-svg g.node[data-id='Order.Describe'] text.label");
+        Assert.True(await label.IsVisibleAsync());
+
+        await OpenSettings(page);
+        await page.SelectOptionAsync("#graph-setting-labels", "selection");
+        Assert.False(await label.IsVisibleAsync());
+
+        await page.ReloadAsync(); // remembered per browser
+        await page.WaitForFunctionAsync("() => window.vbadocGraph && window.vbadocGraph.level() === 'members'");
+        Assert.False(await label.IsVisibleAsync());
+
+        await OpenSettings(page);
+        await page.ClickAsync("#graph-reset-settings");
+        Assert.True(await label.IsVisibleAsync());
+        Assert.Equal("always", await page.InputValueAsync("#graph-setting-labels"));
+    }
+
+    [Fact]
+    public async Task Drop_downs_close_when_clicking_elsewhere_or_pressing_Escape()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await ShowMembers(page);
+        var settingsOpen = "() => document.getElementById('graph-settings').open";
+        var filtersOpen = "() => document.getElementById('graph-filters').open";
+
+        await OpenSettings(page);
+        await page.ClickAsync("#graph-setting-curvedEdges"); // using a control inside keeps it open
+        Assert.True(await page.EvaluateAsync<bool>(settingsOpen));
+
+        await page.ClickAsync("#graph-filters summary"); // opening the other one closes it
+        Assert.False(await page.EvaluateAsync<bool>(settingsOpen));
+        Assert.True(await page.EvaluateAsync<bool>(filtersOpen));
+
+        await page.Mouse.ClickAsync(900, 700); // the graph background
+        Assert.False(await page.EvaluateAsync<bool>(filtersOpen));
+
+        await OpenSettings(page);
+        await page.Keyboard.PressAsync("Escape");
+        Assert.False(await page.EvaluateAsync<bool>(settingsOpen));
+    }
+
+    [Fact]
+    public async Task Edges_are_single_curves_unless_bundling_is_switched_on()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await ShowMembers(page);
+        Assert.Contains("Q", await page.GetAttributeAsync(CrossModuleEdge, "d"));
+
+        await OpenSettings(page);
+        await page.CheckAsync("#graph-setting-bundleEdges");
+        Assert.Contains("C", await page.GetAttributeAsync(CrossModuleEdge, "d")); // a spline through the shared points
+
+        await page.UncheckAsync("#graph-setting-bundleEdges");
+        await page.UncheckAsync("#graph-setting-curvedEdges");
+        Assert.Contains("L", await page.GetAttributeAsync(CrossModuleEdge, "d")); // a straight line
+    }
+
+    [Fact]
+    public async Task Dragging_a_node_moves_it_and_the_graph_rearranges_without_selecting_it()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        var main = await Position(page, "Main");
+        var order = await Position(page, "Order");
+
+        await Drag(page, "#graph-svg g.node[data-id='Main'] path.shape", 150, 100);
+        await WaitUntilStill(page);
+
+        var mainAfter = await Position(page, "Main");
+        var orderAfter = await Position(page, "Order");
+        Assert.True(Math.Abs(mainAfter[0] - main[0]) > 20, $"Main didn't move: {main[0]} -> {mainAfter[0]}");
+        Assert.True(Math.Abs(orderAfter[0] - order[0]) + Math.Abs(orderAfter[1] - order[1]) > 1, "Order, which Main uses, didn't follow");
+        Assert.Null(await Selection(page));
+        Assert.Empty(opened.Errors);
+    }
+
+    [Fact]
+    public async Task Dragged_nodes_can_be_pinned_and_released_with_a_double_click()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await OpenSettings(page);
+        await page.CheckAsync("#graph-setting-pinDragged");
+        await page.ClickAsync("#graph-settings summary"); // close the panel
+
+        await Drag(page, "#graph-svg g.node[data-id='Utils'] path.shape", -120, 80);
+        await WaitUntilStill(page);
+        Assert.Equal(1, await Count(page, "#graph-svg g.node.pinned[data-id='Utils']"));
+
+        await page.DblClickAsync("#graph-svg g.node[data-id='Utils'] path.shape", new() { Force = true });
+        Assert.Equal(0, await Count(page, "#graph-svg g.node.pinned"));
+    }
+
+    [Fact]
+    public async Task Dragging_a_module_outline_moves_all_its_members()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await ShowMembers(page);
+        await OpenSettings(page);
+        await page.UncheckAsync("#graph-setting-live"); // move only what's dragged, so the shift is exact
+        await page.ClickAsync("#graph-settings summary");
+        var before = await Position(page, "Logger.LogInfo");
+        var other = await Position(page, "Logger.WriteLine");
+
+        // A point where the outline itself, not a member or name on top of it, is under the mouse.
+        var point = await page.EvaluateAsync<float[]>(@"() => {
+            const hull = document.querySelector(""#graph-svg g.hull-group[data-module='Logger'] path.hull"");
+            const r = hull.getBoundingClientRect();
+            for (let y = r.top + 2; y < r.bottom; y += 3)
+                for (let x = r.left + 2; x < r.right; x += 3)
+                    if (document.elementFromPoint(x, y) === hull) return [x, y];
+            return null;
+        }");
+        await DragFrom(page, point[0], point[1], 100, 60);
+
+        var after = await Position(page, "Logger.LogInfo");
+        var otherAfter = await Position(page, "Logger.WriteLine");
+        Assert.True(after[0] - before[0] > 5);
+        Assert.Equal(after[0] - before[0], otherAfter[0] - other[0], 3);
+        Assert.Equal(after[1] - before[1], otherAfter[1] - other[1], 3);
+    }
+
+    [Fact]
+    public async Task Layout_settings_change_the_graph_live_and_names_still_never_overlap()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await ShowMembers(page);
+        var height = "() => document.querySelector('#graph-svg .viewport').getBBox().height";
+        var before = await page.EvaluateAsync<double>(height);
+
+        await OpenSettings(page);
+        await page.Locator("#graph-setting-memberSpacing").FillAsync("40");
+        await page.Locator("#graph-setting-labelSize").FillAsync("14");
+        await WaitUntilStill(page);
+
+        Assert.Contains("40px", await page.InnerTextAsync("#graph-settings-menu"));
+        Assert.True(await page.EvaluateAsync<double>(height) > before);
+        Assert.Empty(await OverlappingLabels(page));
+        Assert.Empty(opened.Errors);
+    }
+
     [Fact]
     public async Task A_member_node_shows_its_own_source_and_maps_to_its_module_at_module_level()
     {
@@ -228,6 +431,7 @@ public class GraphTests(PageFixture fixture)
 
         Assert.True(await Count(page, "#graph-svg g.node") > 1300);
         Assert.True(timer.Elapsed < TimeSpan.FromSeconds(15), $"Member level took {timer.Elapsed.TotalSeconds:F1}s");
+        Assert.Empty(await OverlappingLabels(page));
         await opened.SelectAsync("Mod042.P3");
         Assert.True(await Count(page, "#graph-svg g.node.related") >= 4);
         Assert.Empty(opened.Errors);

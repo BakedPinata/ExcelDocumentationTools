@@ -156,15 +156,28 @@ or that change it. Add to this file whenever a new decision is agreed.
 - **Member level groups each module's members** in a cluster with a shaded outline and the module's name. Member shape
   shows the member kind; colour carries over from the module group. A module's own node (for references such as
   `As Order`) is only drawn when something refers to it.
-- **Labels:** module names are always shown. Member names appear when zoomed in (scale ≥ 1.3), and always for the
-  selection and its neighbours. Labels are clickable, because people aim at names.
+- **Labels:** module and member names are always shown by default (revised after testing on a dense real workbook;
+  the earlier "member names only when zoomed in" is now a setting). Labels are clickable, because people aim at names.
+- **Names never overlap at member level.** Each member is laid out as a rectangle covering its mark and its name
+  (measured in the drawing font), and rectangles in a module are kept apart. Modules are kept apart as whole
+  rectangles. Any overlap left when the layout comes to rest is removed outright. Browser tests check this.
 - **Highlighting:** Direct highlights the edges touching the selection and the nodes at their other ends. Transitive
   follows every chain downstream and upstream. A module selected at member level selects its whole cluster; a member
   selected at module level shows as its module. The page's selection itself isn't changed by switching level.
-- **Layout is computed in one go** (d3-force ticks run before drawing, not animated). d3-force starts from fixed
-  positions, so the same project always gets the same picture. About 2 s for 1,350 members in headless Chromium.
+- **The starting layout is computed in one go** (d3-force ticks run before drawing). d3-force starts from fixed
+  positions, so the same project and settings always give the same first picture; "Re-run layout" returns to it.
+  The simulation is then kept, not discarded:
+  - dragging a node, or a module's outline (which moves the whole module), wakes it so the graph rearranges live;
+  - a module holding a dragged node stays put and pushes others away, so it isn't torn apart;
+  - "Keep dragged nodes where dropped" pins them (double-click releases); off by default.
+- **Edges are single curves.** Bundling edges between modules was tried and rejected as the default; it remains an
+  option, off by default.
+- **A settings panel** (Settings button in the graph toolbar) controls names, text and node size, edge opacity and
+  curves, bundling, module outlines, dragging behaviour and the layout forces. Changes apply straight away (layout
+  changes animate). Settings are remembered per browser, with a reset button. The Show… and Settings drop-downs close
+  on a click outside them or Escape.
 - **Focus re-lays out only the highlighted neighbourhood** and follows the selection while on. "Show all" leaves it.
-- **Remembered per browser:** level and Direct/Transitive. Member filters aren't remembered.
+- **Remembered per browser:** level, Direct/Transitive and the settings panel. Member filters aren't remembered.
 - **Edge thickness grows slightly with the reference count.** Hovering an edge shows its count; hovering a node shows
   its kind and how many things it uses and is used by.
 
