@@ -10,9 +10,7 @@ public static class MemberFormatter
     {
         string visibility = m.Visibility.ToString();
         string asType = m.Type == null ? "" : $" As {m.Type}{(m.IsArray ? "()" : "")}";
-        string parameters = string.Join(", ", m.Parameters.Select(p =>
-            $"{(p.IsOptional ? "Optional " : "")}{(p.IsParamArray ? "ParamArray " : "")}{p.Name}{(p.IsArray ? "()" : "")}" +
-            $"{(p.Type == null ? "" : $" As {p.Type}")}{(p.DefaultValue == null ? "" : $" = {p.DefaultValue}")}"));
+        string parameters = Parameters(m);
 
         return m.Kind switch
         {
@@ -32,4 +30,11 @@ public static class MemberFormatter
             _ => m.Name,
         };
     }
+
+    /// <summary>A member's parameter list without the brackets, e.g. "Optional n As Long = 5, rows() As String".</summary>
+    public static string Parameters(Member m) => Parameters(m.Parameters);
+
+    public static string Parameters(IEnumerable<Parameter> parameters) => string.Join(", ", parameters.Select(p =>
+        $"{(p.IsOptional ? "Optional " : "")}{(p.IsParamArray ? "ParamArray " : "")}{p.Name}{(p.IsArray ? "()" : "")}" +
+        $"{(p.Type == null ? "" : $" As {p.Type}")}{(p.DefaultValue == null ? "" : $" = {p.DefaultValue}")}"));
 }

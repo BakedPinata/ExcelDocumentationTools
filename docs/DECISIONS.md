@@ -181,11 +181,46 @@ or that change it. Add to this file whenever a new decision is agreed.
 - **Edge thickness grows slightly with the reference count.** Hovering an edge shows its count; hovering a node shows
   its kind and how many things it uses and is used by.
 
+### Built in stage 5 (class diagram)
+
+- **Mermaid class IDs are generated** (`M1`, `M2`, … in project order), with the real name as the label, so no name can
+  break parsing. `maxTextSize` and `maxEdges` are raised for large projects. `securityLevel` stays `'strict'`; click
+  handlers are attached to the rendered SVG.
+- **The Mermaid text is generated in the page** (`classes.js`) from structured data, so focus mode and the Show…
+  options just generate a smaller diagram. The C# side (`ClassDiagram`, unit-tested) works out each member's line and
+  the relationships; the page data carries them unescaped (`members[].class`, `classEdges`).
+- **Escaping:** checked against Mermaid 11.17.2. Member text goes through Mermaid's parser, markdown and entity
+  decoding, so `# { } ~ < > & $ * _ [ ] ( ) `` ` are written as entity codes (`#123;`), which Mermaid displays as the
+  character. Only a method's own brackets stay real: Mermaid treats any line containing `)` as a method and crashes on a
+  `)` without a matching `(`. Class bodies are used rather than `Class : member` lines, which are much stricter.
+- **Box contents:**
+  - methods `+Name(params) Type`; attributes `-m_Id : String`; Friend is `~`;
+  - events, constants, enums, types and declares are prefixed with `Event`, `Const`, `Enum`, `Type`, `Declare`;
+  - a property is shown once, on its first accessor, as `+Property Status : String «Get/Let»`; an indexed property
+    (with parameters besides the value) is drawn as a method so its parameters show;
+  - enum values are left out (the Enum is shown); constant values are cut to 40 characters;
+  - a declaration repeated under `#If`/`#Else` that gives the same line is shown once.
+- **Relationships:** Implements is realisation. A module-level variable typed as another project module (other than a
+  standard module) is an association labelled with the variable name, prefixed `WithEvents` for event sources. Every
+  other module edge is a dependency, except where an association already links the same two modules (which also
+  covers the WithEvents Events edge).
+- **Clicks:** each box is mapped back to its module from the generated id, and each member line by its position, since
+  Mermaid draws attributes then methods, each in order. Clicking a property's line selects its first accessor, and
+  the line stays highlighted for the other accessors.
+- **Large projects:** Mermaid's layout slows sharply with many edges (600 dependencies took about a minute in headless
+  Chromium). So unless the user has chosen in Show…, the full diagram leaves dependencies out when there are more
+  than 150, says so in the toolbar, and Focus (a small neighbourhood) still shows them. The browser tests' generated
+  project is now 300 modules for both views; its full class diagram draws in about 20 s. Known limit: boxes with no
+  relationships are laid out by Mermaid in one long row.
+- **Looks:** Mermaid's `base` theme coloured from the page's CSS variables, redrawn on theme change; box outlines take
+  the graph's module-group colours. The diagram is an SVG in a scrolling box: zoom buttons, Fit, and Ctrl+wheel. It
+  first fits the width, but not below 40%.
+- **Remembered per browser:** the Show… options (members, private members, dependencies). Focus follows the selection.
+- **The toolbar drop-downs' outside-click and Escape handling moved to `page.js`** and applies to every
+  `<details class="dropdown">`.
+
 ### Agreed for later stages
 
-- **Mermaid class IDs are generated** (e.g. `M1`), with the real name as the label, so non-ASCII names can't break parsing.
-  Raise Mermaid's `maxTextSize` and `maxEdges` for large projects. Keep `securityLevel: 'strict'` and attach click
-  handlers to the rendered SVG.
 - **In `--embed-source` mode** each module goes in its own `<script type="text/plain">` block, so diffs of the page
   are line by line.
 - **In load-folder mode** the page stores a short hash of each source file and warns if the chosen folder doesn't match.

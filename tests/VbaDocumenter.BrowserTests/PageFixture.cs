@@ -40,11 +40,36 @@ public sealed class PageFixture : IAsyncLifetime
         SampleEmbedded = Generate(sample, "SampleVba.xlsm", "sample-embedded", embedSource: true);
         SampleFolder = Generate(sample, "SampleVba.xlsm", "sample-folder", embedSource: false);
         RealFolder = Generate(File.ReadAllBytes(Fixtures.Workbook("57181.xlsm")), "57181.xlsm", "real-folder", embedSource: false);
-        LargeEmbedded = Generate(SyntheticWorkbook.Xlsm(LargeProject(150)), "Large.xlsm", "large-embedded", embedSource: true);
+        LargeEmbedded = Generate(SyntheticWorkbook.Xlsm(LargeProject(300)), "Large.xlsm", "large-embedded", embedSource: true);
+        AwkwardEmbedded = Generate(SyntheticWorkbook.Xlsm(AwkwardProject()), "Awkward.xlsm", "awkward-embedded", embedSource: true);
     }
 
-    /// <summary>A generated project of 150 modules and about 1,350 members, to check the views stay usable.</summary>
+    /// <summary>A generated project of 300 modules and about 2,700 members, to check the views stay usable.</summary>
     public string LargeEmbedded { get; private set; } = "";
+
+    /// <summary>
+    /// Names and values that mean something to Mermaid or markdown: braces, brackets, entity codes, emphasis,
+    /// generics, HTML, a lone ")" (which crashes Mermaid's member parser if left as is), and non-ASCII names.
+    /// </summary>
+    public string AwkwardEmbedded { get; private set; } = "";
+
+    public const string AwkwardModule = "Données_Ü";
+
+    static List<SyntheticModule> AwkwardProject() =>
+    [
+        new(AwkwardModule, VbaModuleKind.Standard, string.Join("\r\n",
+            $"Attribute VB_Name = \"{AwkwardModule}\"",
+            "Option Explicit",
+            "Public Const BRACES As String = \"{a} }\"",
+            "Public Const PAREN As String = \"a)b\"",
+            "Public Const MARKDOWN As String = \"**x** __y__ [l](u) `c`\"",
+            "Public Const ENTITY As String = \"#59; &amp; <b>bold</b> ~T~\"",
+            "Public Const DOLLAR As String = \"cost$\"",
+            "Public Function Größe$(Optional ByVal s As String = \"(\", Optional n As Long = 5)",
+            "    Größe = s",
+            "End Function",
+            "")),
+    ];
 
     /// <summary>
     /// Modules Mod000..ModNNN, every third one a class, each with a public variable and eight procedures that

@@ -774,7 +774,8 @@
       .classed("dim", function (g) { return !!reached && !g[1].some(function (n) { return reached.nodes.has(n.id); }); });
 
     updateToolbar();
-    if (start.length === 1) bringIntoView(graph.byId.get(start[0]));
+    // A hidden view has no size, and moving it then would give d3-zoom a NaN transform.
+    if (start.length === 1 && vb.activeView() === "graph") bringIntoView(graph.byId.get(start[0]));
   }
 
   // ---- Zoom helpers ----
@@ -937,16 +938,6 @@
     render();
   });
 
-  // The "Show…" and "Settings" drop-downs close when you press anywhere outside them (including starting to
-  // pan or drag the graph) or press Escape. Opening one therefore closes the other.
-  var dropDowns = view.querySelectorAll("details.graph-filters");
-  document.addEventListener("pointerdown", function (event) {
-    dropDowns.forEach(function (d) { if (d.open && !d.contains(event.target)) d.open = false; });
-  }, true);
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") dropDowns.forEach(function (d) { d.open = false; });
-  });
-
   // ---- Settings panel ----
   //
   // Built from CONTROLS. Settings are remembered per browser. Changes apply straight away: looks restyle,
@@ -1034,7 +1025,8 @@
 
   var started = false;
   function drawIfVisible() {
-    if (vb.activeView() !== "graph" || started) return;
+    if (vb.activeView() !== "graph") return;
+    if (started) { highlight(); return; } // catch up with a selection made in the other view
     started = true;
     render();
   }

@@ -344,6 +344,18 @@
   searchBox.addEventListener("input", function () { searchFor(searchBox.value, false); }); // picking from the list
   searchBox.addEventListener("keydown", function (e) { if (e.key === "Enter") searchFor(searchBox.value, true); });
 
+  // ---- Drop-down menus ----
+
+  // The toolbars' drop-downs (<details class="dropdown">) close when you press anywhere outside them, including
+  // starting to pan or drag a view, or press Escape. Opening one therefore closes any other.
+  var dropDowns = document.querySelectorAll("details.dropdown");
+  document.addEventListener("pointerdown", function (event) {
+    dropDowns.forEach(function (d) { if (d.open && !d.contains(event.target)) d.open = false; });
+  }, true);
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") dropDowns.forEach(function (d) { d.open = false; });
+  });
+
   // ---- Start ----
 
   window.vbadoc = {

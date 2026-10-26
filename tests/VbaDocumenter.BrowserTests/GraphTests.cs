@@ -423,13 +423,13 @@ public class GraphTests(PageFixture fixture)
     {
         await using var opened = await OpenedPage.OpenAsync(fixture, fixture.LargeEmbedded);
         var page = opened.Page;
-        Assert.Equal(150, await Count(page, "#graph-svg g.node"));
+        Assert.Equal(300, await Count(page, "#graph-svg g.node"));
 
         var timer = Stopwatch.StartNew();
         await ShowMembers(page);
         timer.Stop();
 
-        Assert.True(await Count(page, "#graph-svg g.node") > 1300);
+        Assert.True(await Count(page, "#graph-svg g.node") > 2600);
         Assert.True(timer.Elapsed < TimeSpan.FromSeconds(15), $"Member level took {timer.Elapsed.TotalSeconds:F1}s");
         Assert.Empty(await OverlappingLabels(page));
         await opened.SelectAsync("Mod042.P3");

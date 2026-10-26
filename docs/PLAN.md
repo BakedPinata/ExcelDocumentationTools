@@ -3,7 +3,7 @@
 The tool is built in small stages. Each stage ends with passing tests, a commit and a push,
 and a pause for review before the next one starts.
 
-**Current state:** stages 0–4 are done. **Next: stage 5.**
+**Current state:** stages 0–5 are done. **Next: stage 6.**
 
 | Stage | Scope | Status |
 |---|---|---|
@@ -13,8 +13,8 @@ and a pause for review before the next one starts.
 | 3 | Reference resolution and dependency model: Uses / Implements / Events edges at module and member level; type-aware `obj.Member` resolution (locals, parameters, module variables, public globals, `Me`, module-qualified names, `With` blocks); late-bound count; unreferenced members. Console report; tests assert the expected edge list for SampleVba | Done |
 | 4a | HTML page: tabs, light/dark theme (system default, remembered switch), search, source panel (load-folder and `--embed-source` modes, member-only or whole-module view, role/unreferenced/late-bound details), VBA highlighter, Content-Security-Policy blocking all network access. Headless browser tests (Playwright + Chromium) | Done |
 | 4b | Dependency graph (d3) at module and member level: owning module obvious, three edge types with legend, click to highlight dependencies and dependents (direct/transitive toggle), background click clears, zoom/pan, Focus button, member-kind filters, selection shared with the source panel and other tab. Views plug into `window.vbadoc` (see the top of `page.js`). Revised after real-workbook testing: names never overlap and are always shown, drag nodes or whole modules with live rearranging, settings panel | Done |
-| 5 | Class diagram: Mermaid generation, click handlers on the rendered SVG, focus mode, selection kept across tabs, theme re-render, large-project stress test (the browser tests already generate a 150-module project; extend to ~300). Follow `graph.js` for structure, and add a `view-classes` toolbar like the graph's | Next |
-| 6 | UserForms: read controls from the designer storage (MS-OFORMS), link handlers to controls, warn instead of failing on unreadable designer data | |
+| 5 | Class diagram: Mermaid generated in the page from `ClassDiagram` data (generated ids, entity escaping), click handlers on the rendered SVG for boxes and member lines, focus mode following the selection, selection shared across tabs, theme re-render, zoom/scroll, Show… options; dependencies auto-hidden over 150 in the full diagram. Large-project tests at 300 modules | Done |
+| 6 | UserForms: read controls from the designer storage (MS-OFORMS), link handlers to controls, warn instead of failing on unreadable designer data | Next |
 | 7 | Polish: whole-output determinism test, README, third-party notices | |
 
 Decisions agreed along the way are in [DECISIONS.md](DECISIONS.md). The specification is [Requirements.md](../Requirements.md).

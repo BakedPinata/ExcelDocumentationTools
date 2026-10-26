@@ -59,11 +59,11 @@
       </div>
       <button type="button" class="button" id="graph-focus" aria-pressed="false" disabled title="Show only the selection and what it's connected to">Focus</button>
       <button type="button" class="button" id="graph-fit" title="Zoom to fit">Fit</button>
-      <details class="graph-filters" id="graph-filters" hidden>
+      <details class="graph-filters dropdown" id="graph-filters" hidden>
         <summary class="button">Show…</summary>
         <div class="menu" id="graph-filter-menu"></div>
       </details>
-      <details class="graph-filters graph-settings" id="graph-settings">
+      <details class="graph-filters graph-settings dropdown" id="graph-settings">
         <summary class="button" title="How the graph looks and behaves">Settings</summary>
         <div class="menu settings-menu" id="graph-settings-menu"></div>
       </details>
@@ -74,7 +74,22 @@
     <div class="graph-tooltip" id="graph-tooltip" hidden></div>
   </section>
   <section class="view" id="view-classes" role="tabpanel" aria-labelledby="tab-classes" hidden>
-    <p class="placeholder">The class diagram is added in a later build stage.</p>
+    <div class="view-toolbar" role="toolbar" aria-label="Class diagram options">
+      <button type="button" class="button" id="classes-focus" aria-pressed="false" disabled title="Show only the selected module and the modules related to it">Focus</button>
+      <div class="segmented" role="group" aria-label="Zoom">
+        <button type="button" id="classes-zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
+        <button type="button" id="classes-zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+      </div>
+      <button type="button" class="button" id="classes-fit" title="Zoom to fit">Fit</button>
+      <details class="graph-filters dropdown" id="classes-filters">
+        <summary class="button">Show…</summary>
+        <div class="menu" id="classes-filter-menu"></div>
+      </details>
+      <span class="toolbar-note" id="classes-note" role="status" hidden></span>
+    </div>
+    <div class="classes-canvas" id="classes-canvas" aria-label="Class diagram"></div>
+    <p class="view-message" id="classes-message" hidden></p>
+    <details class="view-legend" id="classes-legend" open><summary>Legend</summary><div id="classes-legend-body"></div></details>
   </section>
   <aside class="source-panel" id="source-panel" aria-label="Source">
     <div class="source-header" id="source-header"></div>

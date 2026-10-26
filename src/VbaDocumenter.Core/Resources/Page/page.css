@@ -239,6 +239,8 @@ html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
 .view-toolbar .button { background: var(--surface); padding: 5px 10px; }
 .view-toolbar .button:disabled { opacity: 0.5; cursor: default; }
 .view-toolbar .button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.toolbar-note { padding: 4px 8px; font-size: 12px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.toolbar-note[hidden] { display: none; }
 
 .graph-filters { position: relative; }
 .graph-filters summary { list-style: none; }
@@ -347,6 +349,27 @@ html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
 }
 .graph-tooltip strong { display: block; color: var(--text); word-break: break-word; }
 .graph-tooltip span { display: block; color: var(--text-muted); }
+
+/* ---- Class diagram (classes.js) ---- */
+
+/* The diagram scrolls inside this box; the toolbar and legend float over it, so leave room at the top. */
+.classes-canvas { position: absolute; inset: 0; overflow: auto; padding: 52px 16px 16px; }
+.classes-canvas svg { display: block; }
+.classes-canvas g.node[data-module] { cursor: pointer; }
+/* Mermaid writes its colours into the SVG with id selectors, so these need !important to win. */
+.classes-canvas g.node .outer-path path { stroke-width: 1.5px !important; }
+.classes-canvas g.node.kind-module .outer-path path { stroke: var(--kind-code) !important; }
+.classes-canvas g.node.kind-class .outer-path path,
+.classes-canvas g.node.kind-interface .outer-path path { stroke: var(--kind-class) !important; }
+.classes-canvas g.node.kind-form .outer-path path,
+.classes-canvas g.node.kind-document .outer-path path { stroke: var(--kind-host) !important; }
+.classes-canvas g.node.selected .outer-path path { stroke: var(--text) !important; stroke-width: 3px !important; }
+/* Highlights must not change a line's width: Mermaid sized the line for its text, so padding would clip it. */
+.classes-canvas [data-member] p { border-radius: 2px; }
+.classes-canvas [data-member]:hover p { background: var(--line-highlight); box-shadow: 0 0 0 2px var(--line-highlight); }
+.classes-canvas [data-member].selected-line p { background: var(--accent); box-shadow: 0 0 0 2px var(--accent); color: var(--accent-text) !important; }
+#classes-legend svg { color: var(--text-muted); }
+#classes-legend ul { grid-template-columns: 1fr; }
 
 .view-message { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--text-muted); pointer-events: none; }
 .view-message[hidden] { display: none; }

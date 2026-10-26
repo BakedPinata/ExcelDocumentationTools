@@ -16,9 +16,10 @@ public sealed record PageProject(string Title, string Name, int CodePage, string
 /// loaded folder still matches.</param>
 public sealed record PageModule(string Id, string Kind, string File, bool IsInterface, int Lines, string Hash);
 
+/// <param name="Class">The member's line in the class diagram, or null if it isn't shown there.</param>
 public sealed record PageMember(
     string Id, string Module, string Name, string Kind, string Visibility, string Signature,
-    int Start, int End, int Declaration, string Role, bool Unreferenced, string? Parent);
+    int Start, int End, int Declaration, string Role, bool Unreferenced, string? Parent, PageClassLine? Class);
 
 public sealed record PageEdge(string From, string To, string Kind, int Count);
 
@@ -30,6 +31,7 @@ public sealed record PageData(
     IReadOnlyList<PageMember> Members,
     IReadOnlyList<PageEdge> ModuleEdges,
     IReadOnlyList<PageEdge> MemberEdges,
+    IReadOnlyList<PageClassEdge> ClassEdges,
     IReadOnlyList<PageLateBound> LateBound)
 {
     static readonly JsonSerializerOptions JsonOptions = new()
@@ -54,10 +56,12 @@ public sealed record PageData(
                 node.IsInterface, node.Module.LineCount, Convert.ToHexStringLower(SHA256.HashData(content))[..16]);
         }).ToList();
 
+        var classLines = model.Modules.ToDictionary(m => m.Id, m => ClassDiagram.Lines(m.Module));
         var members = model.Members.Where(n => n.Member != null).Select(n => new PageMember(
             n.Id, n.Module.Name, n.Member!.Name, Camel(n.Member.Kind), Camel(n.Member.Visibility),
             MemberFormatter.Signature(n.Member), n.Member.StartLine, n.Member.EndLine, n.Member.DeclarationLine,
-            Camel(n.Role), n.IsUnreferenced, n.Member.ParentName)).ToList();
+            Camel(n.Role), n.IsUnreferenced, n.Member.ParentName,
+            classLines[n.Module.Name].GetValueOrDefault(n.Member))).ToList();
 
         PageEdge Edge(Edge e) => new(e.From, e.To, Camel(e.Kind), e.Count);
 
@@ -68,6 +72,7 @@ public sealed record PageData(
             members,
             model.ModuleEdges.Select(Edge).ToList(),
             model.MemberEdges.Select(Edge).ToList(),
+            ClassDiagram.Edges(model),
             model.LateBound.Select(l => new PageLateBound(l.FromId, l.Expression, l.Line)).ToList());
     }
 
