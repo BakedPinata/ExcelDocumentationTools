@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\VbaDocumenter.Core\VbaDocumenter.Core.csproj" />
+    <ProjectReference Include="..\..\src\VbaDocumenter\VbaDocumenter.csproj" />
   </ItemGroup>
 
   <ItemGroup>

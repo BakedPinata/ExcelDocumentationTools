@@ -4,6 +4,11 @@
     <ProjectReference Include="..\VbaDocumenter.Core\VbaDocumenter.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Lets the tests check command-line parsing without making it public. -->
+    <InternalsVisibleTo Include="VbaDocumenter.Tests" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>vbadoc</AssemblyName>
