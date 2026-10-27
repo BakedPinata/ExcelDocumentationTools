@@ -7,9 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- MPL-2.0, used unmodified. Reads OLE compound files (vbaProject.bin, .xls).
-         3.x rather than 2.x: 2.4.1 has two unpatched denial-of-service advisories (GHSA-jxpf-xq2m-q525, GHSA-5qwm-7pvp-w988). -->
-    <PackageReference Include="OpenMcdf" Version="3.3.0" />
+    <PackageReference Include="OpenMcdf" />
   </ItemGroup>
 
   <ItemGroup>
