@@ -14,8 +14,58 @@ namespace VbaDocumenter.Core.Parsing;
 /// </remarks>
 public static partial class ModuleParser
 {
+    const RegexOptions Opts = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
+
+    // VBA identifiers start with a letter (any script) and continue with letters, digits or underscores.
+    const string Id = @"[\p{L}][\p{L}\p{Nd}_]*";
+    // Type-declaration characters, e.g. Dim s$ (String). See TypeForSuffix.
+    const string Suffix = @"[%&!#@$^]?";
+
+    // The patterns are source-generated at compile time. Interpolating Id and Suffix is fine here because
+    // an interpolated string made only of constant strings is itself a constant.
+    [GeneratedRegex($@"^(?:(?<vis>Public|Private|Friend|Global)\s+)?(?:(?<static>Static)\s+)?(?<kind>Sub|Function|Property\s+(?:Get|Let|Set))\s+(?<name>{Id})(?<suffix>{Suffix})\s*(?<rest>.*)$", Opts)]
+    private static partial Regex ProcedureStart();
+    [GeneratedRegex(@"^End\s+(?<kind>Sub|Function|Property)$", Opts)]
+    private static partial Regex ProcedureEnd();
+    [GeneratedRegex($@"^(?:(?<vis>Public|Private)\s+)?Enum\s+(?<name>{Id})$", Opts)]
+    private static partial Regex EnumStart();
+    [GeneratedRegex($@"^(?:(?<vis>Public|Private)\s+)?Type\s+(?<name>{Id})$", Opts)]
+    private static partial Regex TypeStart();
+    [GeneratedRegex(@"^End\s+(?<kind>Enum|Type)$", Opts)]
+    private static partial Regex BlockEnd();
+    [GeneratedRegex($@"^(?:(?<vis>Public)\s+)?Event\s+(?<name>{Id})\s*(?<rest>.*)$", Opts)]
+    private static partial Regex EventDeclaration();
+    [GeneratedRegex($@"^(?:(?<vis>Public|Private|Global)\s+)?Declare\s+(?:PtrSafe\s+)?(?<kind>Sub|Function)\s+(?<name>{Id})(?<suffix>{Suffix})\s+Lib\s+""(?<lib>[^""]*)""(?:\s+Alias\s+""(?<alias>[^""]*)"")?\s*(?<rest>.*)$", Opts)]
+    private static partial Regex DeclareStatement();
+    [GeneratedRegex(@"^(?:(?<vis>Public|Private|Global)\s+)?Const\s+(?<items>.+)$", Opts)]
+    private static partial Regex ConstDeclaration();
+    [GeneratedRegex(@"^(?<keyword>Dim|Private|Public|Global)\s+(?<items>.+)$", Opts)]
+    private static partial Regex VariableDeclaration();
+    [GeneratedRegex($@"^Implements\s+(?<name>{Id}(?:\.{Id})?)$", Opts)]
+    private static partial Regex ImplementsStatement();
+    [GeneratedRegex(@"^Option\s+\w", Opts)]
+    private static partial Regex OptionStatement();
+    [GeneratedRegex(@"^Def(?:Bool|Byte|Int|Lng|LngLng|LngPtr|Cur|Sng|Dbl|Dec|Date|Str|Obj|Var)\s", Opts)]
+    private static partial Regex DefTypeStatement();
+    [GeneratedRegex(@"^Attribute\s+(?<name>[\w.]+)\s*=\s*(?<value>.*)$", Opts)]
+    private static partial Regex AttributeStatement();
+    [GeneratedRegex(@"^(?<keyword>Dim|Static|Const|ReDim(?:\s+Preserve)?)\s+(?<items>.+)$", Opts)]
+    private static partial Regex LocalDeclaration();
+    [GeneratedRegex($@"^(?:{Id}|\d+):(?!=)\s*", Opts)]
+    private static partial Regex LineLabel();
+    [GeneratedRegex(@"^\d+\s+", Opts)]
+    private static partial Regex LineNumber();
     static readonly HashSet<string> NotLabels = new(StringComparer.OrdinalIgnoreCase)
         { "Else", "Do", "Loop", "Next", "Wend", "Exit", "Resume", "Stop", "End", "Return" };
+
+    [GeneratedRegex($@"^(?<optional>Optional\s+)?(?:(?<by>ByVal|ByRef)\s+)?(?<paramArray>ParamArray\s+)?(?<name>{Id})(?<suffix>{Suffix})\s*(?<array>\(\s*\))?\s*(?:As\s+(?<type>[^=]+?))?\s*(?:=\s*(?<default>.+))?$", Opts)]
+    private static partial Regex ParameterItem();
+    [GeneratedRegex($@"^(?<withEvents>WithEvents\s+)?(?<name>{Id})(?<suffix>{Suffix})\s*(?<array>\(.*\))?\s*(?:As\s+(?<new>New\s+)?(?<type>.+))?$", Opts)]
+    private static partial Regex VariableItem();
+    [GeneratedRegex($@"^(?<name>{Id})(?<suffix>{Suffix})\s*(?:As\s+(?<type>[^=]+?))?\s*=\s*(?<value>.+)$", Opts)]
+    private static partial Regex ConstItem();
+    [GeneratedRegex($@"^(?:(?<name>{Id})|\[(?<bracketed>[^\]]+)\])\s*(?:=\s*(?<value>.+))?$", Opts)]
+    private static partial Regex EnumItem();
 
     public static ModuleModel Parse(string name, VbaModuleKind kind, string text)
     {
@@ -480,45 +530,4 @@ public static partial class ModuleParser
         }
         return -1;
     }
-
-  [GeneratedRegex(@"^(?:(?<vis>Public|Private|Friend|Global)\s+)?(?:(?<static>Static)\s+)?(?<kind>Sub|Function|Property\s+(?:Get|Let|Set))\s+(?<name>[\p{L}][\p{L}\p{Nd}_]*)(?<suffix>[%&!#@$^]?)\s*(?<rest>.*)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex ProcedureStart();
-  [GeneratedRegex(@"^End\s+(?<kind>Sub|Function|Property)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex ProcedureEnd();
-  [GeneratedRegex(@"^(?:(?<vis>Public|Private)\s+)?Enum\s+(?<name>[\p{L}][\p{L}\p{Nd}_]*)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex EnumStart();
-  [GeneratedRegex(@"^(?:(?<vis>Public|Private)\s+)?Type\s+(?<name>[\p{L}][\p{L}\p{Nd}_]*)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex TypeStart();
-  [GeneratedRegex(@"^End\s+(?<kind>Enum|Type)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex BlockEnd();
-  [GeneratedRegex(@"^(?:(?<vis>Public|Private|Global)\s+)?Const\s+(?<items>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex EventDeclaration();
-  [GeneratedRegex(@"^(?<keyword>Dim|Private|Public|Global)\s+(?<items>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex DeclareStatement();
-  [GeneratedRegex(@"^(?:(?<vis>Public|Private|Global)\s+)?Const\s+(?<items>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex ConstDeclaration();
-  [GeneratedRegex(@"^(?<keyword>Dim|Private|Public|Global)\s+(?<items>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex VariableDeclaration();
-  [GeneratedRegex(@"^Implements\s+(?<name>[\p{L}][\p{L}\p{Nd}_]*(?:\.[\p{L}][\p{L}\p{Nd}_]*)?)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex ImplementsStatement();
-  [GeneratedRegex(@"^Option\s+\w", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex OptionStatement();
-  [GeneratedRegex(@"^Def(?:Bool|Byte|Int|Lng|LngLng|LngPtr|Cur|Sng|Dbl|Dec|Date|Str|Obj|Var)\s", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex DefTypeStatement();
-  [GeneratedRegex(@"^Attribute\s+(?<name>[\w.]+)\s*=\s*(?<value>.*)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex AttributeStatement();
-  [GeneratedRegex(@"^(?<keyword>Dim|Static|Const|ReDim(?:\s+Preserve)?)\s+(?<items>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex LocalDeclaration();
-  [GeneratedRegex(@"^(?:[\p{L}][\p{L}\p{Nd}_]*|\d+):(?!=)\s*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex LineLabel();
-  [GeneratedRegex(@"^\d+\s+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex LineNumber();
-  [GeneratedRegex(@"^(?<optional>Optional\s+)?(?:(?<by>ByVal|ByRef)\s+)?(?<paramArray>ParamArray\s+)?(?<name>[\p{L}][\p{L}\p{Nd}_]*)(?<suffix>[%&!#@$^]?)\s*(?<array>\(\s*\))?\s*(?:As\s+(?<type>[^=]+?))?\s*(?:=\s*(?<default>.+))?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex ParameterItem();
-  [GeneratedRegex(@"^(?<withEvents>WithEvents\s+)?(?<name>[\p{L}][\p{L}\p{Nd}_]*)(?<suffix>[%&!#@$^]?)\s*(?<array>\(.*\))?\s*(?:As\s+(?<new>New\s+)?(?<type>.+))?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex VariableItem();
-  [GeneratedRegex(@"^(?<name>[\p{L}][\p{L}\p{Nd}_]*)(?<suffix>[%&!#@$^]?)\s*(?:As\s+(?<type>[^=]+?))?\s*=\s*(?<value>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex ConstItem();
-  [GeneratedRegex(@"^(?:(?<name>[\p{L}][\p{L}\p{Nd}_]*)|\[(?<bracketed>[^\]]+)\])\s*(?:=\s*(?<value>.+))?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-  private static partial Regex EnumItem();
 }
