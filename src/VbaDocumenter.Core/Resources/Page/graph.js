@@ -103,6 +103,7 @@
     level: loadSetting("vbadoc-graph-level", "modules") === "members" ? "members" : "modules",
     reach: loadSetting("vbadoc-graph-reach", "direct") === "transitive" ? "transitive" : "direct",
     focus: false,
+    path: false,        // showing the path from Home to the selection instead of the selection's neighbourhood
     show: loadShow(),
     legend: new Set()   // legend items clicked to highlight what they stand for (not remembered)
   };
@@ -174,6 +175,8 @@
   var tooltip = document.getElementById("graph-tooltip");
   var message = document.getElementById("graph-message");
   var focusButton = document.getElementById("graph-focus");
+  var pathButton = document.getElementById("graph-path");
+  var pathNote = document.getElementById("graph-path-note");
   var filtersBox = document.getElementById("graph-filters");
 
   EDGE_KINDS.forEach(function (kind) {
@@ -268,19 +271,20 @@
     return { nodes: nodes, edges: edges, byId: byId, outgoing: outgoing, incoming: incoming };
   }
 
-  // The node ids that stand for the page's selection at this level. At module level a member stands for its
-  // module; at member level a module stands for all of its members.
-  function selectedIds(graph) {
-    var selection = vb.selection();
-    if (!selection) return [];
+  // The node ids that stand for a module or member (the selection, or Home) at this level. At module level a
+  // member stands for its module; at member level a module stands for all of its members.
+  function idsAtLevel(graph, id) {
+    if (!id) return [];
     if (state.level === "modules") {
-      var member = vb.membersById.get(selection);
-      var moduleId = member ? member.module : selection;
+      var member = vb.membersById.get(id);
+      var moduleId = member ? member.module : id;
       return graph.byId.has(moduleId) ? [moduleId] : [];
     }
-    if (vb.membersById.has(selection)) return graph.byId.has(selection) ? [selection] : [];
-    return graph.nodes.filter(function (n) { return n.module === selection; }).map(function (n) { return n.id; });
+    if (vb.membersById.has(id)) return graph.byId.has(id) ? [id] : [];
+    return graph.nodes.filter(function (n) { return n.module === id; }).map(function (n) { return n.id; });
   }
+
+  function selectedIds(graph) { return idsAtLevel(graph, vb.selection()); }
 
   // What to highlight: the selection, what it depends on (downstream) and what depends on it (upstream).
   // Direct goes one step each way; transitive follows the whole chain.
@@ -691,7 +695,7 @@
     drawn.hulls.select("path.hull")
       .on("click", function (event, g) { event.stopPropagation(); vb.select(g[0]); })
       .call(dragBehaviour(function (g) { return g[1]; }));
-    drawn.hulls.select("text.hull-label").text(function (g) { return g[0]; });
+    drawn.hulls.select("text.hull-label");
 
     drawn.edges = edgeLayer.selectAll("path.edge").data(graph.edges, function (e) { return e.from + "|" + e.to + "|" + e.kind; })
       .join("path")
@@ -712,6 +716,7 @@
         g.append("circle").attr("class", "hit");
         g.append("path").attr("class", "shape");
         g.append("text").attr("class", "label");
+        g.append("path").attr("class", "home-star");
         return g;
       });
     drawn.nodes
@@ -728,6 +733,9 @@
       .call(dragBehaviour(function (n) { return [n]; }));
     drawn.nodes.select("circle.hit").attr("r", function (n) { return n.r + 6; });
     drawn.nodes.select("path.shape").attr("d", function (n) { return d3.symbol(n.shape, Math.PI * n.r * n.r)(); });
+    drawn.nodes.select("path.home-star")
+      .attr("d", d3.symbol(d3.symbolStar, 70)())
+      .attr("transform", function (n) { return "translate(" + -(n.r + 3) + "," + -(n.r + 3) + ")"; });
     drawn.nodes.select("text.label")
       .classed("minor", function (n) { return !!n.minor; })
       .attr("x", function (n) { return n.r + 5; })
@@ -739,9 +747,23 @@
     message.hidden = graph.nodes.length > 0;
     message.textContent = graph.nodes.length > 0 ? "" : "Nothing to show with the current filters.";
     renderLegend();
+    updateHome();
     updateToolbar();
     fit(false);
     highlight();
+  }
+
+  // Stars Home: its node (at module level, the module holding a Home member) and, at member level, the name of
+  // a Home module's outline, since the module's own node is only drawn when something refers to the module.
+  function updateHome() {
+    if (!graph || !drawn.nodes) return;
+    var homeIds = new Set(idsAtLevel(graph, vb.home()));
+    var homeModule = state.level === "members" && vb.modulesById.has(vb.home()) ? vb.home() : null;
+    drawn.nodes.classed("home", function (n) {
+      return homeIds.has(n.id) && (state.level === "modules" || !!n.isModuleNode === !!homeModule);
+    });
+    drawn.hulls.classed("home", function (g) { return g[0] === homeModule; })
+      .select("text.hull-label").text(function (g) { return (g[0] === homeModule ? "★ " : "") + g[0]; });
   }
 
   // Moves everything to the nodes' current positions: after the starting layout and on every tick.
@@ -849,28 +871,110 @@
     return { nodes: nodes, edges: edges };
   }
 
+  // ---- Path from Home ----
+  //
+  // The shortest chain of edges from Home to the selection (Home depends on it) or from the selection to Home
+  // (it depends on Home), whichever is shorter (Home to the selection on a tie), in the graph as drawn, so Show…
+  // choices count. Edges are followed in their own direction only: a chain that changes direction halfway says
+  // nothing about either end.
+
+  function shortestPath(graph, fromIds, toIds) {
+    var targets = new Set(toIds);
+    var previous = new Map(); // node id -> the edge it was first reached by
+    var seen = new Set(fromIds);
+    var queue = fromIds.slice();
+    while (queue.length > 0) {
+      var id = queue.shift();
+      if (targets.has(id)) {
+        var nodes = [id];
+        var edges = [];
+        while (previous.has(id)) {
+          var edge = previous.get(id);
+          edges.unshift(edge);
+          id = edge.from;
+          nodes.unshift(id);
+        }
+        return { nodes: nodes, edges: edges };
+      }
+      graph.outgoing.get(id).forEach(function (e) {
+        if (seen.has(e.to)) return;
+        seen.add(e.to);
+        previous.set(e.to, e);
+        queue.push(e.to);
+      });
+    }
+    return null;
+  }
+
+  // Why the path can't be shown right now, or null if it can.
+  function pathUnavailable(graph) {
+    if (!vb.home()) return "Choose a Home first: the ☆ in the source panel";
+    if (!vb.selection()) return "Select something to find the path to it from Home";
+    var homeIds = idsAtLevel(graph, vb.home());
+    var start = selectedIds(graph);
+    if (homeIds.length === 0 || start.length === 0) return "Home or the selection is hidden by the Show… choices";
+    if (homeIds.some(function (id) { return start.indexOf(id) >= 0; })) return "Home is the selection, at this level";
+    return null;
+  }
+
+  function findPath(graph) {
+    var homeIds = idsAtLevel(graph, vb.home());
+    var start = selectedIds(graph);
+    var down = shortestPath(graph, homeIds, start);
+    var up = shortestPath(graph, start, homeIds);
+    if (down) down.homeUsesSelection = true;
+    if (up) up.homeUsesSelection = false;
+    if (down && up) return up.edges.length < down.edges.length ? up : down;
+    return down || up;
+  }
+
+  function describePath(path) {
+    if (!path) {
+      return "No chain of dependencies links Home and the selection" +
+        (activeShowCount() > 0 ? " with the current Show… choices" : "") + ".";
+    }
+    var steps = path.edges.length;
+    var how = steps === 1 ? "directly" : "through " + (steps - 1) + " other node" + (steps === 2 ? "" : "s");
+    return (path.homeUsesSelection ? "Home uses the selection " : "The selection uses Home ") + how + ".";
+  }
+
   // Highlights the selection's neighbourhood and whatever the legend items light up. With both, each narrows
   // the other: e.g. a selected class plus the Implements item shows only the class's Implements links.
   // The selected node always stays lit, so it's clear what the highlight is around. A module selected at member
   // level selects all of its members; then the legend narrows those too, and the module's outline stays lit.
+  //
+  // With Path from Home on, the path replaces all that: only Home, the selection and the chain between them stay lit.
   function highlight() {
     if (!graph) return;
     var start = selectedIds(graph);
-    var reached = start.length ? reach(graph, start, state.reach === "transitive") : null;
-    var legend = legendHighlight(graph);
-    var active = !!reached || !!legend;
-
-    var litEdges = new Set(active ? graph.edges.filter(function (e) {
-      return (!reached || reached.edges.has(e)) && (!legend || legend.edges.has(e));
-    }) : []);
-    var edgeEnds = new Set();
-    litEdges.forEach(function (e) { edgeEnds.add(e.from); edgeEnds.add(e.to); });
     var selection = vb.selection();
-    function isSelected(id) { return !!reached && reached.selected.has(id); }
-    function isLit(id) {
-      if (isSelected(id) && (start.length === 1 || id === selection)) return true;
-      if (reached && !reached.nodes.has(id)) return false;
-      return !legend || legend.nodes.has(id) || edgeEnds.has(id);
+    if (state.path && pathUnavailable(graph)) state.path = false;
+    var path = state.path ? findPath(graph) : null;
+    var active, litEdges, isSelected, isLit;
+
+    if (state.path) {
+      // Without a path, Home stays lit so it's clear what was looked for. With one, only the path does: a Home
+      // module at member level stands for all its members, but the path starts or ends at just one of them.
+      var pathNodes = new Set(path ? path.nodes : idsAtLevel(graph, vb.home()));
+      active = true;
+      litEdges = new Set(path ? path.edges : []);
+      isSelected = function (id) { return start.indexOf(id) >= 0; };
+      isLit = function (id) { return pathNodes.has(id) || (isSelected(id) && (start.length === 1 || id === selection)); };
+    } else {
+      var reached = start.length ? reach(graph, start, state.reach === "transitive") : null;
+      var legend = legendHighlight(graph);
+      active = !!reached || !!legend;
+      litEdges = new Set(active ? graph.edges.filter(function (e) {
+        return (!reached || reached.edges.has(e)) && (!legend || legend.edges.has(e));
+      }) : []);
+      var edgeEnds = new Set();
+      litEdges.forEach(function (e) { edgeEnds.add(e.from); edgeEnds.add(e.to); });
+      isSelected = function (id) { return !!reached && reached.selected.has(id); };
+      isLit = function (id) {
+        if (isSelected(id) && (start.length === 1 || id === selection)) return true;
+        if (reached && !reached.nodes.has(id)) return false;
+        return !legend || legend.nodes.has(id) || edgeEnds.has(id);
+      };
     }
 
     nodeLayer.selectAll("g.node")
@@ -883,24 +987,30 @@
     hullLayer.selectAll("g.hull-group")
       .classed("dim", function (g) { return active && g[0] !== selection && !g[1].some(function (n) { return isLit(n.id); }); });
 
+    pathNote.hidden = !state.path;
+    pathNote.textContent = state.path ? describePath(path) : "";
     updateLegendButtons();
     updateToolbar();
     // A hidden view has no size, and moving it then would give d3-zoom a NaN transform.
-    if (start.length === 1 && vb.activeView() === "graph") bringIntoView(graph.byId.get(start[0]));
+    if (vb.activeView() !== "graph") return;
+    if (path) fit(true, path.nodes.map(function (id) { return graph.byId.get(id); }));
+    else if (start.length === 1) bringIntoView(graph.byId.get(start[0]));
   }
 
   // ---- Zoom helpers ----
 
-  function fit(animate) {
-    if (!graph || graph.nodes.length === 0) return;
+  // Zooms to fit the whole graph, or just the given nodes (e.g. a path).
+  function fit(animate, nodes) {
+    nodes = nodes || (graph ? graph.nodes : []);
+    if (nodes.length === 0) return;
     var width = view.clientWidth || 800;
     var height = view.clientHeight || 600;
     // Member-level nodes know their label's extent; module-level ones get room for a label on the right.
-    var x0 = d3.min(graph.nodes, function (n) { return n.x - n.r; }) - 40;
-    var x1 = d3.max(graph.nodes, function (n) { return state.level === "members" ? n.x + n.x1 : n.x + n.r + 140; }) + 20;
-    var y0 = d3.min(graph.nodes, function (n) { return n.y - n.r; }) - 60;   // and module names above
-    var y1 = d3.max(graph.nodes, function (n) { return n.y + n.r; }) + 40;
-    var top = 48; // keep clear of the toolbar
+    var x0 = d3.min(nodes, function (n) { return n.x - n.r; }) - 40;
+    var x1 = d3.max(nodes, function (n) { return state.level === "members" ? n.x + n.x1 : n.x + n.r + 140; }) + 20;
+    var y0 = d3.min(nodes, function (n) { return n.y - n.r; }) - 60;   // and module names above
+    var y1 = d3.max(nodes, function (n) { return n.y + n.r; }) + 40;
+    var top = view.querySelector(".view-toolbar").offsetHeight + 16; // keep clear of the toolbar, which can wrap
     var legend = document.getElementById("graph-legend");
     var left = legend.open && width > 700 ? legend.offsetWidth + 16 : 0; // and of the open legend, if there's room
     var scale = Math.min(2, 0.95 * Math.min((width - left) / (x1 - x0), (height - top) / (y1 - y0)));
@@ -1016,12 +1126,14 @@
     if (!button) return;
     var key = button.getAttribute("data-legend");
     if (state.legend.has(key)) state.legend.delete(key); else state.legend.add(key);
+    state.path = false; // the legend works on the neighbourhood, not the path
     highlight();
   });
 
-  // Clicking the background, or Escape, clears both the legend highlight and the selection.
+  // Clicking the background, or Escape, clears the legend highlight, the path and the selection.
   function clearHighlights() {
     state.legend.clear();
+    state.path = false;
     vb.select(null);
     highlight();
   }
@@ -1050,6 +1162,10 @@
     focusButton.disabled = !hasSelection && !state.focus;
     focusButton.textContent = state.focus ? "Show all" : "Focus";
     focusButton.setAttribute("aria-pressed", state.focus ? "true" : "false");
+    var unavailable = graph ? pathUnavailable(graph) : "";
+    pathButton.disabled = !!unavailable && !state.path;
+    pathButton.title = unavailable || "Show the shortest chain of dependencies between Home and the selection";
+    pathButton.setAttribute("aria-pressed", state.path ? "true" : "false");
     updateShowMenu();
   }
 
@@ -1074,7 +1190,15 @@
 
   focusButton.addEventListener("click", function () {
     state.focus = !state.focus;
+    state.path = false;
     render();
+  });
+
+  // The path is found in the whole graph, so it leaves Focus, which shows only the selection's neighbourhood.
+  pathButton.addEventListener("click", function () {
+    state.path = !state.path;
+    if (state.path) state.legend.clear();
+    if (state.path && state.focus) { state.focus = false; render(); } else highlight();
   });
 
   document.getElementById("graph-fit").addEventListener("click", function () { fit(true); });
@@ -1150,14 +1274,20 @@
     render();
   });
 
-  // The columns stack when they'd run past the edge of the view (e.g. with the source panel open). This opens
-  // the menu itself so it can measure before anything is drawn; the "toggle" event would come a frame late.
+  // The columns stack when they'd run past the edge of the view (e.g. with the source panel open), and if even
+  // that is too wide the menu moves left, though never past the view's left edge. This opens the menu itself so
+  // it can measure before anything is drawn; the "toggle" event would come a frame late.
   filterSummary.addEventListener("click", function (event) {
     if (filtersBox.open) return;
     event.preventDefault();
     filtersBox.open = true;
     filterMenu.classList.remove("stacked");
-    if (filterMenu.getBoundingClientRect().right > view.getBoundingClientRect().right - 8) filterMenu.classList.add("stacked");
+    filterMenu.style.left = "";
+    var edges = view.getBoundingClientRect();
+    function overflow() { return filterMenu.getBoundingClientRect().right - (edges.right - 8); }
+    if (overflow() > 0) filterMenu.classList.add("stacked");
+    var room = filtersBox.getBoundingClientRect().left - (edges.left + 8);
+    if (overflow() > 0) filterMenu.style.left = -Math.min(overflow(), Math.max(0, room)) + "px";
   });
 
   document.getElementById("graph-show-everything").addEventListener("click", function () {
@@ -1264,6 +1394,11 @@
     if (state.focus) render(); else highlight();
   });
   vb.onViewChange(drawIfVisible);
+  vb.onHomeChange(function () {
+    if (!started) return;
+    updateHome();
+    highlight();
+  });
   // Colours are CSS variables, so a theme change needs no redraw.
 
   // When the view changes size (the source panel is resized or hidden, or the window), keep what was in the

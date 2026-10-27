@@ -3,7 +3,7 @@
 The tool is built in small stages. Each stage ends with passing tests, a commit and a push,
 and a pause for review before the next one starts.
 
-**Current state:** stages 0–5, 5b and 5c are done. **Next: stage 5d.**
+**Current state:** stages 0–5 and 5b–5d are done. **Next: stage 6.**
 
 | Stage | Scope | Status |
 |---|---|---|
@@ -16,8 +16,8 @@ and a pause for review before the next one starts.
 | 5 | Class diagram: Mermaid generated in the page from `ClassDiagram` data (generated ids, entity escaping), click handlers on the rendered SVG for boxes and member lines, focus mode following the selection, selection shared across tabs, theme re-render, zoom/scroll, Show… options; dependencies auto-hidden over 150 in the full diagram. Large-project tests at 300 modules | Done |
 | 5b | Graph legend and Show…: clicking legend entries highlights what they stand for (edge entries keep the nodes they connect lit), narrowing the selection's highlight when both are on; Show… gains module kinds, edge kinds, private members, All / Unreferenced only / Referenced only, and nodes with no connections, at both levels where they apply, remembered per browser | Done |
 | 5c | "Uses / Used by" list: a collapsible Dependencies section in the source panel (closed by default), direct links at the selection's level, each entry selects its target | Done |
-| 5d | Navigation: a Home node (one per workbook, remembered per browser, starred in the graph); a breadcrumb trail of the route walked from Home (loops collapse, click a step to go back); "Path from Home" highlights the shortest dependency chain; selections update the page address so browser Back/Forward work | Next |
-| 6 | UserForms: read controls from the designer storage (MS-OFORMS), link handlers to controls, warn instead of failing on unreadable designer data | |
+| 5d | Navigation: a Home node (one per workbook, remembered per browser, starred in the graph); a breadcrumb trail of the route walked from Home (loops collapse, click a step to go back); "Path from Home" highlights the shortest dependency chain; selections update the page address so browser Back/Forward work | Done |
+| 6 | UserForms: read controls from the designer storage (MS-OFORMS), link handlers to controls, warn instead of failing on unreadable designer data | Next |
 | 7 | Polish: whole-output determinism test, README, third-party notices | |
 
 Decisions agreed along the way are in [DECISIONS.md](DECISIONS.md). The specification is [Requirements.md](../Requirements.md).

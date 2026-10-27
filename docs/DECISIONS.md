@@ -288,6 +288,43 @@ or that change it. Add to this file whenever a new decision is agreed.
 - **Each list scrolls on its own** (about eight entries tall), so a much-used member can't push the source out of
   the panel.
 
+### Home, trail, Path from Home, Back/Forward (stage 5d)
+
+- **Home** is one module or member per workbook, set or cleared with the ☆/★ button beside the name in the source
+  panel. It's remembered per browser under `vbadoc-home|<workbook file name>`, because every page opened from disk
+  shares one localStorage. A remembered Home that no longer exists in the workbook is ignored. The graph stars it:
+  its node (at module level, the module holding a Home member) and, at member level, a Home module's outline name.
+  `window.vbadoc` gains `home()`, `setHome(id)` and `onHomeChange(fn)`.
+- **The trail is the route actually walked**, not a computed path. It's a strip under the top bar, shared by both
+  tabs:
+  - every selection adds a step, whatever made it (either view, search, the Dependencies list, the trail itself,
+    Back/Forward);
+  - selecting a step already on the trail cuts the trail back to it, so loops collapse and clicking an earlier
+    step is "go back to there";
+  - with a Home the trail starts at Home, and setting a new Home starts a new trail (Home, then where you are);
+    without one it starts at the first selection;
+  - × starts again from Home (if any) and where you are now. Clearing the selection keeps the trail;
+  - the strip shows when there's a Home or at least two steps. Over 7 steps it shows the first, "…" (click to
+    show all) and the last 5;
+  - the trail isn't remembered: it lasts as long as the page.
+- **Path from Home** (the "★ Path" button) highlights the shortest chain of edges between Home and the selection,
+  in the graph as drawn (so Show… choices count), at the current level:
+  - edges are followed in their own direction only, Home → selection ("Home uses the selection") or
+    selection → Home ("The selection uses Home"), whichever is shorter (Home → selection on a tie). A chain that
+    changes direction halfway would say nothing about either end;
+  - a note in the toolbar describes the result, or says that nothing links them (mentioning the Show… choices
+    when any are in effect). With no path, Home and the selection stay lit; with one, only the path does, since a
+    Home module at member level stands for all its members but the path touches just one;
+  - the view zooms to fit the path. The path follows the selection, like Focus;
+  - it's disabled, with the reason in its tooltip, when there's no Home or selection, either is hidden by Show…,
+    or Home is the selection at this level. Turning it on leaves Focus (the path may lie outside the neighbourhood)
+    and clears the legend; Focus, a legend click, the background or Escape turn it off.
+- **Back and Forward:** each selection is pushed onto the browser history as the address's fragment, e.g.
+  `index.html#Order.Status%5BLet%5D` (the id, URI-encoded). Back/Forward reselect, and a page opened with a fragment
+  starts with that selection (unknown names are ignored). Clearing the selection pushes an empty fragment.
+  Browsers that refuse history changes for pages opened from disk just don't get this; selection still works.
+- **Fit keeps clear of the toolbar's real height**, since the toolbar wraps onto a second row in narrow views.
+
 ### Agreed for later stages
 
 - **In `--embed-source` mode** each module goes in its own `<script type="text/plain">` block, so diffs of the page
