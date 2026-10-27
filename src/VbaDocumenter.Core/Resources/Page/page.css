@@ -232,6 +232,18 @@ body.resizing { cursor: col-resize; user-select: none; }
 .source-header .late-bound code { font-family: var(--font-code); }
 .source-header .actions { margin-top: 8px; }
 
+/* The Dependencies list: collapsible, each list scrolls on its own so the header can't take over the panel. */
+.dependencies { margin-top: 8px; font-size: 12.5px; }
+.dependencies summary { cursor: pointer; font-weight: 600; }
+.dependencies summary .muted { margin-left: 4px; font-weight: 400; }
+.dependencies h3 { margin: 8px 0 2px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.dependencies ul { list-style: none; margin: 0; padding: 0; max-height: 11.5em; overflow-y: auto; }
+.dependencies li { padding: 1px 0; word-break: break-word; }
+.dependencies .none, .dependencies .recursive { margin: 2px 0 0; }
+.edge-tag { padding: 0 6px; border: 1px solid var(--border); border-radius: 999px; font-size: 11px; }
+.edge-tag.implements { border-color: var(--edge-implements); border-style: dashed; }
+.edge-tag.events { border-color: var(--edge-events); border-style: dotted; }
+
 .source-body { flex: 1; min-height: 0; overflow: auto; }
 .source-message { margin: 16px 40px 16px 16px; color: var(--text-muted); }
 .source-message .button { margin-top: 8px; }

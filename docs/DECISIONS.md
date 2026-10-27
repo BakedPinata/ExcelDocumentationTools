@@ -269,6 +269,25 @@ or that change it. Add to this file whenever a new decision is agreed.
   them into one when they would run past the edge of the view, e.g. with the source panel open. The menu measures
   this as it opens, before anything is drawn.
 
+### Dependencies list (stage 5c)
+
+- **A collapsible Dependencies section at the end of the source panel's header** lists what the selection uses and
+  what uses it. It's in the source panel rather than the graph because that's where details about the selection
+  live, it works on both tabs, and it doesn't cover the graph. The cost: hiding the source panel hides it too.
+- **Closed by default; whether it's open is remembered per browser** (`vbadoc-dependencies-open`). The state is
+  noted when the summary is clicked, not on the `toggle` event, which fires a moment later: by then a new selection
+  may already have redrawn the header and lost it.
+- **Direct links only, at the selection's own level**: a module lists module edges, a member lists member edges.
+  The graph's Direct/Transitive toggle and Show… filters don't apply, so the list always shows everything.
+- **Entries:** the name, its kind (muted), a tag for Implements ("implements" / "implemented by") and Events edges,
+  and "×n" when the edge stands for more than one reference. A member in the selection's own module is shown by
+  name, others as `Module.Name`; a member's link to a module node reads "the module itself". Sorted by name,
+  case-insensitively, without `localeCompare` so the order is the same in every browser language.
+- **Clicking an entry selects it**, like the search box, so the list is also a way to walk the graph.
+- **Recursion is noted ("Calls itself"), not listed**, since selecting the selection would do nothing.
+- **Each list scrolls on its own** (about eight entries tall), so a much-used member can't push the source out of
+  the panel.
+
 ### Agreed for later stages
 
 - **In `--embed-source` mode** each module goes in its own `<script type="text/plain">` block, so diffs of the page
