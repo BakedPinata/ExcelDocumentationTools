@@ -6,7 +6,7 @@ or that change it. Add to this file whenever a new decision is agreed.
 ## Platform and libraries
 
 - **.NET 9**, not .NET 10. The machine the tool runs on can't have .NET 10 installed yet.
-  .NET 9 support ends on 2026-11-10, so move to .NET 10 when possible (a one-line change per project).
+  .NET 9 support ends on 2026-11-10, so move to .NET 10 when possible (a one-line change in `Directory.Build.props`).
 - **OpenMcdf 3.3.0**, not 2.4.1 as the spike used. 2.4.1 has two unpatched denial-of-service advisories
   (GHSA-jxpf-xq2m-q525, GHSA-5qwm-7pvp-w988), and only 3.1.4 and later are fixed. Requirements.md is updated to match.
 - **Mermaid 11.17.2**, not 12.x. 12.0 was a new major version only weeks old at the time; 11.17.2 is the mature end of 11.x.
@@ -14,6 +14,12 @@ or that change it. Add to this file whenever a new decision is agreed.
 - Vendored scripts are stored **byte-for-byte unchanged** with their licence files (see
   `src/VbaDocumenter.Core/Resources/Vendor/README.md`). The page writer adds each licence as a comment above its script,
   and must refuse a script containing `<script` or `</script`, which would break inlining.
+- **Central Package Management.** Every NuGet version is in `Directory.Packages.props`, and `PackageReference` items
+  in the projects have no `Version`. Add or upgrade a package there, and keep a comment beside any version chosen for a reason.
+- **Shared project settings** (`TargetFramework`, `ImplicitUsings`, `Nullable`) are in `Directory.Build.props`.
+  Each `.csproj` holds only what is specific to it.
+- **`.editorconfig`** records the existing code style as IDE suggestions, not build errors, and sets no line endings or
+  charset, which are left to `.gitattributes`.
 - **Browser tests** use Playwright with its own downloaded Chromium.
 - The page's JavaScript and CSS are **hand-written plain files with no build step** (no bundler, no TypeScript).
 
