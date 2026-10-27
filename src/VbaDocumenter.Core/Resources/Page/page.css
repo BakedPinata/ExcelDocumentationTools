@@ -150,7 +150,10 @@ a:hover { text-decoration: underline; }
 /* Source and theme switches and the version, kept together at the right end of the bar. */
 .topbar-end { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-left: auto; }
 .source-toggle[aria-pressed="true"] { border-color: var(--accent); }
-.tool-version { font-size: 12px; color: var(--text-muted); white-space: nowrap; cursor: help; }
+/* The version links to the project on GitHub; following a link isn't loading anything, so the CSP needn't allow it. */
+.tool-version { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); white-space: nowrap; text-decoration: none; }
+.tool-version:hover { color: var(--text); text-decoration: underline; }
+.github-mark { width: 14px; height: 14px; flex: none; fill: currentColor; }
 html[data-theme="dark"] .theme-icon::before { content: "\263E"; }  /* moon */
 html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
 
