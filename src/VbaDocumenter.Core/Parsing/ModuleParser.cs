@@ -12,38 +12,10 @@ namespace VbaDocumenter.Core.Parsing;
 /// Line numbers refer to the text passed in. The tool passes the exported file's text, so they match the
 /// files on disk, including the class header the exporter adds.
 /// </remarks>
-public static class ModuleParser
+public static partial class ModuleParser
 {
-    const RegexOptions Opts = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
-
-    // VBA identifiers start with a letter (any script) and continue with letters, digits or underscores.
-    const string Id = @"[\p{L}][\p{L}\p{Nd}_]*";
-    // Type-declaration characters, e.g. Dim s$ (String). See TypeForSuffix.
-    const string Suffix = @"[%&!#@$^]?";
-
-    static readonly Regex ProcedureStart = new($@"^(?:(?<vis>Public|Private|Friend|Global)\s+)?(?:(?<static>Static)\s+)?(?<kind>Sub|Function|Property\s+(?:Get|Let|Set))\s+(?<name>{Id})(?<suffix>{Suffix})\s*(?<rest>.*)$", Opts);
-    static readonly Regex ProcedureEnd = new(@"^End\s+(?<kind>Sub|Function|Property)$", Opts);
-    static readonly Regex EnumStart = new($@"^(?:(?<vis>Public|Private)\s+)?Enum\s+(?<name>{Id})$", Opts);
-    static readonly Regex TypeStart = new($@"^(?:(?<vis>Public|Private)\s+)?Type\s+(?<name>{Id})$", Opts);
-    static readonly Regex BlockEnd = new(@"^End\s+(?<kind>Enum|Type)$", Opts);
-    static readonly Regex EventDeclaration = new($@"^(?:(?<vis>Public)\s+)?Event\s+(?<name>{Id})\s*(?<rest>.*)$", Opts);
-    static readonly Regex DeclareStatement = new($@"^(?:(?<vis>Public|Private|Global)\s+)?Declare\s+(?:PtrSafe\s+)?(?<kind>Sub|Function)\s+(?<name>{Id})(?<suffix>{Suffix})\s+Lib\s+""(?<lib>[^""]*)""(?:\s+Alias\s+""(?<alias>[^""]*)"")?\s*(?<rest>.*)$", Opts);
-    static readonly Regex ConstDeclaration = new(@"^(?:(?<vis>Public|Private|Global)\s+)?Const\s+(?<items>.+)$", Opts);
-    static readonly Regex VariableDeclaration = new(@"^(?<keyword>Dim|Private|Public|Global)\s+(?<items>.+)$", Opts);
-    static readonly Regex ImplementsStatement = new($@"^Implements\s+(?<name>{Id}(?:\.{Id})?)$", Opts);
-    static readonly Regex OptionStatement = new(@"^Option\s+\w", Opts);
-    static readonly Regex DefTypeStatement = new(@"^Def(?:Bool|Byte|Int|Lng|LngLng|LngPtr|Cur|Sng|Dbl|Dec|Date|Str|Obj|Var)\s", Opts);
-    static readonly Regex AttributeStatement = new(@"^Attribute\s+(?<name>[\w.]+)\s*=\s*(?<value>.*)$", Opts);
-    static readonly Regex LocalDeclaration = new(@"^(?<keyword>Dim|Static|Const|ReDim(?:\s+Preserve)?)\s+(?<items>.+)$", Opts);
-    static readonly Regex LineLabel = new($@"^(?:{Id}|\d+):(?!=)\s*", Opts);
-    static readonly Regex LineNumber = new(@"^\d+\s+", Opts);
     static readonly HashSet<string> NotLabels = new(StringComparer.OrdinalIgnoreCase)
         { "Else", "Do", "Loop", "Next", "Wend", "Exit", "Resume", "Stop", "End", "Return" };
-
-    static readonly Regex ParameterItem = new($@"^(?<optional>Optional\s+)?(?:(?<by>ByVal|ByRef)\s+)?(?<paramArray>ParamArray\s+)?(?<name>{Id})(?<suffix>{Suffix})\s*(?<array>\(\s*\))?\s*(?:As\s+(?<type>[^=]+?))?\s*(?:=\s*(?<default>.+))?$", Opts);
-    static readonly Regex VariableItem = new($@"^(?<withEvents>WithEvents\s+)?(?<name>{Id})(?<suffix>{Suffix})\s*(?<array>\(.*\))?\s*(?:As\s+(?<new>New\s+)?(?<type>.+))?$", Opts);
-    static readonly Regex ConstItem = new($@"^(?<name>{Id})(?<suffix>{Suffix})\s*(?:As\s+(?<type>[^=]+?))?\s*=\s*(?<value>.+)$", Opts);
-    static readonly Regex EnumItem = new($@"^(?:(?<name>{Id})|\[(?<bracketed>[^\]]+)\])\s*(?:=\s*(?<value>.+))?$", Opts);
 
     public static ModuleModel Parse(string name, VbaModuleKind kind, string text)
     {
@@ -96,7 +68,7 @@ public static class ModuleParser
             var code = line.Code;
             if (code.StartsWith('#')) return; // #If / #Else / #Const: conditional compilation. Both branches are parsed.
 
-            var attribute = AttributeStatement.Match(code);
+            var attribute = AttributeStatement().Match(code);
             if (attribute.Success)
             {
                 // Module attributes (VB_Name, VB_PredeclaredId, ...) are kept. Member attributes such as
@@ -135,15 +107,15 @@ public static class ModuleParser
             int start = _commentBlockStart ?? line.FirstLine;
             Match m;
 
-            if (OptionStatement.IsMatch(code)) { Options.Add(code); return; }
-            if (DefTypeStatement.IsMatch(code)) return;
+            if (OptionStatement().IsMatch(code)) { Options.Add(code); return; }
+            if (DefTypeStatement().IsMatch(code)) return;
 
-            if ((m = ProcedureStart.Match(code)).Success) { StartProcedure(m, line, start); return; }
+            if ((m = ProcedureStart().Match(code)).Success) { StartProcedure(m, line, start); return; }
 
-            if ((m = EnumStart.Match(code)).Success) { StartBlock(m, MemberKind.Enum, line, start); return; }
-            if ((m = TypeStart.Match(code)).Success) { StartBlock(m, MemberKind.Type, line, start); return; }
+            if ((m = EnumStart().Match(code)).Success) { StartBlock(m, MemberKind.Enum, line, start); return; }
+            if ((m = TypeStart().Match(code)).Success) { StartBlock(m, MemberKind.Type, line, start); return; }
 
-            if ((m = EventDeclaration.Match(code)).Success)
+            if ((m = EventDeclaration().Match(code)).Success)
             {
                 var signature = ParseSignature(m.Groups["rest"].Value, line);
                 Add(new Member
@@ -159,7 +131,7 @@ public static class ModuleParser
                 return;
             }
 
-            if ((m = DeclareStatement.Match(code)).Success)
+            if ((m = DeclareStatement().Match(code)).Success)
             {
                 var signature = ParseSignature(m.Groups["rest"].Value, line);
                 bool isFunction = m.Groups["kind"].Value.Equals("Function", StringComparison.OrdinalIgnoreCase);
@@ -181,13 +153,13 @@ public static class ModuleParser
                 return;
             }
 
-            if ((m = ConstDeclaration.Match(code)).Success)
+            if ((m = ConstDeclaration().Match(code)).Success)
             {
                 // Module-level constants are Private unless declared Public.
                 var visibility = ParseVisibility(m.Groups["vis"].Value, Visibility.Private);
                 foreach (var item in SplitTopLevel(m.Groups["items"].Value))
                 {
-                    var c = ConstItem.Match(item);
+                    var c = ConstItem().Match(item);
                     if (!c.Success) { Warnings.Add($"Line {line.FirstLine}: can't read constant '{item}'."); continue; }
                     Add(new Member
                     {
@@ -204,15 +176,15 @@ public static class ModuleParser
                 return;
             }
 
-            if ((m = ImplementsStatement.Match(code)).Success) { Implements.Add(m.Groups["name"].Value); return; }
+            if ((m = ImplementsStatement().Match(code)).Success) { Implements.Add(m.Groups["name"].Value); return; }
 
-            if ((m = VariableDeclaration.Match(code)).Success)
+            if ((m = VariableDeclaration().Match(code)).Success)
             {
                 // "Dim" at module level is Private; "Global" is Public.
                 var visibility = ParseVisibility(m.Groups["keyword"].Value, Visibility.Private);
                 foreach (var item in SplitTopLevel(m.Groups["items"].Value))
                 {
-                    var v = VariableItem.Match(item);
+                    var v = VariableItem().Match(item);
                     if (!v.Success) { Warnings.Add($"Line {line.FirstLine}: can't read variable '{item}'."); continue; }
                     Add(new Member
                     {
@@ -280,7 +252,7 @@ public static class ModuleParser
             var proc = _procedure!;
             var code = line.Code;
 
-            var end = ProcedureEnd.Match(code);
+            var end = ProcedureEnd().Match(code);
             if (end.Success)
             {
                 var expected = proc.IsProperty ? "Property" : proc.Kind.ToString();
@@ -292,7 +264,7 @@ public static class ModuleParser
             }
 
             // A procedure can't contain another one, so this means the End line is missing.
-            if (ProcedureStart.IsMatch(code))
+            if (ProcedureStart().IsMatch(code))
             {
                 Warnings.Add($"Line {proc.DeclarationLine}: {KindText(proc.Kind)} {proc.Name} has no End line.");
                 proc.EndLine = line.FirstLine - 1;
@@ -303,15 +275,15 @@ public static class ModuleParser
 
             // A label ("ErrHandler:") or line number ("10 ") at the start of a line isn't a statement.
             // Keywords such as "Else:" look like labels but aren't.
-            var label = LineLabel.Match(code);
+            var label = LineLabel().Match(code);
             if (label.Success && !NotLabels.Contains(label.Value.TrimEnd().TrimEnd(':')))
                 code = code[label.Length..];
-            code = LineNumber.Replace(code, "", 1);
+            code = LineNumber().Replace(code, "", 1);
 
             foreach (var statement in LogicalLineReader.SplitStatements(code))
             {
                 proc.BodyList.Add(new Statement(statement, line.FirstLine));
-                var declaration = LocalDeclaration.Match(statement);
+                var declaration = LocalDeclaration().Match(statement);
                 if (declaration.Success) AddLocals(proc, declaration, line.FirstLine);
             }
         }
@@ -326,13 +298,13 @@ public static class ModuleParser
             {
                 if (isConst)
                 {
-                    var c = ConstItem.Match(item);
+                    var c = ConstItem().Match(item);
                     if (c.Success)
                         proc.LocalsList.Add(new LocalVariable(c.Groups["name"].Value, TypeOrSuffix(c.Groups["type"].Value, c.Groups["suffix"].Value), false, true, lineNumber));
                     continue;
                 }
 
-                var v = VariableItem.Match(item);
+                var v = VariableItem().Match(item);
                 if (!v.Success) continue;
                 var name = v.Groups["name"].Value;
 
@@ -354,7 +326,7 @@ public static class ModuleParser
         {
             var block = _block!;
             var code = line.Code;
-            var end = BlockEnd.Match(code);
+            var end = BlockEnd().Match(code);
             if (end.Success)
             {
                 CloseBlock(line.LastLine);
@@ -363,7 +335,7 @@ public static class ModuleParser
 
             if (block.Kind == MemberKind.Enum)
             {
-                var e = EnumItem.Match(code);
+                var e = EnumItem().Match(code);
                 if (!e.Success) { Warnings.Add($"Line {line.FirstLine}: can't read enum value '{code}'."); return; }
                 Members.Add(new Member
                 {
@@ -380,7 +352,7 @@ public static class ModuleParser
             }
             else
             {
-                var f = VariableItem.Match(code);
+                var f = VariableItem().Match(code);
                 if (!f.Success || f.Groups["withEvents"].Success) { Warnings.Add($"Line {line.FirstLine}: can't read Type field '{code}'."); return; }
                 block.FieldsList.Add(new TypeField(f.Groups["name"].Value, TypeOrSuffix(f.Groups["type"].Value, f.Groups["suffix"].Value), f.Groups["array"].Success));
             }
@@ -413,7 +385,7 @@ public static class ModuleParser
                 }
                 foreach (var item in SplitTopLevel(rest[1..close]))
                 {
-                    var p = ParameterItem.Match(item);
+                    var p = ParameterItem().Match(item);
                     if (!p.Success) { Warnings.Add($"Line {line.FirstLine}: can't read parameter '{item}'."); continue; }
                     parameters.Add(new Parameter(
                         p.Groups["name"].Value,
@@ -508,4 +480,45 @@ public static class ModuleParser
         }
         return -1;
     }
+
+  [GeneratedRegex(@"^(?:(?<vis>Public|Private|Friend|Global)\s+)?(?:(?<static>Static)\s+)?(?<kind>Sub|Function|Property\s+(?:Get|Let|Set))\s+(?<name>[\p{L}][\p{L}\p{Nd}_]*)(?<suffix>[%&!#@$^]?)\s*(?<rest>.*)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex ProcedureStart();
+  [GeneratedRegex(@"^End\s+(?<kind>Sub|Function|Property)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex ProcedureEnd();
+  [GeneratedRegex(@"^(?:(?<vis>Public|Private)\s+)?Enum\s+(?<name>[\p{L}][\p{L}\p{Nd}_]*)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex EnumStart();
+  [GeneratedRegex(@"^(?:(?<vis>Public|Private)\s+)?Type\s+(?<name>[\p{L}][\p{L}\p{Nd}_]*)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex TypeStart();
+  [GeneratedRegex(@"^End\s+(?<kind>Enum|Type)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex BlockEnd();
+  [GeneratedRegex(@"^(?:(?<vis>Public|Private|Global)\s+)?Const\s+(?<items>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex EventDeclaration();
+  [GeneratedRegex(@"^(?<keyword>Dim|Private|Public|Global)\s+(?<items>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex DeclareStatement();
+  [GeneratedRegex(@"^(?:(?<vis>Public|Private|Global)\s+)?Const\s+(?<items>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex ConstDeclaration();
+  [GeneratedRegex(@"^(?<keyword>Dim|Private|Public|Global)\s+(?<items>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex VariableDeclaration();
+  [GeneratedRegex(@"^Implements\s+(?<name>[\p{L}][\p{L}\p{Nd}_]*(?:\.[\p{L}][\p{L}\p{Nd}_]*)?)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex ImplementsStatement();
+  [GeneratedRegex(@"^Option\s+\w", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex OptionStatement();
+  [GeneratedRegex(@"^Def(?:Bool|Byte|Int|Lng|LngLng|LngPtr|Cur|Sng|Dbl|Dec|Date|Str|Obj|Var)\s", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex DefTypeStatement();
+  [GeneratedRegex(@"^Attribute\s+(?<name>[\w.]+)\s*=\s*(?<value>.*)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex AttributeStatement();
+  [GeneratedRegex(@"^(?<keyword>Dim|Static|Const|ReDim(?:\s+Preserve)?)\s+(?<items>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex LocalDeclaration();
+  [GeneratedRegex(@"^(?:[\p{L}][\p{L}\p{Nd}_]*|\d+):(?!=)\s*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex LineLabel();
+  [GeneratedRegex(@"^\d+\s+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex LineNumber();
+  [GeneratedRegex(@"^(?<optional>Optional\s+)?(?:(?<by>ByVal|ByRef)\s+)?(?<paramArray>ParamArray\s+)?(?<name>[\p{L}][\p{L}\p{Nd}_]*)(?<suffix>[%&!#@$^]?)\s*(?<array>\(\s*\))?\s*(?:As\s+(?<type>[^=]+?))?\s*(?:=\s*(?<default>.+))?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex ParameterItem();
+  [GeneratedRegex(@"^(?<withEvents>WithEvents\s+)?(?<name>[\p{L}][\p{L}\p{Nd}_]*)(?<suffix>[%&!#@$^]?)\s*(?<array>\(.*\))?\s*(?:As\s+(?<new>New\s+)?(?<type>.+))?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex VariableItem();
+  [GeneratedRegex(@"^(?<name>[\p{L}][\p{L}\p{Nd}_]*)(?<suffix>[%&!#@$^]?)\s*(?:As\s+(?<type>[^=]+?))?\s*=\s*(?<value>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex ConstItem();
+  [GeneratedRegex(@"^(?:(?<name>[\p{L}][\p{L}\p{Nd}_]*)|\[(?<bracketed>[^\]]+)\])\s*(?:=\s*(?<value>.+))?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+  private static partial Regex EnumItem();
 }
