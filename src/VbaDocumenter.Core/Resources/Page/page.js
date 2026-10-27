@@ -19,6 +19,23 @@
     lateBoundByMember.get(l.from).push(l);
   });
 
+  // Each node's edges, for the source panel's Dependencies list. Module ids are also member-level node ids
+  // (references to the module itself), so the two levels are indexed separately.
+  function indexEdges(edges) {
+    var index = { uses: new Map(), usedBy: new Map() };
+    function add(map, id, edge) {
+      if (!map.has(id)) map.set(id, []);
+      map.get(id).push(edge);
+    }
+    edges.forEach(function (e) {
+      add(index.uses, e.from, e);
+      add(index.usedBy, e.to, e);
+    });
+    return index;
+  }
+  var moduleEdges = indexEdges(data.moduleEdges);
+  var memberEdges = indexEdges(data.memberEdges);
+
   var KIND_LABELS = {
     standard: "Standard module", "class": "Class", form: "UserForm", document: "Document module",
     sub: "Sub", "function": "Function", propertyGet: "Property Get", propertyLet: "Property Let",
@@ -202,6 +219,69 @@
     return module.isInterface ? "Interface" : KIND_LABELS[module.kind] || module.kind;
   }
 
+  // ---- Dependencies list ----
+  //
+  // What the selection uses and what uses it: direct links only, at the selection's own level (a module lists
+  // module edges, a member lists member edges), whatever the graph's filters. Each entry selects its target,
+  // so the list is also a way to walk the graph. Collapsed by default; whether it's open is remembered.
+
+  var dependenciesOpen = loadSetting("vbadoc-dependencies-open") === "true";
+
+  var EDGE_TAGS = {
+    implements: { uses: "implements", usedBy: "implemented by" },
+    events: { uses: "events", usedBy: "events" }
+  };
+  var EDGE_TITLES = {
+    implements: { uses: "Implements this interface or interface member", usedBy: "Implements the selection" },
+    events: { uses: "Raises or handles this event, or holds a WithEvents variable of this class", usedBy: "Raises or handles the selection's events" }
+  };
+
+  // How an entry reads: a member is shown by name, with its module when that differs from the selection's.
+  function nodeText(id, ownModule) {
+    var member = membersById.get(id);
+    if (!member) {
+      var module = modulesById.get(id);
+      return { name: id, detail: ownModule !== null ? "the module itself" : moduleKindLabel(module) };
+    }
+    return {
+      name: member.module === ownModule ? member.name : member.module + "." + member.name,
+      detail: KIND_LABELS[member.kind] || member.kind
+    };
+  }
+
+  function dependencyList(edges, direction, otherEnd, ownModule) {
+    if (edges.length === 0) return "<p class=\"muted none\">Nothing</p>";
+    var entries = edges.map(function (e) { return { edge: e, id: otherEnd(e), text: nodeText(otherEnd(e), ownModule) }; });
+    // Case-insensitive, without localeCompare, so the order is the same in every browser language.
+    function key(entry) { return entry.text.name.toLowerCase() + " | " + entry.id; }
+    entries.sort(function (a, b) { return key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0; });
+    return "<ul>" + entries.map(function (entry) {
+      var e = entry.edge;
+      var tag = EDGE_TAGS[e.kind]
+        ? " <span class=\"edge-tag " + e.kind + "\" title=\"" + EDGE_TITLES[e.kind][direction] + "\">" + EDGE_TAGS[e.kind][direction] + "</span>"
+        : "";
+      var count = e.count > 1 ? " <span class=\"muted\" title=\"Number of references\">×" + e.count + "</span>" : "";
+      return "<li><a href=\"#\" data-select=\"" + escapeHtml(entry.id) + "\">" + escapeHtml(entry.text.name) + "</a>" +
+        " <span class=\"muted\">" + escapeHtml(entry.text.detail) + "</span>" + tag + count + "</li>";
+    }).join("") + "</ul>";
+  }
+
+  function dependenciesHtml(id, index, ownModule) {
+    // Recursion is a self-loop: noted, not listed (selecting the selection does nothing).
+    var recursive = false;
+    function notSelf(e) { if (e.from === e.to) { recursive = true; return false; } return true; }
+    var uses = (index.uses.get(id) || []).filter(notSelf);
+    var usedBy = (index.usedBy.get(id) || []).filter(notSelf);
+    return "<details class=\"dependencies\" id=\"source-dependencies\"" + (dependenciesOpen ? " open" : "") + ">" +
+      "<summary>Dependencies <span class=\"muted\">uses " + uses.length + " · used by " + usedBy.length + "</span></summary>" +
+      (recursive ? "<p class=\"muted recursive\">Calls itself (recursion).</p>" : "") +
+      "<h3>Uses (" + uses.length + ")</h3>" +
+      "<div class=\"dependency-list\" data-direction=\"uses\">" + dependencyList(uses, "uses", function (e) { return e.to; }, ownModule) + "</div>" +
+      "<h3>Used by (" + usedBy.length + ")</h3>" +
+      "<div class=\"dependency-list\" data-direction=\"usedBy\">" + dependencyList(usedBy, "usedBy", function (e) { return e.from; }, ownModule) + "</div>" +
+      "</details>";
+  }
+
   function renderHeader(module, member) {
     var html;
     if (member) {
@@ -233,10 +313,17 @@
       html = "<h2>" + escapeHtml(module.id) + "<span class=\"kind\">" + escapeHtml(moduleKindLabel(module)) + "</span></h2>" +
         "<p class=\"signature\">" + escapeHtml(module.file) + " · " + module.lines + " lines</p>";
     }
+    html += dependenciesHtml(member ? member.id : module.id, member ? memberEdges : moduleEdges, member ? module.id : null);
     panelHeader.innerHTML = html;
 
     var toggle = $("toggle-context");
     if (toggle) toggle.addEventListener("click", function () { showWholeModule = !showWholeModule; renderSource(); });
+    // Noted on click, not on the "toggle" event, which comes later: by then a new selection may have redrawn the header.
+    var dependencies = $("source-dependencies");
+    dependencies.querySelector("summary").addEventListener("click", function () {
+      dependenciesOpen = !dependencies.open;
+      saveSetting("vbadoc-dependencies-open", dependenciesOpen ? "true" : "false");
+    });
     panelHeader.querySelectorAll("[data-select]").forEach(function (link) {
       link.addEventListener("click", function (e) { e.preventDefault(); select(link.getAttribute("data-select")); });
     });
