@@ -285,6 +285,109 @@
     else panelBody.scrollTop = 0;
   }
 
+  // ---- Showing, hiding and resizing the source panel ----
+  //
+  // One panel serves both views, so both share its size and whether it's shown. The size is the panel's share of
+  // the layout (of its width, or of its height when the page is narrow and the panel sits below the view), kept as
+  // the --source-size CSS variable. Until the user resizes it, the stylesheet's defaults apply. Neither view needs
+  // telling: the graph's SVG fills its box and keeps its zoom, and the class diagram's box scrolls.
+
+  var layout = $("layout");
+  var sourcePanel = $("source-panel");
+  var splitter = $("source-splitter");
+  var sourceToggle = $("source-toggle");
+  var stacked = window.matchMedia ? window.matchMedia("(max-width: 900px)") : { matches: false };
+  var MIN_SOURCE_SIZE = 0.2;
+  var MAX_SOURCE_SIZE = 0.7;
+  var KEY_STEP = 0.02;
+
+  function clampSize(size) { return Math.min(MAX_SOURCE_SIZE, Math.max(MIN_SOURCE_SIZE, size)); }
+
+  function currentSourceSize() {
+    var rect = layout.getBoundingClientRect();
+    var panel = sourcePanel.getBoundingClientRect();
+    return stacked.matches ? panel.height / rect.height : panel.width / rect.width;
+  }
+
+  // size: a share of the layout, or null for the stylesheet's default.
+  function setSourceSize(size, remember) {
+    if (size === null) {
+      layout.style.removeProperty("--source-size");
+    } else {
+      size = clampSize(size);
+      layout.style.setProperty("--source-size", (size * 100).toFixed(1) + "%");
+    }
+    if (remember) saveSetting("vbadoc-source-size", size === null ? "" : size.toFixed(3));
+    updateSplitter();
+  }
+
+  function updateSplitter() {
+    splitter.setAttribute("aria-orientation", stacked.matches ? "horizontal" : "vertical");
+    if (!sourcePanel.hidden) splitter.setAttribute("aria-valuenow", String(Math.round(currentSourceSize() * 100)));
+  }
+
+  function setSourceVisible(visible, remember) {
+    sourcePanel.hidden = !visible;
+    splitter.hidden = !visible;
+    layout.classList.toggle("source-hidden", !visible);
+    sourceToggle.setAttribute("aria-pressed", visible ? "true" : "false");
+    if (remember) saveSetting("vbadoc-source-hidden", visible ? "false" : "true");
+    updateSplitter();
+  }
+
+  sourceToggle.addEventListener("click", function () { setSourceVisible(sourcePanel.hidden, true); });
+  $("source-close").addEventListener("click", function () {
+    setSourceVisible(false, true);
+    sourceToggle.focus(); // the button that had focus has gone
+  });
+
+  // Dragging. The panel is on the right (or at the bottom), so its size is the distance from the pointer to the
+  // layout's far edge.
+  function sizeAtPointer(event) {
+    var rect = layout.getBoundingClientRect();
+    return stacked.matches ? (rect.bottom - event.clientY) / rect.height : (rect.right - event.clientX) / rect.width;
+  }
+
+  splitter.addEventListener("pointerdown", function (event) {
+    if (event.button !== 0) return;
+    splitter.setPointerCapture(event.pointerId);
+    splitter.classList.add("dragging");
+    document.body.classList.add("resizing");
+    event.preventDefault();
+  });
+  splitter.addEventListener("pointermove", function (event) {
+    if (splitter.hasPointerCapture(event.pointerId)) setSourceSize(sizeAtPointer(event), false);
+  });
+  function endDrag(event) {
+    if (!splitter.hasPointerCapture(event.pointerId)) return;
+    splitter.releasePointerCapture(event.pointerId);
+    splitter.classList.remove("dragging");
+    document.body.classList.remove("resizing");
+    setSourceSize(sizeAtPointer(event), true);
+  }
+  splitter.addEventListener("pointerup", endDrag);
+  splitter.addEventListener("pointercancel", endDrag);
+  splitter.addEventListener("dblclick", function () { setSourceSize(null, true); });
+
+  // Keyboard, as for a separator: the arrows move the splitter, Home and End make the panel smallest or largest.
+  splitter.addEventListener("keydown", function (event) {
+    var grow = stacked.matches ? { ArrowUp: 1, ArrowDown: -1 } : { ArrowLeft: 1, ArrowRight: -1 };
+    var size;
+    if (grow[event.key]) size = currentSourceSize() + grow[event.key] * KEY_STEP;
+    else if (event.key === "Home") size = MIN_SOURCE_SIZE;
+    else if (event.key === "End") size = MAX_SOURCE_SIZE;
+    else if (event.key === "Enter") size = null; // like double-click: back to the default
+    else return;
+    setSourceSize(size, true);
+    event.preventDefault();
+  });
+
+  if (stacked.addEventListener) stacked.addEventListener("change", updateSplitter);
+
+  var storedSize = parseFloat(loadSetting("vbadoc-source-size"));
+  setSourceSize(isNaN(storedSize) ? null : storedSize, false);
+  setSourceVisible(loadSetting("vbadoc-source-hidden") !== "true", false);
+
   // ---- Tabs ----
 
   var tabs = [$("tab-graph"), $("tab-classes")];

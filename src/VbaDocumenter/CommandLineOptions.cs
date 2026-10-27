@@ -6,6 +6,7 @@ sealed record CommandLineOptions(string WorkbookPath, string OutputFolder, bool 
     public const string Usage =
         """
         Usage: vbadoc <workbook> [--out <folder>] [--embed-source] [--verbose]
+               vbadoc --version
 
           <workbook>       .xlsm, .xlsb, .xlam, .xls or .xla file
           --out <folder>   where to write the source files and page

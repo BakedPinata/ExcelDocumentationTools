@@ -16,8 +16,11 @@ or that change it. Add to this file whenever a new decision is agreed.
   and must refuse a script containing `<script` or `</script`, which would break inlining.
 - **Central Package Management.** Every NuGet version is in `Directory.Packages.props`, and `PackageReference` items
   in the projects have no `Version`. Add or upgrade a package there, and keep a comment beside any version chosen for a reason.
-- **Shared project settings** (`TargetFramework`, `ImplicitUsings`, `Nullable`) are in `Directory.Build.props`.
-  Each `.csproj` holds only what is specific to it.
+- **Shared project settings** (`TargetFramework`, `ImplicitUsings`, `Nullable`, `Version`) are in
+  `Directory.Build.props`. Each `.csproj` holds only what is specific to it.
+- **Version and build stamp.** `Version` (0.5.0 after stage 5) is raised at the end of each stage. The SDK adds the git
+  commit to the informational version, and `Directory.Build.targets` adds `-dirty` when the working copy has
+  uncommitted changes (`git status --porcelain` not empty). `ToolVersion` reads it back for the page and `--version`.
 - **`.editorconfig`** records the existing code style as IDE suggestions, not build errors, and sets no line endings or
   charset, which are left to `.gitattributes`.
 - **Browser tests** use Playwright with its own downloaded Chromium.
@@ -224,6 +227,20 @@ or that change it. Add to this file whenever a new decision is agreed.
 - **Remembered per browser:** the Show… options (members, private members, dependencies). Focus follows the selection.
 - **The toolbar drop-downs' outside-click and Escape handling moved to `page.js`** and applies to every
   `<details class="dropdown">`.
+
+### Source panel and build stamp (between stages 5 and 6)
+
+- **The source panel can be hidden and resized**, with a Source switch in the top bar, a × in the panel, and a
+  splitter (drag, arrow keys, Home/End; double-click or Enter resets). Both views share the one panel, so they share
+  its size and visibility, which are remembered per browser. The size is a share of the layout (20–70%), of its width
+  or, below 900 px where the panel sits under the view, of its height. Selecting something doesn't reopen a hidden
+  panel. The graph keeps its middle in the middle when its view changes size; the class diagram's box just scrolls.
+- **The page shows which build of vbadoc made it**: `vbadoc 0.5.0 (b7c0ebe)` at the right of the top bar, with the
+  full commit in its tooltip, and the same text in `<meta name="generator">`. Requirements.md asks for no
+  run-specific values in generated files. The stamp is the same on every run of a given build, but changes the page
+  whenever the tool is rebuilt from a new commit, even one that changes nothing else in the output. That one-line
+  change is the point: it shows the tool changed. The exported module files carry no stamp, so they only change when
+  the workbook (or the export itself) does.
 
 ### Agreed for later stages
 
