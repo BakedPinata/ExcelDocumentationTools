@@ -1,0 +1,11 @@
+<Project>
+
+  <!-- Settings shared by every project. Project-specific settings stay in each .csproj. -->
+  <PropertyGroup>
+    <!-- .NET 9 rather than 10: see docs/DECISIONS.md. Changing it here moves every project. -->
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
