@@ -1,0 +1,23 @@
+<Project>
+
+  <!-- Central Package Management: every NuGet version lives here, and the projects' PackageReference items have no Version. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MPL-2.0, used unmodified. Reads OLE compound files (vbaProject.bin, .xls).
+         3.x rather than 2.x: 2.4.1 has two unpatched denial-of-service advisories (GHSA-jxpf-xq2m-q525, GHSA-5qwm-7pvp-w988). -->
+    <PackageVersion Include="OpenMcdf" Version="3.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Test projects -->
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+</Project>
