@@ -24,6 +24,7 @@ public static class HtmlPageWriter
             ["TITLE"] = Escape(title),
             ["TOOL_VERSION"] = Escape(ToolVersion.Current.ToString()),
             ["TOOL_VERSION_DESCRIPTION"] = Escape(ToolVersion.Current.Description),
+            ["REPOSITORY_URL"] = Escape(ToolVersion.RepositoryUrl),
             // A data URI, so the icon is part of the page and the CSP (img-src data:) allows it.
             ["FAVICON"] = "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(EmbeddedResources.ReadText("Page/favicon.svg"))),
             ["STYLE"] = EmbeddedResources.ReadText("Page/page.css"),

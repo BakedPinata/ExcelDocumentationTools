@@ -65,6 +65,16 @@ public class HtmlPageWriterTests
     }
 
     [Fact]
+    public void Links_the_version_to_the_repository_in_a_new_tab()
+    {
+        var link = Regex.Match(Build(embed: false), "<a class=\"tool-version\"[^>]*>").Value;
+
+        Assert.Contains($"href=\"{ToolVersion.RepositoryUrl}\"", link);
+        Assert.Contains("target=\"_blank\"", link);
+        Assert.Contains("rel=\"noopener noreferrer\"", link);
+    }
+
+    [Fact]
     public void Uses_LF_line_endings_throughout()
     {
         Assert.DoesNotContain("\r", Build(embed: true));

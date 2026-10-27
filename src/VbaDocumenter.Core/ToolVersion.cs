@@ -9,6 +9,9 @@ namespace VbaDocumenter.Core;
 /// </summary>
 public sealed record ToolVersion(string Version, string? Commit, bool Dirty)
 {
+    /// <summary>Where vbadoc lives; generated pages link to it from the version.</summary>
+    public const string RepositoryUrl = "https://github.com/BakedPinata/vbadocumenter";
+
     public static ToolVersion Current { get; } =
         Parse(typeof(ToolVersion).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0");
 

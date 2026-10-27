@@ -96,6 +96,18 @@ public class PageShellTests(PageFixture fixture)
     }
 
     [Fact]
+    public async Task The_version_links_to_the_repository_with_a_GitHub_mark()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var link = opened.Page.Locator("#tool-version");
+
+        Assert.Equal("https://github.com/BakedPinata/vbadocumenter", await link.GetAttributeAsync("href"));
+        Assert.Equal("_blank", await link.GetAttributeAsync("target"));
+        Assert.StartsWith("vbadoc ", await link.InnerTextAsync());
+        Assert.True(await link.Locator("svg.github-mark").IsVisibleAsync());
+    }
+
+    [Fact]
     public async Task Fits_a_phone_screen_without_horizontal_scrolling()
     {
         await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, width: 390, height: 800);
