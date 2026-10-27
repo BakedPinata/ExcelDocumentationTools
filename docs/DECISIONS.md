@@ -186,7 +186,8 @@ or that change it. Add to this file whenever a new decision is agreed.
   changes animate). Settings are remembered per browser, with a reset button. The Show… and Settings drop-downs close
   on a click outside them or Escape.
 - **Focus re-lays out only the highlighted neighbourhood** and follows the selection while on. "Show all" leaves it.
-- **Remembered per browser:** level, Direct/Transitive and the settings panel. Member filters aren't remembered.
+- **Remembered per browser:** level, Direct/Transitive and the settings panel. Member filters weren't remembered at
+  first; since stage 5b the Show… choices are (see below).
 - **Edge thickness grows slightly with the reference count.** Hovering an edge shows its count; hovering a node shows
   its kind and how many things it uses and is used by.
 
@@ -241,6 +242,32 @@ or that change it. Add to this file whenever a new decision is agreed.
   whenever the tool is rebuilt from a new commit, even one that changes nothing else in the output. That one-line
   change is the point: it shows the tool changed. The exported module files carry no stamp, so they only change when
   the workbook (or the export itself) does.
+
+### Legend highlighting and Show… (stage 5b)
+
+- **Legend entries are toggle buttons.** Clicking one greys out everything it doesn't stand for, like a selection
+  does, without selecting anything:
+  - a node entry (module kind, member kind, "The module itself", Unreferenced, module colour) lights the nodes it
+    matches and the edges between them. "Enums and types" includes enum values, which share its triangle;
+  - an edge entry lights edges of that kind and the nodes at both ends, so their names stay readable;
+  - entries add to each other, and clicking one again turns it off. A Clear link appears while any is on.
+- **Legend and selection narrow each other.** With both, only what is in the selection's neighbourhood *and* lit by
+  the legend stays lit (e.g. a class plus Implements shows only that class's Implements links). The selected node
+  always stays lit. A module selected at member level selects all its members; the legend narrows those too, and
+  the module's outline stays lit.
+- **Clearing:** clicking the background or pressing Escape clears both the legend and the selection. Escape does
+  this only when no drop-down is open (then it just closes it) and focus isn't in a field. Switching level clears
+  the legend, because its entries differ between levels. The legend isn't remembered.
+- **The Show… menu removes things (and re-runs the layout); the legend only greys them out.** Ticked means shown:
+  - both levels: module kinds, edge kinds, and "Nodes with no connections" (a self-loop doesn't count as one);
+  - member level: member kinds, private members (Friend counts as not private), and References: All /
+    Unreferenced only / Referenced only, replacing the "Only unreferenced members" check box.
+- **Show… choices are remembered per browser** (`vbadoc-graph-show`), as the class diagram's are. Because something
+  may be left out from an earlier visit, the button counts the choices in effect, e.g. "Show… (2)", and is
+  outlined in the accent colour. "Show everything" resets them.
+- **The Show… menu has two columns at member level** (modules, edges and other; members and references). It stacks
+  them into one when they would run past the edge of the view, e.g. with the source panel open. The menu measures
+  this as it opens, before anything is drawn.
 
 ### Agreed for later stages
 

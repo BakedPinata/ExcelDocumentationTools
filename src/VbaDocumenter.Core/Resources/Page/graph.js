@@ -58,12 +58,53 @@
   function loadSetting(key, fallback) { try { return localStorage.getItem(key) || fallback; } catch (e) { return fallback; } }
   function saveSetting(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* not remembered */ } }
 
+  // What the Show… menu leaves out. Kept as Sets here and remembered per browser as arrays.
+  var MODULE_KIND_IDS = Object.keys(MODULE_STYLES);
+  var REFERENCE_FILTERS = ["all", "unreferenced", "referenced"];
+
+  function defaultShow() {
+    return {
+      hiddenModuleKinds: new Set(),   // module level and member level
+      hiddenCategories: new Set(),    // member level
+      hiddenEdgeKinds: new Set(),
+      references: "all",              // member level: "all", "unreferenced" or "referenced"
+      privateMembers: true,           // member level
+      unconnected: true               // nodes with no edge to anything else
+    };
+  }
+
+  function loadShow() {
+    var show = defaultShow();
+    var stored;
+    try { stored = JSON.parse(loadSetting("vbadoc-graph-show", "{}")) || {}; } catch (e) { stored = {}; }
+    function known(list, ids) { return new Set((Array.isArray(list) ? list : []).filter(function (id) { return ids.indexOf(id) >= 0; })); }
+    show.hiddenModuleKinds = known(stored.hiddenModuleKinds, MODULE_KIND_IDS);
+    show.hiddenCategories = known(stored.hiddenCategories, MEMBER_CATEGORIES.map(function (c) { return c.id; }));
+    show.hiddenEdgeKinds = known(stored.hiddenEdgeKinds, EDGE_KINDS.map(function (k) { return k.id; }));
+    if (REFERENCE_FILTERS.indexOf(stored.references) >= 0) show.references = stored.references;
+    if (typeof stored.privateMembers === "boolean") show.privateMembers = stored.privateMembers;
+    if (typeof stored.unconnected === "boolean") show.unconnected = stored.unconnected;
+    return show;
+  }
+
+  function saveShow() {
+    var show = state.show;
+    saveSetting("vbadoc-graph-show", JSON.stringify({
+      hiddenModuleKinds: Array.from(show.hiddenModuleKinds),
+      hiddenCategories: Array.from(show.hiddenCategories),
+      hiddenEdgeKinds: Array.from(show.hiddenEdgeKinds),
+      references: show.references,
+      privateMembers: show.privateMembers,
+      unconnected: show.unconnected
+    }));
+  }
+
   var state = {
     level: loadSetting("vbadoc-graph-level", "modules") === "members" ? "members" : "modules",
     reach: loadSetting("vbadoc-graph-reach", "direct") === "transitive" ? "transitive" : "direct",
     focus: false,
-    hiddenCategories: new Set(),
-    unreferencedOnly: false
+    show: loadShow(),
+    legend: new Set()   // legend items clicked to highlight what they stand for (not remembered)
   };
 
   // Everything the settings panel controls. `layout` marks settings that change the forces, so changing
@@ -154,33 +195,42 @@
   var memberCountByModule = new Map();
   data.members.forEach(function (m) { memberCountByModule.set(m.module, (memberCountByModule.get(m.module) || 0) + 1); });
 
+  function moduleKindOf(module) { return module.isInterface ? "interface" : module.kind; }
+
   function buildFullGraph() {
     var nodes = [];
     var edges;
     var size = settings.nodeSize;
+    var show = state.show;
+    function moduleShown(moduleId) { return !show.hiddenModuleKinds.has(moduleKindOf(vb.modulesById.get(moduleId))); }
     if (state.level === "modules") {
       data.modules.forEach(function (m) {
+        if (!moduleShown(m.id)) return;
         var style = moduleStyle(m);
         nodes.push({
           id: m.id, module: m.id, label: m.id, group: style.group, shape: style.shape, hollow: !!style.hollow,
-          r: size * Math.min(20, 7 + 1.6 * Math.sqrt(memberCountByModule.get(m.id) || 0)), title: style.label, isModule: true
+          r: size * Math.min(20, 7 + 1.6 * Math.sqrt(memberCountByModule.get(m.id) || 0)), title: style.label, isModule: true,
+          moduleKind: moduleKindOf(m)
         });
       });
       edges = data.moduleEdges;
     } else {
       data.members.forEach(function (m) {
         var category = categoryOfKind[m.kind];
-        if (state.hiddenCategories.has(category.id)) return;
-        if (state.unreferencedOnly && !m.unreferenced) return;
+        if (!moduleShown(m.module) || show.hiddenCategories.has(category.id)) return;
+        if (show.references === "unreferenced" && !m.unreferenced) return;
+        if (show.references === "referenced" && m.unreferenced) return;
+        if (!show.privateMembers && m.visibility === "private") return;
         var module = vb.modulesById.get(m.module);
         nodes.push({
           id: m.id, module: m.module, label: m.name, group: moduleStyle(module).group, shape: category.shape,
           r: size * (m.kind === "enumMember" ? 4 : 5.5), title: (KIND_LABELS[m.kind] || m.kind) + " in " + m.module,
-          unreferenced: m.unreferenced, minor: true
+          unreferenced: m.unreferenced, minor: true, category: category.id
         });
       });
       // Each module also has a node for references to the module itself (e.g. "As Order", "Sheet1.Range").
       data.modules.forEach(function (m) {
+        if (!moduleShown(m.id)) return;
         nodes.push({
           id: m.id, module: m.id, label: m.id, group: moduleStyle(m).group, shape: d3.symbolCircle, r: size * 7,
           title: moduleStyle(m).label + " (the module itself)", isModuleNode: true, minor: true
@@ -190,10 +240,15 @@
     }
 
     var ids = new Set(nodes.map(function (n) { return n.id; }));
-    edges = edges.filter(function (e) { return ids.has(e.from) && ids.has(e.to); });
-    var used = new Set();
-    edges.forEach(function (e) { used.add(e.from); used.add(e.to); });
-    nodes = nodes.filter(function (n) { return !n.isModuleNode || used.has(n.id); }); // only module nodes that are referenced
+    edges = edges.filter(function (e) { return ids.has(e.from) && ids.has(e.to) && !show.hiddenEdgeKinds.has(e.kind); });
+    // A self-loop (recursion) doesn't connect a node to anything else, so it doesn't count here.
+    var connected = new Set();
+    edges.forEach(function (e) { if (e.from !== e.to) { connected.add(e.from); connected.add(e.to); } });
+    nodes = nodes.filter(function (n) {
+      if (n.isModuleNode) return connected.has(n.id); // only module nodes that are referenced
+      return show.unconnected || connected.has(n.id);
+    });
+    if (!show.unconnected) edges = edges.filter(function (e) { return connected.has(e.from); });
     return indexGraph(nodes, edges);
   }
 
@@ -512,7 +567,7 @@
     hideTooltip();
   });
   svg.call(zoom).on("dblclick.zoom", null);
-  svg.on("click", function (event) { if (event.target === svg.node()) vb.select(null); });
+  svg.on("click", function (event) { if (event.target === svg.node()) clearHighlights(); });
 
   // Member names are shown for every node ("all-labels"), or only for the selection and its neighbours.
   function applyLabelMode() {
@@ -758,21 +813,77 @@
     if (drawn.nodes) drawn.nodes.classed("pinned", function (n) { return !!n.pinned; });
   }
 
+  // Whether a node matches a legend item. Item keys are "module:<kind>", "category:<id>", "group:<colour group>",
+  // "moduleNode", "unreferenced" and "edge:<kind>".
+  function matchesLegendItem(key, n) {
+    var colon = key.indexOf(":");
+    var type = colon < 0 ? key : key.slice(0, colon);
+    var value = key.slice(colon + 1);
+    switch (type) {
+      case "module": return n.moduleKind === value;
+      // The legend has no entry of its own for enum values, which share the Enums and types triangle.
+      case "category": return n.category === value || (value === "type" && n.category === "enumValue");
+      case "group": return n.group === value;
+      case "moduleNode": return !!n.isModuleNode;
+      case "unreferenced": return !!n.unreferenced;
+      default: return false;
+    }
+  }
+
+  // What the clicked legend items light up, or null when none is clicked. Items add to each other. A node item
+  // lights the nodes it matches and the edges between them; an edge item lights edges of that kind, and the
+  // nodes at their ends.
+  function legendHighlight(graph) {
+    if (state.legend.size === 0) return null;
+    var nodeKeys = [];
+    var edgeKinds = new Set();
+    state.legend.forEach(function (key) {
+      if (key.indexOf("edge:") === 0) edgeKinds.add(key.slice(5)); else nodeKeys.push(key);
+    });
+    var nodes = new Set(graph.nodes.filter(function (n) {
+      return nodeKeys.some(function (key) { return matchesLegendItem(key, n); });
+    }).map(function (n) { return n.id; }));
+    var edges = new Set(graph.edges.filter(function (e) {
+      return edgeKinds.has(e.kind) || (nodes.has(e.from) && nodes.has(e.to));
+    }));
+    return { nodes: nodes, edges: edges };
+  }
+
+  // Highlights the selection's neighbourhood and whatever the legend items light up. With both, each narrows
+  // the other: e.g. a selected class plus the Implements item shows only the class's Implements links.
+  // The selected node always stays lit, so it's clear what the highlight is around. A module selected at member
+  // level selects all of its members; then the legend narrows those too, and the module's outline stays lit.
   function highlight() {
     if (!graph) return;
     var start = selectedIds(graph);
     var reached = start.length ? reach(graph, start, state.reach === "transitive") : null;
+    var legend = legendHighlight(graph);
+    var active = !!reached || !!legend;
+
+    var litEdges = new Set(active ? graph.edges.filter(function (e) {
+      return (!reached || reached.edges.has(e)) && (!legend || legend.edges.has(e));
+    }) : []);
+    var edgeEnds = new Set();
+    litEdges.forEach(function (e) { edgeEnds.add(e.from); edgeEnds.add(e.to); });
+    var selection = vb.selection();
+    function isSelected(id) { return !!reached && reached.selected.has(id); }
+    function isLit(id) {
+      if (isSelected(id) && (start.length === 1 || id === selection)) return true;
+      if (reached && !reached.nodes.has(id)) return false;
+      return !legend || legend.nodes.has(id) || edgeEnds.has(id);
+    }
 
     nodeLayer.selectAll("g.node")
-      .classed("selected", function (n) { return !!reached && reached.selected.has(n.id); })
-      .classed("related", function (n) { return !!reached && reached.nodes.has(n.id) && !reached.selected.has(n.id); })
-      .classed("dim", function (n) { return !!reached && !reached.nodes.has(n.id); });
+      .classed("selected", function (n) { return isSelected(n.id) && isLit(n.id); })
+      .classed("related", function (n) { return active && isLit(n.id) && !isSelected(n.id); })
+      .classed("dim", function (n) { return active && !isLit(n.id); });
     edgeLayer.selectAll("path.edge")
-      .classed("highlighted", function (e) { return !!reached && reached.edges.has(e); })
-      .classed("dim", function (e) { return !!reached && !reached.edges.has(e); });
+      .classed("highlighted", function (e) { return litEdges.has(e); })
+      .classed("dim", function (e) { return active && !litEdges.has(e); });
     hullLayer.selectAll("g.hull-group")
-      .classed("dim", function (g) { return !!reached && !g[1].some(function (n) { return reached.nodes.has(n.id); }); });
+      .classed("dim", function (g) { return active && g[0] !== selection && !g[1].some(function (n) { return isLit(n.id); }); });
 
+    updateLegendButtons();
     updateToolbar();
     // A hidden view has no size, and moving it then would give d3-zoom a NaN transform.
     if (start.length === 1 && vb.activeView() === "graph") bringIntoView(graph.byId.get(start[0]));
@@ -855,33 +966,74 @@
       "<path class=\"edge " + kind + "\" d=\"M1,0 L30,0\" marker-end=\"url(#arrow-" + kind + ")\"></path></svg>";
   }
 
-  function item(icon, text) { return "<li>" + icon + "<span>" + text + "</span></li>"; }
+  // A legend entry is a toggle button: clicking it highlights what it stands for (see legendHighlight).
+  function item(icon, text, key) {
+    return "<li><button type=\"button\" class=\"legend-item\" data-legend=\"" + key + "\" aria-pressed=\"false\">" +
+      icon + "<span>" + text + "</span></button></li>";
+  }
+
+  var legendBody = document.getElementById("graph-legend-body");
 
   function renderLegend() {
-    var html = "";
+    var html = "<p class=\"legend-hint muted\">Click an item to highlight it." +
+      " <button type=\"button\" class=\"link-button\" id=\"graph-legend-clear\" hidden>Clear</button></p>";
     if (state.level === "modules") {
       html += "<ul>" +
-        item(legendIcon(d3.symbolSquare, "group-code"), "Standard module") +
-        item(legendIcon(d3.symbolCircle, "group-class"), "Class") +
-        item(legendIcon(d3.symbolCircle, "group-class hollow"), "Interface") +
-        item(legendIcon(d3.symbolDiamond, "group-host"), "UserForm") +
-        item(legendIcon(d3.symbolTriangle, "group-host"), "Document module") +
+        item(legendIcon(d3.symbolSquare, "group-code"), "Standard module", "module:standard") +
+        item(legendIcon(d3.symbolCircle, "group-class"), "Class", "module:class") +
+        item(legendIcon(d3.symbolCircle, "group-class hollow"), "Interface", "module:interface") +
+        item(legendIcon(d3.symbolDiamond, "group-host"), "UserForm", "module:form") +
+        item(legendIcon(d3.symbolTriangle, "group-host"), "Document module", "module:document") +
         "</ul><p class=\"muted\" style=\"margin:4px 0 0\">Size: number of members</p>";
     } else {
       html += "<h3>Member</h3><ul>" + MEMBER_CATEGORIES.filter(function (c) { return c.id !== "enumValue"; }).map(function (c) {
-        return item(legendIcon(c.shape, "group-neutral"), c.label);
+        return item(legendIcon(c.shape, "group-neutral"), c.label, "category:" + c.id);
       }).join("") +
-        item(legendIcon(d3.symbolCircle, "group-code module-node", 5), "The module itself") +
-        item(legendIcon(d3.symbolCircle, "group-code unreferenced", 5), "Unreferenced") +
+        item(legendIcon(d3.symbolCircle, "group-code module-node", 5), "The module itself", "moduleNode") +
+        item(legendIcon(d3.symbolCircle, "group-code unreferenced", 5), "Unreferenced", "unreferenced") +
         "</ul><h3>Module (colour and outline)</h3><ul>" +
-        item(legendIcon(d3.symbolSquare, "group-code"), "Standard module") +
-        item(legendIcon(d3.symbolSquare, "group-class"), "Class or interface") +
-        item(legendIcon(d3.symbolSquare, "group-host"), "UserForm or document") +
+        item(legendIcon(d3.symbolSquare, "group-code"), "Standard module", "group:code") +
+        item(legendIcon(d3.symbolSquare, "group-class"), "Class or interface", "group:class") +
+        item(legendIcon(d3.symbolSquare, "group-host"), "UserForm or document", "group:host") +
         "</ul>";
     }
-    html += "<h3>Edges</h3><ul>" + EDGE_KINDS.map(function (k) { return item(edgeIcon(k.id), k.label); }).join("") + "</ul>";
-    document.getElementById("graph-legend-body").innerHTML = html;
+    html += "<h3>Edges</h3><ul>" + EDGE_KINDS.map(function (k) { return item(edgeIcon(k.id), k.label, "edge:" + k.id); }).join("") + "</ul>";
+    legendBody.innerHTML = html;
+    updateLegendButtons();
   }
+
+  function updateLegendButtons() {
+    legendBody.querySelectorAll("[data-legend]").forEach(function (button) {
+      button.setAttribute("aria-pressed", state.legend.has(button.getAttribute("data-legend")) ? "true" : "false");
+    });
+    var clear = document.getElementById("graph-legend-clear");
+    if (clear) clear.hidden = state.legend.size === 0;
+  }
+
+  legendBody.addEventListener("click", function (event) {
+    if (event.target.closest("#graph-legend-clear")) { state.legend.clear(); highlight(); return; }
+    var button = event.target.closest("[data-legend]");
+    if (!button) return;
+    var key = button.getAttribute("data-legend");
+    if (state.legend.has(key)) state.legend.delete(key); else state.legend.add(key);
+    highlight();
+  });
+
+  // Clicking the background, or Escape, clears both the legend highlight and the selection.
+  function clearHighlights() {
+    state.legend.clear();
+    vb.select(null);
+    highlight();
+  }
+
+  // Escape is also how the drop-downs close (see page.js), so it only clears when none of them is open, and
+  // not while typing in a field. This runs in the capture phase, before page.js closes them.
+  document.addEventListener("keydown", function (event) {
+    if (event.key !== "Escape" || vb.activeView() !== "graph" || !started) return;
+    if (document.querySelector("details.dropdown[open]")) return;
+    if (event.target.closest && event.target.closest("input, select, textarea")) return;
+    clearHighlights();
+  }, true);
 
   // ---- Toolbar ----
 
@@ -898,7 +1050,7 @@
     focusButton.disabled = !hasSelection && !state.focus;
     focusButton.textContent = state.focus ? "Show all" : "Focus";
     focusButton.setAttribute("aria-pressed", state.focus ? "true" : "false");
-    filtersBox.hidden = state.level !== "members";
+    updateShowMenu();
   }
 
   view.querySelectorAll("[data-level]").forEach(function (button) {
@@ -906,6 +1058,7 @@
       if (state.level === button.getAttribute("data-level")) return;
       state.level = button.getAttribute("data-level");
       state.focus = false;
+      state.legend.clear(); // the legend's items differ between levels
       saveSetting("vbadoc-graph-level", state.level);
       render();
     });
@@ -926,15 +1079,90 @@
 
   document.getElementById("graph-fit").addEventListener("click", function () { fit(true); });
 
+  // ---- Show… menu ----
+  //
+  // What to leave out of the graph (unlike the legend, which only greys things out). Ticked means shown.
+  // Sections marked data-show-level apply to one level only and are hidden at the other. The choices are remembered
+  // per browser, so the button counts how many are in effect, as a reminder that something is left out.
+
   var filterMenu = document.getElementById("graph-filter-menu");
-  filterMenu.innerHTML = MEMBER_CATEGORIES.map(function (c) {
-    return "<label><input type=\"checkbox\" data-category=\"" + c.id + "\" checked> " + c.label + "</label>";
-  }).join("") + "<hr><label><input type=\"checkbox\" id=\"graph-unreferenced-only\"> Only unreferenced members</label>";
+  var filterSummary = filtersBox.querySelector("summary");
+
+  function checkbox(attribute, value, label) {
+    return "<label><input type=\"checkbox\" " + attribute + "=\"" + value + "\"> " + label + "</label>";
+  }
+
+  // Two columns, so the menu fits without scrolling at member level; the second is hidden at module level.
+  filterMenu.innerHTML = "<div class=\"show-columns\"><div>" +
+      "<h3>Modules</h3>" + MODULE_KIND_IDS.map(function (k) { return checkbox("data-module-kind", k, MODULE_STYLES[k].label); }).join("") +
+      "<h3>Edges</h3>" + EDGE_KINDS.map(function (k) { return checkbox("data-edge-kind", k.id, k.label); }).join("") +
+      "<h3>Other</h3><label><input type=\"checkbox\" id=\"graph-show-unconnected\"> Nodes with no connections</label>" +
+    "</div><div data-show-level=\"members\">" +
+      "<h3>Members</h3>" + MEMBER_CATEGORIES.map(function (c) { return checkbox("data-category", c.id, c.label); }).join("") +
+      "<label><input type=\"checkbox\" id=\"graph-show-private\"> Private members</label>" +
+      "<h3>References</h3>" +
+      [["all", "All members"], ["unreferenced", "Unreferenced only"], ["referenced", "Referenced only"]].map(function (r) {
+        return "<label><input type=\"radio\" name=\"graph-references\" value=\"" + r[0] + "\"> " + r[1] + "</label>";
+      }).join("") +
+    "</div></div>" +
+    "<div class=\"actions\"><button type=\"button\" class=\"button\" id=\"graph-show-everything\">Show everything</button></div>";
+
+  // How many of the Show… choices leave something out at the current level.
+  function activeShowCount() {
+    var show = state.show;
+    var count = show.hiddenModuleKinds.size + show.hiddenEdgeKinds.size + (show.unconnected ? 0 : 1);
+    if (state.level === "members") {
+      count += show.hiddenCategories.size + (show.privateMembers ? 0 : 1) + (show.references === "all" ? 0 : 1);
+    }
+    return count;
+  }
+
+  function updateShowMenu() {
+    var show = state.show;
+    filterMenu.querySelectorAll("[data-show-level]").forEach(function (section) {
+      section.hidden = section.getAttribute("data-show-level") !== state.level;
+    });
+    filterMenu.querySelectorAll("[data-module-kind]").forEach(function (box) { box.checked = !show.hiddenModuleKinds.has(box.getAttribute("data-module-kind")); });
+    filterMenu.querySelectorAll("[data-category]").forEach(function (box) { box.checked = !show.hiddenCategories.has(box.getAttribute("data-category")); });
+    filterMenu.querySelectorAll("[data-edge-kind]").forEach(function (box) { box.checked = !show.hiddenEdgeKinds.has(box.getAttribute("data-edge-kind")); });
+    filterMenu.querySelectorAll("input[name='graph-references']").forEach(function (radio) { radio.checked = radio.value === show.references; });
+    document.getElementById("graph-show-private").checked = show.privateMembers;
+    document.getElementById("graph-show-unconnected").checked = show.unconnected;
+    var count = activeShowCount();
+    filterSummary.textContent = count > 0 ? "Show… (" + count + ")" : "Show…";
+    filterSummary.title = count > 0 ? count + " of the Show… choices leave things out of the graph" : "What to show in the graph";
+    filtersBox.classList.toggle("active", count > 0);
+  }
+
+  function toggle(set, value, shown) { if (shown) set.delete(value); else set.add(value); }
+
   filterMenu.addEventListener("change", function (event) {
-    var box = event.target;
-    if (box.id === "graph-unreferenced-only") state.unreferencedOnly = box.checked;
-    else if (box.checked) state.hiddenCategories.delete(box.getAttribute("data-category"));
-    else state.hiddenCategories.add(box.getAttribute("data-category"));
+    var input = event.target;
+    var show = state.show;
+    if (input.hasAttribute("data-module-kind")) toggle(show.hiddenModuleKinds, input.getAttribute("data-module-kind"), input.checked);
+    else if (input.hasAttribute("data-category")) toggle(show.hiddenCategories, input.getAttribute("data-category"), input.checked);
+    else if (input.hasAttribute("data-edge-kind")) toggle(show.hiddenEdgeKinds, input.getAttribute("data-edge-kind"), input.checked);
+    else if (input.name === "graph-references") show.references = input.value;
+    else if (input.id === "graph-show-private") show.privateMembers = input.checked;
+    else if (input.id === "graph-show-unconnected") show.unconnected = input.checked;
+    else return;
+    saveShow();
+    render();
+  });
+
+  // The columns stack when they'd run past the edge of the view (e.g. with the source panel open). This opens
+  // the menu itself so it can measure before anything is drawn; the "toggle" event would come a frame late.
+  filterSummary.addEventListener("click", function (event) {
+    if (filtersBox.open) return;
+    event.preventDefault();
+    filtersBox.open = true;
+    filterMenu.classList.remove("stacked");
+    if (filterMenu.getBoundingClientRect().right > view.getBoundingClientRect().right - 8) filterMenu.classList.add("stacked");
+  });
+
+  document.getElementById("graph-show-everything").addEventListener("click", function () {
+    state.show = defaultShow();
+    saveShow();
     render();
   });
 

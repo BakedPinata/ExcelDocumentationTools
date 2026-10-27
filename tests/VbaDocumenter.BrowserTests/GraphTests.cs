@@ -351,8 +351,11 @@ public class GraphTests(PageFixture fixture)
         Assert.Equal(1, await Count(page, "#graph-svg g.node.selected[data-id='OrderService']"));
     }
 
+    static Task<string[]> DrawnIds(IPage page, string selector = "#graph-svg g.node") =>
+        page.Locator(selector).EvaluateAllAsync<string[]>("ns => ns.map(n => n.dataset.id)");
+
     [Fact]
-    public async Task Filters_hide_member_kinds_or_show_only_unreferenced_members()
+    public async Task Show_hides_member_kinds_private_members_or_filters_by_references()
     {
         await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
         var page = opened.Page;
@@ -364,10 +367,211 @@ public class GraphTests(PageFixture fixture)
 
         Assert.Equal(0, await Count(page, "#graph-svg g.node[data-id='Order.m_Id']"));
         Assert.True(await Count(page, "#graph-svg g.node") < before);
+        Assert.Equal("Show… (1)", await page.InnerTextAsync("#graph-filters summary"));
 
         await page.CheckAsync("input[data-category='data']");
-        await page.CheckAsync("#graph-unreferenced-only");
-        Assert.Equal(new[] { "Utils.UnusedHelper" }, await page.Locator("#graph-svg g.node").EvaluateAllAsync<string[]>("ns => ns.map(n => n.dataset.id)"));
+        await page.CheckAsync("input[name='graph-references'][value='unreferenced']");
+        Assert.Equal(new[] { "Utils.UnusedHelper" }, await DrawnIds(page));
+
+        await page.CheckAsync("input[name='graph-references'][value='referenced']");
+        var referenced = await DrawnIds(page);
+        Assert.DoesNotContain("Utils.UnusedHelper", referenced);
+        Assert.Contains("AppInit.LoadSettings", referenced);
+
+        await page.CheckAsync("input[name='graph-references'][value='all']");
+        await page.UncheckAsync("#graph-show-private");
+        var publicOnly = await DrawnIds(page);
+        Assert.DoesNotContain("AppInit.LoadSettings", publicOnly); // Private Sub
+        Assert.DoesNotContain("Order.m_Id", publicOnly);           // module-level Private variable
+        Assert.Contains("AppInit.Startup", publicOnly);
+        Assert.Empty(opened.Errors);
+    }
+
+    [Fact]
+    public async Task Show_hides_module_kinds_edge_kinds_and_unconnected_nodes_at_both_levels()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await page.ClickAsync("#graph-filters summary");
+        Assert.True(await page.IsHiddenAsync("#graph-show-private")); // member-level choices are hidden at module level
+
+        await page.UncheckAsync("input[data-module-kind='document']");
+        var modules = await DrawnIds(page);
+        Assert.DoesNotContain("ThisWorkbook", modules);
+        Assert.DoesNotContain("Sheet1", modules);
+        Assert.Contains("Main", modules);
+
+        await page.CheckAsync("input[data-module-kind='document']");
+        await page.UncheckAsync("input[data-edge-kind='uses']");
+        Assert.Equal(0, await Count(page, "#graph-svg path.edge.uses"));
+        Assert.Equal(2, await Count(page, "#graph-svg path.edge.implements"));
+        Assert.Equal(12, await Count(page, "#graph-svg g.node")); // unconnected nodes are still shown...
+
+        await page.UncheckAsync("#graph-show-unconnected");    // ...until this is unticked
+        Assert.Equal(new[] { "CsvOrderRepository", "IOrderRepository", "OrderService", "ProgressReporter", "SheetOrderRepository" },
+            (await DrawnIds(page)).Order());
+
+        await ShowMembers(page);
+        Assert.Equal(0, await Count(page, "#graph-svg path.edge.uses"));
+        Assert.Equal(0, await Count(page, "#graph-svg g.node[data-id='Utils.UnusedHelper']"));
+        Assert.Equal(1, await Count(page, "#graph-svg g.node[data-id='IOrderRepository.Save']"));
+    }
+
+    [Fact]
+    public async Task Show_choices_are_remembered_and_Show_everything_resets_them()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await page.ClickAsync("#graph-filters summary");
+        await page.UncheckAsync("input[data-module-kind='document']");
+        await page.UncheckAsync("input[data-edge-kind='events']");
+
+        await page.ReloadAsync();
+        await page.WaitForFunctionAsync("() => !!window.vbadocGraph");
+
+        Assert.Equal("Show… (2)", await page.InnerTextAsync("#graph-filters summary"));
+        Assert.Equal(10, await Count(page, "#graph-svg g.node"));
+        Assert.Equal(0, await Count(page, "#graph-svg path.edge.events"));
+
+        await page.ClickAsync("#graph-filters summary");
+        Assert.False(await page.IsCheckedAsync("input[data-module-kind='document']"));
+        await page.ClickAsync("#graph-show-everything");
+        Assert.Equal("Show…", await page.InnerTextAsync("#graph-filters summary"));
+        Assert.Equal(12, await Count(page, "#graph-svg g.node"));
+        Assert.True(await page.IsCheckedAsync("input[data-module-kind='document']"));
+    }
+
+    [Fact]
+    public async Task The_Show_menu_uses_two_columns_at_member_level_unless_they_would_not_fit()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await ShowMembers(page);
+        const string stacked = "() => document.getElementById('graph-filter-menu').classList.contains('stacked')";
+        const string withinView = @"() => document.getElementById('graph-filter-menu').getBoundingClientRect().right
+            <= document.getElementById('view-graph').getBoundingClientRect().right";
+
+        await page.ClickAsync("#graph-filters summary"); // the source panel leaves too little room
+        Assert.True(await page.EvaluateAsync<bool>(stacked));
+        Assert.True(await page.EvaluateAsync<bool>(withinView));
+
+        await page.Keyboard.PressAsync("Escape");
+        await page.ClickAsync("#source-toggle");
+        await page.ClickAsync("#graph-filters summary");
+        Assert.False(await page.EvaluateAsync<bool>(stacked));
+        Assert.True(await page.EvaluateAsync<bool>(withinView));
+        Assert.True(await page.IsVisibleAsync("#graph-show-private"));
+    }
+
+    [Fact]
+    public async Task Clicking_a_legend_item_highlights_matching_nodes()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+
+        await page.ClickAsync("#graph-legend [data-legend='module:interface']");
+
+        Assert.Equal("true", await page.GetAttributeAsync("#graph-legend [data-legend='module:interface']", "aria-pressed"));
+        Assert.Equal(new[] { "IOrderRepository" }, await DrawnIds(page, "#graph-svg g.node:not(.dim)"));
+        Assert.Equal(29, await Count(page, "#graph-svg path.edge.dim")); // no edge has both ends lit
+        Assert.Null(await Selection(page));                               // the legend doesn't select anything
+
+        // Items add to each other.
+        await page.ClickAsync("#graph-legend [data-legend='module:document']");
+        Assert.Equal(new[] { "IOrderRepository", "Sheet1", "ThisWorkbook" }, (await DrawnIds(page, "#graph-svg g.node:not(.dim)")).Order());
+
+        // Clicking again turns an item off; Clear turns them all off.
+        await page.ClickAsync("#graph-legend [data-legend='module:interface']");
+        Assert.Equal(new[] { "Sheet1", "ThisWorkbook" }, (await DrawnIds(page, "#graph-svg g.node:not(.dim)")).Order());
+        await page.ClickAsync("#graph-legend-clear");
+        Assert.Equal(0, await Count(page, "#graph-svg .dim"));
+        Assert.True(await page.IsHiddenAsync("#graph-legend-clear"));
+    }
+
+    [Fact]
+    public async Task An_edge_legend_item_highlights_those_edges_and_the_nodes_they_connect()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+
+        await page.ClickAsync("#graph-legend [data-legend='edge:implements']");
+
+        Assert.Equal(2, await Count(page, "#graph-svg path.edge.highlighted"));
+        Assert.Equal(2, await Count(page, "#graph-svg path.edge.implements.highlighted"));
+        Assert.Equal(new[] { "CsvOrderRepository", "IOrderRepository", "SheetOrderRepository" },
+            (await DrawnIds(page, "#graph-svg g.node.related")).Order());
+        Assert.Equal(9, await Count(page, "#graph-svg g.node.dim"));
+    }
+
+    [Fact]
+    public async Task Legend_and_selection_narrow_each_other()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await page.ClickAsync("#graph-svg g.node[data-id='CsvOrderRepository']");
+        var neighbours = await Count(page, "#graph-svg g.node.related");
+        Assert.True(neighbours > 1);
+
+        await page.ClickAsync("#graph-legend [data-legend='edge:implements']");
+
+        // Only the selection's Implements link is left, and the selection itself stays lit.
+        Assert.Equal(new[] { "CsvOrderRepository" }, await DrawnIds(page, "#graph-svg g.node.selected"));
+        Assert.Equal(new[] { "IOrderRepository" }, await DrawnIds(page, "#graph-svg g.node.related"));
+        Assert.Equal(1, await Count(page, "#graph-svg path.edge.highlighted[data-from='CsvOrderRepository'][data-to='IOrderRepository']"));
+        Assert.Equal(1, await Count(page, "#graph-svg path.edge.highlighted"));
+    }
+
+    [Fact]
+    public async Task Member_level_legend_items_highlight_member_kinds_and_unreferenced_members()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await ShowMembers(page);
+
+        await page.ClickAsync("#graph-legend [data-legend='unreferenced']");
+        Assert.Equal(new[] { "Utils.UnusedHelper" }, await DrawnIds(page, "#graph-svg g.node.related"));
+        Assert.Equal(1, await Count(page, "#graph-svg g.hull-group:not(.dim)")); // only Utils' outline stays lit
+
+        await page.ClickAsync("#graph-legend [data-legend='unreferenced']");
+        await page.ClickAsync("#graph-legend [data-legend='category:property']");
+        var lit = await DrawnIds(page, "#graph-svg g.node.related");
+        Assert.Contains("Order.Status[Let]", lit);
+        Assert.DoesNotContain("Main.Factorial", lit);
+
+        // A selected module selects all its members, and the legend narrows those too.
+        await page.ClickAsync("#graph-legend [data-legend='category:property']");
+        await page.ClickAsync("#graph-legend [data-legend='category:procedure']");
+        await opened.SelectAsync("Order");
+        Assert.Equal(1, await Count(page, "#graph-svg g.node.selected[data-id='Order.Load']"));
+        Assert.Equal(1, await Count(page, "#graph-svg g.node.dim[data-id='Order.m_Id']"));
+        Assert.Equal(0, await Count(page, "#graph-svg g.hull-group.dim[data-module='Order']"));
+
+        // Switching level clears the legend, whose items differ between levels.
+        await page.ClickAsync("[data-level='modules']");
+        Assert.Equal(0, await Count(page, "#graph-legend [aria-pressed='true']"));
+        Assert.Equal(7, await Count(page, "#graph-svg g.node:not(.dim)")); // just Order and its 6 neighbours
+    }
+
+    [Fact]
+    public async Task The_background_or_Escape_clears_the_legend_and_the_selection()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await page.ClickAsync("#graph-legend [data-legend='edge:events']");
+
+        await page.EvaluateAsync("() => document.getElementById('graph-svg').dispatchEvent(new MouseEvent('click', { bubbles: true }))");
+        Assert.Equal(0, await Count(page, "#graph-svg .dim"));
+        Assert.Equal("false", await page.GetAttributeAsync("#graph-legend [data-legend='edge:events']", "aria-pressed"));
+
+        await page.ClickAsync("#graph-svg g.node[data-id='Main']");
+        await page.ClickAsync("#graph-legend [data-legend='edge:uses']");
+        await page.ClickAsync("#graph-filters summary");
+        await page.Keyboard.PressAsync("Escape"); // closes the menu only
+        Assert.Equal("Main", await Selection(page));
+
+        await page.Keyboard.PressAsync("Escape");
+        Assert.Null(await Selection(page));
+        Assert.Equal(0, await Count(page, "#graph-svg .dim"));
     }
 
     [Fact]
