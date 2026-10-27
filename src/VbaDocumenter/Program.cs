@@ -4,10 +4,17 @@
 // 3 = an unexpected error (a bug; the stack trace is printed).
 
 using VbaDocumenter;
+using VbaDocumenter.Core;
 using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Extraction;
 using VbaDocumenter.Core.Output;
 using VbaDocumenter.Core.Parsing;
+
+if (args is ["--version"])
+{
+    Console.WriteLine(ToolVersion.Current.Description);
+    return 0;
+}
 
 var options = CommandLineOptions.Parse(args, out var error);
 if (options == null)

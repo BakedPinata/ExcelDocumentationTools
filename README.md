@@ -48,6 +48,7 @@ dotnet run --project src/VbaDocumenter -- <workbook> [--out <folder>] [--embed-s
 | `--out <folder>` | Output folder. Default: a `VBAProject` folder next to the workbook |
 | `--embed-source` | Put the module source inside the page, so it works without Load folder |
 | `--verbose` | List every member found in each module, with its line range |
+| `--version` | Show the version and git commit of this build of vbadoc, and nothing else |
 
 Exit codes: `0` success, `1` bad arguments, `2` a problem with the workbook (the message explains it),
 `3` an unexpected error.
@@ -63,6 +64,13 @@ Exit codes: `0` success, `1` bad arguments, `2` a problem with the workbook (the
     browsers don't let a page read files next to it on their own.
   - With `--embed-source` the source is inside the page instead. The page is larger, and code changes appear in its
     git diff as well.
+  - The top bar shows which build of vbadoc made the page, such as `vbadoc 0.5.0 (b7c0ebe)`. That's the version and
+    the commit it was built from, with `-dirty` added if the build had uncommitted changes. If that line changes in a
+    diff, the tool changed too.
+
+**Keeping tool changes apart from workbook changes.** After updating vbadoc, run it once on the workbook as it is
+already committed, and commit that on its own (for example "Regenerate with vbadoc 0.6.0"). Everything that changes
+in that commit comes from the tool, so any later diff comes from the workbook alone.
 
 On each run the folder is brought in line with the workbook. Module files (`.bas`, `.cls`, `.frm`) at the top level
 of the folder that are no longer in the workbook are deleted, so **don't keep hand-written module files there**.

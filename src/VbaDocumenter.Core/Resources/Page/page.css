@@ -147,40 +147,80 @@ a:hover { text-decoration: underline; }
 .source-status.embedded #load-folder-label { display: none; }
 .warning { color: var(--warn); }
 
-.theme-toggle { margin-left: auto; }
+/* Source and theme switches and the version, kept together at the right end of the bar. */
+.topbar-end { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-left: auto; }
+.source-toggle[aria-pressed="true"] { border-color: var(--accent); }
+.tool-version { font-size: 12px; color: var(--text-muted); white-space: nowrap; cursor: help; }
 html[data-theme="dark"] .theme-icon::before { content: "\263E"; }  /* moon */
 html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
 
-/* ---- Layout: view on the left, source on the right; stacked on narrow screens ---- */
+/* ---- Layout: view on the left, source on the right; stacked on narrow screens ----
+   The splitter between them sets --source-size (a percentage, see page.js), and the source panel can be hidden. */
 
 .layout {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 42%);
+  grid-template-columns: minmax(0, 1fr) 7px minmax(240px, var(--source-size, 42%));
 }
+.layout.source-hidden { grid-template-columns: minmax(0, 1fr); }
 
 .view { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
 .view[hidden] { display: none; }
 .placeholder { margin: 24px; color: var(--text-muted); }
 
 .source-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
-  border-left: 1px solid var(--border);
   background: var(--surface);
 }
+.source-panel[hidden], .splitter[hidden] { display: none; }
+
+/* The splitter is wider than the line it draws, so it's easy to grab. */
+.splitter {
+  position: relative;
+  cursor: col-resize;
+  touch-action: none;
+  background: var(--surface);
+}
+.splitter::before { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: var(--border); }
+.splitter:hover::before, .splitter.dragging::before { left: 2px; width: 3px; background: var(--accent); }
+.splitter:focus-visible { outline-offset: -2px; }
+body.resizing { cursor: col-resize; user-select: none; }
+
+.source-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-muted);
+  font: 18px/1 var(--font-ui);
+  cursor: pointer;
+}
+.source-close:hover { color: var(--text); border-color: var(--border); background: var(--surface-2); }
 
 @media (max-width: 900px) {
-  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(300px, 1fr) minmax(240px, 45%); }
-  .source-panel { border-left: 0; border-top: 1px solid var(--border); }
+  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(200px, 1fr) 7px minmax(160px, var(--source-size, 45%)); }
+  .layout.source-hidden { grid-template-rows: minmax(0, 1fr); }
+  .splitter { cursor: row-resize; }
+  .splitter::before { top: 3px; bottom: auto; left: 0; right: 0; width: auto; height: 1px; }
+  .splitter:hover::before, .splitter.dragging::before { top: 2px; left: 0; width: auto; height: 3px; }
+  body.resizing { cursor: row-resize; }
   .title { max-width: 100%; flex-basis: 100%; }
 }
 
 /* ---- Source panel ---- */
 
-.source-header { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.source-header { padding: 12px 40px 12px 16px; border-bottom: 1px solid var(--border); }
 .source-header:empty { display: none; }
 .source-header h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; word-break: break-word; }
 .source-header .kind { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--text-muted); }
@@ -193,7 +233,7 @@ html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
 .source-header .actions { margin-top: 8px; }
 
 .source-body { flex: 1; min-height: 0; overflow: auto; }
-.source-message { margin: 16px; color: var(--text-muted); }
+.source-message { margin: 16px 40px 16px 16px; color: var(--text-muted); }
 .source-message .button { margin-top: 8px; }
 
 .code { margin: 0; padding: 8px 0; font: 12.5px/1.5 var(--font-code); tab-size: 4; min-width: max-content; }

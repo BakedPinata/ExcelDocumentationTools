@@ -54,6 +54,17 @@ public class HtmlPageWriterTests
     }
 
     [Fact]
+    public void Shows_which_build_of_vbadoc_made_it()
+    {
+        var html = Build(embed: false);
+        var stamp = ToolVersion.Current.ToString().Replace("&", "&amp;");
+
+        Assert.Contains($"<meta name=\"generator\" content=\"{stamp}\">", html);
+        Assert.Contains($">{stamp}</span>", html);
+        Assert.Contains(ToolVersion.Current.Description, html);
+    }
+
+    [Fact]
     public void Uses_LF_line_endings_throughout()
     {
         Assert.DoesNotContain("\r", Build(embed: true));

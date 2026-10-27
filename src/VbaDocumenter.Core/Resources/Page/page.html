@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- The page is self-contained: this policy makes the browser refuse any network request. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:">
-<meta name="generator" content="vbadoc">
+<meta name="generator" content="{{TOOL_VERSION}}">
 <title>{{TITLE}}</title>
 <link rel="icon" type="image/svg+xml" href="{{FAVICON}}">
 <script>
@@ -43,11 +43,15 @@
     </label>
     <span id="source-status-text" class="muted"></span>
   </div>
-  <button type="button" class="button theme-toggle" id="theme-toggle" aria-pressed="false" title="Switch between light and dark">
-    <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Dark</span>
-  </button>
+  <div class="topbar-end">
+    <button type="button" class="button source-toggle" id="source-toggle" aria-pressed="true" aria-controls="source-panel" title="Show or hide the source panel">Source</button>
+    <button type="button" class="button theme-toggle" id="theme-toggle" aria-pressed="false" title="Switch between light and dark">
+      <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Dark</span>
+    </button>
+    <span class="tool-version" id="tool-version" title="{{TOOL_VERSION_DESCRIPTION}}">{{TOOL_VERSION}}</span>
+  </div>
 </header>
-<main class="layout">
+<main class="layout" id="layout">
   <section class="view" id="view-graph" role="tabpanel" aria-labelledby="tab-graph">
     <div class="view-toolbar" role="toolbar" aria-label="Graph options">
       <div class="segmented" role="radiogroup" aria-label="Level">
@@ -92,7 +96,11 @@
     <p class="view-message" id="classes-message" hidden></p>
     <details class="view-legend" id="classes-legend" open><summary>Legend</summary><div id="classes-legend-body"></div></details>
   </section>
+  <div class="splitter" id="source-splitter" role="separator" tabindex="0" aria-controls="source-panel"
+       aria-orientation="vertical" aria-label="Resize the source panel" aria-valuemin="20" aria-valuemax="70" aria-valuenow="42"
+       title="Drag to resize. Double-click to reset."></div>
   <aside class="source-panel" id="source-panel" aria-label="Source">
+    <button type="button" class="source-close" id="source-close" title="Hide the source panel" aria-label="Hide the source panel">&times;</button>
     <div class="source-header" id="source-header"></div>
     <div class="source-body" id="source-body"></div>
   </aside>
