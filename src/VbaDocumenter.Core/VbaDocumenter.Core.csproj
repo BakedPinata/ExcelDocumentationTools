@@ -16,6 +16,7 @@
     <EmbeddedResource Include="Resources\Page\vba-highlight.js" LogicalName="Page/vba-highlight.js" />
     <EmbeddedResource Include="Resources\Page\graph.js" LogicalName="Page/graph.js" />
     <EmbeddedResource Include="Resources\Page\classes.js" LogicalName="Page/classes.js" />
+    <EmbeddedResource Include="Resources\Page\favicon.svg" LogicalName="Page/favicon.svg" />
   </ItemGroup>
 
 </Project>

@@ -1,3 +1,5 @@
+<img src="src/VbaDocumenter.Core/Resources/Page/favicon.svg" alt="" width="80" align="right">
+
 # vbadoc: VBA Export & Documentation Tool
 
 A .NET console app that exports the VBA from a macro-enabled Excel workbook into text files,

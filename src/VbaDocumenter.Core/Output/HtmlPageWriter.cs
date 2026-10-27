@@ -22,6 +22,8 @@ public static class HtmlPageWriter
         var parts = new Dictionary<string, string>
         {
             ["TITLE"] = Escape(title),
+            // A data URI, so the icon is part of the page and the CSP (img-src data:) allows it.
+            ["FAVICON"] = "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(EmbeddedResources.ReadText("Page/favicon.svg"))),
             ["STYLE"] = EmbeddedResources.ReadText("Page/page.css"),
             ["DATA"] = data.ToJson(),
             ["SOURCES"] = embedSource ? EmbeddedSources(project) : "",
