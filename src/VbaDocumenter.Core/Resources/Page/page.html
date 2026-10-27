@@ -51,6 +51,10 @@
     <span class="tool-version" id="tool-version" title="{{TOOL_VERSION_DESCRIPTION}}">{{TOOL_VERSION}}</span>
   </div>
 </header>
+<nav class="trail" id="trail" aria-label="Trail" hidden>
+  <ol class="trail-steps" id="trail-steps"></ol>
+  <button type="button" class="trail-clear" id="trail-clear" title="Start the trail again from here" aria-label="Clear the trail">&times;</button>
+</nav>
 <main class="layout" id="layout">
   <section class="view" id="view-graph" role="tabpanel" aria-labelledby="tab-graph">
     <div class="view-toolbar" role="toolbar" aria-label="Graph options">
@@ -63,6 +67,7 @@
         <button type="button" role="radio" data-reach="transitive" aria-checked="false" title="Highlight the whole chain in each direction">Transitive</button>
       </div>
       <button type="button" class="button" id="graph-focus" aria-pressed="false" disabled title="Show only the selection and what it's connected to">Focus</button>
+      <button type="button" class="button" id="graph-path" aria-pressed="false" disabled aria-label="Path from Home" title="Show the shortest chain of dependencies between Home and the selection"><span class="star" aria-hidden="true">★</span> Path</button>
       <button type="button" class="button" id="graph-fit" title="Zoom to fit">Fit</button>
       <details class="graph-filters dropdown" id="graph-filters">
         <summary class="button">Show…</summary>
@@ -72,6 +77,7 @@
         <summary class="button" title="How the graph looks and behaves">Settings</summary>
         <div class="menu settings-menu" id="graph-settings-menu"></div>
       </details>
+      <span class="toolbar-note" id="graph-path-note" role="status" hidden></span>
     </div>
     <svg class="graph-svg graph-art" id="graph-svg" aria-label="Dependency graph"></svg>
     <p class="view-message" id="graph-message" hidden></p>

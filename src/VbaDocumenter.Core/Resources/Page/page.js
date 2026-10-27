@@ -5,6 +5,7 @@
 //   vbadoc.onSelectionChange(fn)      fn(id) after the selection changes
 //   vbadoc.theme() / onThemeChange(fn)  "light" or "dark"
 //   vbadoc.activeView() / onViewChange(fn)  "graph" or "classes"
+//   vbadoc.home() / setHome(id) / onHomeChange(fn)  the Home module or member (where the trail starts), or null
 (function () {
   "use strict";
 
@@ -62,8 +63,9 @@
   // localStorage can throw when the page is opened from disk, so every access is guarded.
   function loadSetting(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
   function saveSetting(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* not remembered */ } }
+  function removeSetting(key) { try { localStorage.removeItem(key); } catch (e) { /* nothing stored */ } }
 
-  var listeners = { selection: [], theme: [], view: [] };
+  var listeners = { selection: [], theme: [], view: [], home: [] };
   function emit(name, value) {
     listeners[name].forEach(function (fn) {
       try { fn(value); } catch (e) { console.error(e); }
@@ -210,10 +212,115 @@
     if (id === selection) return true;
     selection = id;
     showWholeModule = false;
+    if (id !== null) addStep(id);
     renderSource();
+    renderTrail();
+    rememberInHistory(id);
     emit("selection", selection);
     return true;
   }
+
+  // ---- Home and the trail ----
+  //
+  // Home is one module or member per workbook, remembered per browser. The trail is the route walked from Home
+  // (or, without one, from the first selection): every selection adds a step, whichever view or list it came
+  // from. Selecting something already on the trail cuts the trail back to it, so loops collapse and going back
+  // is just clicking an earlier step. Clearing the selection keeps the trail. It lives only as long as the page.
+
+  var homeKey = "vbadoc-home|" + data.project.title; // localStorage is shared by every page opened from disk
+  var home = loadSetting(homeKey);
+  if (home !== null && !modulesById.has(home) && !membersById.has(home)) home = null; // the workbook has changed
+  var trail = home ? [home] : [];
+  var trailExpanded = false;
+  var TRAIL_LIMIT = 7; // longer trails show the first step, "…" and the last TRAIL_LIMIT - 2
+
+  function addStep(id) {
+    var at = trail.indexOf(id);
+    if (at >= 0) trail = trail.slice(0, at + 1);
+    else trail.push(id);
+  }
+
+  // Back to Home (if any) plus where you are now.
+  function restartTrail() {
+    trail = home ? [home] : [];
+    if (selection !== null && selection !== home) trail.push(selection);
+    trailExpanded = false;
+  }
+
+  function setHome(id) {
+    id = id || null;
+    if (id !== null && !modulesById.has(id) && !membersById.has(id)) return false;
+    if (id === home) return true;
+    home = id;
+    if (home) saveSetting(homeKey, home); else removeSetting(homeKey);
+    if (home) restartTrail(); // the trail is the route from Home, so a new Home starts a new trail
+    renderSource();
+    renderTrail();
+    emit("home", home);
+    return true;
+  }
+
+  function stepText(id) {
+    var member = membersById.get(id);
+    return member ? member.module + "." + member.name : id;
+  }
+
+  function renderTrail() {
+    var box = $("trail");
+    // A lone step that is just the selection says nothing new; Home is always worth showing.
+    box.hidden = !(home || trail.length > 1);
+    if (box.hidden) { $("trail-steps").innerHTML = ""; return; }
+    var shown = trail.map(function (id, index) { return { id: id, index: index }; });
+    if (!trailExpanded && trail.length > TRAIL_LIMIT) {
+      shown = [shown[0], null].concat(shown.slice(trail.length - (TRAIL_LIMIT - 2)));
+    }
+    $("trail-steps").innerHTML = shown.map(function (step) {
+      if (step === null) {
+        return "<li><button type=\"button\" class=\"trail-more\" id=\"trail-more\" title=\"Show all " + trail.length +
+          " steps\">…</button></li>";
+      }
+      var isHome = step.index === 0 && step.id === home;
+      var current = step.id === selection;
+      return "<li><button type=\"button\" class=\"trail-step" + (isHome ? " home" : "") + "\" data-step=\"" + step.index + "\"" +
+        (current ? " aria-current=\"step\"" : "") + " title=\"" + escapeHtml(step.id) + (isHome ? " (Home)" : "") + "\">" +
+        (isHome ? "<span aria-hidden=\"true\">★ </span>" : "") + escapeHtml(stepText(step.id)) + "</button></li>";
+    }).join("");
+    $("trail-clear").hidden = trail.length <= (home ? 1 : 0);
+  }
+
+  $("trail").addEventListener("click", function (event) {
+    if (event.target.closest("#trail-more")) { trailExpanded = true; renderTrail(); return; }
+    if (event.target.closest("#trail-clear")) { restartTrail(); renderTrail(); return; }
+    var step = event.target.closest("[data-step]");
+    if (step) select(trail[Number(step.getAttribute("data-step"))]);
+  });
+
+  // ---- Back and Forward ----
+  //
+  // Each selection is added to the browser's history as the page address's #fragment (e.g. index.html#Order.Save),
+  // so Back and Forward step through selections, and an address with a fragment opens with that selection.
+
+  var followingHistory = false;
+
+  function idFromAddress() {
+    var fragment = location.hash.slice(1);
+    if (!fragment) return null;
+    try { return decodeURIComponent(fragment); } catch (e) { return null; }
+  }
+
+  function rememberInHistory(id) {
+    if (followingHistory || idFromAddress() === id) return;
+    try {
+      history.pushState(null, "", "#" + (id === null ? "" : encodeURIComponent(id)));
+    } catch (e) { /* some browsers refuse history changes for pages opened from disk; selection still works */ }
+  }
+
+  function followAddress() {
+    followingHistory = true;
+    try { select(idFromAddress()); } finally { followingHistory = false; }
+  }
+
+  window.addEventListener("popstate", followAddress);
 
   function moduleKindLabel(module) {
     return module.isInterface ? "Interface" : KIND_LABELS[module.kind] || module.kind;
@@ -282,10 +389,17 @@
       "</details>";
   }
 
+  function homeButton(id) {
+    var isHome = id === home;
+    return "<button type=\"button\" class=\"home-toggle\" id=\"home-toggle\" aria-pressed=\"" + isHome + "\" title=\"" +
+      (isHome ? "This is Home. Click to clear Home." : "Make this Home, where the trail starts") + "\" aria-label=\"Home\">" +
+      (isHome ? "★" : "☆") + "</button>";
+  }
+
   function renderHeader(module, member) {
     var html;
     if (member) {
-      html = "<h2>" + escapeHtml(member.name) + "<span class=\"kind\">" + escapeHtml(KIND_LABELS[member.kind] || member.kind) +
+      html = "<h2>" + escapeHtml(member.name) + homeButton(member.id) + "<span class=\"kind\">" + escapeHtml(KIND_LABELS[member.kind] || member.kind) +
         " in <a href=\"#\" data-select=\"" + escapeHtml(module.id) + "\">" + escapeHtml(module.id) + "</a></span></h2>" +
         "<p class=\"signature\">" + escapeHtml(member.signature) + "</p>";
       var badges = [];
@@ -310,12 +424,13 @@
           (showWholeModule ? "Show this member only" : "Show in the whole module") + "</button></div>";
       }
     } else {
-      html = "<h2>" + escapeHtml(module.id) + "<span class=\"kind\">" + escapeHtml(moduleKindLabel(module)) + "</span></h2>" +
+      html = "<h2>" + escapeHtml(module.id) + homeButton(module.id) + "<span class=\"kind\">" + escapeHtml(moduleKindLabel(module)) + "</span></h2>" +
         "<p class=\"signature\">" + escapeHtml(module.file) + " · " + module.lines + " lines</p>";
     }
     html += dependenciesHtml(member ? member.id : module.id, member ? memberEdges : moduleEdges, member ? module.id : null);
     panelHeader.innerHTML = html;
 
+    $("home-toggle").addEventListener("click", function () { setHome(home === selection ? null : selection); });
     var toggle = $("toggle-context");
     if (toggle) toggle.addEventListener("click", function () { showWholeModule = !showWholeModule; renderSource(); });
     // Noted on click, not on the "toggle" event, which comes later: by then a new selection may have redrawn the header.
@@ -558,10 +673,16 @@
     theme: currentTheme,
     onThemeChange: function (fn) { listeners.theme.push(fn); },
     activeView: function () { return activeView; },
-    onViewChange: function (fn) { listeners.view.push(fn); }
+    onViewChange: function (fn) { listeners.view.push(fn); },
+    home: function () { return home; },
+    setHome: setHome,
+    onHomeChange: function (fn) { listeners.home.push(fn); }
   };
 
   var storedView = loadSetting("vbadoc-view");
   showView(storedView === "classes" ? "classes" : "graph");
+  // The views read the selection when they first draw, so an address's selection is made before they do.
+  if (idFromAddress() !== null) followAddress();
   renderSource();
+  renderTrail();
 })();
