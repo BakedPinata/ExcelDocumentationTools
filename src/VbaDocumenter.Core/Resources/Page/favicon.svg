@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- vbadoc icon: a workbook under a magnifier that shows the module graph inside. Node colours match the page's
+       module kinds (blue code, orange class, green host document). -->
+  <rect width="64" height="64" rx="14" fill="#199e70"/>
+  <rect x="9" y="9" width="36" height="40" rx="3" fill="#ffffff"/>
+  <path d="M9 12 a3 3 0 0 1 3-3 h30 a3 3 0 0 1 3 3 v7 H9z" fill="#bfe8d7"/>
+  <path d="M9 29 H45 M9 39 H45 M21 9 V49 M33 9 V49" stroke="#9fd5bf" stroke-width="2"/>
+  <path d="M47 47 L56 56" stroke="#1c1f24" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="39" cy="39" r="13.5" fill="#1c1f24"/>
+  <path d="M34 36 L44 34 M34 36 L39 44 M44 34 L39 44" stroke="#9aa3ad" stroke-width="2"/>
+  <circle cx="34" cy="36" r="3.5" fill="#3987e5"/>
+  <circle cx="44" cy="34" r="3.5" fill="#d95926"/>
+  <circle cx="39" cy="44" r="3.5" fill="#199e70"/>
+</svg>

@@ -40,8 +40,17 @@ public class HtmlPageWriterTests
         Assert.Contains($"/*! d3 {VendoredScripts.D3Version} (ISC licence)", html);
         Assert.Contains($"/*! mermaid {VendoredScripts.MermaidVersion} (MIT licence)", html);
         Assert.DoesNotMatch("<script[^>]+src=", html);
-        Assert.DoesNotMatch("<link[^>]+href=", html);
+        Assert.DoesNotMatch("<link[^>]+href=\"(?!data:)", html);
         Assert.Contains("Content-Security-Policy\" content=\"default-src 'none';", html);
+    }
+
+    [Fact]
+    public void Embeds_the_favicon_as_an_svg_data_uri()
+    {
+        var href = Regex.Match(Build(embed: false), "<link rel=\"icon\" type=\"image/svg\\+xml\" href=\"data:image/svg\\+xml;base64,([^\"]+)\">").Groups[1].Value;
+
+        var svg = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(href));
+        Assert.StartsWith("<svg", svg);
     }
 
     [Fact]
