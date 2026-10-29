@@ -289,7 +289,7 @@ body.resizing { cursor: col-resize; user-select: none; }
   top: 8px;
   left: 8px;
   right: 8px;
-  z-index: 2;
+  z-index: 3; /* above the legend, so open drop-downs aren't covered by it */
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

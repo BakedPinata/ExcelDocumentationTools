@@ -75,6 +75,65 @@ public class GraphTests(PageFixture fixture)
     }
 
     [Fact]
+    public async Task Direction_highlights_only_dependencies_or_only_dependents()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await page.ClickAsync("#graph-svg g.node[data-id='Main']");
+
+        await page.ClickAsync("[data-direction='dependencies']");
+        Assert.Equal(8, await Count(page, "#graph-svg g.node.related")); // the 8 modules Main uses
+        Assert.Equal(8, await Count(page, "#graph-svg path.edge.highlighted[data-from='Main']"));
+        Assert.Equal(8, await Count(page, "#graph-svg path.edge.highlighted"));
+        Assert.Equal(1, await Count(page, "#graph-svg g.node.dim[data-id='Sheet1']"));
+
+        await page.ClickAsync("[data-direction='dependents']");
+        Assert.Equal(new[] { "Sheet1" }, await RelatedIds(page));
+        Assert.Equal(1, await Count(page, "#graph-svg path.edge.highlighted[data-from='Sheet1'][data-to='Main']"));
+        Assert.Equal(1, await Count(page, "#graph-svg path.edge.highlighted"));
+
+        // Transitive dependents: ThisWorkbook -> AppInit -> Sheet1 -> Main, and SheetOrderRepository -> Sheet1.
+        await page.ClickAsync("[data-reach='transitive']");
+        Assert.Equal(new[] { "AppInit", "Sheet1", "SheetOrderRepository", "ThisWorkbook" }, await RelatedIds(page));
+
+        await page.ClickAsync("[data-direction='all']");
+        Assert.Equal(0, await Count(page, "#graph-svg g.node.dim"));
+    }
+
+    [Fact]
+    public async Task Direction_applies_inside_a_module_for_a_member_but_not_for_a_selected_module()
+    {
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        var page = opened.Page;
+        await ShowMembers(page);
+        await page.ClickAsync("[data-direction='dependents']");
+        var internalEdge = "#graph-svg path.edge[data-from='Logger.LogInfo'][data-to='Logger.WriteLine']";
+
+        // A member: LogInfo's call to WriteLine is a dependency, so it isn't shown, even in the same module.
+        await opened.SelectAsync("Logger.LogInfo");
+        Assert.Equal(1, await Count(page, internalEdge + ".dim"));
+        Assert.Equal(1, await Count(page, "#graph-svg g.node.dim[data-id='Logger.WriteLine']"));
+        Assert.Equal(0, await Count(page, "#graph-svg path.edge.highlighted[data-from='Logger.LogInfo']"));
+
+        // The whole module: its own edges stay; only edges coming in from other modules are added.
+        await opened.SelectAsync("Logger");
+        Assert.Equal(1, await Count(page, internalEdge + ".highlighted"));
+        var highlightedTargets = await page.Locator("#graph-svg path.edge.highlighted")
+            .EvaluateAllAsync<string[]>("es => es.map(e => e.dataset.to)");
+        Assert.True(highlightedTargets.Length > 1);
+        Assert.All(highlightedTargets, to => Assert.StartsWith("Logger.", to));
+
+        await page.ClickAsync("[data-direction='dependencies']");
+        Assert.Equal(1, await Count(page, internalEdge + ".highlighted"));
+        var highlightedSources = await page.Locator("#graph-svg path.edge.highlighted")
+            .EvaluateAllAsync<string[]>("es => es.map(e => e.dataset.from)");
+        Assert.All(highlightedSources, from => Assert.StartsWith("Logger.", from));
+    }
+
+    static async Task<string[]> RelatedIds(IPage page) =>
+        (await page.Locator("#graph-svg g.node.related").EvaluateAllAsync<string[]>("ns => ns.map(n => n.dataset.id)")).Order().ToArray();
+
+    [Fact]
     public async Task Clicking_the_background_clears_the_selection()
     {
         await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
@@ -444,14 +503,16 @@ public class GraphTests(PageFixture fixture)
     [Fact]
     public async Task The_Show_menu_uses_two_columns_at_member_level_unless_they_would_not_fit()
     {
-        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+        // The widest source panel leaves the graph too narrow for two columns.
+        await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded,
+            initScript: "localStorage.setItem('vbadoc-source-size', '0.7');");
         var page = opened.Page;
         await ShowMembers(page);
         const string stacked = "() => document.getElementById('graph-filter-menu').classList.contains('stacked')";
         const string withinView = @"() => document.getElementById('graph-filter-menu').getBoundingClientRect().right
             <= document.getElementById('view-graph').getBoundingClientRect().right";
 
-        await page.ClickAsync("#graph-filters summary"); // the source panel leaves too little room
+        await page.ClickAsync("#graph-filters summary");
         Assert.True(await page.EvaluateAsync<bool>(stacked));
         Assert.True(await page.EvaluateAsync<bool>(withinView));
 

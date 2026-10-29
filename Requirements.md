@@ -120,6 +120,9 @@ Shared by both views.
 
 - Clicking a node highlights it together with the nodes it depends on and the nodes that depend on it, plus the edges between them. Everything else is greyed out. Clicking the background clears the selection.
 - A toggle switches highlighting between **direct** (one step in each direction) and **transitive** (the full chain in each direction). The default is direct.
+- A second toggle chooses which direction is highlighted: **all** (dependencies and dependents, the default), **dependencies only** or **dependents only**.
+  - When a module is selected at member level, the edges between its own members always stay highlighted; the toggle only applies to edges leaving or entering the module.
+  - When a single member is selected, the toggle applies to every edge, including edges to other members of the same module.
 - Clicking a node shows its source in the source panel. At module level that is the whole module; at member level it is just that member.
 
 ### Class diagram view (Mermaid)

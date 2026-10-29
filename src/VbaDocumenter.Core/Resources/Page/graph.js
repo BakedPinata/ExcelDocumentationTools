@@ -3,7 +3,7 @@
 // Two levels: one node per module, or one node per member with each module's members drawn as a cluster
 // inside a shaded outline. Edges are Uses (solid), Implements (dashed, hollow arrow) and Events (dotted).
 // Clicking a node selects it through window.vbadoc, which shows its source; the graph then highlights what
-// the selection depends on and what depends on it, directly or transitively.
+// the selection depends on and what depends on it (or only one of the two), directly or transitively.
 //
 // The starting layout is computed in one go before anything is drawn. d3-force starts from fixed positions,
 // so the same project and settings always give the same first picture. After that the force simulation is
@@ -99,9 +99,15 @@
     }));
   }
 
+  function loadDirection() {
+    var direction = loadSetting("vbadoc-graph-direction", "all");
+    return direction === "dependencies" || direction === "dependents" ? direction : "all";
+  }
+
   var state = {
     level: loadSetting("vbadoc-graph-level", "modules") === "members" ? "members" : "modules",
     reach: loadSetting("vbadoc-graph-reach", "direct") === "transitive" ? "transitive" : "direct",
+    direction: loadDirection(), // "all", or only "dependencies" or "dependents" of the selection
     focus: false,
     path: false,        // showing the path from Home to the selection instead of the selection's neighbourhood
     show: loadShow(),
@@ -287,8 +293,14 @@
   function selectedIds(graph) { return idsAtLevel(graph, vb.selection()); }
 
   // What to highlight: the selection, what it depends on (downstream) and what depends on it (upstream).
-  // Direct goes one step each way; transitive follows the whole chain.
-  function reach(graph, start, transitive) {
+  // Direct goes one step each way; transitive follows the whole chain. Direction "dependencies" or
+  // "dependents" follows only one of the two ways.
+  //
+  // Edges between selected nodes are always highlighted, whatever the direction: when a module is selected
+  // at member level its members are all selected, so its internal edges stay visible and the direction
+  // only applies to edges leaving or entering the module. A single selected member has no such edges
+  // (apart from recursion), so there the direction applies even to members of the same module.
+  function reach(graph, start, transitive, direction) {
     var selected = new Set(start);
     function walk(edgesOf, endOf) {
       var found = new Set();
@@ -304,8 +316,8 @@
       }
       return found;
     }
-    var downstream = walk(graph.outgoing, function (e) { return e.to; });
-    var upstream = walk(graph.incoming, function (e) { return e.from; });
+    var downstream = direction !== "dependents" ? walk(graph.outgoing, function (e) { return e.to; }) : new Set();
+    var upstream = direction !== "dependencies" ? walk(graph.incoming, function (e) { return e.from; }) : new Set();
 
     var nodes = new Set(start);
     downstream.forEach(function (id) { nodes.add(id); });
@@ -314,7 +326,10 @@
     // Direct: the edges touching the selection. Transitive: every edge on a chain from or to it.
     var fromSide = transitive ? new Set(Array.from(selected).concat(Array.from(downstream))) : selected;
     var toSide = transitive ? new Set(Array.from(selected).concat(Array.from(upstream))) : selected;
-    var edges = new Set(graph.edges.filter(function (e) { return fromSide.has(e.from) || toSide.has(e.to); }));
+    var edges = new Set(graph.edges.filter(function (e) {
+      if (selected.has(e.from) && selected.has(e.to)) return true;
+      return (direction !== "dependents" && fromSide.has(e.from)) || (direction !== "dependencies" && toSide.has(e.to));
+    }));
     return { selected: selected, nodes: nodes, edges: edges };
   }
 
@@ -671,7 +686,7 @@
       if (start.length === 0) {
         state.focus = false;
       } else {
-        var reached = reach(full, start, state.reach === "transitive");
+        var reached = reach(full, start, state.reach === "transitive", state.direction);
         graph = indexGraph(
           full.nodes.filter(function (n) { return reached.nodes.has(n.id); }),
           full.edges.filter(function (e) { return reached.edges.has(e); }));
@@ -961,7 +976,7 @@
       isSelected = function (id) { return start.indexOf(id) >= 0; };
       isLit = function (id) { return pathNodes.has(id) || (isSelected(id) && (start.length === 1 || id === selection)); };
     } else {
-      var reached = start.length ? reach(graph, start, state.reach === "transitive") : null;
+      var reached = start.length ? reach(graph, start, state.reach === "transitive", state.direction) : null;
       var legend = legendHighlight(graph);
       active = !!reached || !!legend;
       litEdges = new Set(active ? graph.edges.filter(function (e) {
@@ -1158,6 +1173,7 @@
   function updateToolbar() {
     setChecked("[data-level]", "data-level", state.level);
     setChecked("[data-reach]", "data-reach", state.reach);
+    setChecked("[data-direction]", "data-direction", state.direction);
     var hasSelection = !!graph && selectedIds(graph).length > 0;
     focusButton.disabled = !hasSelection && !state.focus;
     focusButton.textContent = state.focus ? "Show all" : "Focus";
@@ -1184,6 +1200,14 @@
     button.addEventListener("click", function () {
       state.reach = button.getAttribute("data-reach");
       saveSetting("vbadoc-graph-reach", state.reach);
+      if (state.focus) render(); else highlight();
+    });
+  });
+
+  view.querySelectorAll("[data-direction]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      state.direction = button.getAttribute("data-direction");
+      saveSetting("vbadoc-graph-direction", state.direction);
       if (state.focus) render(); else highlight();
     });
   });

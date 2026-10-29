@@ -186,7 +186,10 @@ or that change it. Add to this file whenever a new decision is agreed.
   changes animate). Settings are remembered per browser, with a reset button. The Show… and Settings drop-downs close
   on a click outside them or Escape.
 - **Focus re-lays out only the highlighted neighbourhood** and follows the selection while on. "Show all" leaves it.
-- **Remembered per browser:** level, Direct/Transitive and the settings panel. Member filters weren't remembered at
+- **Direction toggle (added later):** All / Dependencies / Dependents, next to Direct/Transitive; Focus follows it
+  too. Edges between two selected nodes are always highlighted, which is what keeps a selected module's internal
+  edges visible at member level. The Uses / Used by list in the source panel ignores it, like Direct/Transitive.
+- **Remembered per browser:** level, Direct/Transitive, the direction and the settings panel. Member filters weren't remembered at
   first; since stage 5b the Show… choices are (see below).
 - **Edge thickness grows slightly with the reference count.** Hovering an edge shows its count; hovering a node shows
   its kind and how many things it uses and is used by.
