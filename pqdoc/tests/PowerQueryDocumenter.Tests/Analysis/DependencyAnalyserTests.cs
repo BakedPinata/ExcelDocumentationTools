@@ -49,7 +49,7 @@ public sealed class DependencyAnalyserTests : IDisposable
   [Fact]
   public void A_query_named_Source_is_detected_when_referenced()
   {
-    // Acceptance criterion 6 and FR-ANA-2: the old analyser filtered "Source" out as a built-in.
+    // Acceptance criterion 6 and FR-ANA-2: a query can be named like a built-in.
     var graph = Analyse(("Source", "1"), ("Orders", "let Data = Source in Data"));
 
     Assert.Equal(new[] { "Source>Orders" }, EdgeList(graph));

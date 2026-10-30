@@ -1,9 +1,10 @@
 # Build plan
 
-The tool is built in small stages. Each stage ends with passing tests, a commit and a push,
-and a pause for review before the next one starts.
+The tool is built in small stages. Each stage ends with passing tests, a commit and a pause for
+review. It is pushed after the review, and then the next one starts.
 
-**Current state:** stages 0–5 and 5b–5d are done. **Next: stage 6.**
+**Current state:** stages 0–5 and 5b–5d are done. **Next: stage 6**, once step 3 of
+[MONOREPO-PLAN.md](../../MONOREPO-PLAN.md) has aligned vbadoc with pqdoc.
 
 | Stage | Scope | Status |
 |---|---|---|

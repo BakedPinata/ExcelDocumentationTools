@@ -103,7 +103,7 @@ tests/VbaDocumenter.BrowserTests/  Playwright tests of the generated page in hea
 | [d3](https://d3js.org) 7.9.0 | ISC | Dependency graph (vendored) |
 | [Mermaid](https://mermaid.js.org) 11.17.2 | MIT | Class diagram (vendored) |
 | [Apache POI](https://poi.apache.org) test data | Apache-2.0 | Test fixtures only |
-| [Playwright for .NET](https://playwright.dev/dotnet/) 1.63.0 | Apache-2.0 | Browser tests only |
+| [Playwright for .NET](https://playwright.dev/dotnet/) 1.63.0 | MIT | Browser tests only |
 
 ## Licence
 

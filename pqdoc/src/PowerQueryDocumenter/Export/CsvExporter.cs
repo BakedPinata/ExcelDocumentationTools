@@ -5,17 +5,17 @@ using PowerQueryDocumenter.Model;
 namespace PowerQueryDocumenter.Export;
 
 /// <summary>
-/// Writes the dependency CSV (FR-CSV-1 to FR-CSV-3). The output matches the original tool except
-/// for the renamed header: UTF-8 with a byte order mark, every value quoted with <c>""</c> escaping,
-/// one row per (query, dependent) pair, and queries with no dependents written with an empty
-/// second column. Rows are ordered case-insensitively by query, then by dependent.
+/// Writes the dependency CSV (FR-CSV-1 to FR-CSV-3): UTF-8 with a byte order mark, every value
+/// quoted with <c>""</c> escaping, one row per (query, dependent) pair, and queries with no
+/// dependents written with an empty second column. Rows are ordered case-insensitively by query,
+/// then by dependent.
 /// </summary>
 public sealed class CsvExporter : IExporter
 {
   /// <summary>Header of the first column: the upstream query being referenced.</summary>
   public const string QueryNameHeader = "Query Name";
 
-  /// <summary>Header of the second column: the downstream query that references it. Was "Parent Query Name".</summary>
+  /// <summary>Header of the second column: the downstream query that references it.</summary>
   public const string ReferencedByHeader = "Referenced By Query Name";
 
   /// <summary>The complete header row.</summary>
@@ -33,7 +33,7 @@ public sealed class CsvExporter : IExporter
     ArgumentNullException.ThrowIfNull(graph);
     ArgumentNullException.ThrowIfNull(output);
 
-    // Encoding.UTF8 writes a BOM, as the original implementation did (Excel relies on it).
+    // Encoding.UTF8 writes a BOM, which Excel relies on.
     var writer = new StreamWriter(output, Encoding.UTF8, bufferSize: 4096, leaveOpen: true);
     await using (writer.ConfigureAwait(false))
     {

@@ -1,12 +1,17 @@
 # Design decisions
 
 Decisions made while building the tool that aren't spelled out in [Requirements.md](../Requirements.md),
-or that change it. Add to this file whenever a new decision is agreed.
+or that change it. Add to this file whenever a new decision is agreed. Conventions shared with the other tools are in
+[GUIDELINES.md](../../docs/GUIDELINES.md).
 
 ## Platform and libraries
 
+- **One repository.** vbadoc now lives in `vbadoc/` in BakedPinata/ExcelDocumentationTools, which is this repository's
+  old BakedPinata/vbadocumenter renamed. Its history moved with it. Stage 6 continues after step 3 of
+  `MONOREPO-PLAN.md`, which aligns vbadoc with pqdoc.
 - **.NET 9**, not .NET 10. The machine the tool runs on can't have .NET 10 installed yet.
-  .NET 9 support ends on 2026-11-10, so move to .NET 10 when possible (a one-line change in `Directory.Build.props`).
+  .NET 9 support ends on 2026-11-10, so move to .NET 10 when possible (a one-line change in the root
+  `Directory.Build.props`, which moves every tool).
 - **OpenMcdf 3.3.0**, not 2.4.1 as the spike used. 2.4.1 has two unpatched denial-of-service advisories
   (GHSA-jxpf-xq2m-q525, GHSA-5qwm-7pvp-w988), and only 3.1.4 and later are fixed. Requirements.md is updated to match.
 - **Mermaid 11.17.2**, not 12.x. 12.0 was a new major version only weeks old at the time; 11.17.2 is the mature end of 11.x.
@@ -14,15 +19,23 @@ or that change it. Add to this file whenever a new decision is agreed.
 - Vendored scripts are stored **byte-for-byte unchanged** with their licence files (see
   `src/VbaDocumenter.Core/Resources/Vendor/README.md`). The page writer adds each licence as a comment above its script,
   and must refuse a script containing `<script` or `</script`, which would break inlining.
-- **Central Package Management.** Every NuGet version is in `Directory.Packages.props`, and `PackageReference` items
-  in the projects have no `Version`. Add or upgrade a package there, and keep a comment beside any version chosen for a reason.
-- **Shared project settings** (`TargetFramework`, `ImplicitUsings`, `Nullable`, `Version`) are in
-  `Directory.Build.props`. Each `.csproj` holds only what is specific to it.
-- **Version and build stamp.** `Version` (0.5.0 after stage 5) is raised at the end of each stage. The SDK adds the git
-  commit to the informational version, and `Directory.Build.targets` adds `-dirty` when the working copy has
-  uncommitted changes (`git status --porcelain` not empty). `ToolVersion` reads it back for the page and `--version`.
-- **`.editorconfig`** records the existing code style as IDE suggestions, not build errors, and sets no line endings or
+- **Central Package Management.** Every NuGet version is in the root `Directory.Packages.props`, and `PackageReference`
+  items in the projects have no `Version`. Add or upgrade a package there, and keep a comment beside any version chosen for a reason.
+- **Shared project settings** (`TargetFramework`, `ImplicitUsings`, `Nullable`, `TreatWarningsAsErrors`,
+  `Deterministic`) are in the root `Directory.Build.props`. `vbadoc/Directory.Build.props` imports it and sets `Version`,
+  `Product` and `ToolRoot`. Each `.csproj` holds only what is specific to it.
+- **Version and build stamp.** `Version` (0.5.0 after stage 5) is raised at the end of each stage. The root
+  `Directory.Build.targets` stamps the informational version with the last commit that touched `vbadoc/` or the root
+  build files, not `HEAD`, so a commit to another tool doesn't change vbadoc's pages. It adds `-dirty` when those paths
+  have uncommitted changes. `ToolVersion` reads it back for the page and `--version`.
+- **`.editorconfig`** at the root records the code style as IDE suggestions, not build errors, and sets no line endings or
   charset, which are left to `.gitattributes`.
+- **C# uses 2-space indentation**, changed from 4 in one whitespace-only commit listed in `.git-blame-ignore-revs`.
+  Run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once to use it locally; GitHub uses it automatically.
+  Git can't match blank lines, lone braces and bare keywords across that commit, so a few still show it. `git blame -w`
+  shows none.
+- **Australian spelling** in our own identifiers, comments, docs and UI text. The `realization` edge kind stays as it
+  is, because it is data in generated pages.
 - **Browser tests** use Playwright with its own downloaded Chromium.
 - The page's JavaScript and CSS are **hand-written plain files with no build step** (no bundler, no TypeScript).
 

@@ -3,9 +3,10 @@ using System.Reflection;
 namespace VbaDocumenter.Core;
 
 /// <summary>
-/// Which build of vbadoc this is. The version comes from Directory.Build.props; the build adds the git commit and,
-/// for a working copy with uncommitted changes, "-dirty" (see Directory.Build.targets). Generated pages show it so
-/// a change in them can be traced to a new version of the tool rather than to the workbook.
+/// Which build of vbadoc this is. The version comes from Directory.Build.props; the build adds the last commit that
+/// touched vbadoc and, if there are uncommitted changes, "-dirty" (see Directory.Build.targets at the repository
+/// root). Generated pages show it so a change in them can be traced to a new version of the tool rather than to the
+/// workbook.
 /// </summary>
 public sealed record ToolVersion(string Version, string? Commit, bool Dirty)
 {

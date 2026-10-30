@@ -164,8 +164,8 @@ public sealed class DependencyAnalyser
   /// Only identifiers that match a known query name count as references, so built-in functions
   /// and keywords can never produce a false dependency, and no built-in name filter is needed.
   /// That is what lets a query named <c>Source</c>, <c>Table</c> or <c>Value</c> be detected
-  /// (FR-ANA-2): the old filter silently dropped such queries. Dotted names such as
-  /// <c>Table.SelectRows</c> are single identifiers, so they do not match a query named <c>Table</c>.
+  /// (FR-ANA-2). Dotted names such as <c>Table.SelectRows</c> are single identifiers, so they do
+  /// not match a query named <c>Table</c>.
   /// </remarks>
   private static SortedSet<string> FindReferencedQueries(
     string content,

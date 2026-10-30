@@ -1,7 +1,7 @@
 # ExcelDocumentationTools
 
 Command-line tools that document what's inside Excel workbooks. Each tool has its own folder, solution, version
-and README, and they all follow the same conventions.
+and README, and they all follow the same [conventions](docs/GUIDELINES.md).
 
 | Tool | Reads | Produces | More |
 |---|---|---|---|
