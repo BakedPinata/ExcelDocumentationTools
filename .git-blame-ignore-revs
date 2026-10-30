@@ -1,0 +1,5 @@
+# Commits that only changed formatting. GitHub skips these in blame automatically; locally, run once:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Re-indent vbadoc's C# to 2 spaces
+fb06652359a1612a9197f0f1f38c2f1d74319bc9
