@@ -129,5 +129,4 @@ of generated pages, because changing one changes every page.
 
 | Rule | Tool | Step |
 |---|---|---|
-| Core library | pqdoc is one project | 3c |
 | Page design, browser tests, licence comment in the page | pqdoc's page has its own design | 3d |

@@ -1,9 +1,9 @@
-using PowerQueryDocumenter.Application;
 using PowerQueryDocumenter.Cli;
-using PowerQueryDocumenter.Configuration;
-using PowerQueryDocumenter.Export;
+using PowerQueryDocumenter.Core.Application;
+using PowerQueryDocumenter.Core.Configuration;
+using PowerQueryDocumenter.Core.Export;
+using PowerQueryDocumenter.Core.Output;
 using PowerQueryDocumenter.Logging;
-using PowerQueryDocumenter.Output;
 
 namespace PowerQueryDocumenter.Tests.TestSupport;
 

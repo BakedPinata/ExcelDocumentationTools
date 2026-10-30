@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text;
-using PowerQueryDocumenter.Configuration;
-using PowerQueryDocumenter.Export;
+using PowerQueryDocumenter.Core.Configuration;
+using PowerQueryDocumenter.Core.Export;
 using PowerQueryDocumenter.Tests.TestSupport;
 
 namespace PowerQueryDocumenter.Tests.Export;

@@ -12,6 +12,11 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **Central Package Management.** Every NuGet version is in the root `Directory.Packages.props`.
 - **Shared project settings** are in the root `Directory.Build.props`. `pqdoc/Directory.Build.props` imports it and sets
   `Version`, `Product` and `ToolRoot`.
+- **The logic is in `PowerQueryDocumenter.Core`**, including `Application/`: `AnalyserApp` runs the analysis and the
+  exports, so it and the exit codes it returns belong with the logic. The console app holds `Program.cs`, the command
+  line, logging setup, the console prompts and `DefaultServices`, which puts the real services together. Its types are
+  internal, and the tests reach them through `InternalsVisibleTo`.
+- **Core uses Serilog's `ILogger`**, which needs only the `Serilog` package. The console sink stays in the console app.
 - **`--version` shows the build stamp**, `<version>+<commit>[-dirty]`, the same as vbadoc. The commit is the last one
   that touched `pqdoc/` or the root build files.
 - **The output option is `--output`/`-o`**, shared with vbadoc. It replaced `--output-folder`, with no alias for the old

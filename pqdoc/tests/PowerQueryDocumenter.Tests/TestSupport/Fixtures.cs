@@ -1,5 +1,5 @@
-using PowerQueryDocumenter.Analysis;
-using PowerQueryDocumenter.Model;
+using PowerQueryDocumenter.Core.Analysis;
+using PowerQueryDocumenter.Core.Model;
 using Serilog.Core;
 
 namespace PowerQueryDocumenter.Tests.TestSupport;

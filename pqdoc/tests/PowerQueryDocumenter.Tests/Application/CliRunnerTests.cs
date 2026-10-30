@@ -1,9 +1,9 @@
 using System.Net;
-using PowerQueryDocumenter.Application;
-using PowerQueryDocumenter.Configuration;
-using PowerQueryDocumenter.Export;
-using PowerQueryDocumenter.Model;
-using PowerQueryDocumenter.Output;
+using PowerQueryDocumenter.Core.Application;
+using PowerQueryDocumenter.Core.Configuration;
+using PowerQueryDocumenter.Core.Export;
+using PowerQueryDocumenter.Core.Model;
+using PowerQueryDocumenter.Core.Output;
 using PowerQueryDocumenter.Tests.TestSupport;
 using Serilog.Events;
 

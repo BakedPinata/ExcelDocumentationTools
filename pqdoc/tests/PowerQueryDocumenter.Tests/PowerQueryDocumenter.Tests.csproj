@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\PowerQueryDocumenter.Core\PowerQueryDocumenter.Core.csproj" />
     <ProjectReference Include="..\..\src\PowerQueryDocumenter\PowerQueryDocumenter.csproj" />
   </ItemGroup>
 

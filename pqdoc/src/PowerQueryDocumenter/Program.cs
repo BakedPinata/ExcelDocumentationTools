@@ -1,6 +1,5 @@
-using PowerQueryDocumenter.Application;
 using PowerQueryDocumenter.Cli;
-using PowerQueryDocumenter.Export;
+using PowerQueryDocumenter.Core.Export;
 using Serilog;
 
 // Composition root (NFR-ARCH-3). Everything else lives in CliRunner so it can be tested.
@@ -20,7 +19,7 @@ Console.CancelKeyPress += (_, e) =>
 
 try
 {
-  return await CliRunner.RunAsync(args, AppServices.CreateDefault(httpClient), cancellation.Token);
+  return await CliRunner.RunAsync(args, DefaultServices.Create(httpClient), cancellation.Token);
 }
 finally
 {

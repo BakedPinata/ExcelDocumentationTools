@@ -187,16 +187,17 @@ written, skipped or failed is logged at the end.
 ## Project structure
 
 ```
-src/PowerQueryDocumenter/
+src/PowerQueryDocumenter/          The console app
   Program.cs              Composition root: shared HttpClient, Ctrl+C handling, log flushing
-  Cli/                    System.CommandLine definition, option binding, top-level runner
+  Cli/                    System.CommandLine definition, option binding, top-level runner, console prompts
+  Logging/                Serilog console configuration
+src/PowerQueryDocumenter.Core/     All the logic
   Configuration/          Options record, formats, .env reader, PlantUML server resolution
   Analysis/               M tokeniser, reference extraction, analyser, cycle detection
   Model/                  Immutable graph types (DependencyGraph, QueryNode, DependencyEdge)
   Export/                 IExporter and the CSV, PlantUML source, PlantUML render and HTML exporters
-  Output/                 Overwrite policy, prompts, atomic file writes
+  Output/                 Overwrite policy, atomic file writes
   Application/            Run orchestration, exit codes, error messages
-  Logging/                Serilog console configuration
   Resources/              HTML template and vendored D3.js (embedded resources)
 tests/PowerQueryDocumenter.Tests/
   Fixtures/Queries/       Sample .m files: a cycle, an isolated query, awkward names
@@ -216,7 +217,7 @@ analyser does not change.
 | `xunit.v3`, `xunit.runner.visualstudio`, `Microsoft.NET.Test.Sdk` | Tests only |
 
 The `.env` reader is a small hand-written parser rather than a package. D3.js v7.9.0 is vendored
-in `src/PowerQueryDocumenter/Resources/Vendor` (ISC licence, see `d3.LICENSE.txt`) and embedded
+in `src/PowerQueryDocumenter.Core/Resources/Vendor` (ISC licence, see `d3.LICENSE.txt`) and embedded
 into the HTML output.
 
 ## Tests

@@ -1,4 +1,4 @@
-using PowerQueryDocumenter.Model;
+using PowerQueryDocumenter.Core.Model;
 using PowerQueryDocumenter.Tests.TestSupport;
 
 namespace PowerQueryDocumenter.Tests.Model;

@@ -1,19 +1,19 @@
 using System.CommandLine;
-using PowerQueryDocumenter.Configuration;
+using PowerQueryDocumenter.Core.Configuration;
 
 namespace PowerQueryDocumenter.Cli;
 
 /// <summary>The outcome of turning a parse result into <see cref="AnalyserOptions"/>.</summary>
 /// <param name="Options">The options, or null when there are errors.</param>
 /// <param name="Errors">Configuration errors (exit code 2).</param>
-public sealed record BindingResult(AnalyserOptions? Options, IReadOnlyList<string> Errors);
+internal sealed record BindingResult(AnalyserOptions? Options, IReadOnlyList<string> Errors);
 
 /// <summary>
 /// Turns a successful parse into validated <see cref="AnalyserOptions"/>, applying the rules that
 /// depend on the environment: resolving relative paths against the current directory and finding
 /// the PlantUML server URL.
 /// </summary>
-public static class OptionsBinder
+internal static class OptionsBinder
 {
   /// <summary>Builds options from a parse result that has no parse errors.</summary>
   public static async Task<BindingResult> BindAsync(

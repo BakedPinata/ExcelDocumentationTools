@@ -1,7 +1,7 @@
 using System.CommandLine.Help;
 using System.CommandLine.Invocation;
 using PowerQueryDocumenter.Cli;
-using PowerQueryDocumenter.Configuration;
+using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Tests.TestSupport;
 
 namespace PowerQueryDocumenter.Tests.Cli;

@@ -7,16 +7,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Vendored D3.js v7.9.0 (ISC licence, see Resources/Vendor/d3.LICENSE.txt), embedded into the HTML export. -->
-    <EmbeddedResource Include="Resources\Vendor\d3.min.js" LogicalName="Vendor/d3.min.js" />
-    <EmbeddedResource Include="Resources\graph-template.html" LogicalName="PowerQueryDocumenter.Resources.graph-template.html" />
-    <None Include="Resources\Vendor\d3.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Serilog" />
     <PackageReference Include="Serilog.Sinks.Console" />
     <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PowerQueryDocumenter.Core\PowerQueryDocumenter.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Lets the tests check command-line parsing without making it public. -->
+    <InternalsVisibleTo Include="PowerQueryDocumenter.Tests" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,5 @@
 using System.Text;
-using PowerQueryDocumenter.Export;
+using PowerQueryDocumenter.Core.Export;
 
 namespace PowerQueryDocumenter.Tests.Export;
 

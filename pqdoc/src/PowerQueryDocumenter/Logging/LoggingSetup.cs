@@ -1,5 +1,5 @@
 using System.Globalization;
-using PowerQueryDocumenter.Configuration;
+using PowerQueryDocumenter.Core.Configuration;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -8,7 +8,7 @@ using Serilog.Sinks.SystemConsole.Themes;
 namespace PowerQueryDocumenter.Logging;
 
 /// <summary>Serilog configuration for console output (NFR-LOG-1 to NFR-LOG-6).</summary>
-public static class LoggingSetup
+internal static class LoggingSetup
 {
   /// <summary>Concise template used by default: level and message only.</summary>
   public const string OutputTemplate = "[{Level:u3}] {Message:lj}{NewLine}{Exception}";

@@ -1,4 +1,4 @@
-using PowerQueryDocumenter.Analysis;
+using PowerQueryDocumenter.Core.Analysis;
 
 namespace PowerQueryDocumenter.Tests.Analysis;
 

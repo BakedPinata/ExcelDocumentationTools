@@ -1,5 +1,5 @@
-using PowerQueryDocumenter.Analysis;
-using PowerQueryDocumenter.Model;
+using PowerQueryDocumenter.Core.Analysis;
+using PowerQueryDocumenter.Core.Model;
 using PowerQueryDocumenter.Tests.TestSupport;
 
 namespace PowerQueryDocumenter.Tests.Analysis;

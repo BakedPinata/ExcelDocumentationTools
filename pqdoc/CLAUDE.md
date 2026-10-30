@@ -22,7 +22,7 @@ dotnet run --project src/PowerQueryDocumenter -- <input_folder> [--output <folde
 
 ## Rules for pqdoc
 
-- The console entry point stays thin. Until stage 3c everything is one project, with a folder per area.
+- Everything goes in `PowerQueryDocumenter.Core`; the console app only parses arguments, sets up logging and prompts.
 - Adding an output format means writing an `IExporter` and registering it in `ExporterRegistry`; the analyser doesn't
   change.
 - Requirement IDs (`FR-ANA-2`) appear in comments and tests, so keep them stable.

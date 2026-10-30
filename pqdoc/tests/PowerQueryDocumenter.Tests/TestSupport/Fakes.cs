@@ -1,5 +1,5 @@
-using PowerQueryDocumenter.Configuration;
-using PowerQueryDocumenter.Output;
+using PowerQueryDocumenter.Core.Configuration;
+using PowerQueryDocumenter.Core.Output;
 
 namespace PowerQueryDocumenter.Tests.TestSupport;
 

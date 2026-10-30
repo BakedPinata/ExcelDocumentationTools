@@ -1,6 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
-using PowerQueryDocumenter.Configuration;
+using PowerQueryDocumenter.Core.Configuration;
 
 namespace PowerQueryDocumenter.Cli;
 
@@ -10,7 +10,7 @@ namespace PowerQueryDocumenter.Cli;
 /// arguments themselves are enforced here as parse errors; rules that need the environment
 /// (such as finding a PlantUML server) are applied afterwards by <see cref="OptionsBinder"/>.
 /// </summary>
-public sealed class CliDefinition
+internal sealed class CliDefinition
 {
   /// <summary>The tool's name as shown in usage text.</summary>
   public const string ToolName = "pqdoc";
