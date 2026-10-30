@@ -8,18 +8,18 @@
   <ItemGroup>
     <!-- MPL-2.0, used unmodified. Reads OLE compound files (vbaProject.bin, .xls).
          3.x rather than 2.x: 2.4.1 has two unpatched denial-of-service advisories (GHSA-jxpf-xq2m-q525, GHSA-5qwm-7pvp-w988). -->
-    <PackageVersion Include="OpenMcdf" Version="3.3.0" />
-    <PackageVersion Include="Serilog" Version="4.3.0" />
-    <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
-    <PackageVersion Include="System.CommandLine" Version="2.0.0" />
+    <PackageVersion Include="OpenMcdf" Version="3.4.0" />
+    <PackageVersion Include="Serilog" Version="4.4.0" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.14" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- Test projects -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
-    <PackageVersion Include="xunit.v3" Version="3.1.0" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.64.1" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
   </ItemGroup>
 
 </Project>
