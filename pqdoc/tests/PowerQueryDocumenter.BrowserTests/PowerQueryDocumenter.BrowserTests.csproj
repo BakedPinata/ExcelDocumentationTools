@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- xUnit.net v3 test projects are executables. -->
+    <OutputType>Exe</OutputType>
+    <RootNamespace>PowerQueryDocumenter.BrowserTests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PowerQueryDocumenter.Core\PowerQueryDocumenter.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Share the sample queries with the unit tests rather than copying them. -->
+    <Compile Include="..\PowerQueryDocumenter.Tests\TestSupport\Fixtures.cs" Link="TestSupport\Fixtures.cs" />
+    <None Include="..\PowerQueryDocumenter.Tests\Fixtures\**\*" LinkBase="Fixtures" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

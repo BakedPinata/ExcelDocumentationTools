@@ -15,8 +15,9 @@ Run these from `pqdoc/`.
 
 ```bash
 dotnet build -warnaserror
-dotnet test                                      # also runs the PlantUML server tests, if a server is configured
-dotnet test --filter "Category!=Integration"     # unit tests only
+dotnet test                                      # unit + browser tests (browser tests download Chromium on first run);
+                                                 # also runs the PlantUML server tests, if a server is configured
+dotnet test tests/PowerQueryDocumenter.Tests --filter "Category!=Integration"     # unit tests only
 dotnet run --project src/PowerQueryDocumenter -- <input_folder> [--output <folder>] [-f puml,html] [--verbose]
 ```
 
@@ -28,4 +29,6 @@ dotnet run --project src/PowerQueryDocumenter -- <input_folder> [--output <folde
 - Requirement IDs (`FR-ANA-2`) appear in comments and tests, so keep them stable.
 - Tests use the fixtures in `tests/PowerQueryDocumenter.Tests/Fixtures/`, temporary folders, and the stub HTTP handler
   for the PlantUML server.
+- The page is built like vbadoc's, with the same structure and names, so a later combined page can host both tools'
+  views. Keep `window.pqdoc` shaped like `window.vbadoc` and change the two in step.
 - Diagram text contains query names, so nothing may send it to a server the user hasn't configured.

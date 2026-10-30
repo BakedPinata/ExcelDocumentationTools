@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerQueryDocumenter.Tests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerQueryDocumenter.Core", "pqdoc\src\PowerQueryDocumenter.Core\PowerQueryDocumenter.Core.csproj", "{D7633B54-200F-4FE4-8450-2B50D5BBC9E8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerQueryDocumenter.BrowserTests", "pqdoc\tests\PowerQueryDocumenter.BrowserTests\PowerQueryDocumenter.BrowserTests.csproj", "{7E95A6AC-4BED-4856-A470-B45D0E5A9373}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -115,6 +117,18 @@ Global
 		{D7633B54-200F-4FE4-8450-2B50D5BBC9E8}.Release|x64.Build.0 = Release|Any CPU
 		{D7633B54-200F-4FE4-8450-2B50D5BBC9E8}.Release|x86.ActiveCfg = Release|Any CPU
 		{D7633B54-200F-4FE4-8450-2B50D5BBC9E8}.Release|x86.Build.0 = Release|Any CPU
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373}.Debug|x64.Build.0 = Debug|Any CPU
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373}.Debug|x86.Build.0 = Debug|Any CPU
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373}.Release|x64.ActiveCfg = Release|Any CPU
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373}.Release|x64.Build.0 = Release|Any CPU
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373}.Release|x86.ActiveCfg = Release|Any CPU
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -127,5 +141,6 @@ Global
 		{72459808-20E5-4F75-A45B-580766181D43} = {FB79FE65-DB46-266C-3231-182652450076}
 		{D04116AC-C01A-4685-A965-7E0B455AAFDD} = {FB79FE65-DB46-266C-3231-182652450076}
 		{D7633B54-200F-4FE4-8450-2B50D5BBC9E8} = {FB79FE65-DB46-266C-3231-182652450076}
+		{7E95A6AC-4BED-4856-A470-B45D0E5A9373} = {FB79FE65-DB46-266C-3231-182652450076}
 	EndGlobalSection
 EndGlobal

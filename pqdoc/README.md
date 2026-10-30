@@ -90,12 +90,16 @@ left to right by depth (how many queries feed them). You can:
 
 - pan and zoom, and drag queries (double-click to release one);
 - hover a query to see its name and counts and highlight its direct neighbours;
-- click a query to trace everything upstream (teal) and downstream (ochre) of it, with a details
+- click a query to trace everything upstream (blue) and downstream (aqua) of it, with a details
   panel listing what it uses and what uses it; click the background or press Esc to clear;
 - search by name (press `/` to jump to the search box, Enter to select the first match);
+- resize or hide the details panel;
 - reset the view.
 
-It follows the system light or dark theme.
+It follows the system light or dark theme until you choose one with the switch in the top bar,
+which it then remembers. The top bar also shows which build of pqdoc made the page, as
+`pqdoc <version> (<commit>)`, linking to the repository. The page blocks all network access with a
+Content-Security-Policy, so nothing in it can load anything from the network.
 
 ## How references are detected
 
@@ -198,10 +202,13 @@ src/PowerQueryDocumenter.Core/     All the logic
   Export/                 IExporter and the CSV, PlantUML source, PlantUML render and HTML exporters
   Output/                 Overwrite policy, atomic file writes
   Application/            Run orchestration, exit codes, error messages
-  Resources/              HTML template and vendored D3.js (embedded resources)
+  Resources/Page/         The HTML page: template, styles, scripts and favicon (embedded resources)
+  Resources/Vendor/       Vendored D3.js (embedded resource)
 tests/PowerQueryDocumenter.Tests/
   Fixtures/Queries/       Sample .m files: a cycle, an isolated query, awkward names
   ...                     Unit tests per area, end-to-end tests, optional integration tests
+tests/PowerQueryDocumenter.BrowserTests/
+  ...                     Playwright tests of the generated page in headless Chromium
 ```
 
 Adding a format means writing an `IExporter` and registering it in `ExporterRegistry`; the
@@ -215,6 +222,7 @@ analyser does not change.
 | `Serilog` | Structured logging |
 | `Serilog.Sinks.Console` | Coloured console output for Serilog |
 | `xunit.v3`, `xunit.runner.visualstudio`, `Microsoft.NET.Test.Sdk` | Tests only |
+| `Microsoft.Playwright` | Browser tests only |
 
 The `.env` reader is a small hand-written parser rather than a package. D3.js v7.9.0 is vendored
 in `src/PowerQueryDocumenter.Core/Resources/Vendor` (ISC licence, see `d3.LICENSE.txt`) and embedded
@@ -231,6 +239,9 @@ handler that checks the request (GET with the encoded diagram, or POST for large
 simulates server errors, timeouts, bad content and cancellation. End-to-end tests run the whole
 tool in-process with temporary folders and cover the acceptance criteria and every exit code.
 
+The browser tests check the generated page in headless Chromium. On their first run they download
+Playwright's Chromium (about 150 MB) into the user's cache folder.
+
 A few **integration tests** render the sample diagram on a real PlantUML server. They are skipped
 unless a server is configured, either way:
 
@@ -240,8 +251,8 @@ unless a server is configured, either way:
 Environment variable or `.env` were chosen over .NET user secrets because the tool itself already
 reads both, they work the same way locally and in a CI pipeline, and they need no extra packages.
 
-To run only the unit tests:
+To run only the unit tests, with no download:
 
 ```
-dotnet test --filter "Category!=Integration"
+dotnet test tests/PowerQueryDocumenter.Tests --filter "Category!=Integration"
 ```
