@@ -53,7 +53,7 @@ The input folder is a required positional argument.
 | Option | Alias | Value | Default | Description |
 |--------|-------|-------|---------|-------------|
 | `--output-name` | `-n` | string (no extension) | `powerquery-dependencies` | Base file name for all outputs. The tool appends the correct extension per format. MUST NOT contain path separators or an extension; if it does, fail validation. |
-| `--output-folder` | `-o` | path | Same as the input folder | Folder to write outputs to. Created if it does not exist. |
+| `--output` | `-o` | path | Same as the input folder | Folder to write outputs to. Created if it does not exist. |
 | `--format` | `-f` | one or more of `puml`, `html`, `pdf`, `png`, `svg` | none (CSV only) | Additional formats to generate. Accepts a comma-separated list (`-f puml,html`) and MAY be repeated (`-f puml -f html`). Values are case-insensitive. |
 | `--no-csv` | | flag | off | Skip the CSV export. MUST fail validation if no `--format` value is supplied, with a message explaining that nothing would be produced. |
 | `--plantuml-server` | | URL | none | Base URL of the PlantUML server used for `pdf`, `png` and `svg` rendering. See FR-PUML-4. |

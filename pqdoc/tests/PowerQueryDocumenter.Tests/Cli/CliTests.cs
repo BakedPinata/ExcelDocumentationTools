@@ -176,7 +176,7 @@ public sealed class CliDefinitionTests
   public void Every_option_has_a_long_name_and_the_usual_ones_have_aliases()
   {
     Assert.Contains("-n", cli.OutputName.Aliases);
-    Assert.Contains("-o", cli.OutputFolder.Aliases);
+    Assert.Contains("-o", cli.Output.Aliases);
     Assert.Contains("-f", cli.Formats.Aliases);
     Assert.Contains("-y", cli.Force.Aliases);
     Assert.Contains("-v", cli.Verbose.Aliases);

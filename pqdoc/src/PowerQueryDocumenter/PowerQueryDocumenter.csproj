@@ -4,8 +4,6 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>PowerQueryDocumenter</RootNamespace>
     <AssemblyName>pqdoc</AssemblyName>
-    <!-- Keep the version output to the plain version number (no git commit hash suffix). -->
-    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>

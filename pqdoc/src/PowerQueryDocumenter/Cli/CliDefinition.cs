@@ -34,7 +34,7 @@ public sealed class CliDefinition
       DefaultValueFactory = _ => AnalyserOptions.DefaultOutputName,
     };
 
-    OutputFolder = new Option<string?>("--output-folder", "-o")
+    Output = new Option<string?>("--output", "-o")
     {
       Description = "Folder to write outputs to. Created if it does not exist. [default: the input folder]",
       HelpName = "path",
@@ -92,7 +92,7 @@ public sealed class CliDefinition
     {
       InputFolder,
       OutputName,
-      OutputFolder,
+      Output,
       Formats,
       NoCsv,
       PlantUmlServer,
@@ -114,8 +114,8 @@ public sealed class CliDefinition
   /// <summary><c>--output-name</c> / <c>-n</c>.</summary>
   public Option<string> OutputName { get; }
 
-  /// <summary><c>--output-folder</c> / <c>-o</c>.</summary>
-  public Option<string?> OutputFolder { get; }
+  /// <summary><c>--output</c> / <c>-o</c>.</summary>
+  public Option<string?> Output { get; }
 
   /// <summary><c>--format</c> / <c>-f</c>.</summary>
   public Option<IReadOnlyList<OutputFormat>> Formats { get; }
@@ -158,7 +158,7 @@ public sealed class CliDefinition
 
     if (name.IndexOfAny(['/', '\\']) >= 0)
     {
-      return $"--output-name '{name}' must be a file name, not a path. Use --output-folder to choose where files are written.";
+      return $"--output-name '{name}' must be a file name, not a path. Use --output to choose where files are written.";
     }
 
     if (name.IndexOfAny(InvalidFileNameCharacters) >= 0 || name.Any(char.IsControl))

@@ -19,7 +19,7 @@ public static class ErrorDescriber
       PlantUmlRenderException render => render.Message,
       UnauthorizedAccessException => "permission denied. Check that you can write to the output folder and that the file is not read-only",
       DirectoryNotFoundException => "the output folder does not exist or the path is not valid",
-      PathTooLongException => "the output path is too long. Use a shorter --output-folder or --output-name",
+      PathTooLongException => "the output path is too long. Use a shorter --output or --output-name",
       IOException io when IsDiskFull(io) => "there is not enough disk space",
       IOException io => $"{io.Message} The file may be open in another program",
       _ => exception.Message,

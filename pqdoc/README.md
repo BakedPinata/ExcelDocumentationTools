@@ -43,7 +43,7 @@ the file name without `.m`. Only the top level of the folder is scanned.
 | Option | Alias | Value | Default | Description |
 |--------|-------|-------|---------|-------------|
 | `--output-name` | `-n` | name | `powerquery-dependencies` | Base file name for every output. The extension is added per format. Must not contain a folder or an extension. |
-| `--output-folder` | `-o` | path | the input folder | Where outputs are written. Created if missing. |
+| `--output` | `-o` | path | the input folder | Where outputs are written. Created if missing. |
 | `--format` | `-f` | `puml`, `html`, `pdf`, `png`, `svg` | none | Extra formats, comma-separated (`-f puml,html`) or repeated (`-f puml -f html`). Case-insensitive. |
 | `--no-csv` | | flag | off | Skip the CSV. Needs at least one `--format`. |
 | `--plantuml-server` | | URL | none | PlantUML server for `pdf`, `png` and `svg`. |
@@ -52,7 +52,7 @@ the file name without `.m`. Only the top level of the folder is scanned.
 | `--verbose` | `-v` | flag | off | Show debug output, including exception details. |
 | `--quiet` | `-q` | flag | off | Show warnings and errors only. |
 | `--help` | `-h`, `-?` | | | Show help. |
-| `--version` | | | | Show the version. |
+| `--version` | | | | Show the version and git commit of this build. |
 
 ### Examples
 

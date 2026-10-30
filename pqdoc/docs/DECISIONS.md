@@ -12,8 +12,10 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **Central Package Management.** Every NuGet version is in the root `Directory.Packages.props`.
 - **Shared project settings** are in the root `Directory.Build.props`. `pqdoc/Directory.Build.props` imports it and sets
   `Version`, `Product` and `ToolRoot`.
-- **`--version` shows only the version for now.** The `.csproj` turns off the commit in the informational version.
-  Stage 3b removes that, so pqdoc shows the same build stamp as vbadoc.
+- **`--version` shows the build stamp**, `<version>+<commit>[-dirty]`, the same as vbadoc. The commit is the last one
+  that touched `pqdoc/` or the root build files.
+- **The output option is `--output`/`-o`**, shared with vbadoc. It replaced `--output-folder`, with no alias for the old
+  name, before any release. The version stays 1.0.0, because none has been tagged yet.
 - **The `.env` reader is hand-written** rather than a package.
 - **An environment variable or `.env` file, not .NET user secrets**, configures the integration tests. The tool already
   reads both, they work the same way locally and in a CI pipeline, and they need no extra packages.

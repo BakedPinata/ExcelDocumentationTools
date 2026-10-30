@@ -17,7 +17,7 @@ Run these from `pqdoc/`.
 dotnet build -warnaserror
 dotnet test                                      # also runs the PlantUML server tests, if a server is configured
 dotnet test --filter "Category!=Integration"     # unit tests only
-dotnet run --project src/PowerQueryDocumenter -- <input_folder> [--output-folder <folder>] [-f puml,html] [--verbose]
+dotnet run --project src/PowerQueryDocumenter -- <input_folder> [--output <folder>] [-f puml,html] [--verbose]
 ```
 
 ## Rules for pqdoc

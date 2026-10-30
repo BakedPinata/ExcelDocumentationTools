@@ -29,10 +29,10 @@ public static class OptionsBinder
     var errors = new List<string>();
 
     var inputFolder = ResolvePath(parseResult.GetValue(cli.InputFolder), environment, "input_folder", errors);
-    var outputFolderValue = parseResult.GetValue(cli.OutputFolder);
+    var outputFolderValue = parseResult.GetValue(cli.Output);
     var outputFolder = string.IsNullOrWhiteSpace(outputFolderValue)
       ? inputFolder
-      : ResolvePath(outputFolderValue, environment, "--output-folder", errors);
+      : ResolvePath(outputFolderValue, environment, "--output", errors);
 
     var requested = parseResult.GetValue(cli.Formats) ?? [];
     var formats = (parseResult.GetValue(cli.NoCsv) ? requested : requested.Prepend(OutputFormat.Csv))
