@@ -48,6 +48,7 @@ public class SourcePanelLayoutTests(PageFixture fixture)
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
+    var before = await WidthAsync(page, "#source-panel");
     var splitter = (await page.Locator("#source-splitter").BoundingBoxAsync())!;
     var y = splitter.Y + splitter.Height / 2;
 
@@ -56,9 +57,9 @@ public class SourcePanelLayoutTests(PageFixture fixture)
     await page.Mouse.MoveAsync(400, y, new() { Steps = 5 });
     await page.Mouse.UpAsync();
 
-    // The panel now runs from the pointer to the right edge.
-    Assert.Equal(1280 - 400, await WidthAsync(page, "#source-panel"), tolerance: 2);
-    Assert.Equal("69", await page.GetAttributeAsync("#source-splitter", "aria-valuenow"));
+    // The panel grows by as far as the pointer moved.
+    Assert.Equal(before + splitter.X + 3 - 400, await WidthAsync(page, "#source-panel"), tolerance: 2);
+    Assert.Equal("68", await page.GetAttributeAsync("#source-splitter", "aria-valuenow"));
 
     // It can't be dragged past its largest size.
     splitter = (await page.Locator("#source-splitter").BoundingBoxAsync())!;
@@ -75,6 +76,39 @@ public class SourcePanelLayoutTests(PageFixture fixture)
     await page.DblClickAsync("#source-splitter");
     Assert.Equal(1280 * 0.42, await WidthAsync(page, "#source-panel"), tolerance: 2);
     Assert.Empty(opened.Errors);
+  }
+
+  [Fact]
+  public async Task A_click_on_the_splitter_does_not_move_it()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    var before = await WidthAsync(page, "#source-panel");
+
+    await page.ClickAsync("#source-splitter");
+
+    Assert.Equal(before, await WidthAsync(page, "#source-panel"), tolerance: 0.5);
+  }
+
+  [Fact]
+  public async Task Double_click_resets_the_panel_away_from_its_largest_size()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    var before = await WidthAsync(page, "#source-panel");
+    var splitter = (await page.Locator("#source-splitter").BoundingBoxAsync())!;
+    var x = splitter.X + splitter.Width / 2;
+    var y = splitter.Y + splitter.Height / 2;
+
+    await page.Mouse.MoveAsync(x, y);
+    await page.Mouse.DownAsync();
+    await page.Mouse.MoveAsync(x - 100, y, new() { Steps = 5 });
+    await page.Mouse.UpAsync();
+    Assert.Equal(before + 100, await WidthAsync(page, "#source-panel"), tolerance: 2);
+
+    await page.DblClickAsync("#source-splitter");
+
+    Assert.Equal(before, await WidthAsync(page, "#source-panel"), tolerance: 2);
   }
 
   [Fact]
@@ -114,7 +148,8 @@ public class SourcePanelLayoutTests(PageFixture fixture)
     await page.Mouse.MoveAsync(350, layout.Y + layout.Height * 0.6f, new() { Steps = 5 });
     await page.Mouse.UpAsync();
 
-    Assert.Equal(layout.Height * 0.4, await HeightAsync(page, "#source-panel"), tolerance: 2);
+    // The splitter is 7 pixels high and was grabbed 3 down, so the panel starts 4 below the pointer.
+    Assert.Equal(layout.Height * 0.4 - 4, await HeightAsync(page, "#source-panel"), tolerance: 2);
     Assert.Equal(700, await WidthAsync(page, "#source-panel"), tolerance: 2);
 
     await page.ClickAsync("#source-toggle");

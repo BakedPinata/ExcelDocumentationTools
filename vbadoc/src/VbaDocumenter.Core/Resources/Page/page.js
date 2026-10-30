@@ -544,7 +544,10 @@
   });
 
   // Dragging. The panel is on the right (or at the bottom), so its size is the distance from the pointer to the
-  // layout's far edge.
+  // layout's far edge, less where in the splitter it was grabbed. Without that, a click would move the splitter out
+  // from under the pointer, and the second click of a double-click would miss it.
+  var grabOffset = 0;
+
   function sizeAtPointer(event) {
     var rect = layout.getBoundingClientRect();
     return stacked.matches ? (rect.bottom - event.clientY) / rect.height : (rect.right - event.clientX) / rect.width;
@@ -552,20 +555,21 @@
 
   splitter.addEventListener("pointerdown", function (event) {
     if (event.button !== 0) return;
+    grabOffset = sizeAtPointer(event) - currentSourceSize();
     splitter.setPointerCapture(event.pointerId);
     splitter.classList.add("dragging");
     document.body.classList.add("resizing");
     event.preventDefault();
   });
   splitter.addEventListener("pointermove", function (event) {
-    if (splitter.hasPointerCapture(event.pointerId)) setSourceSize(sizeAtPointer(event), false);
+    if (splitter.hasPointerCapture(event.pointerId)) setSourceSize(sizeAtPointer(event) - grabOffset, false);
   });
   function endDrag(event) {
     if (!splitter.hasPointerCapture(event.pointerId)) return;
     splitter.releasePointerCapture(event.pointerId);
     splitter.classList.remove("dragging");
     document.body.classList.remove("resizing");
-    setSourceSize(sizeAtPointer(event), true);
+    setSourceSize(sizeAtPointer(event) - grabOffset, true);
   }
   splitter.addEventListener("pointerup", endDrag);
   splitter.addEventListener("pointercancel", endDrag);
