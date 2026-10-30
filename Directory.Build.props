@@ -1,0 +1,14 @@
+<Project>
+
+  <!-- Settings shared by every project. Each tool's own Directory.Build.props imports this file and adds its
+       Version, Product and ToolRoot. Project-specific settings stay in each .csproj. -->
+  <PropertyGroup>
+    <!-- .NET 9 rather than 10: see docs/GUIDELINES.md. Changing it here moves every project. -->
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+</Project>

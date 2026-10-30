@@ -1,13 +1,13 @@
 <Project>
 
-  <!-- Settings shared by every project. Project-specific settings stay in each .csproj. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
   <PropertyGroup>
-    <!-- .NET 9 rather than 10: see docs/DECISIONS.md. Changing it here moves every project. -->
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <!-- Shown in generated pages and when vbadoc is asked for its version. Raise it at the end of each stage. -->
     <Version>0.5.0</Version>
+    <Product>vbadoc</Product>
+    <!-- The folder the build stamp follows: see Directory.Build.targets at the root. -->
+    <ToolRoot>$(MSBuildThisFileDirectory)</ToolRoot>
   </PropertyGroup>
 
 </Project>
