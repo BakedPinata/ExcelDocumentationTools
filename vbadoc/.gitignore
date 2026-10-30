@@ -1,8 +1,0 @@
-bin/
-obj/
-.vs/
-*.user
-TestResults/
-
-# Local test workbooks and their output (never committed)
-private/

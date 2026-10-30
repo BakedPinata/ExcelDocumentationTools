@@ -1,0 +1,12 @@
+# Store text files with LF, whatever each machine's core.autocrlf says.
+* text=auto
+
+# Keep these files byte-for-byte as committed, even with core.autocrlf on Windows:
+# - embedded resources are copied into the generated output, so converting their line endings
+#   would make the tool's output differ between machines;
+# - test fixtures must match what the tests expect, byte for byte.
+**/Resources/** -text
+**/Fixtures/** -text
+
+# Vendored, minified scripts: no diffs, and left out of GitHub's language statistics.
+*.min.js -diff linguist-vendored

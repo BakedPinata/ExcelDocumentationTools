@@ -1,4 +1,4 @@
-# Editor settings shared by Visual Studio, Rider and VS Code.
+# Editor settings for every tool in the repository, shared by Visual Studio, Rider and VS Code.
 # These describe the style the code already uses. Rules are suggestions (IDE hints), not build errors:
 # EnforceCodeStyleInBuild is off, so `dotnet build -warnaserror` is unaffected.
 root = true
@@ -15,20 +15,24 @@ trim_trailing_whitespace = true
 # Two trailing spaces are a Markdown line break.
 trim_trailing_whitespace = false
 
+[*.m]
+# Fixture queries keep whatever Power Query exported.
+trim_trailing_whitespace = false
+
 [*.{csproj,props,targets,xml,json,yml,yaml}]
 indent_size = 2
 
-# The page's hand-written HTML, CSS and JavaScript.
+# The pages' hand-written HTML, CSS and JavaScript.
 [*.{html,css,js}]
 indent_size = 2
 
 # Vendored scripts are stored unchanged and must never be reformatted.
-[src/VbaDocumenter.Core/Resources/Vendor/**]
+[**/Resources/Vendor/**]
 insert_final_newline = unset
 trim_trailing_whitespace = unset
 
 # Test fixtures must match what the tests expect, byte for byte.
-[tests/**/Fixtures/**]
+[**/Fixtures/**]
 insert_final_newline = unset
 trim_trailing_whitespace = unset
 
@@ -36,6 +40,8 @@ trim_trailing_whitespace = unset
 indent_style = tab
 
 [*.cs]
+indent_size = 2
+
 # Usings and namespaces
 dotnet_sort_system_directives_first = true
 csharp_using_directive_placement = outside_namespace:suggestion

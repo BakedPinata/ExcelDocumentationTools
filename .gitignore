@@ -6,8 +6,11 @@ obj/
 .idea/
 TestResults/
 
+# Local test workbooks and their output (never committed)
+private/
+
 # Local configuration: may hold a private PlantUML server URL
 .env
 
-# Outputs produced by trying the tool inside the repository
+# Outputs produced by trying pqdoc inside the repository
 powerquery-dependencies.*
