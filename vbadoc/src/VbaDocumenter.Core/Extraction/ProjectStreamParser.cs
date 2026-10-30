@@ -15,27 +15,27 @@ namespace VbaDocumenter.Core.Extraction;
 /// </remarks>
 public static class ProjectStreamParser
 {
-    public static Dictionary<string, VbaModuleKind> ParseModuleKinds(string projectText)
+  public static Dictionary<string, VbaModuleKind> ParseModuleKinds(string projectText)
+  {
+    var kinds = new Dictionary<string, VbaModuleKind>(StringComparer.OrdinalIgnoreCase);
+    foreach (var rawLine in projectText.Split('\n'))
     {
-        var kinds = new Dictionary<string, VbaModuleKind>(StringComparer.OrdinalIgnoreCase);
-        foreach (var rawLine in projectText.Split('\n'))
-        {
-            var line = rawLine.Trim();
-            if (line.StartsWith('[')) break; // [Host Extender Info] and [Workspace] come after the module list
+      var line = rawLine.Trim();
+      if (line.StartsWith('[')) break; // [Host Extender Info] and [Workspace] come after the module list
 
-            int equals = line.IndexOf('=');
-            if (equals < 0) continue;
-            var key = line[..equals];
-            var name = line[(equals + 1)..].Split('/')[0].Trim('"');
+      int equals = line.IndexOf('=');
+      if (equals < 0) continue;
+      var key = line[..equals];
+      var name = line[(equals + 1)..].Split('/')[0].Trim('"');
 
-            switch (key)
-            {
-                case "Module": kinds[name] = VbaModuleKind.Standard; break;
-                case "Class": kinds[name] = VbaModuleKind.Class; break;
-                case "BaseClass": kinds[name] = VbaModuleKind.Form; break;
-                case "Document": kinds[name] = VbaModuleKind.Document; break;
-            }
-        }
-        return kinds;
+      switch (key)
+      {
+        case "Module": kinds[name] = VbaModuleKind.Standard; break;
+        case "Class": kinds[name] = VbaModuleKind.Class; break;
+        case "BaseClass": kinds[name] = VbaModuleKind.Form; break;
+        case "Document": kinds[name] = VbaModuleKind.Document; break;
+      }
     }
+    return kinds;
+  }
 }

@@ -11,27 +11,27 @@ public sealed record VendoredScript(string Name, string Version, string LicenseN
 /// </summary>
 public static class VendoredScripts
 {
-    public const string D3Version = "7.9.0";
-    public const string MermaidVersion = "11.17.2";
+  public const string D3Version = "7.9.0";
+  public const string MermaidVersion = "11.17.2";
 
-    public static VendoredScript D3 { get; } = Load("d3", D3Version, "ISC");
-    public static VendoredScript Mermaid { get; } = Load("mermaid", MermaidVersion, "MIT");
+  public static VendoredScript D3 { get; } = Load("d3", D3Version, "ISC");
+  public static VendoredScript Mermaid { get; } = Load("mermaid", MermaidVersion, "MIT");
 
-    static VendoredScript Load(string name, string version, string licenseName) =>
-        new(name, version, licenseName,
-            EmbeddedResources.ReadText($"Vendor/{name}.LICENSE.txt"),
-            EmbeddedResources.ReadText($"Vendor/{name}.min.js"));
+  static VendoredScript Load(string name, string version, string licenseName) =>
+      new(name, version, licenseName,
+          EmbeddedResources.ReadText($"Vendor/{name}.LICENSE.txt"),
+          EmbeddedResources.ReadText($"Vendor/{name}.min.js"));
 }
 
 /// <summary>Reads text files that the .csproj embeds under Resources/.</summary>
 public static class EmbeddedResources
 {
-    public static string ReadText(string logicalName)
-    {
-        var assembly = typeof(EmbeddedResources).Assembly;
-        using var stream = assembly.GetManifestResourceStream(logicalName)
-            ?? throw new InvalidOperationException($"Embedded resource '{logicalName}' is missing. Check the EmbeddedResource items in VbaDocumenter.Core.csproj.");
-        using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
-    }
+  public static string ReadText(string logicalName)
+  {
+    var assembly = typeof(EmbeddedResources).Assembly;
+    using var stream = assembly.GetManifestResourceStream(logicalName)
+        ?? throw new InvalidOperationException($"Embedded resource '{logicalName}' is missing. Check the EmbeddedResource items in VbaDocumenter.Core.csproj.");
+    using var reader = new StreamReader(stream);
+    return reader.ReadToEnd();
+  }
 }

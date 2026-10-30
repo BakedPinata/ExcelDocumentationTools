@@ -12,59 +12,59 @@ using VbaDocumenter.Core.Parsing;
 
 if (args is ["--version"])
 {
-    Console.WriteLine(ToolVersion.Current.Description);
-    return 0;
+  Console.WriteLine(ToolVersion.Current.Description);
+  return 0;
 }
 
 var options = CommandLineOptions.Parse(args, out var error);
 if (options == null)
 {
-    Console.Error.WriteLine(error);
-    Console.Error.WriteLine();
-    Console.Error.WriteLine(CommandLineOptions.Usage);
-    return 1;
+  Console.Error.WriteLine(error);
+  Console.Error.WriteLine();
+  Console.Error.WriteLine(CommandLineOptions.Usage);
+  return 1;
 }
 
 try
 {
-    Console.WriteLine($"Reading {options.WorkbookPath}");
-    var project = WorkbookReader.Read(options.WorkbookPath);
-    Console.WriteLine($"  Project '{project.Name}', code page {project.CodePage}, {project.Modules.Count} module(s)");
-    var parsed = ProjectParser.Parse(project);
-    ConsoleReport.WriteModules(parsed, options.Verbose);
+  Console.WriteLine($"Reading {options.WorkbookPath}");
+  var project = WorkbookReader.Read(options.WorkbookPath);
+  Console.WriteLine($"  Project '{project.Name}', code page {project.CodePage}, {project.Modules.Count} module(s)");
+  var parsed = ProjectParser.Parse(project);
+  ConsoleReport.WriteModules(parsed, options.Verbose);
 
-    Console.WriteLine("Analysing dependencies");
-    var dependencies = DependencyAnalyzer.Analyze(parsed);
-    ConsoleReport.WriteDependencies(dependencies, options.Verbose);
+  Console.WriteLine("Analysing dependencies");
+  var dependencies = DependencyAnalyzer.Analyze(parsed);
+  ConsoleReport.WriteDependencies(dependencies, options.Verbose);
 
-    Console.WriteLine($"Exporting to {options.OutputFolder}");
-    var result = ProjectExporter.Export(project, options.OutputFolder);
-    Console.WriteLine($"  {result.Written.Count} written, {result.Unchanged.Count} unchanged, {result.Deleted.Count} deleted");
-    foreach (var name in result.Deleted)
-        Console.WriteLine($"    deleted {name} (no longer in the workbook)");
-    if (result.CreatedGitAttributes)
-        Console.WriteLine("  Created .gitattributes");
+  Console.WriteLine($"Exporting to {options.OutputFolder}");
+  var result = ProjectExporter.Export(project, options.OutputFolder);
+  Console.WriteLine($"  {result.Written.Count} written, {result.Unchanged.Count} unchanged, {result.Deleted.Count} deleted");
+  foreach (var name in result.Deleted)
+    Console.WriteLine($"    deleted {name} (no longer in the workbook)");
+  if (result.CreatedGitAttributes)
+    Console.WriteLine("  Created .gitattributes");
 
-    var html = HtmlPageWriter.Build(dependencies, project, Path.GetFileName(options.WorkbookPath), options.EmbedSource);
-    bool pageWritten = HtmlPageWriter.Write(options.OutputFolder, html);
-    Console.WriteLine($"  {HtmlPageWriter.FileName} {(pageWritten ? "written" : "unchanged")}" +
-                      (options.EmbedSource ? " (source embedded)" : " (open it and use Load folder to see source)"));
-    return 0;
+  var html = HtmlPageWriter.Build(dependencies, project, Path.GetFileName(options.WorkbookPath), options.EmbedSource);
+  bool pageWritten = HtmlPageWriter.Write(options.OutputFolder, html);
+  Console.WriteLine($"  {HtmlPageWriter.FileName} {(pageWritten ? "written" : "unchanged")}" +
+                    (options.EmbedSource ? " (source embedded)" : " (open it and use Load folder to see source)"));
+  return 0;
 }
 catch (ExtractionException ex)
 {
-    WriteError(ex.Message);
-    return 2;
+  WriteError(ex.Message);
+  return 2;
 }
 catch (Exception ex)
 {
-    WriteError($"Unexpected error. Please report this with the details below.\n{ex}");
-    return 3;
+  WriteError($"Unexpected error. Please report this with the details below.\n{ex}");
+  return 3;
 }
 
 static void WriteError(string message)
 {
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.Error.WriteLine($"Error: {message}");
-    Console.ResetColor();
+  Console.ForegroundColor = ConsoleColor.Red;
+  Console.Error.WriteLine($"Error: {message}");
+  Console.ResetColor();
 }

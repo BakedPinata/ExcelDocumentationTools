@@ -16,74 +16,74 @@ namespace VbaDocumenter.Core.Extraction;
 /// </remarks>
 public static class OvbaDecompressor
 {
-    const int DecompressedChunkSize = 4096;
+  const int DecompressedChunkSize = 4096;
 
-    public static byte[] Decompress(ReadOnlySpan<byte> data, int offset = 0)
+  public static byte[] Decompress(ReadOnlySpan<byte> data, int offset = 0)
+  {
+    if (offset < 0 || offset >= data.Length || data[offset] != 0x01)
+      throw new InvalidDataException($"No compressed data at offset {offset}: expected signature byte 0x01.");
+
+    var output = new List<byte>(data.Length * 2);
+    int pos = offset + 1;
+
+    while (pos < data.Length)
     {
-        if (offset < 0 || offset >= data.Length || data[offset] != 0x01)
-            throw new InvalidDataException($"No compressed data at offset {offset}: expected signature byte 0x01.");
+      if (pos + 2 > data.Length)
+        throw new InvalidDataException($"Compressed data ends inside a chunk header at offset {pos}.");
 
-        var output = new List<byte>(data.Length * 2);
-        int pos = offset + 1;
+      int header = data[pos] | (data[pos + 1] << 8);
+      if (((header >> 12) & 0b111) != 0b011)
+        throw new InvalidDataException($"Invalid chunk signature at offset {pos}.");
 
-        while (pos < data.Length)
+      bool isCompressed = (header & 0x8000) != 0;
+      int chunkEnd = Math.Min(pos + (header & 0x0FFF) + 3, data.Length);
+      pos += 2;
+      int chunkStart = output.Count;
+
+      if (!isCompressed)
+      {
+        // An uncompressed chunk always holds exactly 4096 bytes; tolerate a short final one.
+        int count = Math.Min(DecompressedChunkSize, data.Length - pos);
+        for (int i = 0; i < count; i++) output.Add(data[pos + i]);
+        pos += count;
+        continue;
+      }
+
+      while (pos < chunkEnd)
+      {
+        byte flags = data[pos++];
+        for (int bit = 0; bit < 8 && pos < chunkEnd; bit++)
         {
-            if (pos + 2 > data.Length)
-                throw new InvalidDataException($"Compressed data ends inside a chunk header at offset {pos}.");
+          if ((flags & (1 << bit)) == 0)
+          {
+            output.Add(data[pos++]);
+            continue;
+          }
 
-            int header = data[pos] | (data[pos + 1] << 8);
-            if (((header >> 12) & 0b111) != 0b011)
-                throw new InvalidDataException($"Invalid chunk signature at offset {pos}.");
+          if (pos + 2 > chunkEnd)
+            throw new InvalidDataException($"Copy token at offset {pos} runs past the end of its chunk.");
+          int token = data[pos] | (data[pos + 1] << 8);
+          pos += 2;
 
-            bool isCompressed = (header & 0x8000) != 0;
-            int chunkEnd = Math.Min(pos + (header & 0x0FFF) + 3, data.Length);
-            pos += 2;
-            int chunkStart = output.Count;
+          // How the 16 bits split between offset and length depends on how much of this
+          // chunk has been decompressed so far (MS-OVBA 2.4.1.3.19.1 CopyToken Help).
+          int decompressedSoFar = output.Count - chunkStart;
+          int offsetBits = 4;
+          while ((1 << offsetBits) < decompressedSoFar) offsetBits++;
+          int lengthMask = 0xFFFF >> offsetBits;
 
-            if (!isCompressed)
-            {
-                // An uncompressed chunk always holds exactly 4096 bytes; tolerate a short final one.
-                int count = Math.Min(DecompressedChunkSize, data.Length - pos);
-                for (int i = 0; i < count; i++) output.Add(data[pos + i]);
-                pos += count;
-                continue;
-            }
+          int length = (token & lengthMask) + 3;
+          int copyOffset = (token >> (16 - offsetBits)) + 1;
+          int source = output.Count - copyOffset;
+          if (source < chunkStart)
+            throw new InvalidDataException($"Copy token at offset {pos - 2} points before the start of its chunk.");
 
-            while (pos < chunkEnd)
-            {
-                byte flags = data[pos++];
-                for (int bit = 0; bit < 8 && pos < chunkEnd; bit++)
-                {
-                    if ((flags & (1 << bit)) == 0)
-                    {
-                        output.Add(data[pos++]);
-                        continue;
-                    }
-
-                    if (pos + 2 > chunkEnd)
-                        throw new InvalidDataException($"Copy token at offset {pos} runs past the end of its chunk.");
-                    int token = data[pos] | (data[pos + 1] << 8);
-                    pos += 2;
-
-                    // How the 16 bits split between offset and length depends on how much of this
-                    // chunk has been decompressed so far (MS-OVBA 2.4.1.3.19.1 CopyToken Help).
-                    int decompressedSoFar = output.Count - chunkStart;
-                    int offsetBits = 4;
-                    while ((1 << offsetBits) < decompressedSoFar) offsetBits++;
-                    int lengthMask = 0xFFFF >> offsetBits;
-
-                    int length = (token & lengthMask) + 3;
-                    int copyOffset = (token >> (16 - offsetBits)) + 1;
-                    int source = output.Count - copyOffset;
-                    if (source < chunkStart)
-                        throw new InvalidDataException($"Copy token at offset {pos - 2} points before the start of its chunk.");
-
-                    // Copy one byte at a time: source and destination may overlap (e.g. "aaaa..." runs).
-                    for (int i = 0; i < length; i++) output.Add(output[source + i]);
-                }
-            }
+          // Copy one byte at a time: source and destination may overlap (e.g. "aaaa..." runs).
+          for (int i = 0; i < length; i++) output.Add(output[source + i]);
         }
-
-        return output.ToArray();
+      }
     }
+
+    return output.ToArray();
+  }
 }

@@ -34,47 +34,47 @@ public sealed record PageData(
     IReadOnlyList<PageClassEdge> ClassEdges,
     IReadOnlyList<PageLateBound> LateBound)
 {
-    static readonly JsonSerializerOptions JsonOptions = new()
+  static readonly JsonSerializerOptions JsonOptions = new()
+  {
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    // One property per line keeps git diffs of the page readable.
+    WriteIndented = true,
+    // The default encoder escapes <, > and &, so the JSON can't end the <script> element it sits in.
+    Encoder = JavaScriptEncoder.Default,
+  };
+
+  public static PageData From(DependencyModel model, VbaProject project, string title, bool embedSource)
+  {
+    var filesByName = project.Modules.ToDictionary(m => m.Name, StringComparer.Ordinal);
+    string Camel(Enum value) => JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
+
+    var modules = model.Modules.Select(node =>
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        // One property per line keeps git diffs of the page readable.
-        WriteIndented = true,
-        // The default encoder escapes <, > and &, so the JSON can't end the <script> element it sits in.
-        Encoder = JavaScriptEncoder.Default,
-    };
+      var content = ProjectExporter.FileContent(filesByName[node.Id]);
+      return new PageModule(node.Id, Camel(node.Module.Kind), ProjectExporter.FileNameFor(filesByName[node.Id]),
+              node.IsInterface, node.Module.LineCount, Convert.ToHexStringLower(SHA256.HashData(content))[..16]);
+    }).ToList();
 
-    public static PageData From(DependencyModel model, VbaProject project, string title, bool embedSource)
-    {
-        var filesByName = project.Modules.ToDictionary(m => m.Name, StringComparer.Ordinal);
-        string Camel(Enum value) => JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
+    var classLines = model.Modules.ToDictionary(m => m.Id, m => ClassDiagram.Lines(m.Module));
+    var members = model.Members.Where(n => n.Member != null).Select(n => new PageMember(
+        n.Id, n.Module.Name, n.Member!.Name, Camel(n.Member.Kind), Camel(n.Member.Visibility),
+        MemberFormatter.Signature(n.Member), n.Member.StartLine, n.Member.EndLine, n.Member.DeclarationLine,
+        Camel(n.Role), n.IsUnreferenced, n.Member.ParentName,
+        classLines[n.Module.Name].GetValueOrDefault(n.Member))).ToList();
 
-        var modules = model.Modules.Select(node =>
-        {
-            var content = ProjectExporter.FileContent(filesByName[node.Id]);
-            return new PageModule(node.Id, Camel(node.Module.Kind), ProjectExporter.FileNameFor(filesByName[node.Id]),
-                node.IsInterface, node.Module.LineCount, Convert.ToHexStringLower(SHA256.HashData(content))[..16]);
-        }).ToList();
+    PageEdge Edge(Edge e) => new(e.From, e.To, Camel(e.Kind), e.Count);
 
-        var classLines = model.Modules.ToDictionary(m => m.Id, m => ClassDiagram.Lines(m.Module));
-        var members = model.Members.Where(n => n.Member != null).Select(n => new PageMember(
-            n.Id, n.Module.Name, n.Member!.Name, Camel(n.Member.Kind), Camel(n.Member.Visibility),
-            MemberFormatter.Signature(n.Member), n.Member.StartLine, n.Member.EndLine, n.Member.DeclarationLine,
-            Camel(n.Role), n.IsUnreferenced, n.Member.ParentName,
-            classLines[n.Module.Name].GetValueOrDefault(n.Member))).ToList();
+    return new PageData(
+        new PageProject(title, project.Name, project.CodePage, CodePages.Get(project.CodePage).WebName,
+            embedSource ? "embedded" : "folder"),
+        modules,
+        members,
+        model.ModuleEdges.Select(Edge).ToList(),
+        model.MemberEdges.Select(Edge).ToList(),
+        ClassDiagram.Edges(model),
+        model.LateBound.Select(l => new PageLateBound(l.FromId, l.Expression, l.Line)).ToList());
+  }
 
-        PageEdge Edge(Edge e) => new(e.From, e.To, Camel(e.Kind), e.Count);
-
-        return new PageData(
-            new PageProject(title, project.Name, project.CodePage, CodePages.Get(project.CodePage).WebName,
-                embedSource ? "embedded" : "folder"),
-            modules,
-            members,
-            model.ModuleEdges.Select(Edge).ToList(),
-            model.MemberEdges.Select(Edge).ToList(),
-            ClassDiagram.Edges(model),
-            model.LateBound.Select(l => new PageLateBound(l.FromId, l.Expression, l.Line)).ToList());
-    }
-
-    public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
+  public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
 }
