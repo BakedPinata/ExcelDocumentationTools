@@ -24,7 +24,7 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **Shared project settings** (`TargetFramework`, `ImplicitUsings`, `Nullable`, `TreatWarningsAsErrors`,
   `Deterministic`) are in the root `Directory.Build.props`. `vbadoc/Directory.Build.props` imports it and sets `Version`,
   `Product` and `ToolRoot`. Each `.csproj` holds only what is specific to it.
-- **Version and build stamp.** `Version` (0.5.0 after stage 5) is raised at the end of each stage. The root
+- **Version and build stamp.** `Version` (0.6.0 after stage 5e) is raised at the end of each stage. The root
   `Directory.Build.targets` stamps the informational version with the last commit that touched `vbadoc/` or the root
   build files, not `HEAD`, so a commit to another tool doesn't change vbadoc's pages. It adds `-dirty` when those paths
   have uncommitted changes. `ToolVersion` reads it back for the page and `--version`.
@@ -41,10 +41,29 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **Browser tests** use Playwright with its own downloaded Chromium.
 - The page's JavaScript and CSS are **hand-written plain files with no build step** (no bundler, no TypeScript).
 
+## Command line and logging (stage 5e)
+
+- **System.CommandLine and Serilog** replaced the hand-written parser and console writes, set up the same way as
+  pqdoc's. The code is parallel, not shared. It stays in the console app, because Core only reports through what it
+  returns.
+- **Breaking changes in 0.6.0:** `--out` became `--output`/`-o`, with no alias. Exit codes moved to the scheme shared
+  with pqdoc: bad arguments 1 → 2, workbook problems 2 → 3, unexpected errors 3 → 1. The report moved from standard
+  output to the logger, which writes to standard error. `--version` prints System.CommandLine's
+  `<version>+<commit>[-dirty]`; pages keep the longer sentence from `ToolVersion.Description`.
+- **`ExtractionException` is exit code 3.** It also covers two modules mapping to one file name, which is a problem
+  with the workbook even though it's found while exporting.
+- **Any I/O failure while writing is exit code 5.** Code 4, output refused, isn't used, because vbadoc always brings the
+  folder in line with the workbook.
+- **Stack traces appear only with `--verbose`**, as in pqdoc. An unexpected error used to print one every time.
+- **Report detail is at Debug level**, so `--verbose` shows it: member lists, module edges and the rest of a list past 20
+  items. Parser warnings are at Warning level, so they still show with `--quiet`.
+- **Ctrl+C is honoured between steps**, because Core's work is synchronous and quick. Writing, once started, always
+  finishes: half an export would be worse than waiting a moment. So the page is now built before anything is written.
+
 ## Export
 
-- The default output folder is **`VBAProject` next to the workbook**; `--out <folder>` overrides it.
-  Two workbooks in one directory would share that folder, so one needs `--out`.
+- The default output folder is **`VBAProject` next to the workbook**; `--output <folder>` overrides it.
+  Two workbooks in one directory would share that folder, so one needs `--output`.
 - **There is no manifest.** Every top-level `.bas`, `.cls` and `.frm` file in the output folder is assumed to come from
   the tool. Ones no longer in the workbook are deleted; all other files (README, `.gitattributes`, `.git/`) are left alone.
 - **Document modules (ThisWorkbook, sheets) use `.cls`**, as the VBA editor does, not `.doc.cls` as the probe did.

@@ -3,7 +3,7 @@
 The tool is built in small stages. Each stage ends with passing tests, a commit and a pause for
 review. It is pushed after the review, and then the next one starts.
 
-**Current state:** stages 0–5 and 5b–5d are done. **Next: stage 6**, once step 3 of
+**Current state:** stages 0–5 and 5b–5e are done. **Next: stage 6**, once step 3 of
 [MONOREPO-PLAN.md](../../MONOREPO-PLAN.md) has aligned vbadoc with pqdoc.
 
 | Stage | Scope | Status |
@@ -18,6 +18,7 @@ review. It is pushed after the review, and then the next one starts.
 | 5b | Graph legend and Show…: clicking legend entries highlights what they stand for (edge entries keep the nodes they connect lit), narrowing the selection's highlight when both are on; Show… gains module kinds, edge kinds, private members, All / Unreferenced only / Referenced only, and nodes with no connections, at both levels where they apply, remembered per browser | Done |
 | 5c | "Uses / Used by" list: a collapsible Dependencies section in the source panel (closed by default), direct links at the selection's level, each entry selects its target | Done |
 | 5d | Navigation: a Home node (one per workbook, remembered per browser, starred in the graph); a breadcrumb trail of the route walked from Home (loops collapse, click a step to go back); "Path from Home" highlights the shortest dependency chain; selections update the page address so browser Back/Forward work | Done |
+| 5e | Command line aligned with pqdoc (version 0.6.0): System.CommandLine, Serilog, the shared exit codes, `--output`, `--quiet` | Done |
 | 6 | UserForms: read controls from the designer storage (MS-OFORMS), link handlers to controls, warn instead of failing on unreadable designer data | Next |
 | 7 | Polish: whole-output determinism test, README, third-party notices | |
 

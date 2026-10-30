@@ -4,7 +4,7 @@
 
   <PropertyGroup>
     <!-- Shown in generated pages and when vbadoc is asked for its version. Raise it at the end of each stage. -->
-    <Version>0.5.0</Version>
+    <Version>0.6.0</Version>
     <Product>vbadoc</Product>
     <!-- The folder the build stamp follows: see Directory.Build.targets at the root. -->
     <ToolRoot>$(MSBuildThisFileDirectory)</ToolRoot>

@@ -1,46 +1,51 @@
+using Serilog;
+using Serilog.Events;
 using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Output;
 using VbaDocumenter.Core.Parsing;
 
 namespace VbaDocumenter;
 
-/// <summary>Formats the parsed project and its dependencies for the console.</summary>
+/// <summary>Reports the parsed project and its dependencies through the logger. Detail is at Debug level, so --verbose shows it.</summary>
 static class ConsoleReport
 {
   /// <summary>Lists longer than this are cut short unless --verbose is given.</summary>
-  const int ShortListLength = 20;
+  public const int ShortListLength = 20;
 
-  public static void WriteDependencies(DependencyModel model, bool verbose)
+  public static void WriteDependencies(DependencyModel model, ILogger logger)
   {
     var interfaces = model.Modules.Where(m => m.IsInterface).Select(m => m.Id).ToList();
-    Console.WriteLine($"  {model.ModuleEdges.Count} module dependencies, {model.MemberEdges.Count} member dependencies" +
-                      (interfaces.Count > 0 ? $"; interfaces: {string.Join(", ", interfaces)}" : ""));
+    logger.Information("  {ModuleEdges} module dependencies, {MemberEdges} member dependencies{Interfaces}",
+        model.ModuleEdges.Count,
+        model.MemberEdges.Count,
+        interfaces.Count > 0 ? $"; interfaces: {string.Join(", ", interfaces)}" : "");
 
-    if (verbose)
-    {
-      foreach (var group in model.ModuleEdges.GroupBy(e => (e.From, e.Kind)))
-        Console.WriteLine($"    {group.Key.From} {KindVerb(group.Key.Kind)} {string.Join(", ", group.Select(e => e.To))}");
-    }
+    foreach (var group in model.ModuleEdges.GroupBy(e => (e.From, e.Kind)))
+      logger.Debug("    {From} {Verb} {To}", group.Key.From, KindVerb(group.Key.Kind), string.Join(", ", group.Select(e => e.To)));
 
     WriteList(
+        logger,
         $"{model.LateBound.Count} late-bound reference(s), which can't be resolved without running the code:",
-        model.LateBound.Select(l => $"{l.FromId} (line {l.Line}): {l.Expression}").ToList(),
-        verbose);
+        model.LateBound.Select(l => $"{l.FromId} (line {l.Line}): {l.Expression}").ToList());
 
     var unreferenced = model.Members.Where(m => m.IsUnreferenced).ToList();
     WriteList(
+        logger,
         $"{unreferenced.Count} unreferenced member(s). They may still be used via Application.Run, buttons or late-bound calls:",
-        unreferenced.Select(m => $"{m.Id} (line {m.Member!.DeclarationLine})").ToList(),
-        verbose);
+        unreferenced.Select(m => $"{m.Id} (line {m.Member!.DeclarationLine})").ToList());
   }
 
-  static void WriteList(string heading, List<string> items, bool verbose)
+  /// <summary>Items past the short length are at Debug level, with a note saying how to see them.</summary>
+  public static void WriteList(ILogger logger, string heading, List<string> items)
   {
     if (items.Count == 0) return;
-    Console.WriteLine($"  {heading}");
-    int shown = verbose ? items.Count : Math.Min(items.Count, ShortListLength);
-    foreach (var item in items.Take(shown)) Console.WriteLine($"    {item}");
-    if (shown < items.Count) Console.WriteLine($"    ... and {items.Count - shown} more (use --verbose to see all)");
+    logger.Information("  {Heading}", heading);
+    foreach (var item in items.Take(ShortListLength)) logger.Information("    {Item}", item);
+    foreach (var item in items.Skip(ShortListLength)) logger.Debug("    {Item}", item);
+
+    int hidden = items.Count - ShortListLength;
+    if (hidden > 0 && !logger.IsEnabled(LogEventLevel.Debug))
+      logger.Information("    ... and {Hidden} more (use --verbose to see all)", hidden);
   }
 
   static string KindVerb(EdgeKind kind) => kind switch
@@ -50,23 +55,20 @@ static class ConsoleReport
     _ => "uses",
   };
 
-  public static void WriteModules(ProjectModel project, bool verbose)
+  public static void WriteModules(ProjectModel project, ILogger logger)
   {
     int nameWidth = project.Modules.Count == 0 ? 0 : project.Modules.Max(m => m.Name.Length);
     foreach (var module in project.Modules)
     {
-      Console.WriteLine($"    {module.Kind,-9} {module.Name.PadRight(nameWidth)}  {Counts(module)}");
-      if (!verbose) continue;
+      logger.Information("    {Kind,-9} {Name}  {Counts}", module.Kind.ToString(), module.Name.PadRight(nameWidth), Counts(module));
       foreach (var member in module.Members)
-        Console.WriteLine($"      {member.StartLine,5}-{member.EndLine,-5} {MemberFormatter.Signature(member)}");
+        logger.Debug("      {Start,5}-{End,-5} {Signature}", member.StartLine, member.EndLine, MemberFormatter.Signature(member));
     }
 
     var warnings = project.Modules.SelectMany(m => m.Warnings.Select(w => $"{m.Name} {w}")).ToList();
     if (warnings.Count == 0) return;
-    Console.ForegroundColor = ConsoleColor.Yellow;
-    Console.WriteLine($"  {warnings.Count} parser warning(s). These lines were skipped:");
-    foreach (var warning in warnings) Console.WriteLine($"    {warning}");
-    Console.ResetColor();
+    logger.Warning("  {Count} parser warning(s). These lines were skipped:", warnings.Count);
+    foreach (var warning in warnings) logger.Warning("    {ParserWarning}", warning);
   }
 
   /// <summary>e.g. "7 procedures, 3 variables, 1 event".</summary>

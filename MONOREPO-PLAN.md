@@ -25,8 +25,8 @@ consistent as they grow. It is written to be handed to a fresh Claude Code sessi
 |---|---|---|
 | 1 | Restructure: one repository, `vbadoc/` and `pqdoc/`, .NET 9, renames, GitHub rename | Done |
 | 2 | Shared configuration, guidelines and CLAUDE.md files; 2-space C#; Australian spelling | Done |
-| 3a | vbadoc tests to xUnit v3 | Done, awaiting review |
-| 3b | vbadoc command line to System.CommandLine; shared exit codes; pqdoc build stamp | |
+| 3a | vbadoc tests to xUnit v3 | Done |
+| 3b | vbadoc command line to System.CommandLine; shared exit codes; pqdoc build stamp | Done, awaiting review |
 | 3c | pqdoc split into Core library and console app | |
 | 3d | pqdoc HTML page on vbadoc's design; pqdoc browser tests | |
 | 3e | Build workflow and Dependabot | |

@@ -17,7 +17,7 @@ Run these from `vbadoc/`.
 dotnet build -warnaserror
 dotnet test                              # unit + browser tests (browser tests download Chromium on first run)
 dotnet test tests/VbaDocumenter.Tests    # unit tests only
-dotnet run --project src/VbaDocumenter -- <workbook> [--out <folder>] [--embed-source] [--verbose]
+dotnet run --project src/VbaDocumenter -- <workbook> [--output <folder>] [--embed-source] [--verbose]
 ```
 
 ## Rules for vbadoc

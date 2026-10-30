@@ -129,8 +129,5 @@ of generated pages, because changing one changes every page.
 
 | Rule | Tool | Step |
 |---|---|---|
-| System.CommandLine, Serilog, the shared options and exit codes | vbadoc has its own parser and exit codes | 3b |
-| `--output` | vbadoc has `--out`, pqdoc has `--output-folder` | 3b |
-| The build stamp in `--version` | pqdoc shows only its version | 3b |
 | Core library | pqdoc is one project | 3c |
 | Page design, browser tests, licence comment in the page | pqdoc's page has its own design | 3d |
