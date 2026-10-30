@@ -36,6 +36,8 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   shows none.
 - **Australian spelling** in our own identifiers, comments, docs and UI text. The `realization` edge kind stays as it
   is, because it is data in generated pages.
+- **Tests use xUnit v3**, like pqdoc's, so test projects are executables. `coverlet.collector` was dropped when they
+  moved: nothing collected coverage or read it.
 - **Browser tests** use Playwright with its own downloaded Chromium.
 - The page's JavaScript and CSS are **hand-written plain files with no build step** (no bundler, no TypeScript).
 

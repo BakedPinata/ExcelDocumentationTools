@@ -97,7 +97,7 @@ of generated pages, because changing one changes every page.
 
 ## Tests
 
-- Every test project uses **xUnit v3**.
+- Every test project uses **xUnit v3**. Test projects don't collect coverage, because nothing reads it.
 - A normal test run needs no network and nothing that exists only on one machine. A test that does need something
   extra is optional, and skips itself with a message saying how to enable it.
 - Pages have Playwright browser tests in their own project. Tests don't catch layout or colour problems, so look at
@@ -112,9 +112,8 @@ of generated pages, because changing one changes every page.
   and leaves our code under MIT. If we ever change OpenMcdf's files, those changes must be published under MPL-2.0.
 - Check the licence before adding a package or moving to a new major version, and keep a comment beside any exception
   in `Directory.Packages.props`.
-- Dependencies today: MIT (System.CommandLine, Microsoft.NET.Test.Sdk, Microsoft.Playwright, coverlet.collector,
-  Mermaid), ISC (d3), Apache-2.0 (Serilog, Serilog.Sinks.Console, xunit, xunit.v3, xunit.runner.visualstudio) and
-  MPL-2.0 (OpenMcdf).
+- Dependencies today: MIT (System.CommandLine, Microsoft.NET.Test.Sdk, Microsoft.Playwright, Mermaid), ISC (d3),
+  Apache-2.0 (Serilog, Serilog.Sinks.Console, xunit.v3, xunit.runner.visualstudio) and MPL-2.0 (OpenMcdf).
 
 ## Claude Code sessions
 
@@ -130,7 +129,6 @@ of generated pages, because changing one changes every page.
 
 | Rule | Tool | Step |
 |---|---|---|
-| xUnit v3 | vbadoc is on v2 | 3a |
 | System.CommandLine, Serilog, the shared options and exit codes | vbadoc has its own parser and exit codes | 3b |
 | `--output` | vbadoc has `--out`, pqdoc has `--output-folder` | 3b |
 | The build stamp in `--version` | pqdoc shows only its version | 3b |

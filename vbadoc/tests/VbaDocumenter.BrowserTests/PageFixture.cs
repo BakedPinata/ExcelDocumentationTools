@@ -28,7 +28,7 @@ public sealed class PageFixture : IAsyncLifetime
   /// <summary>A real workbook in code page 1252 with non-ASCII source, in "Load folder" mode.</summary>
   public string RealFolder { get; private set; } = "";
 
-  public async Task InitializeAsync()
+  public async ValueTask InitializeAsync()
   {
     int exitCode = Microsoft.Playwright.Program.Main(["install", "chromium"]);
     if (exitCode != 0) throw new InvalidOperationException($"Installing Chromium for Playwright failed (exit code {exitCode}).");
@@ -95,7 +95,7 @@ public sealed class PageFixture : IAsyncLifetime
     return modules;
   }
 
-  public async Task DisposeAsync()
+  public async ValueTask DisposeAsync()
   {
     await Browser.DisposeAsync();
     Playwright.Dispose();
