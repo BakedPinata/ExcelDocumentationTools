@@ -14,7 +14,7 @@ public class HtmlPageWriterTests
   static string Build(bool embed, IEnumerable<SyntheticModule>? modules = null, string title = "SampleVba.xlsm")
   {
     var project = WorkbookReader.Read(SyntheticWorkbook.Xlsm(modules ?? Fixtures.SampleVbaModules()));
-    return HtmlPageWriter.Build(DependencyAnalyzer.Analyze(ProjectParser.Parse(project)), project, title, embed);
+    return HtmlPageWriter.Build(DependencyAnalyser.Analyse(ProjectParser.Parse(project)), project, title, embed);
   }
 
   static JsonElement Data(string html)

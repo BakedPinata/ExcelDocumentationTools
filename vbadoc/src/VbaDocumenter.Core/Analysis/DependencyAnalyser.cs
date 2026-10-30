@@ -4,9 +4,9 @@ using VbaDocumenter.Core.Parsing;
 namespace VbaDocumenter.Core.Analysis;
 
 /// <summary>Builds the module- and member-level dependency graphs from the parsed project.</summary>
-public static class DependencyAnalyzer
+public static class DependencyAnalyser
 {
-  public static DependencyModel Analyze(ProjectModel project)
+  public static DependencyModel Analyse(ProjectModel project)
   {
     var index = new ProjectIndex(project);
     var edges = new EdgeCollector();

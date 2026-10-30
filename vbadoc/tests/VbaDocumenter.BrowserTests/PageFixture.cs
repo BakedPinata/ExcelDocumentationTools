@@ -107,7 +107,7 @@ public sealed class PageFixture : IAsyncLifetime
   {
     var folder = Path.Combine(_root, folderName);
     var project = WorkbookReader.Read(workbook);
-    var model = DependencyAnalyzer.Analyze(ProjectParser.Parse(project));
+    var model = DependencyAnalyser.Analyse(ProjectParser.Parse(project));
     ProjectExporter.Export(project, folder);
     HtmlPageWriter.Write(folder, HtmlPageWriter.Build(model, project, title, embedSource));
     return folder;
@@ -141,12 +141,12 @@ public sealed class OpenedPage(IBrowserContext context, IPage page, List<string>
   public List<string> NetworkRequests { get; } = networkRequests;
 
   /// <param name="initScript">JavaScript run before the page's own scripts, e.g. to simulate an older browser.</param>
-  public static async Task<OpenedPage> OpenAsync(PageFixture fixture, string folder, ColorScheme colorScheme = ColorScheme.Dark,
+  public static async Task<OpenedPage> OpenAsync(PageFixture fixture, string folder, ColorScheme colourScheme = ColorScheme.Dark,
       int width = 1280, int height = 800, string? initScript = null)
   {
     var context = await fixture.Browser.NewContextAsync(new()
     {
-      ColorScheme = colorScheme,
+      ColorScheme = colourScheme,
       ViewportSize = new() { Width = width, Height = height },
     });
     if (initScript != null) await context.AddInitScriptAsync(initScript);

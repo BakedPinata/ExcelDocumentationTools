@@ -25,14 +25,14 @@ public class ReferenceResolverTests
         End Property
         """;
 
-  static DependencyModel Analyze(string mainCode, params (string Name, VbaModuleKind Kind, string Code)[] others)
+  static DependencyModel Analyse(string mainCode, params (string Name, VbaModuleKind Kind, string Code)[] others)
   {
     var modules = new List<ModuleModel> { ModuleParser.Parse("Main", VbaModuleKind.Standard, mainCode) };
     modules.Add(ModuleParser.Parse("Widget", VbaModuleKind.Class, Widget));
     modules.AddRange(others.Select(o => ModuleParser.Parse(o.Name, o.Kind, o.Code)));
     var project = new ProjectModel { Name = "Test", CodePage = 1252, Modules = modules };
     Assert.All(project.Modules, m => Assert.Empty(m.Warnings));
-    return DependencyAnalyzer.Analyze(project);
+    return DependencyAnalyser.Analyse(project);
   }
 
   static string[] Targets(DependencyModel model, string from) =>
@@ -41,7 +41,7 @@ public class ReferenceResolverTests
   [Fact]
   public void Follows_nested_With_blocks_and_With_New()
   {
-    var model = Analyze("""
+    var model = Analyse("""
             Sub Test()
                 With New Widget
                     .Spin
@@ -59,7 +59,7 @@ public class ReferenceResolverTests
   [Fact]
   public void Follows_chains_through_function_and_property_results()
   {
-    var model = Analyze("""
+    var model = Analyse("""
             Function MakeWidget() As Widget
             End Function
             Sub Test()
@@ -74,7 +74,7 @@ public class ReferenceResolverTests
   [Fact]
   public void Follows_fields_of_user_defined_types()
   {
-    var model = Analyze("""
+    var model = Analyse("""
             Private Type Holder
                 Item As Widget
             End Type
@@ -90,7 +90,7 @@ public class ReferenceResolverTests
   [Fact]
   public void Resolves_enum_values_qualified_or_not()
   {
-    var model = Analyze("""
+    var model = Analyse("""
             Public Enum Colour
                 Red
                 Green
@@ -106,7 +106,7 @@ public class ReferenceResolverTests
   [Fact]
   public void Chooses_Property_Get_Let_or_Set_from_how_the_property_is_used()
   {
-    var model = Analyze("""
+    var model = Analyse("""
             Sub Test(ByVal w As Widget, ByVal x As Object)
                 Set w.Target = x
                 w.Target = x
@@ -120,7 +120,7 @@ public class ReferenceResolverTests
   [Fact]
   public void Private_members_of_other_modules_count_as_using_the_module()
   {
-    var model = Analyze("""
+    var model = Analyse("""
             Sub Test(ByVal w As Widget)
                 w.m_Secret = 1
             End Sub
@@ -132,7 +132,7 @@ public class ReferenceResolverTests
   [Fact]
   public void Default_instances_of_forms_and_classes_resolve_by_module_name()
   {
-    var model = Analyze("""
+    var model = Analyse("""
             Sub Test()
                 Widget.Spin
                 OrderForm.Show
@@ -145,7 +145,7 @@ public class ReferenceResolverTests
   [Fact]
   public void Locals_and_parameters_hide_module_members_with_the_same_name()
   {
-    var model = Analyze("""
+    var model = Analyse("""
             Public Total As Long
             Sub Test(ByVal Name As String)
                 Dim Total As Long
@@ -159,7 +159,7 @@ public class ReferenceResolverTests
   [Fact]
   public void Ignores_names_inside_strings()
   {
-    var model = Analyze("""
+    var model = Analyse("""
             Sub Test()
                 MsgBox "Widget.Spin and Test"
             End Sub
@@ -171,7 +171,7 @@ public class ReferenceResolverTests
   [Fact]
   public void Reports_late_bound_access_on_untyped_Variant_Object_and_With_blocks()
   {
-    var model = Analyze("""
+    var model = Analyse("""
             Sub Test(ByVal w As Widget)
                 Dim v, o As Object, r As Range
                 v.Foo
@@ -191,7 +191,7 @@ public class ReferenceResolverTests
   [Fact]
   public void Type_declaration_characters_do_not_hide_names()
   {
-    var model = Analyze("""
+    var model = Analyse("""
             Function Label$()
             End Function
             Sub Test()

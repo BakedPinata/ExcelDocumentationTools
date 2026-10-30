@@ -400,10 +400,10 @@
         var area = d3.sum(members, function (n) { setBox(n); return (n.x1 - n.x0) * (n.y1 - n.y0); });
         estimates.set(id, Math.sqrt(area / Math.PI / 0.6)); // rectangles fill about 60% of the circle
       });
-      var centers = clusterCenters(graph, estimates);
+      var centres = clusterCentres(graph, estimates);
       var placedInModule = new Map();
       graph.nodes.forEach(function (n) {
-        var c = centers.get(n.module);
+        var c = centres.get(n.module);
         var k = placedInModule.get(n.module) || 0;
         placedInModule.set(n.module, k + 1);
         var angle = k * 2.39996; // golden angle: an even, fixed spiral, wider than tall like the rectangles
@@ -551,7 +551,7 @@
   }
 
   // Places one circle per module (radius from `radii`), with linked modules drawn towards each other.
-  function clusterCenters(graph, radii) {
+  function clusterCentres(graph, radii) {
     var clusters = Array.from(radii.keys()).map(function (id) { return { id: id, r: radii.get(id) }; });
     var seen = new Set();
     var links = [];
@@ -570,9 +570,9 @@
       .force("y", d3.forceY(0).strength(0.04))
       .stop();
     for (var i = 0; i < 300; i++) clusterSimulation.tick();
-    var centers = new Map();
-    clusters.forEach(function (c) { centers.set(c.id, { x: c.x, y: c.y }); });
-    return centers;
+    var centres = new Map();
+    clusters.forEach(function (c) { centres.set(c.id, { x: c.x, y: c.y }); });
+    return centres;
   }
 
   // ---- Drawing ----

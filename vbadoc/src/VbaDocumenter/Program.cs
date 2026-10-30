@@ -34,7 +34,7 @@ try
   ConsoleReport.WriteModules(parsed, options.Verbose);
 
   Console.WriteLine("Analysing dependencies");
-  var dependencies = DependencyAnalyzer.Analyze(parsed);
+  var dependencies = DependencyAnalyser.Analyse(parsed);
   ConsoleReport.WriteDependencies(dependencies, options.Verbose);
 
   Console.WriteLine($"Exporting to {options.OutputFolder}");

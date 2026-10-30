@@ -31,11 +31,11 @@ public readonly record struct Token(TokenKind Kind, string Text)
 /// Splits one statement (comments already removed by the parser) into tokens. Only the tokens needed to find
 /// references are distinguished; everything else is <see cref="TokenKind.Other"/>.
 /// </summary>
-public static class StatementTokenizer
+public static class StatementTokeniser
 {
   const string TypeSuffixes = "%&!#@$^";
 
-  public static List<Token> Tokenize(string statement)
+  public static List<Token> Tokenise(string statement)
   {
     var tokens = new List<Token>();
     int i = 0;

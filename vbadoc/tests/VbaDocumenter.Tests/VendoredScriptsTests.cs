@@ -15,7 +15,7 @@ public class VendoredScriptsTests
     var script = Get(name);
 
     Assert.True(script.Code.Length > 100_000, $"{name} looks truncated ({script.Code.Length} chars)");
-    Assert.Contains("Permission", script.LicenseText);
+    Assert.Contains("Permission", script.LicenceText);
   }
 
   [Theory]

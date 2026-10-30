@@ -8,7 +8,7 @@ namespace VbaDocumenter.Tests.Analysis;
 /// <summary>Dependency rules for declarations that only SampleVbaExtras has: constants, enums, Types, Declares.</summary>
 public class ExtrasDependencyTests
 {
-  static readonly DependencyModel Model = DependencyAnalyzer.Analyze(new ProjectModel
+  static readonly DependencyModel Model = DependencyAnalyser.Analyse(new ProjectModel
   {
     Name = "Extras",
     CodePage = 1252,

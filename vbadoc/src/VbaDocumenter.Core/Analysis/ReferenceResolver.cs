@@ -55,7 +55,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
     foreach (var statement in procedure.Body)
     {
       var scope = new Scope(module, procedure, index.IdOf(procedure), statement.Line);
-      var tokens = StatementTokenizer.Tokenize(statement.Text);
+      var tokens = StatementTokeniser.Tokenise(statement.Text);
 
       if (tokens.Count == 2 && tokens[0].IsKeyword("End") && tokens[1].IsKeyword("With"))
       {
@@ -73,7 +73,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
   public void ResolveExpression(string expression, ModuleModel module, Member member)
   {
     var scope = new Scope(module, null, index.IdOf(member), member.DeclarationLine);
-    ResolveTokens(StatementTokenizer.Tokenize(expression), scope, new Stack<ResolvedType>());
+    ResolveTokens(StatementTokeniser.Tokenise(expression), scope, new Stack<ResolvedType>());
   }
 
   /// <summary>Resolves every chain in a statement and returns each one's position and resulting type.</summary>

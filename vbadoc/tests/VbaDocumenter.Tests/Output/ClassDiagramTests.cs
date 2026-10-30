@@ -10,7 +10,7 @@ namespace VbaDocumenter.Tests.Output;
 public class ClassDiagramTests
 {
   static readonly DependencyModel Sample =
-      DependencyAnalyzer.Analyze(ProjectParser.Parse(WorkbookReader.Read(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules()))));
+      DependencyAnalyser.Analyse(ProjectParser.Parse(WorkbookReader.Read(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules()))));
 
   /// <summary>Each shown member's line as Mermaid would display it, in declaration order.</summary>
   static string[] Lines(ModuleModel module) =>
@@ -125,7 +125,7 @@ public class ClassDiagramTests
   public void Variables_typed_as_standard_modules_or_non_project_types_are_not_associations()
   {
     // Settings has "As Object" and "As New Collection"; Declarations has an array of a Type.
-    var model = DependencyAnalyzer.Analyze(new ProjectModel
+    var model = DependencyAnalyser.Analyse(new ProjectModel
     {
       Name = "Extras",
       CodePage = 1252,

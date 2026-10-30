@@ -11,7 +11,7 @@ public class SampleVbaDependencyTests
 {
   // Built the way the tool builds it: through a workbook, so line numbers include the class headers.
   static readonly DependencyModel Model =
-      DependencyAnalyzer.Analyze(ProjectParser.Parse(WorkbookReader.Read(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules()))));
+      DependencyAnalyser.Analyse(ProjectParser.Parse(WorkbookReader.Read(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules()))));
 
   static bool HasEdge(string from, string to, EdgeKind kind) => Model.MemberEdges.Any(e => e.From == from && e.To == to && e.Kind == kind);
 
@@ -162,7 +162,7 @@ public class SampleVbaDependencyTests
   [Fact]
   public void Is_deterministic()
   {
-    var again = DependencyAnalyzer.Analyze(ProjectParser.Parse(WorkbookReader.Read(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules()))));
+    var again = DependencyAnalyser.Analyse(ProjectParser.Parse(WorkbookReader.Read(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules()))));
 
     Assert.Equal(Model.MemberEdges, again.MemberEdges);
     Assert.Equal(Model.ModuleEdges, again.ModuleEdges);

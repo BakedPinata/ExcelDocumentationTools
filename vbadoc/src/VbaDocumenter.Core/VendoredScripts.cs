@@ -3,7 +3,7 @@ using System.Reflection;
 namespace VbaDocumenter.Core;
 
 /// <summary>A third-party script that is embedded in this assembly and inlined into the HTML page.</summary>
-public sealed record VendoredScript(string Name, string Version, string LicenseName, string LicenseText, string Code);
+public sealed record VendoredScript(string Name, string Version, string LicenceName, string LicenceText, string Code);
 
 /// <summary>
 /// Loads the vendored d3 and Mermaid scripts from embedded resources.
@@ -17,8 +17,8 @@ public static class VendoredScripts
   public static VendoredScript D3 { get; } = Load("d3", D3Version, "ISC");
   public static VendoredScript Mermaid { get; } = Load("mermaid", MermaidVersion, "MIT");
 
-  static VendoredScript Load(string name, string version, string licenseName) =>
-      new(name, version, licenseName,
+  static VendoredScript Load(string name, string version, string licenceName) =>
+      new(name, version, licenceName,
           EmbeddedResources.ReadText($"Vendor/{name}.LICENSE.txt"),
           EmbeddedResources.ReadText($"Vendor/{name}.min.js"));
 }

@@ -8,8 +8,8 @@ namespace VbaDocumenter.Tests.Analysis;
 /// <summary>Runs the analysis over the real Excel workbooks: code that wasn't written with this tool in mind.</summary>
 public class RealWorkbookDependencyTests
 {
-  static DependencyModel Analyze(string fileName) =>
-      DependencyAnalyzer.Analyze(ProjectParser.Parse(WorkbookReader.Read(Fixtures.Workbook(fileName))));
+  static DependencyModel Analyse(string fileName) =>
+      DependencyAnalyser.Analyse(ProjectParser.Parse(WorkbookReader.Read(Fixtures.Workbook(fileName))));
 
   [Theory]
   [InlineData("SimpleMacro.xlsm")]
@@ -20,7 +20,7 @@ public class RealWorkbookDependencyTests
   [InlineData("suffix-generator.xlsm")]
   public void Produces_a_consistent_model(string fileName)
   {
-    var model = Analyze(fileName);
+    var model = Analyse(fileName);
     var ids = model.Members.Select(m => m.Id).ToHashSet();
 
     Assert.Equal(ids.Count, model.Members.Count);
@@ -33,7 +33,7 @@ public class RealWorkbookDependencyTests
   public void Worksheet_functions_are_not_flagged_as_unreferenced()
   {
     // SquareMacro's module holds UDFs used in cell formulas, which the code itself never calls.
-    var model = Analyze("SquareMacro.xls");
+    var model = Analyse("SquareMacro.xls");
 
     Assert.All(model.Members.Where(m => m.Module.Name == "UserDefinedFunctions" && m.Member != null),
         m => Assert.Equal((MemberRole.WorksheetFunction, false), (m.Role, m.IsUnreferenced)));
@@ -43,7 +43,7 @@ public class RealWorkbookDependencyTests
   public void Finds_cross_module_dependencies_in_a_larger_real_project()
   {
     // 57181's sheet modules call procedures in the CCSInfo sheet module and read its public variables.
-    var model = Analyze("57181.xlsm");
+    var model = Analyse("57181.xlsm");
 
     Assert.Contains(model.ModuleEdges, e => e.To == "CCSInfo" && e.Kind == EdgeKind.Uses);
   }
@@ -52,7 +52,7 @@ public class RealWorkbookDependencyTests
   public void ThisWorkbook_finds_the_workbook_module_under_its_localised_name()
   {
     // German Excel names the workbook module "DieseArbeitsmappe", but code still says "ThisWorkbook.Sheets(...)".
-    var model = Analyze("57181.xlsm");
+    var model = Analyse("57181.xlsm");
 
     Assert.Contains(model.ModuleEdges, e => e.From == "Detailed_graph" && e.To == "DieseArbeitsmappe");
   }

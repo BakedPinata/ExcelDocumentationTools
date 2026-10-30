@@ -56,7 +56,7 @@ public static class HtmlPageWriter
     foreach (var vendored in new[] { VendoredScripts.D3, VendoredScripts.Mermaid })
     {
       // Licence first, as a comment, so it travels with the code.
-      var licence = $"/*! {vendored.Name} {vendored.Version} ({vendored.LicenseName} licence)\n\n{vendored.LicenseText.Trim()}\n*/\n";
+      var licence = $"/*! {vendored.Name} {vendored.Version} ({vendored.LicenceName} licence)\n\n{vendored.LicenceText.Trim()}\n*/\n";
       AppendScript(sb, $"{vendored.Name} {vendored.Version}", licence + vendored.Code);
     }
     foreach (var name in PageScripts)
