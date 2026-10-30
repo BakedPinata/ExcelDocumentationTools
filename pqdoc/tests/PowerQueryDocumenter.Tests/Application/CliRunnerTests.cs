@@ -211,7 +211,7 @@ public sealed class CliRunnerTests : IDisposable
     Assert.Equal(ExitCodes.Success, exitCode);
     Assert.Equal(new[] { "sales-model.csv", "sales-model.html" }, OutputFiles(output));
     Assert.Empty(OutputFiles());
-    Assert.Contains("<h1>sales-model</h1>", await File.ReadAllTextAsync(Path.Combine(output, "sales-model.html"), TestContext.Current.CancellationToken));
+    Assert.Contains(">sales-model</h1>", await File.ReadAllTextAsync(Path.Combine(output, "sales-model.html"), TestContext.Current.CancellationToken));
   }
 
   [Fact]

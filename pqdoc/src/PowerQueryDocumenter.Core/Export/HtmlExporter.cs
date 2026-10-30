@@ -10,20 +10,23 @@ using PowerQueryDocumenter.Core.Model;
 namespace PowerQueryDocumenter.Core.Export;
 
 /// <summary>
-/// Writes a single, self-contained interactive HTML page (FR-HTML-1 to FR-HTML-9): the page
-/// template and the vendored D3.js library are embedded resources, and the graph is embedded as
-/// JSON, so the file works offline and makes no external requests.
+/// Writes a single, self-contained interactive HTML page (FR-HTML-1 to FR-HTML-9): the template in
+/// Resources/Page with its styles, scripts, the vendored D3.js library and the graph as JSON written
+/// inline, so the file works offline and its Content-Security-Policy can block all network access.
 /// </summary>
 public sealed partial class HtmlExporter : IExporter
 {
-  /// <summary>Resource name of the page template.</summary>
-  public const string TemplateResourceName = "PowerQueryDocumenter.Resources.graph-template.html";
+  /// <summary>The vendored D3.js version, named in the licence comment in the page.</summary>
+  public const string D3Version = "7.9.0";
 
-  /// <summary>Resource name of the vendored D3.js v7.9.0 library (ISC licence).</summary>
-  public const string D3ResourceName = "Vendor/d3.min.js";
+  /// <summary>Our own scripts, in load order after D3.js.</summary>
+  private static readonly string[] PageScripts = ["Page/page.js", "Page/graph.js"];
 
-  private static readonly Lazy<string> Template = new(() => ReadResource(TemplateResourceName));
-  private static readonly Lazy<string> D3Library = new(() => ReadResource(D3ResourceName));
+  private static readonly Lazy<string> Template = new(() => ReadResource("Page/page.html"));
+  private static readonly Lazy<string> Stylesheet = new(() => ReadResource("Page/page.css"));
+  private static readonly Lazy<string> Favicon = new(() =>
+    "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(ReadResource("Page/favicon.svg"))));
+  private static readonly Lazy<string> Scripts = new(BuildScripts);
 
   private static readonly JsonSerializerOptions JsonOptions = new()
   {
@@ -62,8 +65,14 @@ public sealed partial class HtmlExporter : IExporter
       ["OUTPUT_NAME"] = WebUtility.HtmlEncode(context.OutputName),
       ["SUMMARY"] = WebUtility.HtmlEncode($"{counts}{cycles}. Generated {generated}."),
       ["NODE_COUNT"] = graph.Nodes.Count.ToString(CultureInfo.InvariantCulture),
-      ["GRAPH_JSON"] = SerialiseGraph(graph, context),
-      ["D3_LIBRARY"] = D3Library.Value,
+      ["TOOL_VERSION"] = WebUtility.HtmlEncode(ToolVersion.Current.ToString()),
+      ["TOOL_VERSION_DESCRIPTION"] = WebUtility.HtmlEncode(ToolVersion.Current.Description),
+      ["REPOSITORY_URL"] = WebUtility.HtmlEncode(ToolVersion.RepositoryUrl),
+      // A data URI, so the icon is part of the page and the Content-Security-Policy (img-src data:) allows it.
+      ["FAVICON"] = Favicon.Value,
+      ["STYLE"] = Stylesheet.Value,
+      ["DATA"] = SerialiseGraph(graph, context),
+      ["SCRIPTS"] = Scripts.Value,
     };
 
     // A single pass, so text inserted for one placeholder is never scanned for another.
@@ -75,17 +84,13 @@ public sealed partial class HtmlExporter : IExporter
 
   /// <summary>
   /// Serialises the graph as JSON that is safe inside a <c>&lt;script&gt;</c> element (FR-HTML-7).
+  /// A query's id is its name, as a module's is in vbadoc's page. The graph always spells a name the
+  /// same way, so the page can compare names exactly.
   /// </summary>
   public static string SerialiseGraph(DependencyGraph graph, ExportContext context)
   {
     ArgumentNullException.ThrowIfNull(graph);
     ArgumentNullException.ThrowIfNull(context);
-
-    var ids = new Dictionary<string, int>(DependencyGraph.NameComparer);
-    for (var i = 0; i < graph.Nodes.Count; i++)
-    {
-      ids[graph.Nodes[i].Name] = i;
-    }
 
     var cycleGroupOf = new Dictionary<string, int>(DependencyGraph.NameComparer);
     for (var i = 0; i < graph.Cycles.Count; i++)
@@ -99,12 +104,12 @@ public sealed partial class HtmlExporter : IExporter
     var document = new GraphDocument(
       context.OutputName,
       FormatTimestamp(context.GeneratedAt),
-      graph.Nodes.Select((n, i) => new NodeDocument(i, n.Name, RoleName(n.Role), n.IsInCycle, n.UpstreamCount, n.DownstreamCount)).ToArray(),
-      graph.Edges.Select(e => new LinkDocument(
-        ids[e.Upstream],
-        ids[e.Downstream],
+      graph.Nodes.Select(n => new QueryDocument(n.Name, RoleName(n.Role), n.IsInCycle, n.UpstreamCount, n.DownstreamCount)).ToArray(),
+      graph.Edges.Select(e => new EdgeDocument(
+        e.Upstream,
+        e.Downstream,
         cycleGroupOf.TryGetValue(e.Upstream, out var a) && cycleGroupOf.TryGetValue(e.Downstream, out var b) && a == b)).ToArray(),
-      graph.Cycles.Select(c => c.Path).ToArray());
+      graph.Cycles.Select(c => c.Members).ToArray());
 
     return EscapeForScriptElement(JsonSerializer.Serialize(document, JsonOptions));
   }
@@ -144,6 +149,34 @@ public sealed partial class HtmlExporter : IExporter
   private static string Plural(int count, string singular, string plural) =>
     count.ToString(CultureInfo.InvariantCulture) + " " + (count == 1 ? singular : plural);
 
+  private static string BuildScripts()
+  {
+    var scripts = new StringBuilder();
+
+    // Licence first, as a comment, so it travels with the code.
+    var licence = $"/*! d3 {D3Version} (ISC licence)\n\n{ReadResource("Vendor/d3.LICENSE.txt").Trim()}\n*/\n";
+    AppendScript(scripts, $"d3 {D3Version}", licence + ReadResource("Vendor/d3.min.js"));
+
+    foreach (var name in PageScripts)
+    {
+      AppendScript(scripts, name, ReadResource(name));
+    }
+
+    return scripts.ToString();
+  }
+
+  private static void AppendScript(StringBuilder scripts, string name, string code)
+  {
+    // Inside <script>, "</script" would end the element early and "<!--" with "<script" changes how
+    // the end tag is found. Refuse rather than write a page that silently breaks.
+    if (code.Contains("</script", StringComparison.OrdinalIgnoreCase) || code.Contains("<script", StringComparison.OrdinalIgnoreCase))
+    {
+      throw new InvalidOperationException($"Script '{name}' contains '<script' or '</script' and can't be inlined.");
+    }
+
+    scripts.Append("<script>\n").Append(code.TrimEnd()).Append("\n</script>\n");
+  }
+
   private static string ReadResource(string name)
   {
     using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name)
@@ -158,11 +191,11 @@ public sealed partial class HtmlExporter : IExporter
   private sealed record GraphDocument(
     string OutputName,
     string Generated,
-    IReadOnlyList<NodeDocument> Nodes,
-    IReadOnlyList<LinkDocument> Links,
+    IReadOnlyList<QueryDocument> Queries,
+    IReadOnlyList<EdgeDocument> Edges,
     IReadOnlyList<IReadOnlyList<string>> Cycles);
 
-  private sealed record NodeDocument(int Id, string Name, string Role, bool InCycle, int Upstream, int Downstream);
+  private sealed record QueryDocument(string Id, string Role, bool InCycle, int Upstream, int Downstream);
 
-  private sealed record LinkDocument(int Source, int Target, bool InCycle);
+  private sealed record EdgeDocument(string From, string To, bool InCycle);
 }

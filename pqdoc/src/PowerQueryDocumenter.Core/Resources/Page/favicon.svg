@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- pqdoc icon: a workbook under a magnifier that shows queries flowing left to right. Node colours match the page's
+       query roles (blue root, grey in between, aqua leaf). -->
+  <rect width="64" height="64" rx="14" fill="#3987e5"/>
+  <rect x="9" y="9" width="36" height="40" rx="3" fill="#ffffff"/>
+  <path d="M9 12 a3 3 0 0 1 3-3 h30 a3 3 0 0 1 3 3 v7 H9z" fill="#c9def8"/>
+  <path d="M9 29 H45 M9 39 H45 M21 9 V49 M33 9 V49" stroke="#a9c9f2" stroke-width="2"/>
+  <path d="M47 47 L56 56" stroke="#1c1f24" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="39" cy="39" r="13.5" fill="#1c1f24"/>
+  <path d="M31 39 H47" stroke="#9aa3ad" stroke-width="2"/>
+  <circle cx="31" cy="39" r="3.5" fill="#3987e5"/>
+  <circle cx="39" cy="39" r="3" fill="#9aa3ad"/>
+  <rect x="44" y="36" width="6" height="6" rx="1" fill="#199e70"/>
+</svg>

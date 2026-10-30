@@ -1,0 +1,311 @@
+/* pqdoc page styles. Colours are tokens per theme (html[data-theme]); everything else uses the tokens. */
+
+:root {
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --radius: 6px;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #14161a;
+  --surface: #1c1f24;
+  --surface-2: #252930;
+  --border: #343a42;
+  --text: #e6e8eb;
+  --text-muted: #9aa3ad;
+  --accent: #6ea8fe;
+  /* Graph: vbadoc's three validated categorical hues (all-pairs). A query in a cycle is always intermediate, so
+     the fourth state needs no fourth hue: intermediate queries are neutral, and orange means only "cycle". */
+  --role-root: #3987e5;
+  --role-leaf: #199e70;
+  --role-cycle: #d95926;
+  --role-intermediate: #9aa3ad;
+  --edge: #7d8691;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --border: #d6dbe1;
+  --text: #1d2228;
+  --text-muted: #5c6670;
+  --accent: #2f6fde;
+  --role-root: #2a78d6;
+  --role-leaf: #1baf7a;
+  --role-cycle: #eb6834;
+  --role-intermediate: #5c6670;
+  --edge: #8a939c;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 var(--font-ui);
+}
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+.muted { color: var(--text-muted); }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ---- Top bar ---- */
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.title { margin: 0; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30ch; }
+
+.tabs { display: flex; gap: 4px; }
+
+.tabs [role="tab"] {
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.tabs [role="tab"]:hover { color: var(--text); background: var(--surface-2); }
+.tabs [role="tab"][aria-selected="true"] { color: var(--text); background: var(--surface-2); border-color: var(--border); font-weight: 600; }
+
+.search { flex: 1 1 160px; min-width: 160px; max-width: 420px; }
+.search input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.search input::placeholder { color: var(--text-muted); }
+
+/* Wraps rather than being cut off, because the generation time is at the end. */
+.summary { flex: 1 1 200px; min-width: 200px; margin: 0; font-size: 12px; line-height: 1.25; }
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.button:hover { border-color: var(--accent); }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Details and theme switches and the version, kept together at the right end of the bar. */
+.topbar-end { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-left: auto; }
+.details-toggle[aria-pressed="true"] { border-color: var(--accent); }
+/* The version links to the project on GitHub; following a link isn't loading anything, so the CSP needn't allow it. */
+.tool-version { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); white-space: nowrap; text-decoration: none; }
+.tool-version:hover { color: var(--text); text-decoration: underline; }
+.github-mark { width: 14px; height: 14px; flex: none; fill: currentColor; }
+html[data-theme="dark"] .theme-icon::before { content: "\263E"; }  /* moon */
+html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
+
+/* ---- Layout: view on the left, details on the right; stacked on narrow screens ----
+   The splitter between them sets --details-size (a percentage, see page.js), and the details panel can be hidden. */
+
+.layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7px minmax(240px, var(--details-size, 28%));
+}
+.layout.details-hidden { grid-template-columns: minmax(0, 1fr); }
+
+.view { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+.view[hidden] { display: none; }
+
+.details-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--surface);
+}
+.details-panel[hidden], .splitter[hidden] { display: none; }
+
+/* The splitter is wider than the line it draws, so it's easy to grab. */
+.splitter {
+  position: relative;
+  cursor: col-resize;
+  touch-action: none;
+  background: var(--surface);
+}
+.splitter::before { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: var(--border); }
+.splitter:hover::before, .splitter.dragging::before { left: 2px; width: 3px; background: var(--accent); }
+.splitter:focus-visible { outline-offset: -2px; }
+body.resizing { cursor: col-resize; user-select: none; }
+
+.details-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-muted);
+  font: 18px/1 var(--font-ui);
+  cursor: pointer;
+}
+.details-close:hover { color: var(--text); border-color: var(--border); background: var(--surface-2); }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(200px, 1fr) 7px minmax(160px, var(--details-size, 40%)); }
+  .layout.details-hidden { grid-template-rows: minmax(0, 1fr); }
+  .splitter { cursor: row-resize; }
+  .splitter::before { top: 3px; bottom: auto; left: 0; right: 0; width: auto; height: 1px; }
+  .splitter:hover::before, .splitter.dragging::before { top: 2px; left: 0; width: auto; height: 3px; }
+  body.resizing { cursor: row-resize; }
+  .title { max-width: 100%; flex-basis: 100%; }
+  .summary { flex-basis: 100%; }
+}
+
+/* ---- Details panel ---- */
+
+.details-header { padding: 12px 40px 12px 16px; border-bottom: 1px solid var(--border); }
+.details-header:empty { display: none; }
+.details-header h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.details-header p { margin: 0; font-size: 12.5px; }
+
+.details-body { flex: 1; min-height: 0; overflow: auto; padding: 4px 16px 16px; font-size: 12.5px; }
+.details-message { margin: 12px 24px 0 0; color: var(--text-muted); font-size: 14px; }
+.details-body h3 { display: flex; align-items: center; gap: 6px; margin: 12px 0 2px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.details-body ul { list-style: none; margin: 0; padding: 0; }
+.details-body li { padding: 1px 0; overflow-wrap: anywhere; }
+.details-body .none { margin: 2px 0 0; }
+.details-body .reach { margin: 14px 0 0; }
+.details-body .actions { margin-top: 12px; }
+.details-body .button { padding: 3px 8px; }
+/* The colour ties a list to its edges in the graph; the heading itself stays in a text colour. */
+.swatch { flex: none; width: 14px; height: 3px; border-radius: 2px; }
+.swatch.upstream { background: var(--role-root); }
+.swatch.downstream { background: var(--role-leaf); }
+
+/* ---- Dependency graph (graph.js) ---- */
+
+.view-toolbar {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 3; /* above the legend */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none; /* only the controls themselves take clicks; the graph stays pannable around them */
+}
+.view-toolbar > * { pointer-events: auto; }
+.view-toolbar .button { background: var(--surface); padding: 5px 10px; }
+.toolbar-note { padding: 4px 8px; font-size: 12px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.toolbar-note[hidden] { display: none; }
+
+.graph-svg { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.graph-svg:active { cursor: grabbing; }
+
+.graph-art .guide line { stroke: var(--border); stroke-dasharray: 3 5; }
+.graph-art .guide text { fill: var(--text-muted); font: 12px var(--font-ui); text-anchor: middle; }
+
+.graph-art .node { cursor: pointer; }
+.graph-art .node:focus { outline: none; }
+.graph-art .node .hit { fill: transparent; }
+.graph-art .node .shape { stroke: var(--bg); stroke-width: 2px; } /* surface ring separates overlapping marks */
+.graph-art .node.root .shape { fill: var(--role-root); }
+.graph-art .node.leaf .shape { fill: var(--role-leaf); }
+.graph-art .node.intermediate .shape { fill: var(--role-intermediate); }
+.graph-art .node.isolated .shape { fill: var(--bg); stroke: var(--text-muted); stroke-width: 1.5px; stroke-dasharray: 2.5 2; }
+.graph-art .node .core { fill: var(--bg); pointer-events: none; }
+.graph-art .node .ring { fill: none; stroke: var(--role-cycle); stroke-width: 2px; pointer-events: none; }
+.graph-art .node .halo { fill: none; stroke: var(--accent); stroke-width: 2px; opacity: 0; pointer-events: none; }
+.graph-art .node.match .halo, .graph-art .node.selected .halo { opacity: 1; }
+.graph-art .node:focus-visible .halo { opacity: 1; stroke-dasharray: 3 2; }
+.graph-art .node.pinned .shape { stroke: var(--accent); stroke-width: 2.5px; stroke-dasharray: none; }
+.graph-art .node.selected .shape { stroke: var(--text); stroke-width: 2.5px; stroke-dasharray: none; }
+
+.graph-art .label { fill: var(--text); font: 12px var(--font-ui); paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; } /* clickable: names are what people aim for */
+.graph-art .node.selected .label { font-weight: 600; }
+
+.graph-art .edge { fill: none; stroke: var(--edge); stroke-width: 1.25px; }
+.graph-art .edge.cycle { stroke: var(--role-cycle); stroke-width: 1.75px; }
+.graph-art .edge.upstream { stroke: var(--role-root); stroke-width: 2.25px; }
+.graph-art .edge.downstream { stroke: var(--role-leaf); stroke-width: 2.25px; }
+.graph-art .arrow { fill: var(--edge); }
+.graph-art .arrow-cycle { fill: var(--role-cycle); }
+.graph-art .arrow-upstream { fill: var(--role-root); }
+.graph-art .arrow-downstream { fill: var(--role-leaf); }
+
+.graph-art .dim { opacity: 0.12; }
+.graph-art .node, .graph-art .edge { transition: opacity 120ms; }
+
+.view-legend {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 2;
+  max-width: min(320px, calc(100% - 16px));
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.view-legend summary { cursor: pointer; color: var(--text); }
+.view-legend ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; }
+.view-legend li { display: flex; align-items: center; gap: 6px; }
+.view-legend svg { flex: none; overflow: visible; }
+.view-legend .node { cursor: default; }
+.legend-hint { margin: 6px 0 0; font-size: 11px; }
+
+.graph-tooltip {
+  position: absolute;
+  z-index: 3;
+  max-width: 320px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  font-size: 12.5px;
+  pointer-events: none;
+}
+.graph-tooltip strong { display: block; color: var(--text); overflow-wrap: anywhere; }
+.graph-tooltip span { display: block; color: var(--text-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .graph-art .node, .graph-art .edge { transition: none; }
+}
