@@ -131,13 +131,13 @@ tests/VbaDocumenter.BrowserTests/  Playwright tests of the generated page in hea
 
 | Component | Licence | Use |
 |---|---|---|
-| [OpenMcdf](https://github.com/openmcdf/openmcdf) 3.3.0 | MPL-2.0 (unmodified NuGet package) | Reads compound files |
-| [System.CommandLine](https://github.com/dotnet/command-line-api) 2.0.0 | MIT | Command line |
-| [Serilog](https://serilog.net) 4.3.0 and Serilog.Sinks.Console 6.0.0 | Apache-2.0 | Logging |
+| [OpenMcdf](https://github.com/openmcdf/openmcdf) 3.4.0 | MPL-2.0 (unmodified NuGet package) | Reads compound files |
+| [System.CommandLine](https://github.com/dotnet/command-line-api) 2.0.14 | MIT | Command line |
+| [Serilog](https://serilog.net) 4.4.0 and Serilog.Sinks.Console 6.1.1 | Apache-2.0 | Logging |
 | [d3](https://d3js.org) 7.9.0 | ISC | Dependency graph (vendored) |
 | [Mermaid](https://mermaid.js.org) 11.17.2 | MIT | Class diagram (vendored) |
 | [Apache POI](https://poi.apache.org) test data | Apache-2.0 | Test fixtures only |
-| [Playwright for .NET](https://playwright.dev/dotnet/) 1.63.0 | MIT | Browser tests only |
+| [Playwright for .NET](https://playwright.dev/dotnet/) 1.64.1 | MIT | Browser tests only |
 
 ## Licence
 

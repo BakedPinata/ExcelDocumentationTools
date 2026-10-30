@@ -12,7 +12,7 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **.NET 9**, not .NET 10. The machine the tool runs on can't have .NET 10 installed yet.
   .NET 9 support ends on 2026-11-10, so move to .NET 10 when possible (a one-line change in the root
   `Directory.Build.props`, which moves every tool).
-- **OpenMcdf 3.3.0**, not 2.4.1 as the spike used. 2.4.1 has two unpatched denial-of-service advisories
+- **OpenMcdf 3.4.0**, not 2.4.1 as the spike used. 2.4.1 has two unpatched denial-of-service advisories
   (GHSA-jxpf-xq2m-q525, GHSA-5qwm-7pvp-w988), and only 3.1.4 and later are fixed. Requirements.md is updated to match.
 - **Mermaid 11.17.2**, not 12.x. 12.0 was a new major version only weeks old at the time; 11.17.2 is the mature end of 11.x.
 - **d3 7.9.0**, the latest.

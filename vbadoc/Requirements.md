@@ -27,7 +27,7 @@ The exported files and the HTML page are meant to be committed to a git reposito
 A validation spike has already proven this approach works in the target environment. Build on it rather than choosing a different strategy.
 
 1. For zip-based files, read `xl/vbaProject.bin` from the zip using `System.IO.Compression`. For `.xls`/`.xla`, open the file itself as a compound file and use the `_VBA_PROJECT_CUR` storage.
-2. Open the compound file with **OpenMcdf 3.3.0** (MPL-2.0, NuGet). The spike used 2.4.1, but 2.x has two unpatched denial-of-service advisories (GHSA-jxpf-xq2m-q525, GHSA-5qwm-7pvp-w988), so the tool uses the patched 3.x API (`RootStorage`, `OpenStorage`, `OpenStream`).
+2. Open the compound file with **OpenMcdf 3.4.0** (MPL-2.0, NuGet). The spike used 2.4.1, but 2.x has two unpatched denial-of-service advisories (GHSA-jxpf-xq2m-q525, GHSA-5qwm-7pvp-w988), so the tool uses the patched 3.x API (`RootStorage`, `OpenStorage`, `OpenStream`).
 3. Decompress the `VBA/dir` stream using the MS-OVBA compression algorithm (section 2.4.1). Implement this in the tool; it is about 50 lines.
 4. Parse the `dir` records to get the code page (`0x0003`) and, for each module: name (`0x0019`, Unicode `0x0047`), stream name (`0x001A`, Unicode `0x0032`), text offset (`0x0031`), and whether it is a standard module (`0x0021`). Records are `id (2 bytes) + size (4 bytes) + data`, except `PROJECTVERSION` (`0x0009`), whose payload is 6 bytes even though its size field says 4.
 5. Use the `PROJECT` stream to classify the other modules: `Module=` (standard), `Class=` (class), `BaseClass=` (form), `Document=` (ThisWorkbook and sheets).
