@@ -1,0 +1,36 @@
+# Builds every tool and runs every test, so a pull request shows whether it's safe to merge. Dependabot depends on this:
+# it can propose an update, but only this workflow shows that the update still builds and passes.
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# The workflow only reads the repository, so that's all its token is allowed to do.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # Windows, because that's where the tools run.
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      # Installs the SDK that global.json asks for.
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build ExcelDocumentationTools.sln -warnaserror
+
+      # The browser tests would install Chromium themselves, but a failed download then only shows as "exit code 1".
+      # As a step of its own, the reason appears in the log.
+      - name: Install Chromium
+        run: ./vbadoc/tests/VbaDocumenter.BrowserTests/bin/Debug/net9.0/playwright.ps1 install chromium
+
+      - name: Test
+        run: dotnet test ExcelDocumentationTools.sln --no-build
