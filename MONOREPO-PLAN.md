@@ -29,7 +29,7 @@ consistent as they grow. It is written to be handed to a fresh Claude Code sessi
 | 3b | vbadoc command line to System.CommandLine; shared exit codes; pqdoc build stamp | Done |
 | 3c | pqdoc split into Core library and console app | Done |
 | 3d | pqdoc HTML page on vbadoc's design; pqdoc browser tests | Done |
-| 3e | Build workflow and Dependabot | Awaiting review, then its first run on GitHub |
+| 3e | Build workflow and Dependabot | Done |
 | 4 | Later: pqdoc reads queries from the workbook; shared library if real duplication appears | |
 
 ## 1. Background

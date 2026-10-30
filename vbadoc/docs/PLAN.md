@@ -3,8 +3,7 @@
 The tool is built in small stages. Each stage ends with passing tests, a commit and a pause for
 review. It is pushed after the review, and then the next one starts.
 
-**Current state:** stages 0–5 and 5b–5e are done. **Next: stage 6**, once step 3 of
-[MONOREPO-PLAN.md](../../MONOREPO-PLAN.md) has aligned vbadoc with pqdoc.
+**Current state:** stages 0–5 and 5b–5e are done. **Next: stage 6.**
 
 | Stage | Scope | Status |
 |---|---|---|
@@ -23,3 +22,5 @@ review. It is pushed after the review, and then the next one starts.
 | 7 | Polish: whole-output determinism test, README, third-party notices | |
 
 Decisions agreed along the way are in [DECISIONS.md](DECISIONS.md). The specification is [Requirements.md](../Requirements.md).
+Ideas for later that involve both tools, such as combining them into one program, are in
+[pqdoc's plan](../../pqdoc/docs/PLAN.md#later).

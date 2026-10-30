@@ -7,7 +7,6 @@ CLAUDE.md, so start in a tool's folder to work on that tool, and here for work a
 
 1. [docs/GUIDELINES.md](docs/GUIDELINES.md): the conventions every tool follows.
 2. The tool's own CLAUDE.md: [vbadoc](vbadoc/CLAUDE.md) or [pqdoc](pqdoc/CLAUDE.md).
-3. [MONOREPO-PLAN.md](MONOREPO-PLAN.md): the plan for aligning the tools, while it is still in progress.
 
 ## Commands
 
