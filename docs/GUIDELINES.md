@@ -129,6 +129,18 @@ of generated pages, because changing one changes every page.
 - Dependencies today: MIT (System.CommandLine, Microsoft.NET.Test.Sdk, Microsoft.Playwright, Mermaid), ISC (d3),
   Apache-2.0 (Serilog, Serilog.Sinks.Console, xunit.v3, xunit.runner.visualstudio) and MPL-2.0 (OpenMcdf).
 
+## Build workflow and Dependabot
+
+- `.github/workflows/build.yml` builds every tool and runs every test on Windows, on each pull request and each push to
+  `main`.
+- **Dependabot** checks NuGet packages and GitHub Actions weekly and opens pull requests. Minor and patch updates share
+  one pull request, and each major update gets its own. It never merges anything itself.
+- For each Dependabot pull request: read the release notes, check that the build passed, and for a major version check
+  that the licence is still allowed (see above). Then merge it.
+- Dependabot doesn't check licences, and it doesn't update the .NET SDK, because moving past .NET 9 is a deliberate
+  decision. Vendored d3 and Mermaid aren't package dependencies, so they're still updated by hand, following the
+  `README.md` in each tool's `Resources/Vendor/` folder.
+
 ## Claude Code sessions
 
 - Start Claude Code **in a tool's folder** to work on one tool. It then loads the root `CLAUDE.md` and that tool's

@@ -1,0 +1,25 @@
+# Dependabot opens pull requests to keep our dependencies up to date. It never merges anything itself: see "Build
+# workflow and Dependabot" in docs/GUIDELINES.md for how we handle its pull requests.
+#
+# The .NET SDK isn't listed, because moving past .NET 9 is a deliberate decision. Vendored d3 and Mermaid aren't package
+# dependencies, so they're still updated by hand.
+version: 2
+updates:
+  # Reads the versions in the root Directory.Packages.props.
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    # Minor and patch updates share one pull request. A major update can break things, so it gets its own.
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # Reads the actions used in .github/workflows.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
