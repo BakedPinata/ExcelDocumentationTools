@@ -20,7 +20,7 @@ public sealed partial class HtmlExporter : IExporter
   public const string TemplateResourceName = "PowerQueryDocumenter.Resources.graph-template.html";
 
   /// <summary>Resource name of the vendored D3.js v7.9.0 library (ISC licence).</summary>
-  public const string D3ResourceName = "PowerQueryDocumenter.Resources.d3.min.js";
+  public const string D3ResourceName = "Vendor/d3.min.js";
 
   private static readonly Lazy<string> Template = new(() => ReadResource(TemplateResourceName));
   private static readonly Lazy<string> D3Library = new(() => ReadResource(D3ResourceName));
