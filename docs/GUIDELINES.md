@@ -95,7 +95,8 @@ of generated pages, because changing one changes every page.
 - `publish.ps1` at the root publishes every project that has that profile, so a new tool only needs to add one. It adds
   to the folder rather than clearing it first, so keep the profile's "delete existing files" option off.
 - The folder is for using the tools on this machine. To publish somewhere else, such as for a GitHub release, keep the
-  profile and pass `-p:PublishDir=<folder>`.
+  profile and pass `-p:PublishDir=<full path>`. A relative path is taken from each project, so it scatters a copy
+  through the repository.
 
 ## HTML pages
 

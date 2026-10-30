@@ -6,6 +6,12 @@ obj/
 .idea/
 TestResults/
 
+# Publish output. A relative publish folder lands inside each project, at <tool>/<src or tests>/<project>/. The rules
+# for the tools' names are tied to that level, because the same names at the root are the tools themselves.
+publish/
+/*/*/*/pqdoc/
+/*/*/*/vbadoc/
+
 # Local test workbooks and their output (never committed)
 private/
 
