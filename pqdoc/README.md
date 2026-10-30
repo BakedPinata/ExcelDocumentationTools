@@ -24,12 +24,13 @@ dotnet build
 dotnet run --project src/PowerQueryDocumenter -- C:\queries
 ```
 
-To produce a standalone executable:
+To publish pqdoc as a single self-contained executable, into the folder shared by every tool:
 
 ```
-dotnet publish src/PowerQueryDocumenter -c Release -o publish
-publish\pqdoc C:\queries
+dotnet publish src/PowerQueryDocumenter -c Release -p:PublishProfile=FolderProfile
 ```
+
+`publish.ps1` does this for every tool; see the [root README](../README.md#publishing).
 
 ## Usage
 

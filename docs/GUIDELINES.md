@@ -33,8 +33,9 @@ of generated pages, because changing one changes every page.
 - Every project targets **.NET 9**, set once in the root `Directory.Build.props`. The root `global.json` selects the
   SDK. .NET 9 support ends on 2026-11-10; moving to .NET 10 is a one-line change, to be made when the machine the
   tools run on allows it.
-- The root `Directory.Build.props` holds `TargetFramework`, `ImplicitUsings`, `Nullable`, `TreatWarningsAsErrors` and
-  `Deterministic`. Each tool's `Directory.Build.props` imports it and sets `Version`, `Product` and `ToolRoot`.
+- The root `Directory.Build.props` holds `TargetFramework`, `ImplicitUsings`, `Nullable`, `TreatWarningsAsErrors`,
+  `Deterministic` and `ToolsPublishDir`. Each tool's `Directory.Build.props` imports it and sets `Version`, `Product` and
+  `ToolRoot`.
 - **Central Package Management:** the root `Directory.Packages.props` holds every NuGet version, and `PackageReference`
   items have no `Version`. Keep a comment beside any version chosen for a reason.
 
@@ -84,6 +85,17 @@ of generated pages, because changing one changes every page.
   `-dirty` means uncommitted changes in those paths. The root build files are exactly `Directory.Build.props`,
   `Directory.Build.targets`, `Directory.Packages.props` and `global.json`, so root docs don't change a stamp and a
   commit to one tool doesn't change another's pages.
+
+## Publishing
+
+- Every tool publishes into **one folder**, `ToolsPublishDir` in the root `Directory.Build.props`, so adding that folder
+  to `PATH` adds every tool.
+- Each console app has a folder publish profile, `Properties/PublishProfiles/FolderProfile.pubxml`, the same in every
+  tool. It takes its folder from `ToolsPublishDir` and doesn't name the target framework, which stays in one place.
+- `publish.ps1` at the root publishes every project that has that profile, so a new tool only needs to add one. It adds
+  to the folder rather than clearing it first, so keep the profile's "delete existing files" option off.
+- The folder is for using the tools on this machine. To publish somewhere else, such as for a GitHub release, keep the
+  profile and pass `-p:PublishDir=<folder>`.
 
 ## HTML pages
 

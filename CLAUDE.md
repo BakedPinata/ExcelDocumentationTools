@@ -13,6 +13,7 @@ CLAUDE.md, so start in a tool's folder to work on that tool, and here for work a
 
 ```bash
 dotnet build ExcelDocumentationTools.sln -warnaserror    # every tool, from the root
+pwsh ./publish.ps1                                       # publish every tool into one folder
 ```
 
 ## Way of working

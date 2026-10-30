@@ -36,6 +36,14 @@ dotnet test tests/VbaDocumenter.Tests    # unit tests only
 The browser tests check the generated page in headless Chromium. On their first run they download Playwright's
 Chromium (about 150 MB) into the user's cache folder.
 
+To publish vbadoc as a single self-contained executable, into the folder shared by every tool:
+
+```bash
+dotnet publish src/VbaDocumenter -c Release -p:PublishProfile=FolderProfile
+```
+
+`publish.ps1` does this for every tool; see the [root README](../README.md#publishing).
+
 ## Usage
 
 ```bash
