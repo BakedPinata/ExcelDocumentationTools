@@ -107,4 +107,4 @@ tests/VbaDocumenter.BrowserTests/  Playwright tests of the generated page in hea
 
 ## Licence
 
-[MIT](LICENSE). The third-party components above keep their own licences.
+[MIT](../LICENSE). The third-party components above keep their own licences.

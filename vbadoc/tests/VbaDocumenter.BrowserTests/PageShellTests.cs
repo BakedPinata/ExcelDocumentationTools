@@ -101,7 +101,7 @@ public class PageShellTests(PageFixture fixture)
         await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
         var link = opened.Page.Locator("#tool-version");
 
-        Assert.Equal("https://github.com/BakedPinata/vbadocumenter", await link.GetAttributeAsync("href"));
+        Assert.Equal("https://github.com/BakedPinata/ExcelDocumentationTools", await link.GetAttributeAsync("href"));
         Assert.Equal("_blank", await link.GetAttributeAsync("target"));
         Assert.StartsWith("vbadoc ", await link.InnerTextAsync());
         Assert.True(await link.Locator("svg.github-mark").IsVisibleAsync());

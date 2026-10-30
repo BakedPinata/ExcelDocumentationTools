@@ -20,7 +20,7 @@ dotnet run --project src/VbaDocumenter -- <workbook> [--out <folder>] [--embed-s
 ## Way of working
 
 - Work one stage at a time. At the end of a stage: tests pass, update docs/PLAN.md (and DECISIONS.md if needed),
-  commit, push, then summarise what changed and how to try it, and wait for review before starting the next stage.
+  commit, then summarise what changed and how to try it. Wait for review before pushing or starting the next stage.
 - Ask before changing anything in Requirements.md or DECISIONS.md, or anything that goes against them.
 - Write clear, conventional C# rather than clever code. Briefly explain non-obvious design decisions in comments.
 - Everything goes in `VbaDocumenter.Core`; the console app only parses arguments and prints.
