@@ -26,6 +26,7 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   reads both, they work the same way locally and in a CI pipeline, and they need no extra packages.
 - **The PlantUML user agent is `pqdoc/<version>`**, with the version read from the assembly, so it can't drift.
 - **d3 7.9.0** is vendored byte-for-byte in `Resources/Vendor/`, and is the same file as vbadoc's copy.
+- **The version stays 1.0.0 through stage 3d**, because none has been tagged yet.
 
 ## Analysis
 
@@ -69,7 +70,19 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   force layout runs within those columns. Isolated queries sit in their own column on the far left, and the queries
   of a circular dependency share a column, which keeps the depth calculation finite.
 - **Placeholders in the template are filled in a single pass**, so text inserted for one is never scanned for another.
-- **The page follows the system theme**, with its own fonts and colours, until stage 3d moves it to vbadoc's design.
+- **The page is built like vbadoc's**: the same top bar, tabs, tokens, theme switch, fonts and Content-Security-Policy.
+  Its view talks to the page through `window.pqdoc`, shaped like `window.vbadoc`, so a later combined page can host both
+  tools' views.
+- **A query's id in the page is its name**, as a module's is in vbadoc, so `pqdoc.select` takes a name.
+- **The details panel is part of the layout**, like vbadoc's source panel, not a drawer over the graph.
+- **Colours were validated, not eyeballed.** Root, leaf and cycle use vbadoc's three hues, the only ones that pass with
+  every pair on screen. A query in a cycle is always intermediate, so intermediate queries are neutral and orange means
+  only "cycle".
+- **The first picture is always the same:** the layout is computed from fixed positions before anything is drawn.
+- **A circular dependency's whole group shares a column**, so the page gets its members, not its path, which is only one
+  loop through the group.
+- **A query clicked in the graph isn't centred; one picked anywhere else is**, so it can be found.
+- **The legend starts closed in a small view**, where it would cover the graph.
 
 ## Tests
 
@@ -77,3 +90,5 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   environment or in a `.env` file in `pqdoc/`. They are in the `Integration` category.
 - **Two tests skip on this kind of machine:** one needs a case-sensitive file system, and one needs permission to
   create a symbolic link.
+- **Browser tests are a separate project** (`tests/PowerQueryDocumenter.BrowserTests`), as in vbadoc. It downloads
+  Playwright's Chromium on first run.

@@ -98,8 +98,9 @@ of generated pages, because changing one changes every page.
 ## Tests
 
 - Every test project uses **xUnit v3**. Test projects don't collect coverage, because nothing reads it.
-- A normal test run needs no network and nothing that exists only on one machine. A test that does need something
-  extra is optional, and skips itself with a message saying how to enable it.
+- A normal test run needs no network and nothing that exists only on one machine, apart from the browser tests'
+  one-off download of Chromium on their first run. Any other test that needs something extra is optional, and skips
+  itself with a message saying how to enable it.
 - Pages have Playwright browser tests in their own project. Tests don't catch layout or colour problems, so look at
   screenshots in both themes too.
 
@@ -122,11 +123,3 @@ of generated pages, because changing one changes every page.
 - Start it **at the root** for work across tools: shared configuration, this file, aligning the tools.
 - The root `CLAUDE.md` stays short: shared rules and a pointer here. Each tool's `CLAUDE.md` has its commands,
   current stage and tool-specific rules.
-
-## Where the tools don't follow this yet
-
-`MONOREPO-PLAN.md` brings the tools in line one step at a time. Until then:
-
-| Rule | Tool | Step |
-|---|---|---|
-| Page design, browser tests, licence comment in the page | pqdoc's page has its own design | 3d |

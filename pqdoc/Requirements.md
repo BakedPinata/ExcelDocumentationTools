@@ -185,7 +185,7 @@ pqdoc C:\queries --no-csv -f svg,png --plantuml-server https://plantuml.example.
 | ID | Requirement |
 |----|-------------|
 | NFR-TEST-1 | The xUnit test project MUST cover: the tokeniser (comments, strings, escaped quotes, quoted identifiers, queries named like built-ins), graph building, cycle detection, role classification, CSV output (against a fixture, including the header), PlantUML alias/escaping, PlantUML encoding, HTML JSON escaping, option validation, overwrite behaviour, and exit-code mapping. |
-| NFR-TEST-2 | Tests MUST use temporary folders and a fake/stub HTTP handler for the PlantUML server. No test may need real network access. |
+| NFR-TEST-2 | Tests MUST use temporary folders and a fake/stub HTTP handler for the PlantUML server. No test may need real network access, apart from the browser tests' one-off download of Chromium on their first run. |
 | NFR-TEST-3 | Test fixtures MUST include a sample set of `.m` files with a cycle, an isolated query, and awkward names. |
 
 ### 5.6 Documentation

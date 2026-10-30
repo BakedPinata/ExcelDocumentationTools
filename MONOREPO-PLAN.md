@@ -28,7 +28,7 @@ consistent as they grow. It is written to be handed to a fresh Claude Code sessi
 | 3a | vbadoc tests to xUnit v3 | Done |
 | 3b | vbadoc command line to System.CommandLine; shared exit codes; pqdoc build stamp | Done |
 | 3c | pqdoc split into Core library and console app | Done |
-| 3d | pqdoc HTML page on vbadoc's design; pqdoc browser tests | In progress |
+| 3d | pqdoc HTML page on vbadoc's design; pqdoc browser tests | Done, awaiting review |
 | 3e | Build workflow and Dependabot | |
 | 4 | Later: pqdoc reads queries from the workbook; shared library if real duplication appears | |
 
