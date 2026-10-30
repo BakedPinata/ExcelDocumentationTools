@@ -17,7 +17,7 @@ namespace PowerQueryDocumenter.Analysis;
 /// function body.</item>
 /// <item>Field access and projection (<c>[Amount]</c>, <c>Source{0}[Data]</c>,
 /// <c>[[A], [B]]</c>) name record fields, never queries.</item>
-/// <item>Comments and text literals are already removed by <see cref="MTokenizer"/>.</item>
+/// <item>Comments and text literals are already removed by <see cref="MTokeniser"/>.</item>
 /// </list>
 /// <para>
 /// The scope rules are approximations: for example, a function or <c>let</c> body is assumed to
@@ -37,9 +37,9 @@ public static class ReferenceExtractor
     Group,
   }
 
-  /// <summary>Tokenizes <paramref name="mCode"/> and returns its free identifiers.</summary>
+  /// <summary>Tokenises <paramref name="mCode"/> and returns its free identifiers.</summary>
   public static IReadOnlySet<string> FindFreeIdentifiers(string mCode) =>
-    FindFreeIdentifiers(MTokenizer.Tokenize(mCode));
+    FindFreeIdentifiers(MTokeniser.Tokenise(mCode));
 
   /// <summary>
   /// Returns the names of bare and quoted identifiers that are used but not defined locally,

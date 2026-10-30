@@ -4,18 +4,18 @@ using System.Text;
 namespace PowerQueryDocumenter.Analysis;
 
 /// <summary>
-/// A small, forgiving tokenizer for Power Query M (FR-ANA-1). It is not a full parser: its job is
+/// A small, forgiving tokeniser for Power Query M (FR-ANA-1). It is not a full parser: its job is
 /// to separate identifiers from comments and text literals so that names mentioned in comments
 /// or strings are never mistaken for query references. Malformed input never throws; an
 /// unterminated comment, text literal or quoted identifier simply runs to the end of the input.
 /// </summary>
-public static class MTokenizer
+public static class MTokeniser
 {
   // Longest first, so "..." wins over "..".
   private static readonly string[] MultiCharacterPunctuators = ["...", "=>", "..", "<=", ">=", "<>", "??"];
 
   /// <summary>Splits M source text into tokens. Whitespace and comments are discarded.</summary>
-  public static IReadOnlyList<MToken> Tokenize(string text)
+  public static IReadOnlyList<MToken> Tokenise(string text)
   {
     ArgumentNullException.ThrowIfNull(text);
 

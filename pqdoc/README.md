@@ -99,7 +99,7 @@ It follows the system light or dark theme.
 
 ## How references are detected
 
-Each file is split into tokens by a small M-aware tokenizer that skips `//` and `/* */` comments
+Each file is split into tokens by a small M-aware tokeniser that skips `//` and `/* */` comments
 and text literals (including `""` escapes), and recognises quoted identifiers (`#"Sales Data"`)
 and dotted names (`Table.SelectRows` is one name). A light structural pass then ignores:
 
@@ -191,7 +191,7 @@ src/PowerQueryDocumenter/
   Program.cs              Composition root: shared HttpClient, Ctrl+C handling, log flushing
   Cli/                    System.CommandLine definition, option binding, top-level runner
   Configuration/          Options record, formats, .env reader, PlantUML server resolution
-  Analysis/               M tokenizer, reference extraction, analyser, cycle detection
+  Analysis/               M tokeniser, reference extraction, analyser, cycle detection
   Model/                  Immutable graph types (DependencyGraph, QueryNode, DependencyEdge)
   Export/                 IExporter and the CSV, PlantUML source, PlantUML render and HTML exporters
   Output/                 Overwrite policy, prompts, atomic file writes

@@ -62,7 +62,7 @@ public sealed partial class HtmlExporter : IExporter
       ["OUTPUT_NAME"] = WebUtility.HtmlEncode(context.OutputName),
       ["SUMMARY"] = WebUtility.HtmlEncode($"{counts}{cycles}. Generated {generated}."),
       ["NODE_COUNT"] = graph.Nodes.Count.ToString(CultureInfo.InvariantCulture),
-      ["GRAPH_JSON"] = SerializeGraph(graph, context),
+      ["GRAPH_JSON"] = SerialiseGraph(graph, context),
       ["D3_LIBRARY"] = D3Library.Value,
     };
 
@@ -74,9 +74,9 @@ public sealed partial class HtmlExporter : IExporter
   }
 
   /// <summary>
-  /// Serializes the graph as JSON that is safe inside a <c>&lt;script&gt;</c> element (FR-HTML-7).
+  /// Serialises the graph as JSON that is safe inside a <c>&lt;script&gt;</c> element (FR-HTML-7).
   /// </summary>
-  public static string SerializeGraph(DependencyGraph graph, ExportContext context)
+  public static string SerialiseGraph(DependencyGraph graph, ExportContext context)
   {
     ArgumentNullException.ThrowIfNull(graph);
     ArgumentNullException.ThrowIfNull(context);
@@ -115,7 +115,7 @@ public sealed partial class HtmlExporter : IExporter
   /// so a name such as <c>&lt;/script&gt;</c> stays inert. JSON only allows these characters inside
   /// strings, where the escapes mean the same thing. U+2028 and U+2029 are escaped as well.
   /// The default System.Text.Json encoder already does this; it is repeated here so the guarantee
-  /// does not depend on serializer settings.
+  /// does not depend on serialiser settings.
   /// </summary>
   public static string EscapeForScriptElement(string json)
   {

@@ -171,9 +171,9 @@ public sealed class LoggingSetupTests
   [InlineData("", false, true)]
   [InlineData("1", false, false)]
   [InlineData(null, true, false)]
-  public void Colour_respects_NO_COLOR_and_redirection(string? noColor, bool redirected, bool expected)
+  public void Colour_respects_NO_COLOR_and_redirection(string? noColour, bool redirected, bool expected)
   {
-    var environment = new FakeEnvironment(".", noColor is null ? null : new() { ["NO_COLOR"] = noColor });
+    var environment = new FakeEnvironment(".", noColour is null ? null : new() { ["NO_COLOR"] = noColour });
 
     Assert.Equal(expected, LoggingSetup.UseColour(environment, redirected));
   }

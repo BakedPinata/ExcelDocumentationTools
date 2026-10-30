@@ -1,6 +1,6 @@
 namespace PowerQueryDocumenter.Analysis;
 
-/// <summary>The kinds of token produced by <see cref="MTokenizer"/>.</summary>
+/// <summary>The kinds of token produced by <see cref="MTokeniser"/>.</summary>
 public enum MTokenKind
 {
   /// <summary>A bare identifier, possibly dotted (for example <c>Sales</c> or <c>Table.SelectRows</c>).</summary>

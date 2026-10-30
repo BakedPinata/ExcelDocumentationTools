@@ -26,7 +26,7 @@ In graph terms, an edge runs **from the referenced (upstream) query to the refer
 
 **Non-Goals**
 
-- Full Power Query M parsing or evaluation. A lightweight tokenizer is sufficient (see FR-ANA-1).
+- Full Power Query M parsing or evaluation. A lightweight tokeniser is sufficient (see FR-ANA-1).
 - A GUI.
 - Running or validating the queries themselves.
 
@@ -79,7 +79,7 @@ pqdoc C:\queries --no-csv -f svg,png --plantuml-server https://plantuml.example.
 
 | ID | Requirement |
 |----|-------------|
-| FR-ANA-1 | Reference detection SHOULD use a small M-aware tokenizer rather than regular expressions over the whole file. It MUST ignore content inside line comments (`//`), block comments (`/* */`) and string literals (`"..."`, with `""` as an escaped quote), and MUST recognise quoted identifiers (`#"Name with spaces"`, including `""` escapes) and bare identifiers. |
+| FR-ANA-1 | Reference detection SHOULD use a small M-aware tokeniser rather than regular expressions over the whole file. It MUST ignore content inside line comments (`//`), block comments (`/* */`) and string literals (`"..."`, with `""` as an escaped quote), and MUST recognise quoted identifiers (`#"Name with spaces"`, including `""` escapes) and bare identifiers. |
 | FR-ANA-2 | The built-in keyword/function filter MUST apply only to bare identifiers that are **not** the name of an existing query. A query that happens to be named `Source`, `Table` or `Value` MUST still be detected when referenced. |
 | FR-ANA-3 | Query-name comparison MUST be consistently case-insensitive across the known-query set, reference matching and de-duplication. |
 | FR-ANA-4 | Self-references MUST be ignored for edge generation. |
@@ -184,7 +184,7 @@ pqdoc C:\queries --no-csv -f svg,png --plantuml-server https://plantuml.example.
 
 | ID | Requirement |
 |----|-------------|
-| NFR-TEST-1 | The xUnit test project MUST cover: the tokenizer (comments, strings, escaped quotes, quoted identifiers, queries named like built-ins), graph building, cycle detection, role classification, CSV output (against a fixture, including the header), PlantUML alias/escaping, PlantUML encoding, HTML JSON escaping, option validation, overwrite behaviour, and exit-code mapping. |
+| NFR-TEST-1 | The xUnit test project MUST cover: the tokeniser (comments, strings, escaped quotes, quoted identifiers, queries named like built-ins), graph building, cycle detection, role classification, CSV output (against a fixture, including the header), PlantUML alias/escaping, PlantUML encoding, HTML JSON escaping, option validation, overwrite behaviour, and exit-code mapping. |
 | NFR-TEST-2 | Tests MUST use temporary folders and a fake/stub HTTP handler for the PlantUML server. No test may need real network access. |
 | NFR-TEST-3 | Test fixtures MUST include a sample set of `.m` files with a cycle, an isolated query, and awkward names. |
 

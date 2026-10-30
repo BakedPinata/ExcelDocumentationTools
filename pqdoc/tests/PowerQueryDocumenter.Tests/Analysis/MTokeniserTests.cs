@@ -2,9 +2,9 @@ using PowerQueryDocumenter.Analysis;
 
 namespace PowerQueryDocumenter.Tests.Analysis;
 
-public sealed class MTokenizerTests
+public sealed class MTokeniserTests
 {
-  private static IReadOnlyList<MToken> Tokens(string m) => MTokenizer.Tokenize(m);
+  private static IReadOnlyList<MToken> Tokens(string m) => MTokeniser.Tokenise(m);
 
   private static string[] Texts(string m, MTokenKind kind) =>
     Tokens(m).Where(t => t.Kind == kind).Select(t => t.Text).ToArray();
