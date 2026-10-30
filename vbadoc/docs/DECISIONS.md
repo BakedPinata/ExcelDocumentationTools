@@ -7,8 +7,8 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 ## Platform and libraries
 
 - **One repository.** vbadoc now lives in `vbadoc/` in BakedPinata/ExcelDocumentationTools, which is this repository's
-  old BakedPinata/vbadocumenter renamed. Its history moved with it. Stage 6 continues after step 3 of
-  `MONOREPO-PLAN.md`, which aligns vbadoc with pqdoc.
+  old BakedPinata/vbadocumenter renamed. Its history moved with it. Stage 6 continues now that vbadoc is aligned
+  with pqdoc.
 - **.NET 9**, not .NET 10. The machine the tool runs on can't have .NET 10 installed yet.
   .NET 9 support ends on 2026-11-10, so move to .NET 10 when possible (a one-line change in the root
   `Directory.Build.props`, which moves every tool).
