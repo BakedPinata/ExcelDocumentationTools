@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="pqdoc">
+<title>{{PAGE_TITLE}}</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f3f5f2;
+    --panel: #ffffff;
+    --ink: #1e2b30;
+    --ink-soft: #5b6b71;
+    --rule: #d3dad5;
+    --root: #2e7d74;
+    --leaf: #b8791a;
+    --mid: #6e808a;
+    --cycle: #c2362b;
+    --edge: #8d9a9e;
+    --focus: #1f6fd1;
+    --dim: 0.16;
+    --font: Bahnschrift, "DIN Alternate", "DIN 2014", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #162024;
+      --panel: #1d292e;
+      --ink: #e3e9e6;
+      --ink-soft: #9aa9ad;
+      --rule: #2e3c41;
+      --root: #4fb3a7;
+      --leaf: #e0a43e;
+      --mid: #8c9da6;
+      --cycle: #f0675b;
+      --edge: #5f7075;
+      --focus: #6aa8ff;
+      --dim: 0.2;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  body {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 24px;
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--paper);
+    z-index: 2;
+  }
+
+  .heading { flex: 1 1 320px; min-width: 0; }
+
+  h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .summary { margin: 2px 0 0; color: var(--ink-soft); }
+
+  .tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .search { position: relative; }
+
+  input[type="search"] {
+    width: 240px;
+    padding: 7px 10px;
+    font: inherit;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+  }
+
+  input[type="search"]::placeholder { color: var(--ink-soft); }
+
+  button {
+    font: inherit;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 7px 12px;
+    cursor: pointer;
+  }
+
+  button:hover { border-color: var(--ink-soft); }
+
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  .search-status { min-width: 9em; color: var(--ink-soft); font-size: 13px; }
+
+  main { position: relative; min-height: 0; }
+
+  #graph { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  #graph:active { cursor: grabbing; }
+
+  /* Graph elements */
+  .guide line { stroke: var(--rule); stroke-dasharray: 3 5; }
+  .guide text { fill: var(--ink-soft); font-size: 12px; text-anchor: middle; }
+
+  .link { stroke: var(--edge); stroke-width: 1.2; fill: none; transition: opacity 120ms; }
+  .link.cycle { stroke: var(--cycle); stroke-width: 1.8; }
+  .link.up { stroke: var(--root); stroke-width: 2.2; }
+  .link.down { stroke: var(--leaf); stroke-width: 2.2; }
+
+  marker path { fill: var(--edge); }
+  #arrow-cycle path { fill: var(--cycle); }
+  #arrow-up path { fill: var(--root); }
+  #arrow-down path { fill: var(--leaf); }
+
+  .node { cursor: pointer; transition: opacity 120ms; }
+  .node .glyph { stroke: var(--paper); stroke-width: 1.5; }
+  .node.root .glyph { fill: var(--root); }
+  .node.leaf .glyph { fill: var(--leaf); }
+  .node.intermediate .glyph { fill: var(--mid); }
+  .node.isolated .glyph { fill: var(--paper); stroke: var(--ink-soft); stroke-dasharray: 2.5 2; }
+  .node .core { fill: var(--paper); pointer-events: none; }
+  .node .ring { fill: none; stroke: var(--cycle); stroke-width: 2; pointer-events: none; }
+  .node .halo { fill: none; stroke: var(--focus); stroke-width: 2; opacity: 0; pointer-events: none; }
+  .node.match .halo, .node.selected .halo { opacity: 1; }
+  .node.pinned .glyph { stroke: var(--ink); }
+  .node:focus { outline: none; }
+  .node:focus-visible .halo { opacity: 1; stroke-dasharray: 3 2; }
+
+  .node text {
+    font-size: 12px;
+    font-stretch: 87.5%;
+    fill: var(--ink);
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 3.5px;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+
+  .node.selected text { font-weight: 600; }
+
+  svg.dimmed .node:not(.lit), svg.dimmed .link:not(.lit) { opacity: var(--dim); }
+
+  /* Legend */
+  .legend {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    max-width: 300px;
+    padding: 12px 14px;
+    background: color-mix(in srgb, var(--panel) 92%, transparent);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
+  .legend summary { margin: 0; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .legend[open] summary { margin-bottom: 6px; }
+  .legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+  .legend li { display: flex; align-items: center; gap: 8px; }
+  .legend svg { flex: none; overflow: visible; }
+  .legend .hint { margin: 8px 0 0; color: var(--ink-soft); font-size: 12px; }
+
+  .key-root { fill: var(--root); }
+  .key-leaf { fill: var(--leaf); }
+  .key-mid { fill: var(--mid); }
+  .key-isolated { fill: var(--paper); stroke: var(--ink-soft); stroke-dasharray: 2.5 2; }
+  .key-core { fill: var(--paper); }
+  .key-ring { fill: none; stroke: var(--cycle); stroke-width: 2; }
+  .key-up { stroke: var(--root); stroke-width: 2.2; }
+  .key-down { stroke: var(--leaf); stroke-width: 2.2; }
+
+  /* Details drawer */
+  .details {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    bottom: 16px;
+    width: min(340px, calc(100% - 32px));
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: auto;
+    transform: translateX(calc(100% + 24px));
+    transition: transform 180ms ease-out;
+  }
+
+  .details.open { transform: none; }
+  .details h2 { margin: 0; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+  .details .role { margin: 2px 0 12px; color: var(--ink-soft); }
+  .details h3 { margin: 14px 0 4px; font-size: 13px; font-weight: 600; }
+  .details h3.uses { color: var(--root); }
+  .details h3.used-by { color: var(--leaf); }
+  .details ul { list-style: none; margin: 0; padding: 0; }
+  .details li button {
+    width: 100%;
+    text-align: left;
+    border: none;
+    border-radius: 3px;
+    padding: 3px 6px;
+    background: transparent;
+    overflow-wrap: anywhere;
+  }
+  .details li button:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+  .details .none { color: var(--ink-soft); padding: 3px 6px; }
+  .details .reach { margin: 14px 0 0; color: var(--ink-soft); }
+  .details .close { margin-top: auto; align-self: flex-start; }
+  .details .actions { margin-top: 16px; }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed;
+    z-index: 3;
+    max-width: 360px;
+    padding: 7px 10px;
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 4px;
+    font-size: 13px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 80ms;
+    overflow-wrap: anywhere;
+  }
+
+  .tooltip.visible { opacity: 1; }
+  .tooltip strong { display: block; font-weight: 600; }
+
+  @media (max-width: 700px) {
+    input[type="search"] { width: 100%; }
+    .tools, .search { flex: 1 1 100%; }
+    .search-status:empty { display: none; }
+    .legend { right: 16px; max-width: none; }
+    .legend .hint { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .details, .link, .node, .tooltip { transition: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="heading">
+    <h1>{{OUTPUT_NAME}}</h1>
+    <p class="summary">{{SUMMARY}}</p>
+  </div>
+  <div class="tools">
+    <div class="search">
+      <input id="search" type="search" placeholder="Find a query" aria-label="Find a query" autocomplete="off" spellcheck="false" aria-describedby="search-status">
+    </div>
+    <span id="search-status" class="search-status" role="status" aria-live="polite"></span>
+    <button id="reset" type="button">Reset view</button>
+  </div>
+</header>
+<main>
+  <svg id="graph" role="img" aria-label="Dependency graph of {{NODE_COUNT}} Power Query queries"></svg>
+
+  <details class="legend" open>
+    <summary>Key</summary>
+    <ul>
+      <li><svg width="18" height="18" viewBox="-9 -9 18 18" aria-hidden="true"><circle r="8" class="key-root"/><circle r="3" class="key-core"/></svg>Root: uses no other query</li>
+      <li><svg width="18" height="18" viewBox="-9 -9 18 18" aria-hidden="true"><circle r="7" class="key-mid"/></svg>Uses and is used by other queries</li>
+      <li><svg width="18" height="18" viewBox="-9 -9 18 18" aria-hidden="true"><rect x="-7" y="-7" width="14" height="14" rx="2" class="key-leaf"/></svg>Leaf: not used by any query</li>
+      <li><svg width="18" height="18" viewBox="-9 -9 18 18" aria-hidden="true"><circle r="7" class="key-isolated"/></svg>Isolated: not connected</li>
+      <li><svg width="18" height="18" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="7" class="key-mid"/><circle r="11" class="key-ring"/></svg>Part of a circular dependency</li>
+      <li><svg width="18" height="18" viewBox="0 -9 18 18" aria-hidden="true"><line x1="0" y1="0" x2="18" y2="0" class="key-up"/></svg>Feeds the selected query</li>
+      <li><svg width="18" height="18" viewBox="0 -9 18 18" aria-hidden="true"><line x1="0" y1="0" x2="18" y2="0" class="key-down"/></svg>Fed by the selected query</li>
+    </ul>
+    <p class="hint">Arrows point the way data flows. Click a query to trace everything it uses and everything that uses it. Drag to move a query; double-click to let it go.</p>
+  </details>
+
+  <aside id="details" class="details" aria-live="polite" aria-hidden="true">
+    <h2 id="details-name"></h2>
+    <p id="details-role" class="role"></p>
+    <h3 class="uses" id="details-uses-heading"></h3>
+    <ul id="details-uses"></ul>
+    <h3 class="used-by" id="details-used-by-heading"></h3>
+    <ul id="details-used-by"></ul>
+    <p id="details-reach" class="reach"></p>
+    <div class="actions"><button id="details-clear" class="close" type="button">Clear selection</button></div>
+  </aside>
+</main>
+
+<div id="tooltip" class="tooltip" role="tooltip"></div>
+
+<!-- Graph data. Embedded as JSON with "<", ">" and "&" escaped, so query names cannot end this block. -->
+<script type="application/json" id="graph-data">{{GRAPH_JSON}}</script>
+
+<!--
+  D3.js v7.9.0 (https://d3js.org), minified, embedded so this page works offline.
+  Copyright 2010-2023 Mike Bostock. ISC licence: permission to use, copy, modify, and/or distribute
+  this software for any purpose with or without fee is hereby granted, provided that the above
+  copyright notice and this permission notice appear in all copies.
+-->
+<script>{{D3_LIBRARY}}</script>
+
+<script>
+(function () {
+  'use strict';
+
+  var data = JSON.parse(document.getElementById('graph-data').textContent);
+  var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var LABEL_LIMIT = 28;
+  var COLUMN_WIDTH = 210;
+  var RADIUS = 8;
+
+  var nodes = data.nodes.map(function (n) { return Object.assign({}, n); });
+  var links = data.links.map(function (l) { return { source: l.source, target: l.target, inCycle: l.inCycle }; });
+  var nodeById = new Map(nodes.map(function (n) { return [n.id, n]; }));
+  var outgoing = new Map(nodes.map(function (n) { return [n.id, []]; }));
+  var incoming = new Map(nodes.map(function (n) { return [n.id, []]; }));
+  links.forEach(function (l) {
+    outgoing.get(l.source).push(l.target);
+    incoming.get(l.target).push(l.source);
+  });
+
+  assignColumns();
+
+  // ---- Layout -----------------------------------------------------------------------------
+
+  // Each query gets a column by its depth from the roots (the longest chain of queries that feed
+  // it), so data flows left to right like stages on a line. Isolated queries sit in their own
+  // column on the far left. The queries of a circular dependency are treated as one unit and share
+  // a column, which keeps the depth calculation finite.
+  function assignColumns() {
+    var groupOf = new Map();
+    nodes.forEach(function (n) { groupOf.set(n.id, 'n' + n.id); });
+    data.cycles.forEach(function (cycle, index) {
+      cycle.forEach(function (name) {
+        nodes.forEach(function (n) { if (n.name === name) { groupOf.set(n.id, 'c' + index); } });
+      });
+    });
+
+    var groups = Array.from(new Set(groupOf.values()));
+    var next = new Map(groups.map(function (g) { return [g, new Set()]; }));
+    var remaining = new Map(groups.map(function (g) { return [g, 0]; }));
+    links.forEach(function (l) {
+      var from = groupOf.get(l.source);
+      var to = groupOf.get(l.target);
+      if (from !== to && !next.get(from).has(to)) {
+        next.get(from).add(to);
+        remaining.set(to, remaining.get(to) + 1);
+      }
+    });
+
+    var depth = new Map(groups.map(function (g) { return [g, 0]; }));
+    var queue = groups.filter(function (g) { return remaining.get(g) === 0; });
+    while (queue.length) {
+      var group = queue.shift();
+      next.get(group).forEach(function (to) {
+        depth.set(to, Math.max(depth.get(to), depth.get(group) + 1));
+        remaining.set(to, remaining.get(to) - 1);
+        if (remaining.get(to) === 0) { queue.push(to); }
+      });
+    }
+
+    nodes.forEach(function (n) {
+      n.column = n.role === 'isolated' ? -1 : depth.get(groupOf.get(n.id));
+      n.x = n.column * COLUMN_WIDTH;
+      n.y = (Math.random() - 0.5) * 400;
+    });
+  }
+
+  // ---- Drawing ----------------------------------------------------------------------------
+
+  var svg = d3.select('#graph');
+  var defs = svg.append('defs');
+  ['arrow', 'arrow-cycle', 'arrow-up', 'arrow-down'].forEach(function (id) {
+    defs.append('marker')
+      .attr('id', id)
+      .attr('viewBox', '0 -4 9 8')
+      .attr('refX', 9)
+      .attr('refY', 0)
+      .attr('markerWidth', 9)
+      .attr('markerHeight', 8)
+      .attr('markerUnits', 'userSpaceOnUse')
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M0,-4L9,0L0,4Z');
+  });
+
+  var viewport = svg.append('g');
+  var guideLayer = viewport.append('g').attr('aria-hidden', 'true');
+  var linkLayer = viewport.append('g').attr('aria-hidden', 'true');
+  var nodeLayer = viewport.append('g');
+
+  var columns = Array.from(new Set(nodes.map(function (n) { return n.column; }))).sort(function (a, b) { return a - b; });
+  var guide = guideLayer.selectAll('g').data(columns).join('g').attr('class', 'guide');
+  guide.append('line');
+  guide.append('text').text(function (c) {
+    if (c === -1) { return 'Isolated'; }
+    return 'Depth ' + c;
+  });
+
+  // Two queries that reference each other get two curved arrows instead of one overlapping line.
+  var pairs = new Set(links.map(function (l) { return l.source + '>' + l.target; }));
+  links.forEach(function (l) { l.curved = pairs.has(l.target + '>' + l.source); });
+
+  var link = linkLayer.selectAll('path').data(links).join('path')
+    .attr('class', function (l) { return 'link' + (l.inCycle ? ' cycle' : ''); });
+
+  var node = nodeLayer.selectAll('g').data(nodes, function (n) { return n.id; }).join('g')
+    .attr('class', function (n) { return 'node ' + n.role; })
+    .attr('tabindex', 0)
+    .attr('role', 'button')
+    .attr('aria-label', function (n) { return n.name + ': ' + describeCounts(n); });
+
+  node.append('circle').attr('class', 'halo').attr('r', RADIUS + 7);
+  node.filter(function (n) { return n.inCycle; }).append('circle').attr('class', 'ring').attr('r', RADIUS + 4);
+  node.each(function (n) {
+    var g = d3.select(this);
+    if (n.role === 'leaf') {
+      g.append('rect').attr('class', 'glyph').attr('x', -7.5).attr('y', -7.5).attr('width', 15).attr('height', 15).attr('rx', 2);
+    } else {
+      g.append('circle').attr('class', 'glyph').attr('r', n.role === 'root' ? RADIUS : RADIUS - 1);
+    }
+    if (n.role === 'root') {
+      g.append('circle').attr('class', 'core').attr('r', 3);
+    }
+  });
+  node.append('text')
+    .attr('x', RADIUS + 6)
+    .attr('dy', '0.32em')
+    .text(function (n) { return truncate(n.name); });
+
+  function truncate(name) {
+    return name.length > LABEL_LIMIT ? name.slice(0, LABEL_LIMIT - 1) + '…' : name;
+  }
+
+  function describeCounts(n) {
+    return 'uses ' + queries(n.upstream) + ', used by ' + queries(n.downstream);
+  }
+
+  function queries(count) {
+    return count === 1 ? '1 query' : count + ' queries';
+  }
+
+  // ---- Simulation -------------------------------------------------------------------------
+
+  var simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(function (n) { return n.id; }).distance(110).strength(0.25))
+    .force('charge', d3.forceManyBody().strength(-240).distanceMax(600))
+    .force('column', d3.forceX(function (n) { return n.column * COLUMN_WIDTH; }).strength(0.7))
+    .force('centre', d3.forceY(0).strength(0.05))
+    .force('collide', d3.forceCollide(RADIUS + 14))
+    .stop();
+
+  function render() {
+    link.attr('d', function (l) {
+      var dx = l.target.x - l.source.x;
+      var dy = l.target.y - l.source.y;
+      var length = Math.sqrt(dx * dx + dy * dy) || 1;
+      var ux = dx / length;
+      var uy = dy / length;
+      // Curved arrows bend to the left of their direction, so a pair never overlaps.
+      var bend = l.curved ? 0.35 : 0;
+      var nx = -uy * bend;
+      var ny = ux * bend;
+      var trimStart = RADIUS + 1;
+      var trimEnd = RADIUS + (l.target.inCycle ? 6 : 3);
+      var x1 = l.source.x + (ux + nx) * trimStart;
+      var y1 = l.source.y + (uy + ny) * trimStart;
+      var x2 = l.target.x - (ux - nx) * trimEnd;
+      var y2 = l.target.y - (uy - ny) * trimEnd;
+      if (!l.curved) {
+        return 'M' + x1 + ',' + y1 + 'L' + x2 + ',' + y2;
+      }
+      var cx = (l.source.x + l.target.x) / 2 + nx * length * 0.6;
+      var cy = (l.source.y + l.target.y) / 2 + ny * length * 0.6;
+      return 'M' + x1 + ',' + y1 + 'Q' + cx + ',' + cy + ' ' + x2 + ',' + y2;
+    });
+
+    node.attr('transform', function (n) { return 'translate(' + n.x + ',' + n.y + ')'; });
+
+    var extent = d3.extent(nodes, function (n) { return n.y; });
+    var top = (extent[0] || 0) - 60;
+    var bottom = (extent[1] || 0) + 40;
+    guide.select('line')
+      .attr('x1', function (c) { return c * COLUMN_WIDTH; })
+      .attr('x2', function (c) { return c * COLUMN_WIDTH; })
+      .attr('y1', top + 12)
+      .attr('y2', bottom);
+    guide.select('text')
+      .attr('x', function (c) { return c * COLUMN_WIDTH; })
+      .attr('y', top);
+
+    updateArrows();
+  }
+
+  // ---- Pan, zoom and drag -----------------------------------------------------------------
+
+  // Once the person pans or zooms, the view is theirs: automatic refitting stops.
+  var userMovedView = false;
+  var zoom = d3.zoom()
+    .scaleExtent([0.05, 6])
+    .on('zoom', function (event) {
+      viewport.attr('transform', event.transform);
+      if (event.sourceEvent) { userMovedView = true; }
+    });
+  svg.call(zoom).on('dblclick.zoom', null);
+
+  function viewSize() {
+    var rect = svg.node().getBoundingClientRect();
+    return { width: rect.width || 800, height: rect.height || 600 };
+  }
+
+  // The area the graph is fitted into: the canvas above the key while the key is open, so the key
+  // never hides part of the graph after fitting.
+  var legend = document.querySelector('.legend');
+  function fitArea() {
+    var size = viewSize();
+    var reserved = legend.open ? legend.getBoundingClientRect().height + 16 : 0;
+    return { width: size.width, height: Math.max(size.height - reserved, size.height * 0.5) };
+  }
+
+  legend.addEventListener('toggle', function () {
+    if (!userMovedView) { fitToView(300); }
+  });
+
+  function fitToView(duration) {
+    var box = viewport.node().getBBox();
+    var size = fitArea();
+    if (!box.width && !box.height) { return; }
+    var padding = 48;
+    var scale = Math.min(
+      2,
+      (size.width - padding * 2) / Math.max(box.width, 1),
+      (size.height - padding * 2) / Math.max(box.height, 1));
+    var transform = d3.zoomIdentity
+      .translate(size.width / 2, size.height / 2)
+      .scale(Math.max(scale, 0.05))
+      .translate(-(box.x + box.width / 2), -(box.y + box.height / 2));
+    (duration && !reducedMotion ? svg.transition().duration(duration) : svg).call(zoom.transform, transform);
+  }
+
+  function centreOn(n) {
+    var transform = d3.zoomTransform(svg.node());
+    var size = viewSize();
+    var target = d3.zoomIdentity.translate(size.width / 2, size.height / 2).scale(Math.max(transform.k, 1)).translate(-n.x, -n.y);
+    (reducedMotion ? svg : svg.transition().duration(400)).call(zoom.transform, target);
+  }
+
+  simulation.on('end', function () {
+    if (!userMovedView) { fitToView(400); }
+  });
+
+  // Settle most of the layout before the first paint, so the graph does not explode into view,
+  // then let it finish settling with animation (unless reduced motion is requested).
+  simulation.tick(reducedMotion ? 400 : 160);
+  render();
+  fitToView(0);
+  simulation.on('tick', render);
+  if (!reducedMotion) {
+    simulation.alpha(0.25).restart();
+  }
+
+  node.call(d3.drag()
+    .on('start', function (event, n) {
+      if (!event.active) { simulation.alphaTarget(0.2).restart(); }
+      n.fx = n.x;
+      n.fy = n.y;
+    })
+    .on('drag', function (event, n) {
+      n.fx = event.x;
+      n.fy = event.y;
+      hideTooltip();
+    })
+    .on('end', function (event, n) {
+      if (!event.active) { simulation.alphaTarget(0); }
+      d3.select(this).classed('pinned', true);
+    }));
+
+  node.on('dblclick', function (event, n) {
+    event.stopPropagation();
+    n.fx = null;
+    n.fy = null;
+    d3.select(this).classed('pinned', false);
+    simulation.alpha(0.2).restart();
+  });
+
+  // ---- Highlighting -----------------------------------------------------------------------
+
+  var selectedId = null;
+  var hoveredId = null;
+  var matches = null;
+
+  function closure(start, edges) {
+    var seen = new Set();
+    var stack = [start];
+    while (stack.length) {
+      var id = stack.pop();
+      edges.get(id).forEach(function (next) {
+        if (!seen.has(next) && next !== start) { seen.add(next); stack.push(next); }
+      });
+    }
+    return seen;
+  }
+
+  function applyHighlight() {
+    var lit = null;
+    var linkState = new Map();
+
+    if (selectedId !== null) {
+      var up = closure(selectedId, incoming);
+      var down = closure(selectedId, outgoing);
+      lit = new Set([selectedId]);
+      up.forEach(function (id) { lit.add(id); });
+      down.forEach(function (id) { lit.add(id); });
+      links.forEach(function (l) {
+        if (up.has(l.source.id) && (l.target.id === selectedId || up.has(l.target.id))) { linkState.set(l, 'up'); }
+        else if (down.has(l.target.id) && (l.source.id === selectedId || down.has(l.source.id))) { linkState.set(l, 'down'); }
+      });
+    } else if (hoveredId !== null) {
+      lit = new Set([hoveredId]);
+      incoming.get(hoveredId).forEach(function (id) { lit.add(id); });
+      outgoing.get(hoveredId).forEach(function (id) { lit.add(id); });
+      links.forEach(function (l) {
+        if (l.target.id === hoveredId) { linkState.set(l, 'up'); }
+        else if (l.source.id === hoveredId) { linkState.set(l, 'down'); }
+      });
+    } else if (matches !== null) {
+      lit = matches;
+    }
+
+    svg.classed('dimmed', lit !== null);
+    node
+      .classed('lit', function (n) { return lit !== null && lit.has(n.id); })
+      .classed('selected', function (n) { return n.id === selectedId; })
+      .classed('match', function (n) { return matches !== null && matches.has(n.id); });
+    link
+      .classed('lit', function (l) { return linkState.has(l); })
+      .classed('up', function (l) { return linkState.get(l) === 'up'; })
+      .classed('down', function (l) { return linkState.get(l) === 'down'; });
+    updateArrows();
+  }
+
+  function updateArrows() {
+    link.attr('marker-end', function (l) {
+      var state = d3.select(this);
+      if (state.classed('up')) { return 'url(#arrow-up)'; }
+      if (state.classed('down')) { return 'url(#arrow-down)'; }
+      return l.inCycle ? 'url(#arrow-cycle)' : 'url(#arrow)';
+    });
+  }
+
+  // ---- Selection and details ----------------------------------------------------------------
+
+  var details = document.getElementById('details');
+
+  function select(id, centre) {
+    selectedId = id;
+    hideTooltip();
+    applyHighlight();
+    if (id === null) {
+      details.classList.remove('open');
+      details.setAttribute('aria-hidden', 'true');
+      return;
+    }
+
+    var n = nodeById.get(id);
+    var upstream = closure(id, incoming).size;
+    var downstream = closure(id, outgoing).size;
+    document.getElementById('details-name').textContent = n.name;
+    document.getElementById('details-role').textContent = roleText(n);
+    fillList('uses', 'Uses', incoming.get(id));
+    fillList('used-by', 'Used by', outgoing.get(id));
+    document.getElementById('details-reach').textContent =
+      'Including indirect links, ' + queries(upstream) + ' feed' + (upstream === 1 ? 's' : '') + ' this query and ' +
+      queries(downstream) + ' depend' + (downstream === 1 ? 's' : '') + ' on it.';
+    details.classList.add('open');
+    details.setAttribute('aria-hidden', 'false');
+    if (centre) { centreOn(n); }
+  }
+
+  function roleText(n) {
+    var text = {
+      root: 'Root query: it uses no other query.',
+      leaf: 'Leaf query: no other query uses it.',
+      intermediate: 'Intermediate query.',
+      isolated: 'Isolated query: not connected to any other query.'
+    }[n.role];
+    return n.inCycle ? text + ' Part of a circular dependency.' : text;
+  }
+
+  function fillList(key, label, ids) {
+    var list = document.getElementById('details-' + key);
+    document.getElementById('details-' + key + '-heading').textContent = label + ' (' + ids.length + ')';
+    list.replaceChildren();
+    if (ids.length === 0) {
+      var none = document.createElement('li');
+      none.className = 'none';
+      none.textContent = 'None';
+      list.appendChild(none);
+      return;
+    }
+    ids
+      .map(function (id) { return nodeById.get(id); })
+      .sort(function (a, b) { return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }); })
+      .forEach(function (other) {
+        var item = document.createElement('li');
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = other.name;
+        button.addEventListener('click', function () { select(other.id, true); });
+        item.appendChild(button);
+        list.appendChild(item);
+      });
+  }
+
+  document.getElementById('details-clear').addEventListener('click', function () { select(null); });
+
+  node.on('click', function (event, n) {
+    event.stopPropagation();
+    select(n.id === selectedId ? null : n.id, false);
+  });
+
+  node.on('keydown', function (event, n) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      select(n.id, true);
+    }
+  });
+
+  svg.on('click', function (event) {
+    if (event.target === svg.node()) { select(null); }
+  });
+
+  // ---- Hover and tooltip --------------------------------------------------------------------
+
+  var tooltip = document.getElementById('tooltip');
+
+  function showTooltip(n, x, y) {
+    tooltip.replaceChildren();
+    var name = document.createElement('strong');
+    name.textContent = n.name;
+    tooltip.appendChild(name);
+    tooltip.appendChild(document.createTextNode('Uses ' + queries(n.upstream) + ', used by ' + queries(n.downstream)));
+    if (n.inCycle) {
+      tooltip.appendChild(document.createElement('br'));
+      tooltip.appendChild(document.createTextNode('Part of a circular dependency'));
+    }
+    var left = Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8);
+    var top = Math.min(y + 14, window.innerHeight - tooltip.offsetHeight - 8);
+    tooltip.style.left = Math.max(8, left) + 'px';
+    tooltip.style.top = Math.max(8, top) + 'px';
+    tooltip.classList.add('visible');
+  }
+
+  function hideTooltip() {
+    tooltip.classList.remove('visible');
+  }
+
+  node
+    .on('pointerenter', function (event, n) {
+      hoveredId = n.id;
+      if (selectedId === null) { applyHighlight(); }
+      showTooltip(n, event.clientX, event.clientY);
+    })
+    .on('pointermove', function (event, n) { showTooltip(n, event.clientX, event.clientY); })
+    .on('pointerleave', function () {
+      hoveredId = null;
+      if (selectedId === null) { applyHighlight(); }
+      hideTooltip();
+    })
+    .on('focus', function (event, n) {
+      hoveredId = n.id;
+      if (selectedId === null) { applyHighlight(); }
+      var box = this.getBoundingClientRect();
+      showTooltip(n, box.right, box.bottom);
+    })
+    .on('blur', function () {
+      hoveredId = null;
+      if (selectedId === null) { applyHighlight(); }
+      hideTooltip();
+    });
+
+  // ---- Search ---------------------------------------------------------------------------------
+
+  var search = document.getElementById('search');
+  var searchStatus = document.getElementById('search-status');
+
+  function runSearch() {
+    var text = search.value.trim().toLowerCase();
+    if (!text) {
+      matches = null;
+      searchStatus.textContent = '';
+    } else {
+      matches = new Set(nodes.filter(function (n) { return n.name.toLowerCase().indexOf(text) >= 0; }).map(function (n) { return n.id; }));
+      searchStatus.textContent = matches.size === 0
+        ? 'No query matches'
+        : (matches.size === 1 ? '1 match' : matches.size + ' matches');
+    }
+    applyHighlight();
+  }
+
+  search.addEventListener('input', runSearch);
+  search.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' && matches && matches.size > 0) {
+      var first = nodes
+        .filter(function (n) { return matches.has(n.id); })
+        .sort(function (a, b) { return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }); })[0];
+      select(first.id, true);
+    }
+    if (event.key === 'Escape') {
+      search.value = '';
+      runSearch();
+    }
+  });
+
+  // ---- Reset and keyboard shortcuts -----------------------------------------------------------
+
+  document.getElementById('reset').addEventListener('click', function () {
+    search.value = '';
+    matches = null;
+    searchStatus.textContent = '';
+    nodes.forEach(function (n) { n.fx = null; n.fy = null; });
+    node.classed('pinned', false);
+    select(null);
+    if (!reducedMotion) { simulation.alpha(0.3).restart(); }
+    fitToView(500);
+  });
+
+  window.addEventListener('resize', function () {
+    if (!userMovedView) { fitToView(0); }
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === '/' && document.activeElement !== search) {
+      event.preventDefault();
+      search.focus();
+    } else if (event.key === 'Escape' && document.activeElement !== search) {
+      select(null);
+    }
+  });
+})();
+</script>
+</body>
+</html>

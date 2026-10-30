@@ -1,0 +1,13 @@
+# Build output
+bin/
+obj/
+*.user
+.vs/
+.idea/
+TestResults/
+
+# Local configuration: may hold a private PlantUML server URL
+.env
+
+# Outputs produced by trying the tool inside the repository
+powerquery-dependencies.*

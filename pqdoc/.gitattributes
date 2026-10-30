@@ -1,0 +1,6 @@
+* text=auto
+*.m text
+*.cs text
+*.min.js -diff linguist-vendored
+src/**/Resources/** -text
+tests/**/Fixtures/** -text
