@@ -17,8 +17,8 @@ rather than repeating it.
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted.
 - **`shared/`** (`ExcelDocumenter.Shared`): the code both tools use, since step C1. See its README.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. The user's build, test and
-  publish of A0 on the work machine is still to come. A0–A4, F1 and B1–B4 are pushed and reviewed. C1 is done, waiting
-  for review. **Next: C2** (the shared page shell: both pages rebuilt on it, with no visible change).
+  publish of A0 on the work machine is still to come. A0–A4, F1, B1–B4 and C1 are pushed and reviewed. **Next: C2**
+  (the shared page shell: both pages rebuilt on it, with no visible change), then A5.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -28,6 +28,14 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-03: vbadoc's overwrite options added to the plan
+
+- The user asked for vbadoc to have pqdoc's `--on-exists` and `--force` (`-y`), and to ask before overwriting by
+  default in the same way. Added as step A5, straight after C2: no existing step fits, since C2 allows no new features
+  and the later steps are page work or importing.
+- It covers only the page: module files and `.gitattributes` follow the workbook as pqdoc's `.m` files do, and an
+  unchanged page isn't asked about. pqdoc's overwrite code moves into `shared/` for both tools to use.
 
 ### 2026-11-03: Step C1, the shared library
 

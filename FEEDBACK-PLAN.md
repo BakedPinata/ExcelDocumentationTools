@@ -43,6 +43,7 @@ questions the draft raised.
 | B4 | pqdoc's page shows highlighted M source | Claude | Done |
 | C1 | Shared library: `shared/`, with the C# code both tools now duplicate | Claude | Done |
 | C2 | Shared page shell: both pages rebuilt on it, with no visible change | Claude | |
+| A5 | vbadoc asks before overwriting its page, with `--on-exists` and `--force` as pqdoc has them (added after C1) | Claude | |
 | D1 | Explorer: a tree of everything in the workbook, beside the view | Claude | |
 | D2 | Favourites, replacing Home and the trail | Claude | |
 | D3 | Hiding items, and flagging the ones used almost everywhere | Claude | |
@@ -118,6 +119,7 @@ The notes behind this plan are kept out of the repository. This section is what 
 | pqdoc should write HTML by default | A3 |
 | pqdoc should read queries from the workbook and show their source, as vbadoc does | B1–B4 |
 | The two tools' documentation files should be named the same way (raised after B2) | A4 |
+| vbadoc should have pqdoc's `--on-exists` and `--force`, and ask before overwriting in the same way (raised after C1) | A5 |
 | Search isn't always the best way to find things; a tree, perhaps in a sidebar | D1 |
 | The VBA editor can't organise modules into folders | D1 groups modules by `'@Folder` comments |
 | The trail is less useful than expected; favourites would help | D2 |
@@ -208,9 +210,12 @@ A Calls / Called by switch turns the tree round, to show everything that leads t
 
 ### Commands
 
-vbadoc's command doesn't change. pqdoc's takes a workbook as well as a folder, and `--format` lists what to write:
+vbadoc gains `--output-name` (A4), and `--on-exists` and `--force` as pqdoc has them (A5). pqdoc's command takes a
+workbook as well as a folder, and `--format` lists what to write:
 
 ```
+vbadoc <workbook> [--output <folder>] [--output-name <name>] [--embed-source] [--on-exists <behaviour>] [--force]
+                  [--verbose | --quiet]
 pqdoc <workbook or folder> [--output <folder>] [--output-name <name>] [--format <formats>] [--embed-source]
                            [--plantuml-server <url>] [--on-exists <behaviour>] [--force] [--verbose | --quiet]
 ```
@@ -253,6 +258,9 @@ the long name is the code's identity.
   of extracting only real duplication.
 - **The shell comes before the new page features,** because almost all of them (explorer, favourites, hiding, views,
   printing) belong in both pages. The splitter bug, fixed twice, showed the cost of two copies.
+- **vbadoc's overwrite options (A5) come straight after the shell.** They need no page work, and move pqdoc's overwrite
+  code into `shared/` while C1's library is fresh. No existing step fits them: C2 allows no new features, and D to H
+  are about the page or importing.
 - **Finding your way (D) comes before the execution path (E),** because the call tree relies on hiding items and on
   the explorer's list of entry points. If the call tree is wanted sooner, E2 could move before C2 as a vbadoc-only step,
   at the cost of moving it again in C2.
@@ -584,6 +592,27 @@ This is the largest step and the likeliest to drift, so keep to it strictly: no 
 - Acceptance: both pages look and work as before, and every browser test passes, changed only where an id was renamed.
   Compare screenshots in both themes.
 
+### Step A5: vbadoc asks before overwriting its page
+
+Added after C1, at the user's request, to bring vbadoc into line with pqdoc. Done after C2.
+
+- vbadoc gains `--on-exists prompt|overwrite|skip|fail` and `--force` (`-y`), with pqdoc's rules: the default asks
+  when the session is interactive and fails when it isn't; `--force` means `--on-exists overwrite` and conflicts with
+  any other `--on-exists`; the answers are yes, no, all and quit, asked on standard error; a refusal exits with code 4
+  and writes nothing.
+- It applies to the page, the only output vbadoc writes that the user might have changed. As with pqdoc's `.m` files,
+  the module files and `.gitattributes` follow the workbook and are never asked about, and are written only after the
+  check, so quitting at the prompt changes nothing on disk. Older pages vbadoc deletes from its own folder aren't asked
+  about either.
+- A page that would be written byte-for-byte unchanged isn't asked about, as today it isn't rewritten. Re-running
+  vbadoc on an unchanged workbook therefore never asks.
+- Move pqdoc's overwrite code (`OnExistsBehaviour`, `OverwriteResolver`, `IUserInteraction`, the console prompt, and
+  parsing and checking the two options) into `shared/`, and use it in both tools. pqdoc's behaviour doesn't change.
+- Tests, mirroring pqdoc's: each behaviour, a non-interactive run refusing with exit code 4 and writing nothing, the
+  prompt's answers, quitting, `--force` conflicting with `--on-exists`, and an unchanged page not asked about.
+- Update vbadoc's requirements, decisions and README, including a note that a script that runs vbadoc again needs
+  `--force`. The guidelines list both options among the shared ones.
+
 ### Step D1: Explorer
 
 - Add the explorer to the shell, and fill it from each tool, as section 5 describes, including `'@Folder` grouping and
@@ -719,6 +748,7 @@ Approving this plan covers the changes below. Anything else still needs asking.
 | `vbadoc/Requirements.md` | Explorer, favourites in place of Home and the trail, hiding, references, the Calls tab, views and printing. The class diagram section without Mermaid. Sequence diagrams out of the Out of scope list if E5 goes ahead | D1–G3 |
 | `vbadoc/docs/DECISIONS.md` | Home and trail decisions replaced; class diagram decisions replaced; new decisions for each step | A2, D1–G3 |
 | `docs/GUIDELINES.md` | Structure: `shared/` and what belongs there | C1 |
+| `vbadoc/Requirements.md`, `vbadoc/docs/DECISIONS.md`, `vbadoc/README.md`, `docs/GUIDELINES.md` | `--on-exists` and `--force`; asking before overwriting the page; exit code 4 | A5 |
 | `docs/GUIDELINES.md` | HTML pages: the shell, the explorer, views files | C2, G2 |
 | `docs/GUIDELINES.md` | Dependencies: Mermaid removed | F1 |
 | Both `Requirements.md`s, `DECISIONS.md`s and `README.md`s | Documentation file names; vbadoc's `--output-name` | A4 |
