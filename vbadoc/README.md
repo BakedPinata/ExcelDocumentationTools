@@ -59,7 +59,7 @@ dotnet run --project src/VbaDocumenter -- <workbook> [--output <folder>] [--embe
 | `<workbook>` | | `.xlsm`, `.xlsb`, `.xlam`, `.xls` or `.xla` |
 | `--output <folder>` | `-o` | Output folder. Default: a `VBAProject` folder next to the workbook |
 | `--embed-source` | | Put the module source inside the page, so it works without Load folder |
-| `--verbose` | `-v` | List every member found in each module, with its line range, and show debug-level log output |
+| `--verbose` | `-v` | List every member found in each module, with its line range, show how long each step took, and show debug-level log output |
 | `--quiet` | `-q` | Show warnings and errors only |
 | `--help` | `-h`, `-?` | Show help |
 | `--version` | | Show the version and git commit of this build of vbadoc, and nothing else |

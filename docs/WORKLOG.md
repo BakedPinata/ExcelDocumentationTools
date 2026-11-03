@@ -10,10 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-03)
 
-- **vbadoc 0.6.2:** stages 0–5e are done. Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
+- **vbadoc 0.6.3:** stages 0–5e are done. Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
 - **pqdoc 1.0.1**, plus stages 3b–3d: reads a folder of hand-exported `.m` files.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. A0 and A1 are pushed; the
-  user's build, test and publish of A0 on the work machine is still to come. A2 is next.
+  user's build, test and publish of A0 on the work machine is still to come. A2 is done, waiting for review. A3 is
+  next, unless F1 moves earlier (see A2's entry).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -23,6 +24,14 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-03: Step A2, export speed
+
+- `--verbose` now shows how long each step took. vbadoc 0.6.3.
+- The pause was Windows Defender scanning the 4.3 MB page whenever a run opened the previous one, taking 2–3 s; each
+  step otherwise takes 80–180 ms. Mermaid is 3.6 MB of the page, and without it the scan took 0.2 s, so removing it
+  (F1) is the fix. Writing differently and ReadyToRun were measured and not kept. Details are in vbadoc's decisions.
+- Suggested to the user: move F1 earlier, since it fixes both the export pause and slow page opening. Not decided.
 
 ### 2026-11-03: Importing added to the plan
 

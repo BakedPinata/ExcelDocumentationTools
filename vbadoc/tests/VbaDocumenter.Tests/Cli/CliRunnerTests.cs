@@ -67,6 +67,17 @@ public sealed class CliRunnerTests : IDisposable
     Assert.NotEmpty(_log.Messages(LogEventLevel.Debug));
   }
 
+  [Fact]
+  public void Verbose_shows_how_long_each_step_took()
+  {
+    Run(Workbook, "--output", Output, "--verbose");
+
+    var debug = _log.Messages(LogEventLevel.Debug);
+    foreach (var step in new[] { "Reading", "Parsing", "Analysing", "Building the page", "Writing module files", "Writing the page" })
+      Assert.Contains(debug, m => m.StartsWith($"  {step} took "));
+    Assert.Contains(debug, m => m.StartsWith("Finished in "));
+  }
+
   [Theory]
   [InlineData(false, ConsoleReport.ShortListLength + 2, 0)] // the heading, the short list and "... and 5 more"
   [InlineData(true, ConsoleReport.ShortListLength + 1, 5)] // the heading and the short list, then the rest

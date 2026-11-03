@@ -79,6 +79,21 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   textual diffs) and `*.frx` as `binary`. An existing one is never overwritten.
 - **The HTML page is `index.html`.**
 
+## Speed (step A2 of the feedback plan)
+
+- **`--verbose` shows how long each step took:** reading, parsing, analysing, building the page, writing the module
+  files and writing the page.
+- **Measured on 2026-11-03** with the published executable, on the private workbook (tens of modules) on a local disk.
+  Each step took 80–180 ms, about 0.6 s in all, plus about 0.3 s to start.
+- **The pause users saw is antivirus scanning.** Writing the page sometimes took 2–3 s. Windows Defender scans a
+  script-heavy file the first time anything opens it. That happens when the run reads the previous page to see
+  whether it changed, or overwrites it. Always writing without reading, and writing a new file then renaming it over
+  the old one, were both measured and cost the same, so neither was kept. A browser opening the page waits for the
+  same scan.
+- **Mermaid is almost all of that cost.** It's 3.6 MB of the 4.3 MB page. The same page without it scanned in about
+  0.2 s instead of 3 s. Removing Mermaid (step F1) is the fix.
+- **ReadyToRun was measured and not taken.** It saved about 0.2 s a run, and made the executable 12 MB bigger.
+
 ## Source analysis (stages 2–3)
 
 - A member's source **includes the block of comments directly above it**.

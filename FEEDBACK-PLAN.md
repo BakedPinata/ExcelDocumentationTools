@@ -33,7 +33,7 @@ questions the draft raised.
 |---|---|---|---|
 | A0 | Move to .NET 10, with command-line instructions | Claude, then you on a work machine | Done; work machine check to come |
 | A1 | Fix: a click in the graph pulls modules together | Claude | Done |
-| A2 | Fix: the export pauses while writing the page | Claude | |
+| A2 | Fix: the export pauses while writing the page | Claude | Done: timings added; the cause, antivirus scanning Mermaid, is fixed by F1 |
 | A3 | pqdoc writes HTML by default | Claude | |
 | B1 | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | |
 | B2 | pqdoc reads queries from a workbook | Claude | |
@@ -592,9 +592,12 @@ This can be dropped without affecting anything after it.
 ### Step F1: Class diagram
 
 - Rebuild `classes.js` on d3, as section 5 describes, with dragging, remembered positions, hiding, favourites and focus.
-- Remove Mermaid from `Resources/Vendor/`, the page and the guidelines' list of dependencies.
+- Remove Mermaid from `Resources/Vendor/`, the page and the guidelines' list of dependencies. A2 found this is also
+  the fix for the export's pause, and for the page opening slowly: antivirus scanning of the page took about 3 s with
+  Mermaid and 0.2 s without.
 - Acceptance: for the fixtures and the 300-module test project, every box, member and relationship the Mermaid version
-  showed is still shown, and clicks select as before. Look at screenshots in both themes.
+  showed is still shown, and clicks select as before. Look at screenshots in both themes. Re-measure the export with
+  `--verbose`, and the first read of a newly written page, and record both in vbadoc's `DECISIONS.md`.
 
 ### Step G1: Saved views
 

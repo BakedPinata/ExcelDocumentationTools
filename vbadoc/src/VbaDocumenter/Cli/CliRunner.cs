@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Diagnostics;
 using System.CommandLine.Invocation;
 using Serilog;
 using VbaDocumenter.Core.Analysis;
@@ -73,31 +74,33 @@ static class CliRunner
   /// </summary>
   static int Export(CommandLineOptions options, ILogger logger, CancellationToken cancellationToken)
   {
+    var total = Stopwatch.StartNew();
     logger.Information("Reading {Workbook}", options.WorkbookPath);
-    var project = WorkbookReader.Read(options.WorkbookPath);
+    var project = Timed(logger, "Reading", () => WorkbookReader.Read(options.WorkbookPath));
     logger.Information("  Project '{Project}', code page {CodePage}, {ModuleCount} module(s)", project.Name, project.CodePage, project.Modules.Count);
     cancellationToken.ThrowIfCancellationRequested();
 
-    var parsed = ProjectParser.Parse(project);
+    var parsed = Timed(logger, "Parsing", () => ProjectParser.Parse(project));
     ConsoleReport.WriteModules(parsed, logger);
     cancellationToken.ThrowIfCancellationRequested();
 
     logger.Information("Analysing dependencies");
-    var dependencies = DependencyAnalyser.Analyse(parsed);
+    var dependencies = Timed(logger, "Analysing", () => DependencyAnalyser.Analyse(parsed));
     ConsoleReport.WriteDependencies(dependencies, logger);
 
-    var html = HtmlPageWriter.Build(dependencies, project, Path.GetFileName(options.WorkbookPath), options.EmbedSource);
+    var html = Timed(logger, "Building the page",
+        () => HtmlPageWriter.Build(dependencies, project, Path.GetFileName(options.WorkbookPath), options.EmbedSource));
     cancellationToken.ThrowIfCancellationRequested();
 
     try
     {
       logger.Information("Exporting to {Folder}", options.OutputFolder);
-      var result = ProjectExporter.Export(project, options.OutputFolder);
+      var result = Timed(logger, "Writing module files", () => ProjectExporter.Export(project, options.OutputFolder));
       logger.Information("  {Written} written, {Unchanged} unchanged, {Deleted} deleted", result.Written.Count, result.Unchanged.Count, result.Deleted.Count);
       foreach (var name in result.Deleted) logger.Information("    deleted {File} (no longer in the workbook)", name);
       if (result.CreatedGitAttributes) logger.Information("  Created .gitattributes");
 
-      bool pageWritten = HtmlPageWriter.Write(options.OutputFolder, html);
+      bool pageWritten = Timed(logger, "Writing the page", () => HtmlPageWriter.Write(options.OutputFolder, html));
       logger.Information("  {Page} {Outcome} {Hint}",
           HtmlPageWriter.FileName,
           pageWritten ? "written" : "unchanged",
@@ -110,6 +113,16 @@ static class CliRunner
       return ExitCodes.ExportFailed;
     }
 
+    logger.Debug("Finished in {Milliseconds} ms", total.ElapsedMilliseconds);
     return ExitCodes.Success;
+  }
+
+  /// <summary>Runs one step of the export, and logs how long it took (shown with --verbose).</summary>
+  static T Timed<T>(ILogger logger, string step, Func<T> work)
+  {
+    var stopwatch = Stopwatch.StartNew();
+    var result = work();
+    logger.Debug("  {Step:l} took {Milliseconds} ms", step, stopwatch.ElapsedMilliseconds);
+    return result;
   }
 }
