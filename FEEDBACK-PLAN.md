@@ -35,6 +35,7 @@ questions the draft raised.
 | A1 | Fix: a click in the graph pulls modules together | Claude | Done |
 | A2 | Fix: the export pauses while writing the page | Claude | Done: timings added; the cause, antivirus scanning Mermaid, is fixed by F1 |
 | A3 | pqdoc writes HTML by default | Claude | |
+| F1 | Class diagram drawn by the page, with boxes you can move; Mermaid removed (moved up after A2) | Claude | |
 | B1 | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | |
 | B2 | pqdoc reads queries from a workbook | Claude | |
 | B3 | pqdoc writes `.m` files, kept in step with the workbook | Claude | |
@@ -49,7 +50,6 @@ questions the draft raised.
 | E3 | Calls tab: the Ifs, loops and Select Cases around each call | Claude | |
 | E4 | pqdoc: a query's steps, in order | Claude | |
 | E5 | Optional: a sequence diagram of the expanded calls | Claude | |
-| F1 | Class diagram drawn by the page, with boxes you can move; Mermaid removed | Claude | |
 | G1 | Saved views: named, exported to a file and imported again | Claude | |
 | G2 | A views file in the output folder is built into the page | Claude | |
 | G3 | Printing a view or every view, with descriptions | Claude, then you on a work machine | |
@@ -113,7 +113,7 @@ The notes behind this plan are kept out of the repository. This section is what 
 |---|---|
 | The page is the most useful output; the dependency graph works well; pqdoc's depth columns work really well | Kept as they are |
 | A click inside a module, with members showing, pulls the modules together | A1 |
-| The export seems slow, and pauses while writing the page | A2, and F1 (3.6 MB less to write) |
+| The export seems slow, and pauses while writing the page | A2 found the cause; F1 fixes it |
 | pqdoc should write HTML by default | A3 |
 | pqdoc should read queries from the workbook and show their source, as vbadoc does | B1–B4 |
 | Search isn't always the best way to find things; a tree, perhaps in a sidebar | D1 |
@@ -243,6 +243,9 @@ the long name is the code's identity.
 
 - **.NET 10 first,** so every later step is built and tested on the runtime it will ship with.
 - **Fixes next,** because they're small and independent.
+- **The class diagram (F1) comes straight after the fixes,** keeping its letter. A2 found that removing Mermaid also
+  fixes the export's pause and the page's slow opening. Favourites and hiding (D2, D3) then apply to the new diagram as
+  well as the graph.
 - **pqdoc reads workbooks before the shared library exists.** Steps B2–B4 copy vbadoc's approach in parallel code with
   the same names, and C1 then extracts what has really turned out to be duplicated. This follows the guidelines' rule
   of extracting only real duplication.
@@ -458,6 +461,19 @@ H1 is a spike, so these are the starting position. H1's findings confirm or chan
 - `--format` lists the formats to write and defaults to `html`. `--no-csv` goes.
 - Update the tests, README and requirements.
 
+### Step F1: Class diagram
+
+Moved up from after E5, keeping its letter, because it also fixes the export's pause (see A2).
+
+- Rebuild `classes.js` on d3, as section 5 describes, with dragging, remembered positions, focus and selection.
+  Favourites and hiding come to it in D2 and D3, with the graph.
+- Remove Mermaid from `Resources/Vendor/`, the page and the guidelines' list of dependencies. A2 found this is also
+  the fix for the export's pause, and for the page opening slowly: antivirus scanning of the page took about 3 s with
+  Mermaid and 0.2 s without.
+- Acceptance: for the fixtures and the 300-module test project, every box, member and relationship the Mermaid version
+  showed is still shown, and clicks select as before. Look at screenshots in both themes. Re-measure the export with
+  `--verbose`, and the first read of a newly written page, and record both in vbadoc's `DECISIONS.md`.
+
 ### Step B1: Sample workbooks
 
 Excel has to make these, so this step needs you. They go in a public repository, so use made-up data only. Save them in
@@ -588,16 +604,6 @@ This can be dropped without affecting anything after it.
 
 - Draw the open part of the Calls tree as a sequence diagram, as section 5 describes, in a switch on the Calls tab.
 - Browser tests, and screenshots in both themes.
-
-### Step F1: Class diagram
-
-- Rebuild `classes.js` on d3, as section 5 describes, with dragging, remembered positions, hiding, favourites and focus.
-- Remove Mermaid from `Resources/Vendor/`, the page and the guidelines' list of dependencies. A2 found this is also
-  the fix for the export's pause, and for the page opening slowly: antivirus scanning of the page took about 3 s with
-  Mermaid and 0.2 s without.
-- Acceptance: for the fixtures and the 300-module test project, every box, member and relationship the Mermaid version
-  showed is still shown, and clicks select as before. Look at screenshots in both themes. Re-measure the export with
-  `--verbose`, and the first read of a newly written page, and record both in vbadoc's `DECISIONS.md`.
 
 ### Step G1: Saved views
 
