@@ -15,8 +15,8 @@ rather than repeating it.
 - **pqdoc 1.2.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. A0 and A1 are pushed; the
-  user's build, test and publish of A0 on the work machine is still to come. A0–A3, F1 and B1 are pushed. B2 is
-  done, waiting for review. B3 (pqdoc writes `.m` files) is next.
+  user's build, test and publish of A0 on the work machine is still to come. A0–A3, F1, B1 and B2 are pushed. A4
+  (documentation files named after the workbook, added after B2) is next, then B3 (pqdoc writes `.m` files).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -26,6 +26,13 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-03: Documentation file names added to the plan
+
+- The user asked for the two tools' documentation files to be named the same way, representative of the source.
+  Added as step A4, before B3: `<workbook>-vba.html` and `<workbook>-powerquery.html` (and `.csv`, `.puml`), a
+  folder's name for a folder of `.m` files, `--output-name` in both, older pages cleared from folders the tools own,
+  `#` and `%` replaced. Views files keep fixed names.
 
 ### 2026-11-03: Step B2, pqdoc reads workbooks
 

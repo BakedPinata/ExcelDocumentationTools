@@ -38,6 +38,7 @@ questions the draft raised.
 | F1 | Class diagram drawn by the page, with boxes you can move; Mermaid removed (moved up after A2) | Claude | Done |
 | B1 | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | Done |
 | B2 | pqdoc reads queries from a workbook | Claude | Done |
+| A4 | Documentation files named after the workbook, the same way in both tools (added after B2) | Claude | |
 | B3 | pqdoc writes `.m` files, kept in step with the workbook | Claude | |
 | B4 | pqdoc's page shows highlighted M source | Claude | |
 | C1 | Shared library: `shared/`, with the C# code both tools now duplicate | Claude | |
@@ -116,6 +117,7 @@ The notes behind this plan are kept out of the repository. This section is what 
 | The export seems slow, and pauses while writing the page | A2 found the cause; F1 fixes it |
 | pqdoc should write HTML by default | A3 |
 | pqdoc should read queries from the workbook and show their source, as vbadoc does | B1–B4 |
+| The two tools' documentation files should be named the same way (raised after B2) | A4 |
 | Search isn't always the best way to find things; a tree, perhaps in a sidebar | D1 |
 | The VBA editor can't organise modules into folders | D1 groups modules by `'@Folder` comments |
 | The trail is less useful than expected; favourites would help | D2 |
@@ -217,9 +219,9 @@ pqdoc <workbook or folder> [--output <folder>] [--output-name <name>] [--format 
 
 | Command | Default folder | Contents |
 |---|---|---|
-| `vbadoc book.xlsm` | `VBAProject`, next to the input | As now: `index.html`, the module files, `.gitattributes` |
-| `pqdoc book.xlsx` | `PowerQuery`, next to the input | `.m` files, `powerquery-dependencies.html`, `.gitattributes` |
-| `pqdoc <folder>` | The input folder | `powerquery-dependencies.html` |
+| `vbadoc book.xlsm` | `VBAProject`, next to the input | `book-vba.html` (from A4; `index.html` before), the module files, `.gitattributes` |
+| `pqdoc book.xlsx` | `PowerQuery`, next to the input | `.m` files, `book-powerquery.html` (from A4), `.gitattributes` |
+| `pqdoc <folder>` | The input folder | `<folder>-powerquery.html` (from A4) |
 
 A views file saved in that folder (`vbadoc-views.json` or `pqdoc-views.json`) is built into the page on every run, and
 goes into git with the source.
@@ -377,6 +379,23 @@ the long name is the code's identity.
   layout. No new library was needed. vbadoc's `DECISIONS.md` has the details.
 - **Mermaid is removed,** along with its 150-dependency limit and its escaping rules. The C# `ClassDiagram` model stays.
 
+### Documentation file names (A4)
+
+- **Each documentation file is named after its workbook, with a suffix for what it documents:** `<workbook>-vba.html`
+  from vbadoc, and `<workbook>-powerquery.html` (and `.csv`, `.puml`, `.svg`, `.png`, `.pdf`) from pqdoc. For a folder
+  of `.m` files, the folder's name stands in for the workbook's. A file that's emailed, attached, downloaded or printed
+  loses its folder, so its own name has to say what it is. The suffix stops the two tools' pages for one workbook
+  clashing when they travel together.
+- **`--output-name` overrides the name in both tools.** vbadoc gains it; pqdoc keeps its own.
+- **A renamed workbook doesn't leave its old page behind.** Each tool deletes its own older pages from a folder it
+  owns (vbadoc's output folder, pqdoc's `PowerQuery` folder), recognising them by their generator tag, and says so.
+  In a folder of `.m` files, which belongs to the user, pqdoc only mentions them. This also clears away the old
+  `index.html` and `powerquery-dependencies.*` names on the first run.
+- **`#` and `%` become `_` in the file name only,** because they break or confuse a browser's address, and vbadoc uses
+  the address's `#` part for Back and Forward.
+- **Settings files keep fixed names** (`vbadoc-views.json`, `pqdoc-views.json`), so renaming a workbook doesn't lose
+  its saved views.
+
 ### Views and printing
 
 - **A view** has a name, a description written by the user, and: the tab, the focus set, the hidden items, the Show…
@@ -506,6 +525,18 @@ to the fixture folder saying what each file is for.
 - Tests use the samples, plus a small helper that builds `DataMashup` bytes, for damaged lengths and bad base64.
 - Acceptance: the graph from `Queries.xlsx` matches the graph from the same queries exported by hand. The private
   workbook gives the same result as its hand-exported query (checked by hand, not a test).
+
+### Step A4: Documentation file names
+
+Added after B2, and done before B3 so the `PowerQuery` folder gets its final names straight away.
+
+- Name the documentation files as section 5 describes, in both tools. vbadoc gains `--output-name`, and the
+  `.gitattributes` it creates covers `*.html` rather than `index.html`.
+- Delete each tool's older pages from a folder it owns, and only mention them in a folder of `.m` files.
+- Tests: names from a workbook and from a folder, `#` and `%`, `--output-name`, an old `index.html` and an older
+  workbook-named page cleared away, a page from the other tool or a hand-written `.html` left alone.
+- Update both tools' requirements, decisions and READMEs, and note the change for anyone who bookmarked
+  `index.html`.
 
 ### Step B3: pqdoc writes `.m` files
 
@@ -690,6 +721,7 @@ Approving this plan covers the changes below. Anything else still needs asking.
 | `docs/GUIDELINES.md` | Structure: `shared/` and what belongs there | C1 |
 | `docs/GUIDELINES.md` | HTML pages: the shell, the explorer, views files | C2, G2 |
 | `docs/GUIDELINES.md` | Dependencies: Mermaid removed | F1 |
+| Both `Requirements.md`s, `DECISIONS.md`s and `README.md`s | Documentation file names; vbadoc's `--output-name` | A4 |
 | Both `Requirements.md`s and `DECISIONS.md`s | Importing: what's chosen, dependencies, bundles, writing workbooks | H1–H4 |
 | Both `README.md`s | Usage and features | A3, B2–H4 |
 
