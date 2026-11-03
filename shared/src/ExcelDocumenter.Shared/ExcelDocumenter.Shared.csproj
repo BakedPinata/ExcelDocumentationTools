@@ -5,6 +5,9 @@
 
   <ItemGroup>
     <PackageReference Include="OpenMcdf" />
+    <!-- For the options and prompt every tool shares (CommandLine/), and the overwrite policy's messages (Files/). -->
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="System.CommandLine" />
   </ItemGroup>
 
   <ItemGroup>

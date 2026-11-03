@@ -1,23 +1,24 @@
-using PowerQueryDocumenter.Core.Configuration;
-using PowerQueryDocumenter.Core.Output;
-using PowerQueryDocumenter.Tests.TestSupport;
+using ExcelDocumenter.Shared.Files;
 using Serilog.Events;
 
-namespace PowerQueryDocumenter.Tests.Output;
+namespace ExcelDocumenter.Shared.Tests.Files;
+
+/// <summary>An output as a tool plans one: its name in messages, and where it goes.</summary>
+public sealed record Output(string Name, string Path) : IPlannedOutput;
 
 public sealed class OverwriteResolverTests
 {
-  private static readonly PlannedOutput Csv = new(OutputFormat.Csv, "/out/model.csv");
-  private static readonly PlannedOutput Puml = new(OutputFormat.Puml, "/out/model.puml");
-  private static readonly PlannedOutput Html = new(OutputFormat.Html, "/out/model.html");
-  private static readonly PlannedOutput[] All = [Csv, Puml, Html];
+  private static readonly Output Csv = new("csv", "/out/model.csv");
+  private static readonly Output Puml = new("puml", "/out/model.puml");
+  private static readonly Output Html = new("html", "/out/model.html");
+  private static readonly Output[] All = [Csv, Puml, Html];
 
   private readonly TestLog log = new();
 
-  private OverwriteResolution Resolve(
+  private OverwriteResolution<Output> Resolve(
     OnExistsBehaviour behaviour,
     FakeUserInteraction interaction,
-    params PlannedOutput[] existing) =>
+    params Output[] existing) =>
     new OverwriteResolver(log.CreateLogger(), interaction).Resolve(All, behaviour, path => existing.Any(e => e.Path == path));
 
   [Theory]
@@ -113,5 +114,26 @@ public sealed class OverwriteResolverTests
 
     Assert.True(resolution.Aborted);
     Assert.Empty(resolution.ToWrite);
+  }
+
+  [Fact]
+  public void Skipping_names_the_output_as_the_tool_calls_it()
+  {
+    Resolve(OnExistsBehaviour.Skip, new FakeUserInteraction(false), Puml);
+
+    // Rendered here with string values in quotes, as Serilog does outside a console template.
+    Assert.Contains("Skipping \"puml\": \"/out/model.puml\" already exists", log.Messages(LogEventLevel.Warning));
+  }
+
+  [Fact]
+  public void A_file_the_tool_says_it_would_not_change_is_not_asked_about()
+  {
+    var interaction = new FakeUserInteraction(isInteractive: true, OverwriteAnswer.Yes);
+
+    // Only the CSV would change; the others are there but would be written the same.
+    var resolution = new OverwriteResolver(log.CreateLogger(), interaction).Resolve(All, OnExistsBehaviour.Prompt, path => path == Csv.Path);
+
+    Assert.Equal(new[] { Csv.Path }, interaction.Asked);
+    Assert.Equal(All, resolution.ToWrite);
   }
 }

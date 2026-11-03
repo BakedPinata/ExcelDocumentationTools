@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.CommandLine.Invocation;
 using ExcelDocumenter.Shared;
+using ExcelDocumenter.Shared.Files;
 using ExcelDocumenter.Shared.Workbooks;
 using Serilog;
 using VbaDocumenter.Core.Analysis;
@@ -42,7 +43,7 @@ static class CliRunner
       var binding = OptionsBinder.Bind(parseResult, cli);
       if (binding.Options is null) return ReportInvalidArguments(binding.Errors);
 
-      return Export(binding.Options, logger, cancellationToken);
+      return Export(binding.Options, logger, services.Interaction, cancellationToken);
     }
     catch (ExtractionException ex)
     {
@@ -74,7 +75,7 @@ static class CliRunner
   /// Core's work is synchronous and quick, so Ctrl+C is honoured between steps. Writing, once started, always finishes:
   /// half an export would be worse than waiting a moment for all of it.
   /// </summary>
-  static int Export(CommandLineOptions options, ILogger logger, CancellationToken cancellationToken)
+  static int Export(CommandLineOptions options, ILogger logger, IUserInteraction interaction, CancellationToken cancellationToken)
   {
     var total = Stopwatch.StartNew();
     logger.Information("Reading {Workbook}", options.WorkbookPath);
@@ -94,6 +95,16 @@ static class CliRunner
         () => HtmlPageWriter.Build(dependencies, project, Path.GetFileName(options.WorkbookPath), options.EmbedSource));
     cancellationToken.ThrowIfCancellationRequested();
 
+    // The page is asked about before anything is written, so quitting or refusing changes nothing on disk. A page that
+    // would be written unchanged has nothing to overwrite, so it isn't asked about; the module files follow the
+    // workbook and never are.
+    var pageFile = HtmlPageWriter.FileName(options.OutputName);
+    var pagePath = Path.Combine(options.OutputFolder, pageFile);
+    var resolution = new OverwriteResolver(logger, interaction).Resolve(
+        [new PlannedPage(pagePath)], options.OnExists, path => File.Exists(path) && HtmlPageWriter.WouldChange(path, html));
+    if (resolution.Aborted) return ExitCodes.OutputRefused;
+    cancellationToken.ThrowIfCancellationRequested();
+
     try
     {
       logger.Information("Exporting to {Folder}", options.OutputFolder);
@@ -102,12 +113,15 @@ static class CliRunner
       foreach (var name in result.Deleted) logger.Information("    deleted {File} (no longer in the workbook)", name);
       if (result.CreatedGitAttributes) logger.Information("  Created .gitattributes");
 
-      var pageFile = HtmlPageWriter.FileName(options.OutputName);
-      bool pageWritten = Timed(logger, "Writing the page", () => HtmlPageWriter.Write(options.OutputFolder, pageFile, html));
-      logger.Information("  {Page} {Outcome} {Hint}",
-          pageFile,
-          pageWritten ? "written" : "unchanged",
-          options.EmbedSource ? "(source embedded)" : "(open it and use Load folder to see source)");
+      // A page skipped at the prompt or with --on-exists skip has already been reported.
+      if (resolution.ToWrite.Count > 0)
+      {
+        bool pageWritten = Timed(logger, "Writing the page", () => HtmlPageWriter.Write(options.OutputFolder, pageFile, html));
+        logger.Information("  {Page} {Outcome} {Hint}",
+            pageFile,
+            pageWritten ? "written" : "unchanged",
+            options.EmbedSource ? "(source embedded)" : "(open it and use Load folder to see source)");
+      }
 
       // Only once the new page is safely written, so there's always a page.
       foreach (var name in HtmlPageWriter.RemoveOlderPages(options.OutputFolder, pageFile))

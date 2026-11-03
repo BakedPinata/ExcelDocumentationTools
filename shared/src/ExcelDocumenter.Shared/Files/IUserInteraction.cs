@@ -1,6 +1,6 @@
-namespace PowerQueryDocumenter.Core.Output;
+namespace ExcelDocumenter.Shared.Files;
 
-/// <summary>An answer to the "file already exists" prompt (FR-OVR-2).</summary>
+/// <summary>An answer to the "file already exists" prompt.</summary>
 public enum OverwriteAnswer
 {
   /// <summary>Overwrite this file.</summary>

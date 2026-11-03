@@ -64,9 +64,7 @@ internal static class OptionsBinder
       server = resolution.Server;
     }
 
-    var onExists = parseResult.GetValue(cli.Force)
-      ? OnExistsBehaviour.Overwrite
-      : parseResult.GetValue(cli.OnExists) ?? OnExistsBehaviour.Prompt;
+    var onExists = cli.Overwrite.Bind(parseResult);
 
     if (errors.Count > 0 || input is null || outputFolder is null)
     {

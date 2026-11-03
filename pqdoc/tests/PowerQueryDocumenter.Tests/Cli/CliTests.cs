@@ -1,5 +1,6 @@
 using System.CommandLine.Help;
 using System.CommandLine.Invocation;
+using ExcelDocumenter.Shared.Files;
 using PowerQueryDocumenter.Cli;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Tests.TestSupport;

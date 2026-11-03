@@ -200,6 +200,10 @@ Reading them is step B2 of the feedback plan.
   outputs.
 - **Files are written to a temporary file and then moved into place**, so a failure or Ctrl+C never leaves a truncated file.
 - **Overwrite prompts go to standard error**, so standard output stays clean.
+- **The overwrite code is shared with vbadoc** (1.5.3, step A5 of the feedback plan): `OnExistsBehaviour`,
+  `OverwriteResolver`, the console prompt and the two options moved to `shared/` unchanged in behaviour and wording,
+  when vbadoc took them up. `PlannedOutput` stays in pqdoc, carrying its format, and names itself by the format in
+  messages, as before.
 
 ## Page
 

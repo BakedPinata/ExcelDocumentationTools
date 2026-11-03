@@ -53,8 +53,16 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   `<version>+<commit>[-dirty]`; pages keep the longer sentence from `ToolVersion.Description`.
 - **`ExtractionException` is exit code 3.** It also covers two modules mapping to one file name, which is a problem
   with the workbook even though it's found while exporting.
-- **Any I/O failure while writing is exit code 5.** Code 4, output refused, isn't used, because vbadoc always brings the
-  folder in line with the workbook.
+- **Any I/O failure while writing is exit code 5.** Until 0.9.0, code 4 (output refused) wasn't used, because vbadoc
+  always brought the folder in line with the workbook.
+- **Asking before overwriting the page** (0.9.0, step A5 of the feedback plan, at the user's request). `--on-exists` and
+  `--force` (`-y`) work as pqdoc's, with the same code, prompt and messages from the shared library: by default vbadoc
+  asks when the session is interactive and refuses with code 4 when it isn't. Only the page is asked about, because
+  the module files and `.gitattributes` follow the workbook, as pqdoc's `.m` files do; and only a page this run would
+  change, because an unchanged page has nothing to overwrite and re-running on an unchanged workbook shouldn't ask. A
+  new build changes the page's stamp, so the first run after updating asks too. The check comes after the page is
+  built and before anything is written, so quitting changes nothing. A page that's skipped still lets older pages under
+  other names be cleared, since the folder keeps a current page either way.
 - **Stack traces appear only with `--verbose`**, as in pqdoc. An unexpected error used to print one every time.
 - **Report detail is at Debug level**, so `--verbose` shows it: member lists, module edges and the rest of a list past 20
   items. Parser warnings are at Warning level, so they still show with `--quiet`.

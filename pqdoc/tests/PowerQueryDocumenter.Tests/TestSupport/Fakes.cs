@@ -1,5 +1,5 @@
+using ExcelDocumenter.Shared.Files;
 using PowerQueryDocumenter.Core.Configuration;
-using PowerQueryDocumenter.Core.Output;
 
 namespace PowerQueryDocumenter.Tests.TestSupport;
 

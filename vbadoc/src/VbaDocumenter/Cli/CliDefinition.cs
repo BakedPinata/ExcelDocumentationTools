@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using ExcelDocumenter.Shared.CommandLine;
 
 namespace VbaDocumenter.Cli;
 
@@ -36,6 +37,9 @@ sealed class CliDefinition
       Description = "Put the module source inside the page, so it works without \"Load folder\".",
     };
 
+    // --on-exists and --force, the same in every tool. Only the page is asked about: the module files follow the workbook.
+    Overwrite = new OverwriteOptions("the page", "an existing page");
+
     Verbose = new Option<bool>("--verbose", "-v")
     {
       Description = "List every member found in each module, with its line range, and show debug-level log output.",
@@ -54,6 +58,8 @@ sealed class CliDefinition
       Output,
       OutputName,
       EmbedSource,
+      Overwrite.OnExists,
+      Overwrite.Force,
       Verbose,
       Quiet,
     };
@@ -74,6 +80,9 @@ sealed class CliDefinition
   /// <summary><c>--embed-source</c>.</summary>
   public Option<bool> EmbedSource { get; }
 
+  /// <summary><c>--on-exists</c> and <c>--force</c> / <c>-y</c>.</summary>
+  public OverwriteOptions Overwrite { get; }
+
   /// <summary><c>--verbose</c> / <c>-v</c>.</summary>
   public Option<bool> Verbose { get; }
 
@@ -93,6 +102,8 @@ sealed class CliDefinition
     {
       result.AddError(nameError);
     }
+
+    Overwrite.Validate(result);
 
     if (result.GetValue(Verbose) && result.GetValue(Quiet))
     {

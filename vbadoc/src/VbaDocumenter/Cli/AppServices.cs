@@ -1,3 +1,5 @@
+using ExcelDocumenter.Shared.CommandLine;
+using ExcelDocumenter.Shared.Files;
 using Serilog;
 using VbaDocumenter.Logging;
 
@@ -15,10 +17,14 @@ sealed class AppServices
   /// <summary>Standard error (usage text after a validation error).</summary>
   public required TextWriter Error { get; init; }
 
+  /// <summary>Asks whether to overwrite the page, when the session can.</summary>
+  public required IUserInteraction Interaction { get; init; }
+
   public static AppServices CreateDefault() => new()
   {
     Output = Console.Out,
     Error = Console.Error,
+    Interaction = new ConsoleUserInteraction(),
     CreateLogger = verbosity =>
     {
       var useColour = LoggingSetup.UseColour(Environment.GetEnvironmentVariable("NO_COLOR"), Console.IsErrorRedirected);

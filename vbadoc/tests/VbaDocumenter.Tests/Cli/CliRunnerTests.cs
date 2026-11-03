@@ -1,4 +1,5 @@
 using ExcelDocumenter.Shared;
+using ExcelDocumenter.Shared.Files;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -30,10 +31,14 @@ public sealed class CliRunnerTests : IDisposable
     if (Directory.Exists(_folder)) Directory.Delete(_folder, recursive: true);
   }
 
+  // Like a script: nobody to ask. Tests that answer the prompt set their own.
+  IUserInteraction _interaction = new FakeUserInteraction(isInteractive: false);
+
   AppServices Services(Func<LogVerbosity, ILogger>? createLogger = null) => new()
   {
     Output = _output,
     Error = _error,
+    Interaction = _interaction,
     CreateLogger = createLogger ?? (verbosity => _log.CreateLogger(LoggingSetup.MinimumLevel(verbosity))),
   };
 
@@ -145,6 +150,113 @@ public sealed class CliRunnerTests : IDisposable
 
     Assert.NotEmpty(_log.Messages(LogEventLevel.Error));
     Assert.Contains("Usage: vbadoc <workbook>", _error.ToString());
+  }
+
+  // ---- An existing page: asked about only when it would change; the module files never are ----
+
+  /// <summary>Exports once, then leaves a page a new run would change, and a module file a new run would write.</summary>
+  string PageThatWouldChange()
+  {
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output));
+    File.WriteAllText(Page, "an older page");
+    var moduleFile = Directory.GetFiles(Output).First(f => f.EndsWith(".bas") || f.EndsWith(".cls"));
+    File.Delete(moduleFile);
+    return moduleFile;
+  }
+
+  [Fact]
+  public void A_script_cannot_overwrite_a_changed_page_without_force_and_nothing_is_written()
+  {
+    var moduleFile = PageThatWouldChange();
+
+    Assert.Equal(ExitCodes.OutputRefused, Run(Workbook, "--output", Output));
+
+    Assert.Equal("an older page", File.ReadAllText(Page));
+    Assert.False(File.Exists(moduleFile));
+    var errors = string.Join("\n", _log.Messages(LogEventLevel.Error));
+    Assert.Contains("not interactive", errors);
+    Assert.Contains("--force", errors);
+  }
+
+  [Fact]
+  public void An_unchanged_page_is_not_asked_about()
+  {
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output));
+    _interaction = new FakeUserInteraction(isInteractive: true); // a prompt would fail the run
+
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output));
+
+    Assert.Contains(_log.Messages(LogEventLevel.Information), m => m.Contains("SimpleMacro-vba.html") && m.Contains("unchanged"));
+  }
+
+  [Theory]
+  [InlineData("--force", null)]
+  [InlineData("-y", null)]
+  [InlineData("--on-exists", "overwrite")]
+  public void Force_or_overwrite_replaces_a_changed_page(string option, string? value)
+  {
+    var moduleFile = PageThatWouldChange();
+    string[] args = value is null ? [Workbook, "--output", Output, option] : [Workbook, "--output", Output, option, value];
+
+    Assert.Equal(ExitCodes.Success, Run(args));
+
+    Assert.NotEqual("an older page", File.ReadAllText(Page));
+    Assert.True(File.Exists(moduleFile));
+  }
+
+  [Fact]
+  public void Skip_keeps_a_changed_page_but_still_writes_the_module_files()
+  {
+    var moduleFile = PageThatWouldChange();
+
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output, "--on-exists", "skip"));
+
+    Assert.Equal("an older page", File.ReadAllText(Page));
+    Assert.True(File.Exists(moduleFile));
+    Assert.Contains(_log.Messages(LogEventLevel.Warning), m => m.StartsWith("Skipping \"page\""));
+  }
+
+  [Fact]
+  public void Fail_refuses_even_when_someone_could_be_asked()
+  {
+    var moduleFile = PageThatWouldChange();
+    var interaction = new FakeUserInteraction(isInteractive: true);
+    _interaction = interaction;
+
+    Assert.Equal(ExitCodes.OutputRefused, Run(Workbook, "--output", Output, "--on-exists", "fail"));
+
+    Assert.Empty(interaction.Asked);
+    Assert.Equal("an older page", File.ReadAllText(Page));
+    Assert.False(File.Exists(moduleFile));
+  }
+
+  [Theory]
+  [InlineData(OverwriteAnswer.Yes, true)]
+  [InlineData(OverwriteAnswer.All, true)]
+  [InlineData(OverwriteAnswer.No, false)]
+  public void The_prompt_asks_about_the_page_and_does_what_it_is_told(OverwriteAnswer answer, bool overwritten)
+  {
+    var moduleFile = PageThatWouldChange();
+    var interaction = new FakeUserInteraction(isInteractive: true, answer);
+    _interaction = interaction;
+
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output));
+
+    Assert.Equal(new[] { Page }, interaction.Asked);
+    Assert.Equal(overwritten, File.ReadAllText(Page) != "an older page");
+    Assert.True(File.Exists(moduleFile)); // the module files follow the workbook, whatever the answer
+  }
+
+  [Fact]
+  public void Quitting_at_the_prompt_writes_nothing_and_exits_with_4()
+  {
+    var moduleFile = PageThatWouldChange();
+    _interaction = new FakeUserInteraction(isInteractive: true, OverwriteAnswer.Quit);
+
+    Assert.Equal(ExitCodes.OutputRefused, Run(Workbook, "--output", Output));
+
+    Assert.Equal("an older page", File.ReadAllText(Page));
+    Assert.False(File.Exists(moduleFile));
   }
 
   [Fact]

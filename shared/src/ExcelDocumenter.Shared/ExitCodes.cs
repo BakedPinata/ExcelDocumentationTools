@@ -1,8 +1,7 @@
 namespace ExcelDocumenter.Shared;
 
 /// <summary>
-/// Process exit codes, the same in every tool (see docs/GUIDELINES.md at the repository root). A tool that never refuses
-/// to overwrite its output, such as vbadoc, never uses <see cref="OutputRefused"/>.
+/// Process exit codes, the same in every tool (see docs/GUIDELINES.md at the repository root).
 /// </summary>
 public static class ExitCodes
 {

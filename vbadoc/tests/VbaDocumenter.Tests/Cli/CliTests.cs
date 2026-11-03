@@ -1,5 +1,6 @@
 using System.CommandLine.Help;
 using System.CommandLine.Invocation;
+using ExcelDocumenter.Shared.Files;
 using VbaDocumenter.Cli;
 using VbaDocumenter.Logging;
 
@@ -100,6 +101,34 @@ public class CliTests
     var error = Assert.Single(_cli.Parse([Workbook, "--verbose", "--quiet"]).Errors);
 
     Assert.Contains("cannot be used together", error.Message);
+  }
+
+  [Theory]
+  [InlineData(new string[0], OnExistsBehaviour.Prompt)]
+  [InlineData(new[] { "--force" }, OnExistsBehaviour.Overwrite)]
+  [InlineData(new[] { "-y" }, OnExistsBehaviour.Overwrite)]
+  [InlineData(new[] { "--on-exists", "SKIP" }, OnExistsBehaviour.Skip)]
+  [InlineData(new[] { "--on-exists", "fail" }, OnExistsBehaviour.Fail)]
+  [InlineData(new[] { "--on-exists", "overwrite", "--force" }, OnExistsBehaviour.Overwrite)]
+  public void A_page_that_would_change_is_asked_about_unless_the_options_say_otherwise(string[] options, OnExistsBehaviour expected)
+  {
+    Assert.Equal(expected, Bind([Workbook, .. options]).OnExists);
+  }
+
+  [Fact]
+  public void Force_conflicts_with_any_other_on_exists()
+  {
+    var error = Assert.Single(_cli.Parse([Workbook, "-y", "--on-exists", "skip"]).Errors);
+
+    Assert.Contains("--force (-y) means --on-exists overwrite, which conflicts with --on-exists skip", error.Message);
+  }
+
+  [Fact]
+  public void An_unknown_on_exists_lists_the_valid_values()
+  {
+    var error = Assert.Single(_cli.Parse([Workbook, "--on-exists", "maybe"]).Errors);
+
+    Assert.Equal("Invalid value 'maybe' for --on-exists. Valid values are: prompt, overwrite, skip, fail.", error.Message);
   }
 
   [Theory]

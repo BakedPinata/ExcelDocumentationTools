@@ -264,7 +264,7 @@ src/PowerQueryDocumenter.Core/     All the logic
   Analysis/               M tokeniser, reference extraction, analyser, cycle detection
   Model/                  Immutable graph types (DependencyGraph, QueryNode, DependencyEdge)
   Export/                 IExporter and the CSV, PlantUML source, PlantUML render and HTML exporters
-  Output/                 Overwrite policy, query files
+  Output/                 Query files, and the outputs a run plans
   Application/            Run orchestration, error messages
   Resources/Page/         pqdoc's part of the page: its view, search box, styles, scripts and favicon (embedded
                           resources), set into the page shell from ../shared

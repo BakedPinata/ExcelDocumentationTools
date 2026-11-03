@@ -10,16 +10,17 @@ rather than repeating it.
 
 ## Current state (2026-11-03)
 
-- **vbadoc 0.8.2:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
-  `<workbook>-vba.html`. Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
-- **pqdoc 1.5.2**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **vbadoc 0.9.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+  `<workbook>-vba.html`. It asks before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does.
+  Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
+- **pqdoc 1.5.3**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted.
 - **`shared/`** (`ExcelDocumenter.Shared`): the code both tools use, since step C1, and the page shell both pages are
   built on, since C2. See its README.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. The user's build, test and
-  publish of A0 on the work machine is still to come. A0–A4, F1, B1–B4 and C1 are pushed and reviewed. C2 is done,
-  waiting for review. **Next: A5** (vbadoc's `--on-exists` and `--force`), then D1 (the explorer).
+  publish of A0 on the work machine is still to come. A0–A4, F1, B1–B4, C1 and C2 are pushed and reviewed. A5 is done,
+  waiting for review. **Next: D1** (the explorer: a tree of everything in the workbook, beside the view).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -29,6 +30,17 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-03: Step A5, vbadoc asks before overwriting its page
+
+- vbadoc gains `--on-exists` and `--force` (`-y`), with pqdoc's rules: by default it asks when interactive and refuses
+  with exit code 4 when not. Only a page this run would change is asked about; module files and `.gitattributes`
+  follow the workbook. The check comes before anything is written. vbadoc 0.9.0; its README notes that scripts now need
+  `--force`, and that a new build's stamp counts as a change.
+- pqdoc's overwrite code moved to `shared/` (`Files/OverwriteResolver`, `OnExistsBehaviour`, `IUserInteraction`;
+  `CommandLine/OverwriteOptions`, `ConsoleUserInteraction`), unchanged in behaviour and wording. pqdoc 1.5.3.
+- vbadoc's requirements, decisions and README, the guidelines' shared options, and the shared README follow. Tests:
+  19 new in vbadoc, 12 new in shared, and pqdoc's 11 resolver tests moved to shared.
 
 ### 2026-11-03: Step C2, the shared page shell
 

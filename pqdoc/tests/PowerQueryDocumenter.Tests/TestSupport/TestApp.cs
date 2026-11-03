@@ -1,3 +1,4 @@
+using ExcelDocumenter.Shared.Files;
 using PowerQueryDocumenter.Cli;
 using PowerQueryDocumenter.Core.Application;
 using PowerQueryDocumenter.Core.Configuration;

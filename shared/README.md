@@ -10,7 +10,8 @@ build stamps. See "Structure" in [docs/GUIDELINES.md](../docs/GUIDELINES.md) for
 |---|---|---|
 | (root) | `ExitCodes`, the codes every tool returns; `ToolVersion`, the build stamp read from a tool's own assembly | both |
 | `Workbooks/` | `WorkbookFile`: reading a workbook while Excel has it open, telling zip-based from compound files, spotting encryption; `ExtractionException`, exit code 3 | both readers |
-| `Files/` | `AtomicFileWriter`: write to a temporary file, then move it into place; `SourceFolderWriter`: keep a folder of source files in step with a workbook | vbadoc's module files and page; pqdoc's `.m` files and outputs |
+| `Files/` | `AtomicFileWriter`: write to a temporary file, then move it into place; `SourceFolderWriter`: keep a folder of source files in step with a workbook; `OverwriteResolver` and `OnExistsBehaviour`: what to do when an output already exists, asking through `IUserInteraction` | vbadoc's module files and page; pqdoc's `.m` files and outputs |
+| `CommandLine/` | `OverwriteOptions`: `--on-exists` and `--force` (`-y`), checked and bound the same way in both tools; `ConsoleUserInteraction`: the yes / no / all / quit prompt, on standard error | both command lines |
 | `Pages/` | `ShellPage`: a page built on the shell, from the parts a tool brings; `PageBuilder`: filling a template's placeholders, inlining scripts after d3 and the shell's, escaping text and JSON, the favicon; `EmbeddedResources`; `VendoredScripts` | both pages |
 | `Resources/Shell/` | The page shell: `shell.html` (the template), `shell.css` (the frame and shared colour tokens) and `shell.js` (theme, settings, tabs, side panel, splitter, Load folder, source view; its interface is at the top) | both pages |
 | `Resources/Vendor/` | d3 and its licence, byte-for-byte as published (see its README) | both pages |
@@ -64,3 +65,13 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
 - **The tool starts the shell, then says where its source comes from** (`shell.source.init`), because only the tool
   can read its data: vbadoc decodes with the project's code page, pqdoc by byte order mark.
 - **No colour changed.** The shared tokens were identical in both pages, so none needed validating again.
+
+### Asking before overwriting (step A5)
+
+- **pqdoc's overwrite code moved here** when vbadoc took up `--on-exists` and `--force`: the policy, the prompt and
+  the options, with their messages unchanged. The resolver works on anything with a path and a name for messages
+  (`IPlannedOutput`), so pqdoc's outputs keep their formats and vbadoc's page is just `page`.
+- **A tool says which files count as existing.** The resolver takes a check, so vbadoc can leave out a page it would
+  write unchanged: there's nothing to overwrite, so nothing to ask.
+- **This library now uses Serilog and System.CommandLine**, which both tools already did, for the policy's messages
+  and the options.

@@ -51,7 +51,8 @@ dotnet publish src/VbaDocumenter -c Release -p:PublishProfile=FolderProfile
 ## Usage
 
 ```bash
-dotnet run --project src/VbaDocumenter -- <workbook> [--output <folder>] [--output-name <name>] [--embed-source] [--verbose]
+dotnet run --project src/VbaDocumenter -- <workbook> [--output <folder>] [--output-name <name>] [--embed-source]
+                                            [--on-exists <behaviour>] [--force] [--verbose | --quiet]
 ```
 
 | Argument | Alias | |
@@ -60,6 +61,8 @@ dotnet run --project src/VbaDocumenter -- <workbook> [--output <folder>] [--outp
 | `--output <folder>` | `-o` | Output folder. Default: a `VBAProject` folder next to the workbook |
 | `--output-name <name>` | `-n` | The page's file name, without `.html`. Default: the workbook's name and `-vba`, such as `Sales-vba`. It can't contain a folder, an extension, `#` or `%` |
 | `--embed-source` | | Put the module source inside the page, so it works without Load folder |
+| `--on-exists <behaviour>` | | What to do when the page already exists and would change: `prompt`, `overwrite`, `skip` or `fail`. Default: `prompt` when run in a terminal, otherwise `fail` |
+| `--force` | `-y` | Overwrite the page without asking. The same as `--on-exists overwrite` |
 | `--verbose` | `-v` | List every member found in each module, with its line range, show how long each step took, and show debug-level log output |
 | `--quiet` | `-q` | Show warnings and errors only |
 | `--help` | `-h`, `-?` | Show help |
@@ -74,11 +77,28 @@ output is only used by `--help` and `--version`.
 | 1 | Unexpected error (`--verbose` shows the details) |
 | 2 | Invalid arguments |
 | 3 | A problem with the workbook, which the message explains: missing, unreadable, corrupt or without a VBA project |
+| 4 | The page already exists and would change, and overwriting it was refused: nothing was written |
 | 5 | The source files or page could not be written |
 | 130 | Cancelled with Ctrl+C |
 
-The codes are shared with pqdoc. Code 4 means an output was refused, which never happens here: vbadoc always brings
-the output folder in line with the workbook.
+The codes are shared with pqdoc.
+
+### An existing page
+
+If the page is already there and this run would change it, vbadoc asks before overwriting it, as pqdoc does:
+`[y]es / [n]o / [a]ll / [q]uit`. It asks before writing anything, so quitting changes nothing. Answering no keeps the
+page and still brings the module files in line with the workbook. A page that would be written unchanged isn't asked
+about, so running vbadoc again on an unchanged workbook doesn't ask. The module files and `.gitattributes` are never
+asked about: they always follow the workbook.
+
+When nobody can be asked, such as in a script or a scheduled task, vbadoc stops with exit code 4 instead. Add `--force`
+(`-y`) to overwrite, or choose with `--on-exists overwrite`, `skip` or `fail`.
+
+### Changes in 0.9.0
+
+- vbadoc asks before overwriting a page that would change (see above), and a script must now say what it wants with
+  `--force` or `--on-exists`, or it stops with exit code 4. A new build of vbadoc changes the build stamp in the page,
+  so the first run after updating counts as a change too.
 
 ### Changes in 0.8.0
 

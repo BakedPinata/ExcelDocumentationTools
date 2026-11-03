@@ -1,3 +1,5 @@
+using ExcelDocumenter.Shared.Files;
+
 namespace PowerQueryDocumenter.Core.Configuration;
 
 /// <summary>Validated settings for one run, produced from the parsed command line (NFR-ARCH-2).</summary>

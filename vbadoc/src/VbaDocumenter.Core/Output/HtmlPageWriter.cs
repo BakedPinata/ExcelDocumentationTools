@@ -8,6 +8,12 @@ using VbaDocumenter.Core.Extraction;
 
 namespace VbaDocumenter.Core.Output;
 
+/// <summary>The page, as the shared <see cref="OverwriteResolver"/> sees it: the only output vbadoc asks about.</summary>
+public sealed record PlannedPage(string Path) : IPlannedOutput
+{
+  public string Name => "page";
+}
+
 /// <summary>
 /// Builds the single, self-contained documentation page on the shell pqdoc's page shares (<see cref="ShellPage"/>):
 /// vbadoc's views, search box and trail from Resources/Page, with the styles, scripts, data and (optionally) source
@@ -75,11 +81,19 @@ public static class HtmlPageWriter
   public static bool Write(string outputFolder, string fileName, string html)
   {
     var path = Path.Combine(outputFolder, fileName);
-    var bytes = new UTF8Encoding(false).GetBytes(html);
-    if (File.Exists(path) && File.ReadAllBytes(path).AsSpan().SequenceEqual(bytes)) return false;
-    AtomicFileWriter.Write(path, bytes);
+    if (!WouldChange(path, html)) return false;
+    AtomicFileWriter.Write(path, Bytes(html));
     return true;
   }
+
+  /// <summary>
+  /// Whether writing the page would change the file at <paramref name="path"/>: it's missing or holds something else.
+  /// An unchanged page has nothing to overwrite, so vbadoc doesn't ask about it.
+  /// </summary>
+  public static bool WouldChange(string path, string html) =>
+      !File.Exists(path) || !File.ReadAllBytes(path).AsSpan().SequenceEqual(Bytes(html));
+
+  static byte[] Bytes(string html) => new UTF8Encoding(false).GetBytes(html);
 
   /// <summary>
   /// Deletes pages vbadoc wrote earlier under another name in the output folder, which belongs to vbadoc: a renamed

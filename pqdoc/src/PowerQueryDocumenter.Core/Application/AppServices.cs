@@ -1,3 +1,4 @@
+using ExcelDocumenter.Shared.Files;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Core.Export;
 using PowerQueryDocumenter.Core.Output;

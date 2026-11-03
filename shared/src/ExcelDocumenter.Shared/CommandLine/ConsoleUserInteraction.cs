@@ -1,9 +1,9 @@
-using PowerQueryDocumenter.Core.Output;
+using ExcelDocumenter.Shared.Files;
 
-namespace PowerQueryDocumenter.Cli;
+namespace ExcelDocumenter.Shared.CommandLine;
 
 /// <summary>Prompts on the console. Prompts go to stderr so that stdout stays clean.</summary>
-internal sealed class ConsoleUserInteraction : IUserInteraction
+public sealed class ConsoleUserInteraction : IUserInteraction
 {
   /// <inheritdoc />
   public bool IsInteractive => !Console.IsInputRedirected && !Console.IsOutputRedirected && !Console.IsErrorRedirected;

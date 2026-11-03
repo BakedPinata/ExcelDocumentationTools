@@ -1,25 +1,27 @@
-using PowerQueryDocumenter.Core.Configuration;
 using Serilog;
 
-namespace PowerQueryDocumenter.Core.Output;
+namespace ExcelDocumenter.Shared.Files;
 
-/// <summary>An output file the run intends to produce.</summary>
-/// <param name="Format">The export format.</param>
-/// <param name="Path">Full path of the destination file.</param>
-public sealed record PlannedOutput(OutputFormat Format, string Path);
+/// <summary>An output file a run means to write.</summary>
+public interface IPlannedOutput
+{
+  /// <summary>Full path of the destination file.</summary>
+  string Path { get; }
+
+  /// <summary>What the output is called in messages, such as <c>html</c> or <c>page</c>.</summary>
+  string Name { get; }
+}
 
 /// <summary>The decision for every planned output.</summary>
 /// <param name="ToWrite">Outputs to produce.</param>
 /// <param name="Skipped">Outputs skipped because the file already exists.</param>
 /// <param name="Aborted">True when nothing may be written (exit code 4).</param>
-public sealed record OverwriteResolution(
-  IReadOnlyList<PlannedOutput> ToWrite,
-  IReadOnlyList<PlannedOutput> Skipped,
-  bool Aborted);
+public sealed record OverwriteResolution<T>(IReadOnlyList<T> ToWrite, IReadOnlyList<T> Skipped, bool Aborted)
+  where T : IPlannedOutput;
 
 /// <summary>
-/// Applies the <c>--on-exists</c> policy (FR-OVR-1 to FR-OVR-3). Every destination is checked
-/// before anything is written, so a refused overwrite never leaves a partial set of outputs.
+/// Applies the <c>--on-exists</c> policy. Every destination is checked before anything is written, so a refused
+/// overwrite never leaves a partial set of outputs.
 /// </summary>
 public sealed class OverwriteResolver(ILogger logger, IUserInteraction interaction)
 {
@@ -29,11 +31,12 @@ public sealed class OverwriteResolver(ILogger logger, IUserInteraction interacti
   /// <summary>Decides which outputs to write.</summary>
   /// <param name="outputs">The planned outputs.</param>
   /// <param name="behaviour">The requested behaviour.</param>
-  /// <param name="fileExists">Checks whether a file exists (replaceable for testing).</param>
-  public OverwriteResolution Resolve(
-    IReadOnlyList<PlannedOutput> outputs,
-    OnExistsBehaviour behaviour,
-    Func<string, bool>? fileExists = null)
+  /// <param name="fileExists">
+  /// Whether a file counts as existing. By default, whether it's there; a tool can also leave out files it wouldn't
+  /// change, which have nothing to overwrite.
+  /// </param>
+  public OverwriteResolution<T> Resolve<T>(IReadOnlyList<T> outputs, OnExistsBehaviour behaviour, Func<string, bool>? fileExists = null)
+    where T : IPlannedOutput
   {
     ArgumentNullException.ThrowIfNull(outputs);
     fileExists ??= File.Exists;
@@ -41,7 +44,7 @@ public sealed class OverwriteResolver(ILogger logger, IUserInteraction interacti
     var existing = outputs.Where(o => fileExists(o.Path)).ToHashSet();
     if (existing.Count == 0)
     {
-      return new OverwriteResolution(outputs, [], Aborted: false);
+      return new OverwriteResolution<T>(outputs, [], Aborted: false);
     }
 
     switch (behaviour)
@@ -52,15 +55,15 @@ public sealed class OverwriteResolver(ILogger logger, IUserInteraction interacti
           logger.Information("Overwriting existing file {Path}", output.Path);
         }
 
-        return new OverwriteResolution(outputs, [], Aborted: false);
+        return new OverwriteResolution<T>(outputs, [], Aborted: false);
 
       case OnExistsBehaviour.Skip:
         foreach (var output in existing)
         {
-          logger.Warning("Skipping {Format}: {Path} already exists", output.Format.CliName(), output.Path);
+          logger.Warning("Skipping {Output}: {Path} already exists", output.Name, output.Path);
         }
 
-        return new OverwriteResolution(
+        return new OverwriteResolution<T>(
           outputs.Where(o => !existing.Contains(o)).ToArray(),
           outputs.Where(existing.Contains).ToArray(),
           Aborted: false);
@@ -72,19 +75,20 @@ public sealed class OverwriteResolver(ILogger logger, IUserInteraction interacti
         ReportExisting(existing);
         logger.Error(
           "This session is not interactive, so the tool cannot ask whether to overwrite. Nothing was written. " + HowToProceed);
-        return Abort();
+        return Abort<T>();
 
       default:
         ReportExisting(existing);
         logger.Error("Nothing was written because --on-exists is fail. " + HowToProceed);
-        return Abort();
+        return Abort<T>();
     }
   }
 
-  private OverwriteResolution Prompt(IReadOnlyList<PlannedOutput> outputs, HashSet<PlannedOutput> existing)
+  private OverwriteResolution<T> Prompt<T>(IReadOnlyList<T> outputs, HashSet<T> existing)
+    where T : IPlannedOutput
   {
-    var toWrite = new List<PlannedOutput>();
-    var skipped = new List<PlannedOutput>();
+    var toWrite = new List<T>();
+    var skipped = new List<T>();
     var overwriteAll = false;
 
     foreach (var output in outputs)
@@ -105,19 +109,20 @@ public sealed class OverwriteResolver(ILogger logger, IUserInteraction interacti
           toWrite.Add(output);
           break;
         case OverwriteAnswer.No:
-          logger.Warning("Skipping {Format}: keeping existing {Path}", output.Format.CliName(), output.Path);
+          logger.Warning("Skipping {Output}: keeping existing {Path}", output.Name, output.Path);
           skipped.Add(output);
           break;
         default:
           logger.Error("Stopped at your request. Nothing was written");
-          return Abort();
+          return Abort<T>();
       }
     }
 
-    return new OverwriteResolution(toWrite, skipped, Aborted: false);
+    return new OverwriteResolution<T>(toWrite, skipped, Aborted: false);
   }
 
-  private void ReportExisting(IEnumerable<PlannedOutput> existing)
+  private void ReportExisting<T>(IEnumerable<T> existing)
+    where T : IPlannedOutput
   {
     foreach (var output in existing)
     {
@@ -125,5 +130,6 @@ public sealed class OverwriteResolver(ILogger logger, IUserInteraction interacti
     }
   }
 
-  private static OverwriteResolution Abort() => new([], [], Aborted: true);
+  private static OverwriteResolution<T> Abort<T>()
+    where T : IPlannedOutput => new([], [], Aborted: true);
 }

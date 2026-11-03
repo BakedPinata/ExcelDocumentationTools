@@ -69,7 +69,8 @@ of generated pages, because changing one changes every page.
   solution, `src/` and `tests/`.
 - **Code both tools need lives once, in `shared/`** (`ExcelDocumenter.Shared`, with `ExcelDocumenter.Shared.Tests` and
   its own solution). It holds only what is duplicated or needed by both: opening a workbook, exit codes, the build
-  stamp, writing a source folder and atomic writes, the page shell and its helpers, and vendored d3. The tools' Core
+  stamp, writing a source folder and atomic writes, asking before overwriting (`--on-exists`, `--force`), the page
+  shell and its helpers, and vendored d3. The tools' Core
   libraries use it and never each other, and it never uses them. It isn't a product, so it has no short name or version
   of its own; `shared/README.md` says what's in it and records its decisions. Code that only one tool needs stays in
   that tool, even if the other might need it one day.
@@ -77,8 +78,10 @@ of generated pages, because changing one changes every page.
 ## Command line, logging and exit codes
 
 - Every tool uses **System.CommandLine**, so `--help`, `--version`, validation and usage text work the same way.
-- Shared options, where they apply: `--output`/`-o` (output folder), `--verbose`/`-v`, `--quiet`/`-q`,
-  `--help`/`-h`/`-?` and `--version`.
+- Shared options, where they apply: `--output`/`-o` (output folder), `--on-exists` and `--force`/`-y` (what to do
+  when an output already exists: ask when interactive, otherwise fail, unless told otherwise), `--verbose`/`-v`,
+  `--quiet`/`-q`, `--help`/`-h`/`-?` and `--version`. Files a tool keeps in step with the workbook, such as module
+  and `.m` files, are never asked about, and neither is an output that would be written unchanged.
 - Every tool logs with **Serilog** (console sink). Messages go to standard error, with colour only when standard
   error is a terminal and `NO_COLOR` isn't set.
 - Every tool uses these exit codes:

@@ -1,5 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using ExcelDocumenter.Shared.CommandLine;
+using ExcelDocumenter.Shared.Files;
 using PowerQueryDocumenter.Core.Configuration;
 
 namespace PowerQueryDocumenter.Cli;
@@ -69,18 +71,8 @@ internal sealed class CliDefinition
       HelpName = "url",
     };
 
-    OnExists = new Option<OnExistsBehaviour?>("--on-exists")
-    {
-      Description = "What to do when an output file already exists: prompt, overwrite, skip or fail. "
-        + "[default: prompt when interactive, otherwise fail]",
-      HelpName = "behaviour",
-      CustomParser = ParseOnExists,
-    };
-
-    Force = new Option<bool>("--force", "-y")
-    {
-      Description = "Overwrite existing output files without asking. Shorthand for --on-exists overwrite.",
-    };
+    // --on-exists and --force, the same in every tool.
+    Overwrite = new OverwriteOptions("an output file", "existing output files");
 
     Verbose = new Option<bool>("--verbose", "-v")
     {
@@ -133,11 +125,14 @@ internal sealed class CliDefinition
   /// <summary><c>--plantuml-server</c>.</summary>
   public Option<string?> PlantUmlServer { get; }
 
+  /// <summary><c>--on-exists</c> and <c>--force</c> / <c>-y</c>.</summary>
+  public OverwriteOptions Overwrite { get; }
+
   /// <summary><c>--on-exists</c>.</summary>
-  public Option<OnExistsBehaviour?> OnExists { get; }
+  public Option<OnExistsBehaviour?> OnExists => Overwrite.OnExists;
 
   /// <summary><c>--force</c> / <c>-y</c>.</summary>
-  public Option<bool> Force { get; }
+  public Option<bool> Force => Overwrite.Force;
 
   /// <summary><c>--verbose</c> / <c>-v</c>.</summary>
   public Option<bool> Verbose { get; }
@@ -203,26 +198,13 @@ internal sealed class CliDefinition
       }
     }
 
-    var onExistsResult = result.GetResult(OnExists);
-    if (result.GetValue(Force)
-      && onExistsResult is { Implicit: false, Tokens.Count: > 0 }
-      && TryParseOnExists(onExistsResult.Tokens[^1].Value, out var onExists)
-      && onExists != OnExistsBehaviour.Overwrite)
-    {
-      result.AddError($"--force (-y) means --on-exists overwrite, which conflicts with --on-exists {onExists.ToString().ToLowerInvariant()}. "
-        + "Use only one of them.");
-    }
+    Overwrite.Validate(result);
 
     if (result.GetValue(Verbose) && result.GetValue(Quiet))
     {
       result.AddError("--verbose (-v) and --quiet (-q) cannot be used together.");
     }
   }
-
-  private static bool TryParseOnExists(string value, out OnExistsBehaviour behaviour) =>
-    Enum.TryParse(value, ignoreCase: true, out behaviour)
-    && Enum.IsDefined(behaviour)
-    && !int.TryParse(value, out _);
 
   private static IReadOnlyList<OutputFormat> ParseFormats(ArgumentResult result)
   {
@@ -252,17 +234,5 @@ internal sealed class CliDefinition
     }
 
     return formats;
-  }
-
-  private static OnExistsBehaviour? ParseOnExists(ArgumentResult result)
-  {
-    var value = result.Tokens.Count > 0 ? result.Tokens[^1].Value : string.Empty;
-    if (TryParseOnExists(value, out var behaviour))
-    {
-      return behaviour;
-    }
-
-    result.AddError($"Invalid value '{value}' for --on-exists. Valid values are: prompt, overwrite, skip, fail.");
-    return null;
   }
 }
