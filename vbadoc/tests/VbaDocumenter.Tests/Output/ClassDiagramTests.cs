@@ -12,10 +12,10 @@ public class ClassDiagramTests
   static readonly DependencyModel Sample =
       DependencyAnalyser.Analyse(ProjectParser.Parse(WorkbookReader.Read(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules()))));
 
-  /// <summary>Each shown member's line as Mermaid would display it, in declaration order.</summary>
+  /// <summary>Each shown member's line as the page displays it, in declaration order.</summary>
   static string[] Lines(ModuleModel module) =>
       ClassDiagram.Lines(module).OrderBy(p => p.Key.DeclarationLine).Select(p =>
-          p.Value.Text + (p.Value.Parameters == null ? "" : $"({p.Value.Parameters})" + (p.Value.Type == null ? "" : " " + p.Value.Type)))
+          p.Value.Text + (p.Value.Parameters == null ? "" : $"({p.Value.Parameters})" + (p.Value.Type == null ? "" : " : " + p.Value.Type)))
       .ToArray();
 
   static ModuleModel SampleModule(string name) => Sample.Modules.Single(m => m.Id == name).Module;
@@ -33,8 +33,8 @@ public class ClassDiagramTests
             "+Property Status : String «Get/Let»",  // Get and Let shown once
             "+Load(row As Range)",
             "+Parse(line As String)",
-            "+IsValid() Boolean",
-            "+Describe() String",
+            "+IsValid() : Boolean",
+            "+Describe() : String",
         ], Lines(SampleModule("Order")));
   }
 
@@ -56,9 +56,9 @@ public class ClassDiagramTests
     Assert.DoesNotContain(lines, l => l.StartsWith("+osNew"));
     Assert.Equal(1, lines.Count(l => l.StartsWith("-Declare Function GetTickCount"))); // declared under #If and #Else: once per declaration line
     Assert.Contains("-Type OrderRow", lines);
-    Assert.Contains("-Declare Function GetTickCount() Long", lines);
+    Assert.Contains("-Declare Function GetTickCount() : Long", lines);
     Assert.Contains("+Declare Sub Sleep(dwMilliseconds As Long)", lines);
-    Assert.Contains("+Total(ParamArray amounts() As Variant) Double", lines);
+    Assert.Contains("+Total(ParamArray amounts() As Variant) : Double", lines);
     Assert.Contains("-m_Rows() : OrderRow", lines);
   }
 
@@ -68,7 +68,7 @@ public class ClassDiagramTests
     var lines = Lines(Fixtures.Parse("SampleVbaExtras", "Settings.cls"));
 
     Assert.Contains("+Property Target : Object «Get/Set»", lines);
-    Assert.Contains("+Property Item(key As String) Variant «Get/Let»", lines);
+    Assert.Contains("+Property Item(key As String) : Variant «Get/Let»", lines);
     Assert.Contains("~Reset()", lines); // Friend
     Assert.Contains("-m_Values : New Collection", lines);
   }

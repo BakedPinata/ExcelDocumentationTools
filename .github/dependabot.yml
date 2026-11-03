@@ -1,8 +1,8 @@
 # Dependabot opens pull requests to keep our dependencies up to date. It never merges anything itself: see "Build
 # workflow and Dependabot" in docs/GUIDELINES.md for how we handle its pull requests.
 #
-# The .NET SDK isn't listed, because moving to a new .NET version is a deliberate decision. Vendored d3 and Mermaid aren't
-# package dependencies, so they're still updated by hand.
+# The .NET SDK isn't listed, because moving to a new .NET version is a deliberate decision. Vendored d3 isn't a package
+# dependency, so it's still updated by hand.
 version: 2
 updates:
   # Reads the versions in the root Directory.Packages.props.

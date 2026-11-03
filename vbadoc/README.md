@@ -3,11 +3,11 @@
 # vbadoc: VBA Export & Documentation Tool
 
 A .NET console app that exports the VBA from a macro-enabled Excel workbook into text files,
-so it can be kept in git, and (in progress) generates a single self-contained HTML page that
-shows how the project fits together:
+so it can be kept in git, and generates a single self-contained HTML page that shows how the
+project fits together:
 
 - an interactive **dependency graph** (d3.js), at module and member level, and
-- a **class diagram** (Mermaid).
+- a **class diagram** (d3.js), whose boxes can be dragged into place.
 
 It reads the workbook file directly. It does not need Excel installed, doesn't use COM, and doesn't need
 the "Trust access to the VBA project object model" setting. It also works while the workbook is open in Excel.
@@ -16,8 +16,8 @@ See [Requirements.md](Requirements.md) for the full specification.
 
 ## Status
 
-Work in progress. Exporting the source files, analysing dependencies, the page's source browser and the dependency
-graph work. The class diagram is still to come.
+Work in progress. Exporting the source files, analysing dependencies, the page's source browser, the dependency graph
+and the class diagram work. What comes next is in the [feedback plan](../FEEDBACK-PLAN.md).
 See [docs/PLAN.md](docs/PLAN.md) for the stages and progress, and [docs/DECISIONS.md](docs/DECISIONS.md)
 for the design decisions behind them.
 
@@ -123,7 +123,7 @@ src/VbaDocumenter.Core/     all the logic
   Analysis/                 reference resolution and the module/member dependency graphs
   Output/                   writing the source files and the page
   Resources/Page/           the page's HTML template, CSS and JavaScript (plain files, no build step)
-  Resources/Vendor/         d3 and Mermaid, embedded and inlined into the page
+  Resources/Vendor/         d3, embedded and inlined into the page
 tests/VbaDocumenter.Tests/  xUnit tests
   Fixtures/SampleVba/       synthetic 12-module VBA project
   Fixtures/SampleVbaExtras/ declarations SampleVba doesn't cover
@@ -138,8 +138,7 @@ tests/VbaDocumenter.BrowserTests/  Playwright tests of the generated page in hea
 | [OpenMcdf](https://github.com/openmcdf/openmcdf) 3.4.0 | MPL-2.0 (unmodified NuGet package) | Reads compound files |
 | [System.CommandLine](https://github.com/dotnet/command-line-api) 2.0.14 | MIT | Command line |
 | [Serilog](https://serilog.net) 4.4.0 and Serilog.Sinks.Console 6.1.1 | Apache-2.0 | Logging |
-| [d3](https://d3js.org) 7.9.0 | ISC | Dependency graph (vendored) |
-| [Mermaid](https://mermaid.js.org) 11.17.2 | MIT | Class diagram (vendored) |
+| [d3](https://d3js.org) 7.9.0 | ISC | Dependency graph and class diagram (vendored) |
 | [Apache POI](https://poi.apache.org) test data | Apache-2.0 | Test fixtures only |
 | [Playwright for .NET](https://playwright.dev/dotnet/) 1.64.1 | MIT | Browser tests only |
 

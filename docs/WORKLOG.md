@@ -10,11 +10,12 @@ rather than repeating it.
 
 ## Current state (2026-11-03)
 
-- **vbadoc 0.6.3:** stages 0–5e are done. Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
+- **vbadoc 0.7.0:** stages 0–5e are done, and the class diagram is drawn with d3 (no Mermaid). Stage 6 (UserForms) is
+  parked; stage 7 waits for the feedback plan.
 - **pqdoc 1.1.0**, plus stages 3b–3d: reads a folder of hand-exported `.m` files, and writes HTML by default.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. A0 and A1 are pushed; the
-  user's build, test and publish of A0 on the work machine is still to come. A2 is pushed. A3 is done, waiting for
-  review. Order from here: F1 (moved up), then B1 onwards.
+  user's build, test and publish of A0 on the work machine is still to come. A0–A3 are pushed. F1 is done, waiting
+  for review. B1 (sample workbooks with Power Query, made by the user in Excel) is next.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -24,6 +25,16 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-03: Step F1, class diagram drawn with d3
+
+- `classes.js` rewritten on d3: UML boxes sized to their text, a layered layout worked out before drawing (users above
+  what they use, cycles sharing a layer, wide layers wrapping, loose modules in a grid), draggable boxes remembered per
+  workbook and Show… choice until Re-run layout, zoom and pan like the graph. Mermaid removed. vbadoc 0.7.0.
+- The page went from 4.3 MB to 0.8 MB on the private workbook. Writing it now takes 1–2 ms, and the antivirus scan a
+  browser waits for takes 0.1–0.2 s instead of about 3 s.
+- vbadoc's requirements (class diagram section, theme, vendored scripts) and decisions (stage 5) describe the d3
+  version. Browser tests rewritten, with new ones for dragging and the layout.
 
 ### 2026-11-03: Step A3, pqdoc writes HTML by default
 

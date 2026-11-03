@@ -441,23 +441,36 @@ body.resizing { cursor: col-resize; user-select: none; }
 
 /* ---- Class diagram (classes.js) ---- */
 
-/* The diagram scrolls inside this box; the toolbar and legend float over it, so leave room at the top. */
-.classes-canvas { position: absolute; inset: 0; overflow: auto; padding: 52px 16px 16px; }
-.classes-canvas svg { display: block; }
-.classes-canvas g.node[data-module] { cursor: pointer; }
-/* Mermaid writes its colours into the SVG with id selectors, so these need !important to win. */
-.classes-canvas g.node .outer-path path { stroke-width: 1.5px !important; }
-.classes-canvas g.node.kind-module .outer-path path { stroke: var(--kind-code) !important; }
-.classes-canvas g.node.kind-class .outer-path path,
-.classes-canvas g.node.kind-interface .outer-path path { stroke: var(--kind-class) !important; }
-.classes-canvas g.node.kind-form .outer-path path,
-.classes-canvas g.node.kind-document .outer-path path { stroke: var(--kind-host) !important; }
-.classes-canvas g.node.selected .outer-path path { stroke: var(--text) !important; stroke-width: 3px !important; }
-/* Highlights must not change a line's width: Mermaid sized the line for its text, so padding would clip it. */
-.classes-canvas [data-member] p { border-radius: 2px; }
-.classes-canvas [data-member]:hover p { background: var(--line-highlight); box-shadow: 0 0 0 2px var(--line-highlight); }
-.classes-canvas [data-member].selected-line p { background: var(--accent); box-shadow: 0 0 0 2px var(--accent); color: var(--accent-text) !important; }
-#classes-legend svg { color: var(--text-muted); }
+/* Font sizes are set on each text element by classes.js, which measures the text to size the boxes. */
+.classes-svg { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; font-family: var(--font-ui); }
+.classes-svg:active, .classes-svg.dragging, .classes-svg.dragging .class-box { cursor: grabbing; }
+.class-box { cursor: pointer; }
+.class-box text { fill: var(--text); }
+.class-box .box-outline { fill: var(--surface); stroke: var(--border); stroke-width: 1.5px; }
+.class-box.kind-module .box-outline { stroke: var(--kind-code); }
+.class-box.kind-class .box-outline,
+.class-box.kind-interface .box-outline { stroke: var(--kind-class); }
+.class-box.kind-form .box-outline,
+.class-box.kind-document .box-outline { stroke: var(--kind-host); }
+.class-box.selected .box-outline { stroke: var(--text); stroke-width: 3px; }
+.class-box .stereotype { fill: var(--text-muted); }
+.class-box .box-name { font-weight: 600; }
+.class-box .divider { stroke: var(--border); }
+.class-line .line-hit { fill: transparent; }
+.class-line:hover .line-hit { fill: var(--line-highlight); }
+.class-line.selected-line .line-hit { fill: var(--accent); }
+.class-line.selected-line text { fill: var(--accent-text); }
+/* Lines keep their width on screen at any zoom, so a zoomed-out diagram stays readable. */
+.class-edge, .class-box .box-outline, .class-box .divider { vector-effect: non-scaling-stroke; }
+.class-edge { fill: none; stroke-width: 1.25px; }
+.class-edge.realization { stroke: var(--edge-implements); stroke-dasharray: 5 3; }
+.class-edge.association { stroke: var(--text-muted); }
+.class-edge.dependency { stroke: var(--edge-uses); stroke-dasharray: 4 3; }
+#classes-arrow-realization path { fill: var(--bg); stroke: var(--edge-implements); stroke-width: 1.25px; }
+#classes-arrow-association path { fill: none; stroke: var(--text-muted); stroke-width: 1.25px; }
+#classes-arrow-dependency path { fill: none; stroke: var(--edge-uses); stroke-width: 1.25px; }
+/* A halo in the background colour keeps labels readable where they cross lines. */
+.class-edge-label { fill: var(--text-muted); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
 #classes-legend ul { grid-template-columns: 1fr; }
 
 .view-message { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--text-muted); pointer-events: none; }

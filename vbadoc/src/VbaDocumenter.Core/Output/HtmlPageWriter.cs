@@ -53,12 +53,10 @@ public static class HtmlPageWriter
   static string Scripts()
   {
     var sb = new StringBuilder();
-    foreach (var vendored in new[] { VendoredScripts.D3, VendoredScripts.Mermaid })
-    {
-      // Licence first, as a comment, so it travels with the code.
-      var licence = $"/*! {vendored.Name} {vendored.Version} ({vendored.LicenceName} licence)\n\n{vendored.LicenceText.Trim()}\n*/\n";
-      AppendScript(sb, $"{vendored.Name} {vendored.Version}", licence + vendored.Code);
-    }
+    // Licence first, as a comment, so it travels with the code.
+    var d3 = VendoredScripts.D3;
+    var licence = $"/*! {d3.Name} {d3.Version} ({d3.LicenceName} licence)\n\n{d3.LicenceText.Trim()}\n*/\n";
+    AppendScript(sb, $"{d3.Name} {d3.Version}", licence + d3.Code);
     foreach (var name in PageScripts)
       AppendScript(sb, name, EmbeddedResources.ReadText(name));
     return sb.ToString();

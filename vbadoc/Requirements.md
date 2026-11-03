@@ -11,7 +11,7 @@ It is a .NET console application that:
 - exports all VBA source from a macro-enabled Excel workbook into text files, and
 - generates a single self-contained HTML page with two views of the project:
   - an interactive **dependency graph** (d3.js), and
-  - a **class diagram** (Mermaid).
+  - a **class diagram** (d3.js).
 
 The exported files and the HTML page are meant to be committed to a git repository that sits beside the workbook, so the VBA can be version-controlled and its structure understood at a glance.
 
@@ -70,7 +70,6 @@ Forms (UserForms) are in scope, but no sample workbook with forms has been avail
 - The page must be a single HTML file with all JavaScript and CSS inline. No CDN or other network requests.
 - Third-party scripts must be vendored into the tool, for example as embedded resources, and written inline into the page with their licence headers kept:
   - d3.js (ISC licence)
-  - Mermaid (MIT licence)
 - The page has a **tab for each view**: Dependency graph and Class diagram.
 - If something is selected when switching tabs, it should stay selected in the other tab where it exists.
 - Both views must stay readable on large projects. Provide zoom and pan, and a way to focus on part of the project (see each view).
@@ -80,7 +79,7 @@ Forms (UserForms) are in scope, but no sample workbook with forms has been avail
 - The page follows the system preference by default, using the `prefers-color-scheme` media query.
 - If the browser can't report a preference, the page defaults to **dark mode**.
 - A switch on the page toggles between light and dark. The user's choice is remembered in `localStorage` (wrap access in `try/catch`, since it can fail on `file://`) and takes precedence over the system preference.
-- Every part of the page must follow the theme: the page itself, the d3 graph, the Mermaid diagram (re-render with Mermaid's dark or default theme), and the syntax highlighting.
+- Every part of the page must follow the theme: the page itself, the dependency graph, the class diagram, and the syntax highlighting.
 
 ### Source panel
 
@@ -125,25 +124,27 @@ Shared by both views.
   - When a single member is selected, the toggle applies to every edge, including edges to other members of the same module.
 - Clicking a node shows its source in the source panel. At module level that is the whole module; at member level it is just that member.
 
-### Class diagram view (Mermaid)
+### Class diagram view
 
 - **One box per module**, with a stereotype showing its kind: `<<module>>`, `<<class>>`, `<<interface>>`, `<<form>>` or `<<document>>`.
 - **Box contents:**
   - members with visibility (`+` public, `-` private), parameters, and return or variable types;
   - properties shown once even when they have both `Get` and `Let`/`Set`;
   - events and constants distinguishable from procedures.
-- **Relationships:**
-  - `Implements` as realisation (`<|..`);
-  - a module-level variable typed as another project class as association (`-->`), labelled with the variable name;
+- **Relationships**, in UML notation:
+  - `Implements` as realisation (dashed line, hollow triangle);
+  - a module-level variable typed as another project class as association (solid line, open arrow), labelled with the variable name;
   - `WithEvents` variables as association, marked as events;
-  - other usage as dependency (`..>`).
+  - other usage as dependency (dashed line, open arrow).
+- **Drawing:** the page draws the diagram itself with d3. Names and values are shown exactly as written, whatever characters they contain.
+- **Layout:** worked out before drawing, so the same project and choices always give the same first picture. Users sit above what they use, and boxes never overlap.
 - **Interaction:**
   - Clicking a box selects that module, and clicking a member line selects that member. Both show the source in the source panel.
-  - Prefer attaching click handlers to the rendered SVG over Mermaid's `click` directive, so Mermaid's `securityLevel` can stay `strict`.
+  - Boxes can be dragged. Where they're dropped is remembered per workbook, until the user asks for the layout to be run again.
 - **Large projects:**
   - Provide a focus mode that shows only the selected module and the modules directly related to it, plus a way to show everything.
-  - Large diagrams must remain correctly rendered and scrollable. The abandoned sequence-diagram spike had lifelines stopping halfway down large Mermaid diagrams.
-- **Testing:** verify that the generated Mermaid parses and renders, for example in a headless browser.
+  - Large diagrams must remain correctly drawn, with zoom and pan.
+- **Testing:** verify the drawn diagram in a headless browser.
 
 ## Out of scope
 

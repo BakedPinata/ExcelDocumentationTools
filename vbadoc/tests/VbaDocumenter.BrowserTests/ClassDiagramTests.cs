@@ -11,19 +11,32 @@ public class ClassDiagramTests(PageFixture fixture)
 
   static Task<string?> Selection(IPage page) => page.EvaluateAsync<string?>("() => window.vbadoc.selection()");
 
-  static string Box(string module) => $"#classes-canvas g.node[data-module='{module}']";
+  static string Box(string module) => $"#classes-svg g.class-box[data-module='{module}']";
 
-  static string Line(string member) => $"#classes-canvas [data-member='{member}']";
+  static string Line(string member) => $"#classes-svg g.class-line[data-member='{member}']";
 
-  /// <summary>A box's text, one line per label (InnerText doesn't work on SVG elements).</summary>
+  const string Edges = "#classes-svg path.class-edge";
+
+  /// <summary>A box's text, one line per text element (InnerText doesn't work on SVG elements).</summary>
   static Task<string> BoxText(IPage page, string module) =>
-      page.Locator(Box(module)).EvaluateAsync<string>("n => [...n.querySelectorAll('p')].map(p => p.textContent).join('\\n')");
+      page.Locator(Box(module)).EvaluateAsync<string>("n => [...n.querySelectorAll('text')].map(t => t.textContent).join('\\n')");
 
-  /// <summary>Clicks an empty spot of the diagram's scrolling area, near its bottom right corner.</summary>
+  static Task<double[]> Position(IPage page, string module) =>
+      page.EvaluateAsync<double[]>("id => { const p = window.vbadocClasses.position(id); return [p.x, p.y]; }", module);
+
+  /// <summary>Clicks a spot of the diagram where nothing is drawn, searching up from its bottom right corner.</summary>
   static async Task ClickBackground(IPage page)
   {
-    var area = (await page.Locator("#classes-canvas").BoundingBoxAsync())!;
-    await page.Mouse.ClickAsync(area.X + area.Width - 30, area.Y + area.Height - 30);
+    var point = await page.EvaluateAsync<float[]?>(@"() => {
+            const svg = document.getElementById('classes-svg');
+            const r = svg.getBoundingClientRect();
+            for (let y = r.bottom - 20; y > r.top + 60; y -= 10)
+                for (let x = r.right - 20; x > r.left + 20; x -= 10)
+                    if (document.elementFromPoint(x, y) === svg) return [x, y];
+            return null;
+        }");
+    Assert.NotNull(point);
+    await page.Mouse.ClickAsync(point[0], point[1]);
   }
 
   static Task WaitUntilDrawn(IPage page, int timeoutMs = 30000) =>
@@ -37,8 +50,36 @@ public class ClassDiagramTests(PageFixture fixture)
     return opened;
   }
 
+  /// <summary>
+  /// Brings a box into view as a person would, by selecting it, then clears the selection. The test window is
+  /// small, with the source panel open, so the sample's diagram doesn't all fit at the starting zoom.
+  /// </summary>
+  static async Task Reveal(OpenedPage opened, string module)
+  {
+    await opened.SelectAsync(module);
+    await opened.Page.WaitForFunctionAsync(@"id => {
+            const view = document.getElementById('classes-svg').getBoundingClientRect();
+            const legend = document.getElementById('classes-legend').getBoundingClientRect();
+            const box = document.querySelector(`#classes-svg g.class-box[data-module='${id}']`).getBoundingClientRect();
+            return !window.vbadocClasses.moving() &&
+                box.left >= view.left && box.right <= view.right && box.top >= view.top && box.bottom <= legend.top;
+        }", module);
+    await opened.Page.EvaluateAsync("() => window.vbadoc.select(null)");
+  }
+
   static Task<string[]> ShownModules(IPage page) =>
-      page.Locator("#classes-canvas g.node[data-module]").EvaluateAllAsync<string[]>("ns => ns.map(n => n.dataset.module).sort()");
+      page.Locator("#classes-svg g.class-box").EvaluateAllAsync<string[]>("ns => ns.map(n => n.dataset.module).sort()");
+
+  /// <summary>Drags from the middle of an element by (dx, dy) screen pixels in small steps, like a person would.</summary>
+  static async Task Drag(IPage page, string selector, float dx, float dy)
+  {
+    var box = (await page.Locator(selector).BoundingBoxAsync())!;
+    float x = box.X + box.Width / 2, y = box.Y + box.Height / 2;
+    await page.Mouse.MoveAsync(x, y);
+    await page.Mouse.DownAsync();
+    for (int i = 1; i <= 10; i++) await page.Mouse.MoveAsync(x + dx * i / 10, y + dy * i / 10);
+    await page.Mouse.UpAsync();
+  }
 
   [Fact]
   public async Task Draws_one_box_per_module_with_its_stereotype_and_members()
@@ -46,7 +87,7 @@ public class ClassDiagramTests(PageFixture fixture)
     await using var opened = await OpenClasses(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
 
-    Assert.Equal(12, await Count(page, "#classes-canvas g.node[data-module]"));
+    Assert.Equal(12, await Count(page, "#classes-svg g.class-box"));
     Assert.Contains("«interface»", await BoxText(page, "IOrderRepository"));
     Assert.Contains("«module»", await BoxText(page, "Main"));
     Assert.Contains("«document»", await BoxText(page, "Sheet1"));
@@ -66,21 +107,55 @@ public class ClassDiagramTests(PageFixture fixture)
     var page = opened.Page;
 
     // 2 realisations, 2 associations and 24 dependencies (checked in the unit tests).
-    var text = await page.EvaluateAsync<string>("() => window.vbadocClasses.text()");
-    Assert.Equal(28, text.Split('\n').Count(l => l.Contains("<|..") || l.Contains("-->") || l.Contains("..>")));
-    Assert.Equal(28, await Count(page, "#classes-canvas svg .edgePaths > path"));
-    var labels = await page.Locator("#classes-canvas svg .edgeLabel").AllInnerTextsAsync();
+    Assert.Equal(28, await Count(page, Edges));
+    Assert.Equal(2, await Count(page, $"{Edges}.realization"));
+    Assert.Equal(2, await Count(page, $"{Edges}.association"));
+    Assert.Equal(24, await Count(page, $"{Edges}.dependency"));
+    var labels = await page.Locator("#classes-svg text.class-edge-label").AllTextContentsAsync();
     Assert.Contains("WithEvents m_svc", labels);
     Assert.Contains("m_repo", labels);
   }
+
+  [Fact]
+  public async Task The_starting_layout_is_always_the_same_and_users_sit_above_what_they_use()
+  {
+    await using var first = await OpenClasses(fixture, fixture.SampleEmbedded);
+    await using var second = await OpenClasses(fixture, fixture.SampleEmbedded);
+    var positions = "() => [...document.querySelectorAll('#classes-svg g.class-box')].map(n => n.dataset.module + n.getAttribute('transform')).sort()";
+    Assert.Equal(await first.Page.EvaluateAsync<string[]>(positions), await second.Page.EvaluateAsync<string[]>(positions));
+
+    // Main uses OrderService, which uses Logger, which nothing below it uses.
+    var main = await Position(first.Page, "Main");
+    var service = await Position(first.Page, "OrderService");
+    var logger = await Position(first.Page, "Logger");
+    Assert.True(main[1] < service[1] && service[1] < logger[1], $"Main {main[1]}, OrderService {service[1]}, Logger {logger[1]}");
+
+    // No two boxes overlap.
+    Assert.Empty(await first.Page.EvaluateAsync<string[]>(Overlaps));
+  }
+
+  /// <summary>Pairs of boxes that overlap, as "A/B".</summary>
+  const string Overlaps = @"() => {
+        const boxes = [...document.querySelectorAll('#classes-svg g.class-box')].map(n => ({ id: n.dataset.module, r: n.getBBox(), p: window.vbadocClasses.position(n.dataset.module) }));
+        const clashes = [];
+        for (let i = 0; i < boxes.length; i++)
+            for (let j = i + 1; j < boxes.length; j++) {
+                const a = boxes[i], b = boxes[j];
+                if (a.p.x < b.p.x + b.r.width && b.p.x < a.p.x + a.r.width && a.p.y < b.p.y + b.r.height && b.p.y < a.p.y + a.r.height)
+                    clashes.push(a.id + '/' + b.id);
+            }
+        return clashes;
+    }";
 
   [Fact]
   public async Task Clicking_a_box_selects_its_module_and_clicking_a_line_selects_its_member()
   {
     await using var opened = await OpenClasses(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
+    var before = await Position(page, "Order");
+    await Reveal(opened, "Order");
 
-    await page.ClickAsync($"{Box("Order")} .label-group");
+    await page.ClickAsync($"{Box("Order")} .box-name");
     Assert.Equal("Order", await Selection(page));
     Assert.Equal(1, await Count(page, $"{Box("Order")}.selected"));
 
@@ -97,7 +172,41 @@ public class ClassDiagramTests(PageFixture fixture)
 
     await ClickBackground(page);
     Assert.Null(await Selection(page));
-    Assert.Equal(0, await Count(page, "#classes-canvas .selected, #classes-canvas .selected-line"));
+    Assert.Equal(0, await Count(page, "#classes-svg .selected, #classes-svg .selected-line"));
+
+    // Clicks never move a box.
+    Assert.Equal(before, await Position(page, "Order"));
+  }
+
+  [Fact]
+  public async Task Dragging_a_box_moves_it_with_its_edges_and_is_remembered_until_the_layout_is_run_again()
+  {
+    await using var opened = await OpenClasses(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    await Reveal(opened, "Logger");
+    var start = await Position(page, "Logger");
+    var edge = $"{Edges}[data-to='Logger']";
+    var path = await page.GetAttributeAsync(edge, "d");
+    var zoom = await page.EvaluateAsync<double>("() => window.vbadocClasses.zoom()");
+
+    await Drag(page, $"{Box("Logger")} .box-name", 150, -60);
+
+    var moved = await Position(page, "Logger"); // rounded to whole units when dropped
+    Assert.InRange(moved[0], start[0] + 150 / zoom - 1, start[0] + 150 / zoom + 1);
+    Assert.InRange(moved[1], start[1] - 60 / zoom - 1, start[1] - 60 / zoom + 1);
+    Assert.NotEqual(path, await page.GetAttributeAsync(edge, "d"));
+    Assert.Null(await Selection(page)); // a drag isn't a click
+
+    await page.ReloadAsync();
+    await WaitUntilDrawn(page); // the class diagram tab is remembered
+    Assert.Equal(moved, await Position(page, "Logger"));
+
+    await page.ClickAsync("#classes-relayout");
+    Assert.Equal(start, await Position(page, "Logger"));
+    await page.ReloadAsync();
+    await WaitUntilDrawn(page);
+    Assert.Equal(start, await Position(page, "Logger"));
+    Assert.Empty(opened.Errors);
   }
 
   [Fact]
@@ -111,6 +220,7 @@ public class ClassDiagramTests(PageFixture fixture)
     await WaitUntilDrawn(page);
     Assert.Equal(1, await Count(page, $"{Box("OrderService")}.selected"));
 
+    await Reveal(opened, "Logger");
     await page.ClickAsync(Line("Logger.LogInfo"));
     await page.ClickAsync("#tab-graph");
     Assert.Equal(1, await Count(page, "#graph-svg g.node.selected[data-id='Logger']"));
@@ -149,22 +259,20 @@ public class ClassDiagramTests(PageFixture fixture)
     await page.ClickAsync("#classes-filters summary");
 
     await page.UncheckAsync("input[data-option='private']");
-    await WaitUntilDrawn(page);
     Assert.Equal(0, await Count(page, Line("Order.m_Id")));
     Assert.Equal(1, await Count(page, Line("Order.Describe")));
 
     await page.UncheckAsync("input[data-option='dependencies']");
-    await WaitUntilDrawn(page);
-    Assert.Equal(4, await Count(page, "#classes-canvas svg .edgePaths > path")); // realisations and associations
+    Assert.Equal(4, await Count(page, Edges)); // realisations and associations
 
     await page.UncheckAsync("input[data-option='members']");
-    await WaitUntilDrawn(page);
-    Assert.Equal(0, await Count(page, "#classes-canvas [data-member]"));
+    Assert.Equal(0, await Count(page, "#classes-svg g.class-line"));
 
     await page.ReloadAsync();
     await WaitUntilDrawn(page); // the class diagram tab is remembered too
-    Assert.Equal(0, await Count(page, "#classes-canvas [data-member]"));
-    Assert.Equal(4, await Count(page, "#classes-canvas svg .edgePaths > path"));
+    Assert.Equal(0, await Count(page, "#classes-svg g.class-line"));
+    Assert.Equal(4, await Count(page, Edges));
+    Assert.Empty(await page.EvaluateAsync<string[]>(Overlaps));
   }
 
   [Fact]
@@ -172,33 +280,37 @@ public class ClassDiagramTests(PageFixture fixture)
   {
     await using var opened = await OpenClasses(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
-    var width = "() => document.querySelector('#classes-canvas svg').getBoundingClientRect().width";
-    var before = await page.EvaluateAsync<double>(width);
+    var before = await page.EvaluateAsync<double>("() => window.vbadocClasses.zoom()");
 
     await page.ClickAsync("#classes-zoom-in");
-    Assert.True(await page.EvaluateAsync<double>(width) > before * 1.2);
+    await page.WaitForFunctionAsync("z => window.vbadocClasses.zoom() > z * 1.2", before);
 
     await page.ClickAsync("#classes-fit");
-    var fitted = await page.EvaluateAsync<double>("() => document.querySelector('#classes-canvas svg').getBoundingClientRect().height");
-    Assert.True(fitted <= await page.EvaluateAsync<double>("() => document.getElementById('classes-canvas').clientHeight"));
+    await page.WaitForFunctionAsync(@"() => {
+            const view = document.getElementById('classes-svg').getBoundingClientRect();
+            const drawing = document.querySelector('#classes-svg g.boxes').getBoundingClientRect();
+            return drawing.left >= view.left && drawing.right <= view.right && drawing.top >= view.top && drawing.bottom <= view.bottom;
+        }");
   }
 
   [Fact]
-  public async Task Switching_the_theme_redraws_in_the_new_colours()
+  public async Task Switching_the_theme_recolours_the_diagram_without_redrawing_it()
   {
     await using var opened = await OpenClasses(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
-    var fill = $"() => getComputedStyle(document.querySelector(\"{Box("Main")} .outer-path path\")).fill";
-    var dark = await page.EvaluateAsync<string>(fill);
+    var fill = $"() => getComputedStyle(document.querySelector(\"{Box("Main")} .box-outline\")).fill";
+    var before = await page.EvaluateAsync<string>(fill);
+    await page.EvaluateAsync($"() => document.querySelector(\"{Box("Main")}\").dataset.marker = 'kept'");
 
     await page.ClickAsync("#theme-toggle");
-    await page.WaitForFunctionAsync($"d => ({fill})() !== d", dark);
-    await WaitUntilDrawn(page);
+
+    Assert.NotEqual(before, await page.EvaluateAsync<string>(fill));
+    Assert.Equal("kept", await page.GetAttributeAsync(Box("Main"), "data-marker"));
     Assert.Empty(opened.Errors);
   }
 
   [Fact]
-  public async Task Names_and_values_that_mean_something_to_Mermaid_or_markdown_are_shown_as_written()
+  public async Task Names_and_values_with_special_characters_are_shown_as_written()
   {
     await using var opened = await OpenClasses(fixture, fixture.AwkwardEmbedded);
     var page = opened.Page;
@@ -211,45 +323,35 @@ public class ClassDiagramTests(PageFixture fixture)
     Assert.Contains("+Const ENTITY : String = \"#59; &amp; <b>bold</b> ~T~\"", box);
     Assert.Contains("+Const DOLLAR : String = \"cost$\"", box);
     Assert.Contains("+Größe(Optional s As String = \"(\", Optional n As Long = 5) : String", box);
-    Assert.Equal(0, await Count(page, "#classes-canvas strong, #classes-canvas em, #classes-canvas b, #classes-canvas a, #classes-canvas code"));
+    Assert.Equal(0, await Count(page, "#classes-svg b, #classes-svg strong, #classes-svg a"));
     Assert.Empty(opened.Errors);
   }
 
   [Fact]
-  public async Task A_large_project_renders_completely_and_scrolls()
+  public async Task A_large_project_is_laid_out_quickly_with_every_relationship()
   {
     var timer = Stopwatch.StartNew();
-    await using var opened = await OpenClasses(fixture, fixture.LargeEmbedded, timeoutMs: 120000);
+    await using var opened = await OpenClasses(fixture, fixture.LargeEmbedded, timeoutMs: 60000);
     timer.Stop();
     var page = opened.Page;
 
-    Assert.Equal(300, await Count(page, "#classes-canvas g.node[data-module]"));
-    Assert.True(timer.Elapsed < TimeSpan.FromSeconds(60), $"The class diagram took {timer.Elapsed.TotalSeconds:F1}s");
+    Assert.Equal(300, await Count(page, "#classes-svg g.class-box"));
+    Assert.True(timer.Elapsed < TimeSpan.FromSeconds(20), $"The class diagram took {timer.Elapsed.TotalSeconds:F1}s");
+    Assert.True(await Count(page, Edges) > 300, "Dependencies are all drawn, however many there are");
 
-    // Hundreds of dependencies would make Mermaid take minutes, so the full diagram leaves them out and says so.
-    Assert.Equal(0, await Count(page, "#classes-canvas svg .edgePaths > path"));
-    Assert.Contains("dependencies hidden", await page.InnerTextAsync("#classes-note"));
-    Assert.False(await page.IsCheckedAsync("input[data-option='dependencies']"));
+    // Every box has a real position and size, and none overlaps another.
+    Assert.True(await page.EvaluateAsync<bool>(@"() => [...document.querySelectorAll('#classes-svg g.class-box')].every(n => {
+            const p = window.vbadocClasses.position(n.dataset.module), r = n.getBBox();
+            return isFinite(p.x) && isFinite(p.y) && r.width > 0 && r.height > 0; })"));
+    Assert.Empty(await page.EvaluateAsync<string[]>(Overlaps));
 
-    // Every box was laid out: it has a real size and lies inside the drawing (no NaN or cut-off positions).
-    var misplaced = await page.EvaluateAsync<string[]>(@"() => {
-            const svg = document.querySelector('#classes-canvas svg').getBoundingClientRect();
-            return [...document.querySelectorAll('#classes-canvas g.node[data-module]')]
-                .filter(n => { const r = n.getBoundingClientRect();
-                    return !(r.width > 0 && r.height > 0 && r.left >= svg.left - 1 && r.right <= svg.right + 1 && r.top >= svg.top - 1 && r.bottom <= svg.bottom + 1); })
-                .map(n => n.dataset.module);
-        }");
-    Assert.Empty(misplaced);
-    Assert.True(await page.EvaluateAsync<bool>("() => { const c = document.getElementById('classes-canvas'); return c.scrollHeight > c.clientHeight || c.scrollWidth > c.clientWidth; }"));
-
-    // Selecting a box far away scrolls it into view.
+    // Selecting a box far away brings it into view.
     await opened.SelectAsync("Mod299");
-    var inView = await page.EvaluateAsync<bool>(@"() => {
-            const c = document.getElementById('classes-canvas').getBoundingClientRect();
-            const r = document.querySelector(""#classes-canvas g.node[data-module='Mod299']"").getBoundingClientRect();
+    await page.WaitForFunctionAsync(@"() => {
+            const c = document.getElementById('classes-svg').getBoundingClientRect();
+            const r = document.querySelector(""#classes-svg g.class-box[data-module='Mod299']"").getBoundingClientRect();
             return r.right > c.left && r.left < c.right && r.bottom > c.top && r.top < c.bottom;
         }");
-    Assert.True(inView);
     Assert.Empty(opened.Errors);
   }
 }

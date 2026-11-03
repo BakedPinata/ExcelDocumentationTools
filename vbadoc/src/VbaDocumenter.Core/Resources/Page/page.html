@@ -99,14 +99,20 @@
         <button type="button" id="classes-zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
       </div>
       <button type="button" class="button" id="classes-fit" title="Zoom to fit">Fit</button>
+      <button type="button" class="button" id="classes-relayout" title="Forget where boxes were moved, and lay the diagram out again">Re-run layout</button>
       <details class="graph-filters dropdown" id="classes-filters">
         <summary class="button">Show…</summary>
         <div class="menu" id="classes-filter-menu"></div>
       </details>
-      <span class="toolbar-note" id="classes-note" role="status" hidden></span>
     </div>
-    <div class="classes-canvas" id="classes-canvas" aria-label="Class diagram"></div>
-    <p class="view-message" id="classes-message" hidden></p>
+    <svg class="classes-svg" id="classes-svg" aria-label="Class diagram">
+      <defs>
+        <marker id="classes-arrow-realization" viewBox="0 -6 12 12" refX="11" refY="0" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,-5.5 L11,0 L0,5.5 Z"></path></marker>
+        <marker id="classes-arrow-association" viewBox="0 -6 12 12" refX="11" refY="0" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path d="M1,-4.5 L11,0 L1,4.5"></path></marker>
+        <marker id="classes-arrow-dependency" viewBox="0 -6 12 12" refX="11" refY="0" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path d="M1,-4.5 L11,0 L1,4.5"></path></marker>
+      </defs>
+      <g class="viewport"><g class="edges"></g><g class="boxes"></g><g class="edge-labels"></g></g>
+    </svg>
     <details class="view-legend" id="classes-legend" open><summary>Legend</summary><div id="classes-legend-body"></div></details>
   </section>
   <div class="splitter" id="source-splitter" role="separator" tabindex="0" aria-controls="source-panel"

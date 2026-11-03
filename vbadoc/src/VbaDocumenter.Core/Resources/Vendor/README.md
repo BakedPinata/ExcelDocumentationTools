@@ -1,16 +1,16 @@
 # Vendored third-party scripts
 
-These files are copied unchanged from the npm packages below and embedded into
+These files are copied unchanged from the npm package below and embedded into
 `VbaDocumenter.Core.dll`. The generated HTML page inlines them, so it never loads
-anything from the network. Each licence file is written into the page as a comment
+anything from the network. The licence file is written into the page as a comment
 directly above the script it belongs to.
 
 | File | Package | Licence | SHA-256 |
 |---|---|---|---|
 | `d3.min.js` | d3@7.9.0 (`dist/d3.min.js`) | ISC (`d3.LICENSE.txt`) | `f2094bbf6141b359722c4fe454eb6c4b0f0e42cc10cc7af921fc158fceb86539` |
-| `mermaid.min.js` | mermaid@11.17.2 (`dist/mermaid.min.js`) | MIT (`mermaid.LICENSE.txt`) | `581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8` |
 
-Both tarballs were checked against the `dist.integrity` hash published by the npm registry.
+The tarball was checked against the `dist.integrity` hash published by the npm registry. Mermaid was vendored here
+until vbadoc 0.7.0, when the class diagram moved to d3.
 
 ## Upgrading
 

@@ -48,8 +48,8 @@ public sealed class PageFixture : IAsyncLifetime
   public string LargeEmbedded { get; private set; } = "";
 
   /// <summary>
-  /// Names and values that mean something to Mermaid or markdown: braces, brackets, entity codes, emphasis,
-  /// generics, HTML, a lone ")" (which crashes Mermaid's member parser if left as is), and non-ASCII names.
+  /// Names and values that would mean something to a diagram language or to markdown: braces, brackets, entity
+  /// codes, emphasis, generics, HTML, a lone ")", and non-ASCII names. They must all be shown exactly as written.
   /// </summary>
   public string AwkwardEmbedded { get; private set; } = "";
 

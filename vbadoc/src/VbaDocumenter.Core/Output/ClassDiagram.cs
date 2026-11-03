@@ -5,10 +5,9 @@ using VbaDocumenter.Core.Parsing;
 namespace VbaDocumenter.Core.Output;
 
 /// <summary>
-/// One line in a class diagram box, as plain text. The page turns it into Mermaid, escaping as it goes.
-/// A line with <see cref="Parameters"/> (possibly empty) is drawn as a method, e.g. "+Describe(x As Long) String";
-/// one without is drawn as an attribute, e.g. "-m_Id : String". Mermaid puts attributes and methods in separate
-/// compartments.
+/// One line in a class diagram box, as plain text, which the page draws as it is.
+/// A line with <see cref="Parameters"/> (possibly empty) is drawn as a method, e.g. "+Describe(x As Long) : String";
+/// one without is drawn as an attribute, e.g. "-m_Id : String". Attributes and methods go in separate compartments.
 /// </summary>
 /// <param name="Text">Visibility and name, plus the type for attributes: "+Describe", "-Const SEP : String = ",""</param>
 /// <param name="Parameters">For methods, the parameter list without the brackets.</param>

@@ -6,16 +6,14 @@ namespace VbaDocumenter.Core;
 public sealed record VendoredScript(string Name, string Version, string LicenceName, string LicenceText, string Code);
 
 /// <summary>
-/// Loads the vendored d3 and Mermaid scripts from embedded resources.
-/// See Resources/Vendor/README.md for where they came from and how to upgrade them.
+/// Loads the vendored d3 script from embedded resources.
+/// See Resources/Vendor/README.md for where it came from and how to upgrade it.
 /// </summary>
 public static class VendoredScripts
 {
   public const string D3Version = "7.9.0";
-  public const string MermaidVersion = "11.17.2";
 
   public static VendoredScript D3 { get; } = Load("d3", D3Version, "ISC");
-  public static VendoredScript Mermaid { get; } = Load("mermaid", MermaidVersion, "MIT");
 
   static VendoredScript Load(string name, string version, string licenceName) =>
       new(name, version, licenceName,

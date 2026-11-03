@@ -35,7 +35,7 @@ questions the draft raised.
 | A1 | Fix: a click in the graph pulls modules together | Claude | Done |
 | A2 | Fix: the export pauses while writing the page | Claude | Done: timings added; the cause, antivirus scanning Mermaid, is fixed by F1 |
 | A3 | pqdoc writes HTML by default | Claude | Done |
-| F1 | Class diagram drawn by the page, with boxes you can move; Mermaid removed (moved up after A2) | Claude | |
+| F1 | Class diagram drawn by the page, with boxes you can move; Mermaid removed (moved up after A2) | Claude | Done |
 | B1 | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | |
 | B2 | pqdoc reads queries from a workbook | Claude | |
 | B3 | pqdoc writes `.m` files, kept in step with the workbook | Claude | |
@@ -365,9 +365,10 @@ the long name is the code's identity.
 - **Drawn by the page with d3**, using the same box contents, relationships and notation as now. Boxes can be dragged
   and their positions are remembered per workbook and saved in views. Hiding, favourites, focus and selection work as
   in the graph.
-- **The first picture is always the same:** the layout is computed before drawing, in layers (interfaces above their
-  implementations), then tidied with d3's force layout using each box's size. No new library unless the step shows d3
-  can't produce a readable layout; any library must be MIT-compatible and vendored.
+- **The first picture is always the same:** the layout is computed before drawing, in layers. As built in F1, users
+  sit above what they use (so interfaces sit below their implementations, keeping every arrow pointing down), modules
+  in a cycle share a layer, and rows are tidied by moving boxes towards their neighbours rather than with d3's force
+  layout. No new library was needed. vbadoc's `DECISIONS.md` has the details.
 - **Mermaid is removed,** along with its 150-dependency limit and its escaping rules. The C# `ClassDiagram` model stays.
 
 ### Views and printing

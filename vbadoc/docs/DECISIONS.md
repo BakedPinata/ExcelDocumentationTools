@@ -14,8 +14,8 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   `Directory.Build.props`, which moves every tool.
 - **OpenMcdf 3.4.0**, not 2.4.1 as the spike used. 2.4.1 has two unpatched denial-of-service advisories
   (GHSA-jxpf-xq2m-q525, GHSA-5qwm-7pvp-w988), and only 3.1.4 and later are fixed. Requirements.md is updated to match.
-- **Mermaid 11.17.2**, not 12.x. 12.0 was a new major version only weeks old at the time; 11.17.2 is the mature end of 11.x.
-- **d3 7.9.0**, the latest.
+- **d3 7.9.0**, the latest. It is the only vendored script since 0.7.0, when the class diagram moved from Mermaid to d3
+  (step F1 of the feedback plan; see "Built in stage 5").
 - Vendored scripts are stored **byte-for-byte unchanged** with their licence files (see
   `src/VbaDocumenter.Core/Resources/Vendor/README.md`). The page writer adds each licence as a comment above its script,
   and must refuse a script containing `<script` or `</script`, which would break inlining.
@@ -93,6 +93,9 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **Mermaid is almost all of that cost.** It's 3.6 MB of the 4.3 MB page. The same page without it scanned in about
   0.2 s instead of 3 s. Removing Mermaid (step F1) is the fix.
 - **ReadyToRun was measured and not taken.** It saved about 0.2 s a run, and made the executable 12 MB bigger.
+- **After removing Mermaid (0.7.0),** measured the same way: the private workbook's page is 0.8 MB, writing it takes
+  1–2 ms on every run, and the first read of a newly written page (what a browser waits for) takes 0.1–0.2 s. The
+  other steps are unchanged, and the executable is 3.6 MB smaller.
 
 ## Source analysis (stages 2–3)
 
@@ -105,8 +108,8 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **Calls through an interface-typed variable** (`repo.LoadAll`) link to the interface member, not a guessed
   implementation. Implementations are reachable through Implements edges.
 - **Recursion** shows as a self-loop.
-- **Type-declaration characters** (`Dim s$`, `Function Name$()`) are mapped to their types. This matters because Mermaid
-  reads a trailing `$` as "static".
+- **Type-declaration characters** (`Dim s$`, `Function Name$()`) are mapped to their types, so the class diagram shows
+  `String` rather than a `$` (which Mermaid, used until 0.7.0, read as "static").
 - **Late-bound references** are reported as a count in the console and as an "Unresolved" list per member in the page.
 - **Unreferenced members** that don't look like entry points (event handlers, public parameterless Subs in standard
   modules, `Class_Initialize`) are flagged: a dashed style, a filter, and a console list. This can never be certain,
@@ -248,20 +251,17 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **Edge thickness grows slightly with the reference count.** Hovering an edge shows its count; hovering a node shows
   its kind and how many things it uses and is used by.
 
-### Built in stage 5 (class diagram)
+### Built in stage 5 (class diagram), redrawn with d3 in 0.7.0
 
-- **Mermaid class IDs are generated** (`M1`, `M2`, … in project order), with the real name as the label, so no name can
-  break parsing. `maxTextSize` and `maxEdges` are raised for large projects. `securityLevel` stays `'strict'`; click
-  handlers are attached to the rendered SVG.
-- **The Mermaid text is generated in the page** (`classes.js`) from structured data, so focus mode and the Show…
-  options just generate a smaller diagram. The C# side (`ClassDiagram`, unit-tested) works out each member's line and
-  the relationships; the page data carries them unescaped (`members[].class`, `classEdges`).
-- **Escaping:** checked against Mermaid 11.17.2. Member text goes through Mermaid's parser, markdown and entity
-  decoding, so `# { } ~ < > & $ * _ [ ] ( ) `` ` are written as entity codes (`#123;`), which Mermaid displays as the
-  character. Only a method's own brackets stay real: Mermaid treats any line containing `)` as a method and crashes on a
-  `)` without a matching `(`. Class bodies are used rather than `Class : member` lines, which are much stricter.
+Stage 5 drew the diagram with Mermaid. In 0.7.0 (step F1 of the feedback plan) the page draws it with d3 instead:
+Mermaid laid boxes out itself, so they couldn't be moved; it took about 20 s for 300 modules and so dropped
+dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that slowed every export (see Speed).
+
+- **The C# side (`ClassDiagram`, unit-tested) works out each member's line and the relationships**, and the page data
+  carries them as plain text (`members[].class`, `classEdges`). The page sets all text with `textContent`, so no name
+  or value needs escaping and none can be read as markup.
 - **Box contents:**
-  - methods `+Name(params) Type`; attributes `-m_Id : String`; Friend is `~`;
+  - methods `+Name(params) : Type`; attributes `-m_Id : String`; Friend is `~`;
   - events, constants, enums, types and declares are prefixed with `Event`, `Const`, `Enum`, `Type`, `Declare`;
   - a property is shown once, on its first accessor, as `+Property Status : String «Get/Let»`; an indexed property
     (with parameters besides the value) is drawn as a method so its parameters show;
@@ -271,17 +271,39 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   standard module) is an association labelled with the variable name, prefixed `WithEvents` for event sources. Every
   other module edge is a dependency, except where an association already links the same two modules (which also
   covers the WithEvents Events edge).
-- **Clicks:** each box is mapped back to its module from the generated id, and each member line by its position, since
-  Mermaid draws attributes then methods, each in order. Clicking a property's line selects its first accessor, and
-  the line stays highlighted for the other accessors.
-- **Large projects:** Mermaid's layout slows sharply with many edges (600 dependencies took about a minute in headless
-  Chromium). So unless the user has chosen in Show…, the full diagram leaves dependencies out when there are more
-  than 150, says so in the toolbar, and Focus (a small neighbourhood) still shows them. The browser tests' generated
-  project is now 300 modules for both views; its full class diagram draws in about 20 s. Known limit: boxes with no
-  relationships are laid out by Mermaid in one long row.
-- **Looks:** Mermaid's `base` theme coloured from the page's CSS variables, redrawn on theme change; box outlines take
-  the graph's module-group colours. The diagram is an SVG in a scrolling box: zoom buttons, Fit, and Ctrl+wheel. It
-  first fits the width, but not below 40%.
+- **Boxes** are UML-style: a header with the stereotype and name, then an attributes and a methods compartment. Text
+  is measured in the font it's drawn in, so each box fits its widest line, between 110 and 520 px. A longer line is cut
+  short with "…" and shows in full in a tooltip.
+- **The layout is worked out before drawing**, so the same project and Show… choices always give the same picture:
+  - **users sit above what they use**, so arrows point down and widely used modules sink to the bottom. This applies
+    to Implements too, so an interface sits below its implementations. Mixing directions would make layers contradict
+    each other;
+  - **modules that use each other in a circle share a layer** (Tarjan's strongly connected groups), as queries in a
+    circular dependency share a column in pqdoc. Breaking cycles instead turned the large test project's ring of 300
+    modules into 300 layers;
+  - a group nothing uses moves down to just above the highest group it uses, so its edges stay short;
+  - within a layer, eight sweeps of the barycentre method keep related boxes near each other. Ties keep the current
+    order, so the result is fixed;
+  - a layer wider than about 1.6 times the square root of the diagram's area (at least 1,400 px) wraps onto more
+    rows, so big projects stay roughly as wide as they are tall;
+  - boxes are then moved towards the middle of their neighbours in other rows, keeping each row's order and spacing;
+  - modules with no relationships go in a grid underneath, in module order.
+- **Edges** leave the side of their box that faces the other box and arrive at the opposite side, as curves square to
+  the sides. Ends sharing a side are spread along it in the order of the boxes at their other ends. Association labels
+  sit at the curve's middle, with a halo in the background colour. Lines keep their width on screen at any zoom.
+- **Clicks:** a box selects its module and a line its member. Clicking a property's line selects its first accessor,
+  and the line stays highlighted for the other accessors. A press that moves less than 4 px is a click, as in the graph.
+- **Dragging** moves a box, and its edges follow. Where boxes are dropped is remembered per workbook and per Show…
+  choice (which changes box sizes, so the layout), under `vbadoc-classes-positions|<workbook>|<choices>`, until
+  **Re-run layout**. In focus mode the smaller diagram is laid out afresh and moves aren't remembered.
+- **Zoom and pan work like the graph:** the wheel zooms, dragging the background pans, with zoom buttons and Fit. The
+  starting view fits the diagram but not below 40%, so names stay readable; a diagram that doesn't fit starts at its
+  top. Fit and the starting view keep clear of the toolbar and the open legend. A box selected elsewhere slides into
+  view: all of it, or its top if it's taller than the view.
+- **Large projects:** the 300-module test project, with every dependency, lays out in well under a second. Dependencies
+  are never left out automatically any more.
+- **Looks:** colours come from the page's CSS variables (box outlines take the graph's module-group colours, edges the
+  graph's edge colours), so a theme change needs no redrawing.
 - **Remembered per browser:** the Show… options (members, private members, dependencies). Focus follows the selection.
 - **The toolbar drop-downs' outside-click and Escape handling moved to `page.js`** and applies to every
   `<details class="dropdown">`.
@@ -292,7 +314,8 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   splitter (drag, arrow keys, Home/End; double-click or Enter resets). Both views share the one panel, so they share
   its size and visibility, which are remembered per browser. The size is a share of the layout (20–70%), of its width
   or, below 900 px where the panel sits under the view, of its height. Selecting something doesn't reopen a hidden
-  panel. The graph keeps its middle in the middle when its view changes size; the class diagram's box just scrolls.
+  panel. The graph keeps its middle in the middle when its view changes size; the class diagram keeps its zoom and
+  position.
 - **The page shows which build of vbadoc made it**: `vbadoc 0.5.0 (b7c0ebe)` at the right of the top bar, with the
   full commit in its tooltip, and the same text in `<meta name="generator">`. Requirements.md asks for no
   run-specific values in generated files. The stamp is the same on every run of a given build, but changes the page

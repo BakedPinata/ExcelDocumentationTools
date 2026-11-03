@@ -32,13 +32,12 @@ public class HtmlPageWriterTests
   }
 
   [Fact]
-  public void Inlines_the_vendored_scripts_with_their_licences_and_refers_to_no_other_file()
+  public void Inlines_d3_with_its_licence_and_refers_to_no_other_file()
   {
     var html = Build(embed: false);
 
     Assert.Contains(VendoredScripts.D3.Code.Trim(), html);
     Assert.Contains($"/*! d3 {VendoredScripts.D3Version} (ISC licence)", html);
-    Assert.Contains($"/*! mermaid {VendoredScripts.MermaidVersion} (MIT licence)", html);
     Assert.DoesNotMatch("<script[^>]+src=", html);
     Assert.DoesNotMatch("<link[^>]+href=\"(?!data:)", html);
     Assert.Contains("Content-Security-Policy\" content=\"default-src 'none';", html);

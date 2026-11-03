@@ -133,7 +133,7 @@ of generated pages, because changing one changes every page.
   and leaves our code under MIT. If we ever change OpenMcdf's files, those changes must be published under MPL-2.0.
 - Check the licence before adding a package or moving to a new major version, and keep a comment beside any exception
   in `Directory.Packages.props`.
-- Dependencies today: MIT (System.CommandLine, Microsoft.NET.Test.Sdk, Microsoft.Playwright, Mermaid), ISC (d3),
+- Dependencies today: MIT (System.CommandLine, Microsoft.NET.Test.Sdk, Microsoft.Playwright), ISC (d3),
   Apache-2.0 (Serilog, Serilog.Sinks.Console, xunit.v3, xunit.runner.visualstudio) and MPL-2.0 (OpenMcdf).
 
 ## Build workflow and Dependabot
@@ -145,8 +145,8 @@ of generated pages, because changing one changes every page.
 - For each Dependabot pull request: read the release notes, check that the build passed, and for a major version check
   that the licence is still allowed (see above). Then merge it.
 - Dependabot doesn't check licences, and it doesn't update the .NET SDK, because moving to a new .NET version is a
-  deliberate decision. Vendored d3 and Mermaid aren't package dependencies, so they're still updated by hand, following the
-  `README.md` in each tool's `Resources/Vendor/` folder.
+  deliberate decision. Vendored d3 isn't a package dependency, so it's still updated by hand, following the `README.md`
+  in each tool's `Resources/Vendor/` folder.
 
 ## Claude Code sessions
 
