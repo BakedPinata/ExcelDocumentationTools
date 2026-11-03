@@ -31,7 +31,7 @@ questions the draft raised.
 | Step | Scope | Who | Status |
 |---|---|---|---|
 | A0 | Move to .NET 10, with command-line instructions | Claude, then you on a work machine | Done; work machine check to come |
-| A1 | Fix: a click in the graph pulls modules together | Claude | |
+| A1 | Fix: a click in the graph pulls modules together | Claude | Done |
 | A2 | Fix: the export pauses while writing the page | Claude | |
 | A3 | pqdoc writes HTML by default | Claude | |
 | B1 | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | |

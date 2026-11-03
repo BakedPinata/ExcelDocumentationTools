@@ -216,6 +216,32 @@ public class GraphTests(PageFixture fixture)
     await page.Mouse.UpAsync();
   }
 
+  /// <summary>A point inside a module's outline where the outline itself, not a member or name on top of it, is
+  /// under the mouse.</summary>
+  static async Task<float[]> OutlinePoint(IPage page, string module)
+  {
+    var point = await page.EvaluateAsync<float[]?>(@"module => {
+            const hull = document.querySelector(`#graph-svg g.hull-group[data-module='${module}'] path.hull`);
+            const r = hull.getBoundingClientRect();
+            for (let y = r.top + 2; y < r.bottom; y += 3)
+                for (let x = r.left + 2; x < r.right; x += 3)
+                    if (document.elementFromPoint(x, y) === hull) return [x, y];
+            return null;
+        }", module);
+    return point ?? throw new InvalidOperationException($"No bare point inside {module}'s outline");
+  }
+
+  /// <summary>Every drawn node's position in graph units, by id.</summary>
+  static Task<Dictionary<string, double[]>> AllPositions(IPage page) =>
+      page.EvaluateAsync<Dictionary<string, double[]>>(@"() => {
+            const positions = {};
+            for (const node of document.querySelectorAll('#graph-svg g.node')) {
+                const p = window.vbadocGraph.position(node.dataset.id);
+                positions[node.dataset.id] = [p.x, p.y];
+            }
+            return positions;
+        }");
+
   [Fact]
   public async Task Member_names_are_shown_without_a_selection_unless_the_setting_says_otherwise()
   {
@@ -318,6 +344,54 @@ public class GraphTests(PageFixture fixture)
   }
 
   [Fact]
+  public async Task Clicks_select_without_moving_anything()
+  {
+    // A click used to wake the layout as soon as the button went down, so clicking inside a module's outline
+    // pulled the modules together until the graph came to rest again.
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    await ShowMembers(page);
+    await WaitUntilStill(page);
+    var before = await AllPositions(page);
+
+    var point = await OutlinePoint(page, "Logger");
+    for (int i = 0; i < 3; i++) await page.Mouse.ClickAsync(point[0], point[1]);
+    Assert.Equal("Logger", await Selection(page));
+
+    // A press that wobbles by less than the click distance is still a click.
+    var node = (await page.Locator("#graph-svg g.node[data-id='Order.Describe'] path.shape").BoundingBoxAsync())!;
+    float x = node.X + node.Width / 2, y = node.Y + node.Height / 2;
+    await page.Mouse.MoveAsync(x, y);
+    await page.Mouse.DownAsync();
+    await page.Mouse.MoveAsync(x + 2, y + 1);
+    await page.Mouse.UpAsync();
+    Assert.Equal("Order.Describe", await Selection(page));
+
+    Assert.False(await page.EvaluateAsync<bool>("() => window.vbadocGraph.moving()"), "A click woke the layout");
+    var after = await AllPositions(page);
+    foreach (var (id, p) in before)
+    {
+      Assert.True(p[0] == after[id][0] && p[1] == after[id][1], $"{id} moved: ({p[0]}, {p[1]}) -> ({after[id][0]}, {after[id][1]})");
+    }
+    Assert.Empty(opened.Errors);
+  }
+
+  [Fact]
+  public async Task A_click_never_pins_a_node()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    await OpenSettings(page);
+    await page.CheckAsync("#graph-setting-pinDragged");
+    await page.ClickAsync("#graph-settings summary"); // close the panel
+
+    await page.ClickAsync("#graph-svg g.node[data-id='Utils'] path.shape", new() { Force = true });
+
+    Assert.Equal("Utils", await Selection(page));
+    Assert.Equal(0, await Count(page, "#graph-svg g.node.pinned"));
+  }
+
+  [Fact]
   public async Task Dragging_a_module_outline_moves_all_its_members()
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
@@ -329,15 +403,7 @@ public class GraphTests(PageFixture fixture)
     var before = await Position(page, "Logger.LogInfo");
     var other = await Position(page, "Logger.WriteLine");
 
-    // A point where the outline itself, not a member or name on top of it, is under the mouse.
-    var point = await page.EvaluateAsync<float[]>(@"() => {
-            const hull = document.querySelector(""#graph-svg g.hull-group[data-module='Logger'] path.hull"");
-            const r = hull.getBoundingClientRect();
-            for (let y = r.top + 2; y < r.bottom; y += 3)
-                for (let x = r.left + 2; x < r.right; x += 3)
-                    if (document.elementFromPoint(x, y) === hull) return [x, y];
-            return null;
-        }");
+    var point = await OutlinePoint(page, "Logger");
     await DragFrom(page, point[0], point[1], 100, 60);
 
     var after = await Position(page, "Logger.LogInfo");

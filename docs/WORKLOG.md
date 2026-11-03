@@ -10,10 +10,10 @@ rather than repeating it.
 
 ## Current state (2026-11-03)
 
-- **vbadoc 0.6.1:** stages 0–5e are done. Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
+- **vbadoc 0.6.2:** stages 0–5e are done. Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
 - **pqdoc 1.0.1**, plus stages 3b–3d: reads a folder of hand-exported `.m` files.
-- **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–G4. A0 (.NET 10) is done, waiting
-  for review and for the user to build, test and publish on the work machine. A1 is next.
+- **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–G4. A0 (.NET 10) is pushed; the
+  user's build, test and publish on the work machine is still to come. A1 is done, waiting for review. A2 is next.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -23,6 +23,14 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-03: Step A1, graph clicks leave the layout alone
+
+- vbadoc's graph pinned nodes and woke the simulation as soon as the mouse button went down, so every click on a
+  module outline pulled the modules together until the graph came to rest. A click with "Keep dragged nodes where
+  dropped" on also pinned the node. Both now wait until the pointer has moved past the click distance, as pqdoc's
+  graph already did. vbadoc 0.6.2.
+- Two browser tests, which failed before the fix.
 
 ### 2026-11-03: Step A0, .NET 10
 

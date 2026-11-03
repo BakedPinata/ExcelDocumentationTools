@@ -213,7 +213,11 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   The simulation is then kept, not discarded:
   - dragging a node, or a module's outline (which moves the whole module), wakes it so the graph rearranges live;
   - a module holding a dragged node stays put and pushes others away, so it isn't torn apart;
-  - "Keep dragged nodes where dropped" pins them (double-click releases); off by default.
+  - "Keep dragged nodes where dropped" pins them (double-click releases); off by default;
+  - **a click leaves the layout alone.** Nothing is pinned and the simulation isn't woken until the pointer moves
+    more than the 4-pixel click distance, as in pqdoc. Waking it as the button went down (fixed in 0.6.2) let every
+    click pull modules together, because the running forces only partly separate members and full overlap removal
+    waits until the graph comes to rest.
 - **Edges are single curves.** Bundling edges between modules was tried and rejected as the default; it remains an
   option, off by default.
 - **A settings panel** (Settings button in the graph toolbar) controls names, text and node size, edge opacity and

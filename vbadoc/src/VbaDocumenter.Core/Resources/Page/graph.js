@@ -804,30 +804,46 @@
   // ---- Dragging ----
   //
   // Dragging a node moves it; dragging a module's outline moves all its members. With "Rearrange while
-  // dragging" on, the simulation runs so everything else makes room and follows its edges. A small move is
-  // still a click, so clicking to select works as before.
+  // dragging" on, the simulation runs so everything else makes room and follows its edges.
+  //
+  // A press that moves less than the click distance is a click, which selects and must leave the layout alone.
+  // d3 fires "start" as soon as the button goes down, so nothing is pinned and the simulation isn't woken until
+  // the pointer has moved further than that. Waking it on every click let the forces, which only remove overlaps
+  // fully once the graph comes to rest, pull the modules together for a moment. pqdoc's graph works the same way.
 
+  var CLICK_DISTANCE = 4; // screen pixels, as d3's clickDistance
   var dragging = false;
 
   function dragBehaviour(nodesOf) {
+    var pendingX = 0, pendingY = 0; // movement before the drag really starts, in graph units
     return d3.drag()
-      .clickDistance(4)
-      .on("start", function (event, d) {
-        dragging = true;
-        hideTooltip();
-        svg.classed("dragging", true);
-        nodesOf(d).forEach(function (n) { n.fx = n.x; n.fy = n.y; });
-        if (settings.live) simulation.alphaTarget(0.3).restart();
+      .clickDistance(CLICK_DISTANCE)
+      .on("start", function () {
+        pendingX = 0;
+        pendingY = 0;
       })
       .on("drag", function (event, d) {
-        nodesOf(d).forEach(function (n) {
-          n.fx += event.dx;
-          n.fy += event.dy;
-          if (!settings.live) { n.x = n.fx; n.y = n.fy; }
-        });
-        if (!settings.live) updatePositions();
+        var nodes = nodesOf(d);
+        if (!dragging) {
+          pendingX += event.dx;
+          pendingY += event.dy;
+          // The event is in graph units and the click distance is in screen pixels.
+          if (Math.hypot(pendingX, pendingY) * d3.zoomTransform(svg.node()).k <= CLICK_DISTANCE) return;
+          dragging = true;
+          hideTooltip();
+          svg.classed("dragging", true);
+          nodes.forEach(function (n) { n.fx = n.x + pendingX; n.fy = n.y + pendingY; });
+          if (settings.live) simulation.alphaTarget(0.3).restart();
+        } else {
+          nodes.forEach(function (n) { n.fx += event.dx; n.fy += event.dy; });
+        }
+        if (!settings.live) {
+          nodes.forEach(function (n) { n.x = n.fx; n.y = n.fy; });
+          updatePositions();
+        }
       })
       .on("end", function (event, d) {
+        if (!dragging) return; // a click: nothing was pinned or woken
         dragging = false;
         svg.classed("dragging", false);
         if (settings.live) simulation.alphaTarget(0);
