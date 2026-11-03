@@ -49,6 +49,10 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 
 ## Output
 
+- **HTML is the default output** (1.1.0). Feedback from real use was that the page is what people use, and that CSV
+  and PlantUML only suit very simple workbooks. `--format` lists exactly what to write, so `-f csv` writes only the CSV,
+  and `--no-csv` went. The default is applied when binding options, because an empty list is how System.CommandLine
+  says the option wasn't given, and its help can't show a list's default.
 - **The default output name is `powerquery-dependencies`**, because it describes what the file contains.
 - **`--output-name` is checked against the characters Windows forbids, on every platform**, so the same name works
   everywhere.

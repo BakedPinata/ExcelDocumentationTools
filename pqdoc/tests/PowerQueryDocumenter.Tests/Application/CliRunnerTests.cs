@@ -41,63 +41,62 @@ public sealed class CliRunnerTests : IDisposable
   public void Dispose() => temp.Dispose();
 
   [Fact]
-  public async Task AC1_default_run_writes_only_the_csv_next_to_the_inputs()
+  public async Task AC1_default_run_writes_only_the_page_next_to_the_inputs()
   {
     using var app = App();
 
     var exitCode = await app.RunAsync(Queries);
 
     Assert.Equal(ExitCodes.Success, exitCode);
-    Assert.Equal(new[] { "powerquery-dependencies.csv" }, OutputFiles());
-    var expected = (await File.ReadAllTextAsync(Fixtures.ExpectedCsvPath, TestContext.Current.CancellationToken)).ReplaceLineEndings("\n");
-    var actual = (await File.ReadAllTextAsync(QueryFile("powerquery-dependencies.csv"), TestContext.Current.CancellationToken)).ReplaceLineEndings("\n");
-    Assert.Equal(expected, actual);
+    Assert.Equal(new[] { "powerquery-dependencies.html" }, OutputFiles());
+    Assert.Contains("d3js.org v7.9.0", await File.ReadAllTextAsync(QueryFile("powerquery-dependencies.html"), TestContext.Current.CancellationToken));
     Assert.Contains(app.Log.Messages(LogEventLevel.Information), m => m.StartsWith("Done.", StringComparison.Ordinal));
   }
 
   [Fact]
-  public async Task AC2_puml_and_html_are_written_alongside_the_csv()
+  public async Task AC2_csv_puml_and_html_are_written_side_by_side()
   {
     using var app = App();
 
-    var exitCode = await app.RunAsync(Queries, "-f", "puml,html");
+    var exitCode = await app.RunAsync(Queries, "-f", "csv,puml,html");
 
     Assert.Equal(ExitCodes.Success, exitCode);
     Assert.Equal(
       new[] { "powerquery-dependencies.csv", "powerquery-dependencies.html", "powerquery-dependencies.puml" },
       OutputFiles());
+    var expected = (await File.ReadAllTextAsync(Fixtures.ExpectedCsvPath, TestContext.Current.CancellationToken)).ReplaceLineEndings("\n");
+    var actual = (await File.ReadAllTextAsync(QueryFile("powerquery-dependencies.csv"), TestContext.Current.CancellationToken)).ReplaceLineEndings("\n");
+    Assert.Equal(expected, actual);
     Assert.StartsWith("@startuml", await File.ReadAllTextAsync(QueryFile("powerquery-dependencies.puml"), TestContext.Current.CancellationToken));
     Assert.Contains("d3js.org v7.9.0", await File.ReadAllTextAsync(QueryFile("powerquery-dependencies.html"), TestContext.Current.CancellationToken));
   }
 
   [Fact]
-  public async Task AC3_no_csv_without_a_format_fails_with_exit_code_2_and_writes_nothing()
+  public async Task AC3_a_format_list_replaces_the_default()
   {
     using var app = App();
 
-    var exitCode = await app.RunAsync(Queries, "--no-csv");
+    var exitCode = await app.RunAsync(Queries, "-f", "csv");
 
-    Assert.Equal(ExitCodes.InvalidArguments, exitCode);
-    Assert.Empty(OutputFiles());
-    Assert.Contains(app.Log.Messages(LogEventLevel.Error), m => m.Contains("--no-csv", StringComparison.Ordinal));
-    Assert.Contains("Usage:", app.Error.ToString(), StringComparison.Ordinal);
+    Assert.Equal(ExitCodes.Success, exitCode);
+    Assert.Equal(new[] { "powerquery-dependencies.csv" }, OutputFiles());
   }
 
   [Fact]
   public async Task AC4_existing_outputs_in_a_non_interactive_session_fail_with_exit_code_4_and_change_nothing()
   {
-    var csv = QueryFile("powerquery-dependencies.csv");
-    await File.WriteAllTextAsync(csv, "original", TestContext.Current.CancellationToken);
+    var page = QueryFile("powerquery-dependencies.html");
+    await File.WriteAllTextAsync(page, "original", TestContext.Current.CancellationToken);
     var timestamp = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-    File.SetLastWriteTimeUtc(csv, timestamp);
+    File.SetLastWriteTimeUtc(page, timestamp);
     using var app = App();
 
-    var exitCode = await app.RunAsync(Queries, "-f", "html");
+    var exitCode = await app.RunAsync(Queries, "-f", "csv,html");
 
     Assert.Equal(ExitCodes.OutputRefused, exitCode);
-    Assert.Equal("original", await File.ReadAllTextAsync(csv, TestContext.Current.CancellationToken));
-    Assert.Equal(timestamp, File.GetLastWriteTimeUtc(csv));
-    Assert.Equal(new[] { "powerquery-dependencies.csv" }, OutputFiles());
+    Assert.Equal("original", await File.ReadAllTextAsync(page, TestContext.Current.CancellationToken));
+    Assert.Equal(timestamp, File.GetLastWriteTimeUtc(page));
+    Assert.Equal(new[] { "powerquery-dependencies.html" }, OutputFiles());
     Assert.Contains(app.Log.Messages(LogEventLevel.Error), m => m.Contains("--force", StringComparison.Ordinal));
   }
 
@@ -121,7 +120,7 @@ public sealed class CliRunnerTests : IDisposable
   {
     using var app = App();
 
-    await app.RunAsync(Queries);
+    await app.RunAsync(Queries, "-f", "csv");
 
     var rows = await File.ReadAllLinesAsync(QueryFile("powerquery-dependencies.csv"), TestContext.Current.CancellationToken);
     Assert.Contains("\"Source\",\"Orders\"", rows);
@@ -135,7 +134,7 @@ public sealed class CliRunnerTests : IDisposable
   {
     using var app = App();
 
-    var exitCode = await app.RunAsync(Queries, "-f", "puml,html");
+    var exitCode = await app.RunAsync(Queries, "-f", "csv,puml,html");
 
     Assert.Equal(ExitCodes.Success, exitCode);
     Assert.Contains(app.Log.Messages(LogEventLevel.Warning), m => m.Contains("Cycle A -> Cycle B -> Cycle A", StringComparison.Ordinal));
@@ -149,7 +148,7 @@ public sealed class CliRunnerTests : IDisposable
     var handler = StubHttpMessageHandler.FailingFor("png", HttpStatusCode.InternalServerError);
     using var app = App(handler);
 
-    var exitCode = await app.RunAsync(Queries, "-f", "png,svg,html", "--plantuml-server", Server);
+    var exitCode = await app.RunAsync(Queries, "-f", "csv,png,svg,html", "--plantuml-server", Server);
 
     Assert.Equal(ExitCodes.ExportFailed, exitCode);
     Assert.Equal(
@@ -165,7 +164,7 @@ public sealed class CliRunnerTests : IDisposable
     var handler = StubHttpMessageHandler.WorkingServer();
     using var app = App(handler);
 
-    var exitCode = await app.RunAsync(Queries, "--no-csv", "-f", "svg,png,pdf", "--plantuml-server", Server);
+    var exitCode = await app.RunAsync(Queries, "-f", "svg,png,pdf", "--plantuml-server", Server);
 
     Assert.Equal(ExitCodes.Success, exitCode);
     Assert.Equal(
@@ -206,10 +205,10 @@ public sealed class CliRunnerTests : IDisposable
     using var app = App();
     var output = temp.Combine("docs", "deep");
 
-    var exitCode = await app.RunAsync(Queries, "-n", "sales-model", "-o", output, "-f", "html");
+    var exitCode = await app.RunAsync(Queries, "-n", "sales-model", "-o", output);
 
     Assert.Equal(ExitCodes.Success, exitCode);
-    Assert.Equal(new[] { "sales-model.csv", "sales-model.html" }, OutputFiles(output));
+    Assert.Equal(new[] { "sales-model.html" }, OutputFiles(output));
     Assert.Empty(OutputFiles());
     Assert.Contains(">sales-model</h1>", await File.ReadAllTextAsync(Path.Combine(output, "sales-model.html"), TestContext.Current.CancellationToken));
   }
@@ -222,7 +221,7 @@ public sealed class CliRunnerTests : IDisposable
     var exitCode = await app.RunAsync("queries", "-o", "out");
 
     Assert.Equal(ExitCodes.Success, exitCode);
-    Assert.True(File.Exists(temp.Combine("out", "powerquery-dependencies.csv")));
+    Assert.True(File.Exists(temp.Combine("out", "powerquery-dependencies.html")));
   }
 
   [Fact]
@@ -232,7 +231,7 @@ public sealed class CliRunnerTests : IDisposable
     await File.WriteAllTextAsync(csv, "original", TestContext.Current.CancellationToken);
     using var app = App();
 
-    var exitCode = await app.RunAsync(Queries, "--force");
+    var exitCode = await app.RunAsync(Queries, "--force", "-f", "csv");
 
     Assert.Equal(ExitCodes.Success, exitCode);
     Assert.StartsWith("Query Name,", (await File.ReadAllTextAsync(csv, TestContext.Current.CancellationToken)).TrimStart('﻿'));
@@ -245,7 +244,7 @@ public sealed class CliRunnerTests : IDisposable
     await File.WriteAllTextAsync(csv, "original", TestContext.Current.CancellationToken);
     using var app = App();
 
-    var exitCode = await app.RunAsync(Queries, "--on-exists", "skip", "-f", "puml");
+    var exitCode = await app.RunAsync(Queries, "--on-exists", "skip", "-f", "csv,puml");
 
     Assert.Equal(ExitCodes.Success, exitCode);
     Assert.Equal("original", await File.ReadAllTextAsync(csv, TestContext.Current.CancellationToken));
@@ -255,7 +254,7 @@ public sealed class CliRunnerTests : IDisposable
   [Fact]
   public async Task When_everything_is_skipped_no_success_message_is_shown()
   {
-    await File.WriteAllTextAsync(QueryFile("powerquery-dependencies.csv"), "original", TestContext.Current.CancellationToken);
+    await File.WriteAllTextAsync(QueryFile("powerquery-dependencies.html"), "original", TestContext.Current.CancellationToken);
     using var app = App();
 
     var exitCode = await app.RunAsync(Queries, "--on-exists", "skip");
@@ -273,7 +272,7 @@ public sealed class CliRunnerTests : IDisposable
     var interaction = new FakeUserInteraction(true, OverwriteAnswer.No, OverwriteAnswer.Yes);
     using var app = App(interaction: interaction);
 
-    var exitCode = await app.RunAsync(Queries, "-f", "puml");
+    var exitCode = await app.RunAsync(Queries, "-f", "csv,puml");
 
     Assert.Equal(ExitCodes.Success, exitCode);
     Assert.Equal(2, interaction.Asked.Count);
@@ -336,7 +335,7 @@ public sealed class CliRunnerTests : IDisposable
     var exitCode = await app.RunAsync(Queries);
 
     Assert.Equal(ExitCodes.InputError, exitCode);
-    Assert.True(File.Exists(QueryFile("powerquery-dependencies.csv")));
+    Assert.True(File.Exists(QueryFile("powerquery-dependencies.html")));
     Assert.Contains(app.Log.Messages(LogEventLevel.Error), m => m.Contains("Broken.m", StringComparison.Ordinal));
   }
 
@@ -390,7 +389,7 @@ public sealed class CliRunnerTests : IDisposable
       CreateExporters = _ => new ExporterRegistry([new CsvExporter(), new ThrowingExporter(OutputFormat.Puml, new IOException("Disk full")), new HtmlExporter()]),
     };
 
-    var exitCode = await app.RunAsync(Queries, "-f", "puml,html");
+    var exitCode = await app.RunAsync(Queries, "-f", "csv,puml,html");
 
     Assert.Equal(ExitCodes.ExportFailed, exitCode);
     Assert.Equal(new[] { "powerquery-dependencies.csv", "powerquery-dependencies.html" }, OutputFiles());
@@ -430,7 +429,7 @@ public sealed class CliRunnerTests : IDisposable
       CreateExporters = _ => new ExporterRegistry([new CancellingExporter(cancellation)]),
     };
 
-    var exitCode = await app.RunWithCancellationAsync(cancellation.Token, Queries);
+    var exitCode = await app.RunWithCancellationAsync(cancellation.Token, Queries, "-f", "csv");
 
     Assert.Equal(ExitCodes.Cancelled, exitCode);
     Assert.Empty(OutputFiles());

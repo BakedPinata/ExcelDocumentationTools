@@ -40,20 +40,18 @@ internal sealed class CliDefinition
       HelpName = "path",
     };
 
+    // Left empty when not given, and the binder applies the default (html). Help shows the default from the
+    // description, because System.CommandLine would show nothing for a list.
     Formats = new Option<IReadOnlyList<OutputFormat>>("--format", "-f")
     {
-      Description = "Additional formats to produce: puml, html, pdf, png, svg. Comma-separated (-f puml,html) "
-        + "or repeated (-f puml -f html). pdf, png and svg are rendered by a PlantUML server.",
+      Description = "Formats to write: html, csv, puml, pdf, png, svg. Comma-separated (-f html,csv) or repeated "
+        + "(-f html -f csv). Replaces the default, so include html to keep the page. pdf, png and svg are rendered by "
+        + "a PlantUML server. [default: html]",
       HelpName = "format",
       Arity = ArgumentArity.OneOrMore,
       AllowMultipleArgumentsPerToken = false,
       CustomParser = ParseFormats,
       DefaultValueFactory = _ => [],
-    };
-
-    NoCsv = new Option<bool>("--no-csv")
-    {
-      Description = "Do not produce the CSV. Requires at least one --format value.",
     };
 
     PlantUmlServer = new Option<string?>("--plantuml-server")
@@ -87,14 +85,13 @@ internal sealed class CliDefinition
     };
 
     RootCommand = new RootCommand(
-      "Analyses the dependencies between exported Power Query (.m) queries and exports them as CSV, "
-      + "PlantUML, rendered diagrams (via a PlantUML server) or an interactive HTML graph.")
+      "Analyses the dependencies between exported Power Query (.m) queries and shows them as an interactive HTML "
+      + "graph. It can also write them as CSV, PlantUML, or diagrams rendered by a PlantUML server.")
     {
       InputFolder,
       OutputName,
       Output,
       Formats,
-      NoCsv,
       PlantUmlServer,
       OnExists,
       Force,
@@ -119,9 +116,6 @@ internal sealed class CliDefinition
 
   /// <summary><c>--format</c> / <c>-f</c>.</summary>
   public Option<IReadOnlyList<OutputFormat>> Formats { get; }
-
-  /// <summary><c>--no-csv</c>.</summary>
-  public Option<bool> NoCsv { get; }
 
   /// <summary><c>--plantuml-server</c>.</summary>
   public Option<string?> PlantUmlServer { get; }
@@ -196,14 +190,6 @@ internal sealed class CliDefinition
       }
     }
 
-    var formatsResult = result.GetResult(Formats);
-    var formatsGiven = formatsResult is { Implicit: false } && formatsResult.Tokens.Count > 0;
-    if (result.GetValue(NoCsv) && !formatsGiven)
-    {
-      result.AddError("--no-csv was given without --format, so nothing would be produced. "
-        + "Add at least one --format value (for example -f html) or remove --no-csv.");
-    }
-
     var onExistsResult = result.GetResult(OnExists);
     if (result.GetValue(Force)
       && onExistsResult is { Implicit: false, Tokens.Count: > 0 }
@@ -228,18 +214,15 @@ internal sealed class CliDefinition
   private static IReadOnlyList<OutputFormat> ParseFormats(ArgumentResult result)
   {
     var formats = new List<OutputFormat>();
-    var validNames = string.Join(", ", OutputFormatExtensions.SelectableFormats.Select(f => f.CliName()));
+    var validNames = string.Join(", ", OutputFormatExtensions.All.Select(f => f.CliName()));
 
     foreach (var token in result.Tokens)
     {
       foreach (var part in token.Value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
       {
-        if (!OutputFormatExtensions.TryParseSelectable(part, out var format))
+        if (!OutputFormatExtensions.TryParse(part, out var format))
         {
-          var hint = string.Equals(part, "csv", StringComparison.OrdinalIgnoreCase)
-            ? " CSV is produced by default (use --no-csv to turn it off)."
-            : string.Empty;
-          result.AddError($"Invalid value '{part}' for --format. Valid values are: {validNames}.{hint}");
+          result.AddError($"Invalid value '{part}' for --format. Valid values are: {validNames}.");
           return [];
         }
 

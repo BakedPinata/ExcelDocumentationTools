@@ -3,11 +3,11 @@
 A .NET console tool that reads a folder of exported Power Query (`.m`) queries, works out which
 queries reference which, and exports the dependency graph as:
 
-- **CSV** (default): one row per dependency.
+- **Interactive HTML** (default): a single, self-contained page with a D3 force-directed graph that
+  works offline.
+- **CSV**: one row per dependency.
 - **PlantUML source** (`.puml`).
 - **Rendered diagrams** (`.svg`, `.png`, `.pdf`) via a PlantUML server you configure.
-- **Interactive HTML**: a single, self-contained page with a D3 force-directed graph that works
-  offline.
 
 It also reports circular dependencies and classifies each query as a root, leaf, isolated or
 intermediate query.
@@ -49,8 +49,7 @@ the file name without `.m`. Only the top level of the folder is scanned.
 |--------|-------|-------|---------|-------------|
 | `--output-name` | `-n` | name | `powerquery-dependencies` | Base file name for every output. The extension is added per format. Must not contain a folder or an extension. |
 | `--output` | `-o` | path | the input folder | Where outputs are written. Created if missing. |
-| `--format` | `-f` | `puml`, `html`, `pdf`, `png`, `svg` | none | Extra formats, comma-separated (`-f puml,html`) or repeated (`-f puml -f html`). Case-insensitive. |
-| `--no-csv` | | flag | off | Skip the CSV. Needs at least one `--format`. |
+| `--format` | `-f` | `html`, `csv`, `puml`, `pdf`, `png`, `svg` | `html` | The formats to write, comma-separated (`-f html,csv`) or repeated (`-f html -f csv`). Case-insensitive. Replaces the default, so include `html` to keep the page. |
 | `--plantuml-server` | | URL | none | PlantUML server for `pdf`, `png` and `svg`. |
 | `--on-exists` | | `prompt`, `overwrite`, `skip`, `fail` | `prompt` when interactive, otherwise `fail` | What to do when an output file already exists. |
 | `--force` | `-y` | flag | off | Same as `--on-exists overwrite`. |
@@ -62,14 +61,14 @@ the file name without `.m`. Only the top level of the folder is scanned.
 ### Examples
 
 ```
-# CSV only, default name, next to the inputs
+# The interactive page only, default name, next to the inputs
 pqdoc C:\queries
 
-# CSV plus PlantUML source and interactive HTML, custom name and location
-pqdoc C:\queries -n sales-model -o C:\docs -f puml,html
+# The page plus CSV and PlantUML source, custom name and location
+pqdoc C:\queries -n sales-model -o C:\docs -f html,csv,puml
 
-# SVG and PNG only, no CSV, overwriting silently
-pqdoc C:\queries --no-csv -f svg,png --plantuml-server https://plantuml.example.com --force
+# SVG and PNG only, overwriting silently
+pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --force
 ```
 
 ## Outputs

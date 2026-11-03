@@ -34,7 +34,7 @@ questions the draft raised.
 | A0 | Move to .NET 10, with command-line instructions | Claude, then you on a work machine | Done; work machine check to come |
 | A1 | Fix: a click in the graph pulls modules together | Claude | Done |
 | A2 | Fix: the export pauses while writing the page | Claude | Done: timings added; the cause, antivirus scanning Mermaid, is fixed by F1 |
-| A3 | pqdoc writes HTML by default | Claude | |
+| A3 | pqdoc writes HTML by default | Claude | Done |
 | F1 | Class diagram drawn by the page, with boxes you can move; Mermaid removed (moved up after A2) | Claude | |
 | B1 | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | |
 | B2 | pqdoc reads queries from a workbook | Claude | |

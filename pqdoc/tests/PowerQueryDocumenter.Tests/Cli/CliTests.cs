@@ -20,8 +20,7 @@ public sealed class CliDefinitionTests
     Assert.Empty(result.Errors);
     Assert.Equal("C:\\queries", result.GetValue(cli.InputFolder));
     Assert.Equal("powerquery-dependencies", result.GetValue(cli.OutputName));
-    Assert.Empty(result.GetValue(cli.Formats) ?? []);
-    Assert.False(result.GetValue(cli.NoCsv));
+    Assert.Empty(result.GetValue(cli.Formats) ?? []); // the binder turns this into the default, html
     Assert.Null(result.GetValue(cli.OnExists));
   }
 
@@ -60,30 +59,16 @@ public sealed class CliDefinitionTests
     var error = Assert.Single(Errors("in", "-f", value));
 
     Assert.Contains("--format", error, StringComparison.Ordinal);
-    Assert.Contains("puml, html, pdf, png, svg", error, StringComparison.Ordinal);
+    Assert.Contains("html, csv, puml, pdf, png, svg", error, StringComparison.Ordinal);
   }
 
   [Fact]
-  public void Asking_for_csv_explains_that_it_is_on_by_default()
+  public void Csv_is_one_of_the_formats()
   {
-    var error = Assert.Single(Errors("in", "-f", "csv"));
+    var result = cli.Parse(["in", "-f", "CSV"]);
 
-    Assert.Contains("--no-csv", error, StringComparison.Ordinal);
-  }
-
-  [Fact]
-  public void No_csv_without_a_format_is_rejected()
-  {
-    var error = Assert.Single(Errors("in", "--no-csv"));
-
-    Assert.Contains("--no-csv", error, StringComparison.Ordinal);
-    Assert.Contains("nothing would be produced", error, StringComparison.Ordinal);
-  }
-
-  [Fact]
-  public void No_csv_with_a_format_is_valid()
-  {
-    Assert.Empty(Errors("in", "--no-csv", "-f", "html"));
+    Assert.Empty(result.Errors);
+    Assert.Equal(new[] { OutputFormat.Csv }, result.GetValue(cli.Formats));
   }
 
   [Theory]
@@ -163,7 +148,7 @@ public sealed class CliDefinitionTests
   [Fact]
   public void Several_problems_are_all_reported()
   {
-    Assert.Equal(3, Errors("in", "--no-csv", "-v", "-q", "-n", "a/b").Length);
+    Assert.Equal(3, Errors("in", "-y", "--on-exists", "skip", "-v", "-q", "-n", "a/b").Length);
   }
 
   [Fact]
@@ -210,19 +195,19 @@ public sealed class OptionsBinderTests : IDisposable
   private Task<BindingResult> Bind(params string[] args) => BindWith(null, args);
 
   [Fact]
-  public async Task Defaults_write_a_csv_next_to_the_inputs()
+  public async Task Defaults_write_the_page_next_to_the_inputs()
   {
     var options = (await Bind("queries")).Options!;
 
     Assert.Equal(temp.Combine("queries"), options.InputFolder);
     Assert.Equal(options.InputFolder, options.OutputFolder);
     Assert.Equal("powerquery-dependencies", options.OutputName);
-    Assert.Equal(new[] { OutputFormat.Csv }, options.Formats);
+    Assert.Equal(new[] { OutputFormat.Html }, options.Formats);
     Assert.Equal(OnExistsBehaviour.Prompt, options.OnExists);
     Assert.Equal(LogVerbosity.Normal, options.Verbosity);
     Assert.Null(options.PlantUmlServer);
     Assert.Equal(TimeSpan.FromSeconds(30), options.RenderTimeout);
-    Assert.Equal(temp.Combine("queries", "powerquery-dependencies.csv"), options.GetOutputPath(OutputFormat.Csv));
+    Assert.Equal(temp.Combine("queries", "powerquery-dependencies.html"), options.GetOutputPath(OutputFormat.Html));
   }
 
   [Fact]
@@ -235,19 +220,19 @@ public sealed class OptionsBinderTests : IDisposable
   }
 
   [Fact]
-  public async Task Formats_are_additive_and_ordered()
+  public async Task Formats_are_written_in_a_fixed_order()
   {
-    var options = (await Bind("in", "-f", "html,puml")).Options!;
+    var options = (await Bind("in", "-f", "html,puml,csv")).Options!;
 
     Assert.Equal(new[] { OutputFormat.Csv, OutputFormat.Puml, OutputFormat.Html }, options.Formats);
   }
 
   [Fact]
-  public async Task No_csv_removes_the_csv()
+  public async Task Formats_replace_the_default()
   {
-    var options = (await Bind("in", "--no-csv", "-f", "html")).Options!;
+    var options = (await Bind("in", "-f", "csv")).Options!;
 
-    Assert.Equal(new[] { OutputFormat.Html }, options.Formats);
+    Assert.Equal(new[] { OutputFormat.Csv }, options.Formats);
   }
 
   [Theory]

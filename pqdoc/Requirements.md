@@ -54,8 +54,7 @@ The input folder is a required positional argument.
 |--------|-------|-------|---------|-------------|
 | `--output-name` | `-n` | string (no extension) | `powerquery-dependencies` | Base file name for all outputs. The tool appends the correct extension per format. MUST NOT contain path separators or an extension; if it does, fail validation. |
 | `--output` | `-o` | path | Same as the input folder | Folder to write outputs to. Created if it does not exist. |
-| `--format` | `-f` | one or more of `puml`, `html`, `pdf`, `png`, `svg` | none (CSV only) | Additional formats to generate. Accepts a comma-separated list (`-f puml,html`) and MAY be repeated (`-f puml -f html`). Values are case-insensitive. |
-| `--no-csv` | | flag | off | Skip the CSV export. MUST fail validation if no `--format` value is supplied, with a message explaining that nothing would be produced. |
+| `--format` | `-f` | one or more of `html`, `csv`, `puml`, `pdf`, `png`, `svg` | `html` | The formats to generate. Accepts a comma-separated list (`-f html,csv`) and MAY be repeated (`-f html -f csv`). Values are case-insensitive. Giving it replaces the default. |
 | `--plantuml-server` | | URL | none | Base URL of the PlantUML server used for `pdf`, `png` and `svg` rendering. See FR-PUML-4. |
 | `--on-exists` | | `prompt`, `overwrite`, `skip`, `fail` | `prompt` when interactive, otherwise `fail` | Behaviour when an output file already exists. See FR-OVR. |
 | `--force` | `-y` | flag | off | Shorthand for `--on-exists overwrite`. If both are given and disagree, fail validation. |
@@ -65,14 +64,14 @@ The input folder is a required positional argument.
 **Examples**
 
 ```
-# CSV only, default name, next to the inputs
+# Interactive HTML only, default name, next to the inputs
 pqdoc C:\queries
 
-# CSV plus PlantUML source and interactive HTML, custom name and location
-pqdoc C:\queries -n sales-model -o C:\docs -f puml,html
+# HTML plus CSV and PlantUML source, custom name and location
+pqdoc C:\queries -n sales-model -o C:\docs -f html,csv,puml
 
-# SVG and PNG only, no CSV, overwriting silently
-pqdoc C:\queries --no-csv -f svg,png --plantuml-server https://plantuml.example.com --force
+# SVG and PNG only, overwriting silently
+pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --force
 ```
 
 ### 4.2 Dependency Analysis
@@ -95,7 +94,7 @@ pqdoc C:\queries --no-csv -f svg,png --plantuml-server https://plantuml.example.
 |----|-------------|
 | FR-CSV-1 | The header MUST be `Query Name,Referenced By Query Name`. The first column is the upstream query being referenced; the second is the downstream query that references it. Values are quoted, with `""` escaping; there is one row per pair; queries with no dependents are emitted with an empty second column; rows are ordered case-insensitively. The header strings MUST be defined as constants in one place. |
 | FR-CSV-2 | File name is `<output-name>.csv`. |
-| FR-CSV-3 | CSV export is on by default and disabled only by `--no-csv`. |
+| FR-CSV-3 | CSV export is produced only when `csv` is one of the `--format` values. |
 
 ### 4.4 Export: PlantUML Source (`puml`)
 
@@ -123,6 +122,7 @@ pqdoc C:\queries --no-csv -f svg,png --plantuml-server https://plantuml.example.
 | FR-HTML-7 | Graph data MUST be embedded as JSON with proper escaping (including `</script>` sequences in names) so that query names cannot break out of the page or inject script. |
 | FR-HTML-8 | The page title and a visible heading SHOULD include the output name and the generation date/time, plus node and edge counts. |
 | FR-HTML-9 | The HTML template SHOULD be kept as a separate embedded resource file rather than an inline C# string. |
+| FR-HTML-10 | HTML is the default output: it is the only output when `--format` isn't given. |
 
 ### 4.6 Overwrite Behaviour
 
@@ -196,9 +196,9 @@ pqdoc C:\queries --no-csv -f svg,png --plantuml-server https://plantuml.example.
 
 ## 6. Acceptance Criteria (Summary)
 
-1. `pqdoc <folder>` with no other options writes `powerquery-dependencies.csv` next to the inputs, with the header row `Query Name,Referenced By Query Name`.
-2. `-f puml,html` produces `.csv`, `.puml` and `.html` side by side. The HTML opens offline and renders an interactive graph. The PUML renders without syntax errors in a PlantUML server.
-3. `--no-csv` without `-f` fails with exit code 2 and writes nothing.
+1. `pqdoc <folder>` with no other options writes `powerquery-dependencies.html` next to the inputs, and nothing else.
+2. `-f csv,puml,html` produces `.csv`, `.puml` and `.html` side by side. The CSV has the header row `Query Name,Referenced By Query Name`. The HTML opens offline and renders an interactive graph. The PUML renders without syntax errors in a PlantUML server.
+3. `-f csv` writes only the CSV, because `--format` replaces the default.
 4. Existing output files with default settings in a non-interactive session cause exit code 4 and no files are written or modified.
 5. Rendering formats without a configured server fail with exit code 2 and a message that names all three configuration routes.
 6. A query named `Source` that is referenced by another query appears as a dependency.
@@ -215,7 +215,8 @@ These are deliberate defaults.
 - **No default PlantUML server**, to avoid sending query names to a public service unintentionally.
 - **D3 is embedded** in the HTML so the file works offline and can be shared by email or from a file share without external requests.
 - **Edge direction** is upstream to downstream across all formats.
-- **CSV is always on** unless `--no-csv` is given, and `--format` is additive.
+- **HTML is the default output**, and `--format` lists exactly what to write. Until 1.1.0 the CSV was the default and
+  `--format` added to it, but the page turned out to be the output people use.
 - **CSV header** is `Query Name,Referenced By Query Name`, so each row says plainly which query uses which.
 
 ## 8. Out of Scope / Possible Future Work

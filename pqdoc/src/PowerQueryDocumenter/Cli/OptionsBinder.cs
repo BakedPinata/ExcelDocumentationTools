@@ -34,11 +34,9 @@ internal static class OptionsBinder
       ? inputFolder
       : ResolvePath(outputFolderValue, environment, "--output", errors);
 
-    var requested = parseResult.GetValue(cli.Formats) ?? [];
-    var formats = (parseResult.GetValue(cli.NoCsv) ? requested : requested.Prepend(OutputFormat.Csv))
-      .Distinct()
-      .Order()
-      .ToArray();
+    // --format can't be given empty, so an empty list means it wasn't given.
+    var requested = parseResult.GetValue(cli.Formats) is { Count: > 0 } given ? given : OutputFormatExtensions.Default;
+    var formats = requested.Distinct().Order().ToArray();
 
     // Always validate an explicit --plantuml-server value; only go looking for a server in the
     // environment or a .env file when a rendered format actually needs one.

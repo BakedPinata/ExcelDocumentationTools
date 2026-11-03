@@ -3,13 +3,13 @@ namespace PowerQueryDocumenter.Core.Configuration;
 /// <summary>An export format. Declaration order is the order outputs are produced in.</summary>
 public enum OutputFormat
 {
-  /// <summary>Dependency CSV (on by default).</summary>
+  /// <summary>Dependency CSV.</summary>
   Csv,
 
   /// <summary>PlantUML source.</summary>
   Puml,
 
-  /// <summary>Self-contained interactive HTML graph.</summary>
+  /// <summary>Self-contained interactive HTML graph (the default).</summary>
   Html,
 
   /// <summary>SVG rendered by a PlantUML server.</summary>
@@ -25,9 +25,12 @@ public enum OutputFormat
 /// <summary>Helpers for <see cref="OutputFormat"/>.</summary>
 public static class OutputFormatExtensions
 {
-  /// <summary>The formats that can be requested with <c>--format</c> (CSV is controlled by <c>--no-csv</c>).</summary>
-  public static IReadOnlyList<OutputFormat> SelectableFormats { get; } =
-    [OutputFormat.Puml, OutputFormat.Html, OutputFormat.Pdf, OutputFormat.Png, OutputFormat.Svg];
+  /// <summary>Every format <c>--format</c> accepts, in the order help and messages list them.</summary>
+  public static IReadOnlyList<OutputFormat> All { get; } =
+    [OutputFormat.Html, OutputFormat.Csv, OutputFormat.Puml, OutputFormat.Pdf, OutputFormat.Png, OutputFormat.Svg];
+
+  /// <summary>What's written when <c>--format</c> isn't given: the interactive page, which is the output people use.</summary>
+  public static IReadOnlyList<OutputFormat> Default { get; } = [OutputFormat.Html];
 
   /// <summary>The name used on the command line and in messages, for example "puml".</summary>
   public static string CliName(this OutputFormat format) => format switch
@@ -49,9 +52,9 @@ public static class OutputFormatExtensions
     format is OutputFormat.Svg or OutputFormat.Png or OutputFormat.Pdf;
 
   /// <summary>Parses a <c>--format</c> value (case-insensitive).</summary>
-  public static bool TryParseSelectable(string value, out OutputFormat format)
+  public static bool TryParse(string value, out OutputFormat format)
   {
-    foreach (var candidate in SelectableFormats)
+    foreach (var candidate in All)
     {
       if (string.Equals(candidate.CliName(), value.Trim(), StringComparison.OrdinalIgnoreCase))
       {

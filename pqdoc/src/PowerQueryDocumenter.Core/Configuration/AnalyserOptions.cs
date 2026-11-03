@@ -18,7 +18,7 @@ public sealed record AnalyserOptions
   /// <summary>Base file name for outputs, without an extension.</summary>
   public required string OutputName { get; init; }
 
-  /// <summary>Formats to produce, distinct and in <see cref="OutputFormat"/> order. Includes CSV unless <c>--no-csv</c> was given.</summary>
+  /// <summary>Formats to produce, distinct and in <see cref="OutputFormat"/> order. HTML alone unless <c>--format</c> was given.</summary>
   public required IReadOnlyList<OutputFormat> Formats { get; init; }
 
   /// <summary>PlantUML server base URL. Required when any rendered format is requested.</summary>
