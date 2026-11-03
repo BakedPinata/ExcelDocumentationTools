@@ -28,12 +28,16 @@ public sealed class CliRunnerTests : IDisposable
 
   private string QueryFile(string name) => Path.Combine(Queries, name);
 
+  /// <summary>The outputs in a folder: everything but query files and the .gitattributes written with them.</summary>
   private string[] OutputFiles(string? folder = null) =>
     Directory.GetFiles(folder ?? Queries)
       .Select(f => Path.GetFileName(f))
-      .Where(n => !n.EndsWith(".m", StringComparison.Ordinal))
+      .Where(n => !n.EndsWith(".m", StringComparison.Ordinal) && n != ".gitattributes")
       .Order(StringComparer.Ordinal)
       .ToArray();
+
+  private string[] QueryFiles(string folder) =>
+    Directory.GetFiles(folder, "*.m").Select(f => Path.GetFileName(f)).Order(StringComparer.Ordinal).ToArray();
 
   private TestApp App(HttpMessageHandler? handler = null, IUserInteraction? interaction = null, Dictionary<string, string>? variables = null) =>
     new(temp.Path, handler, interaction, variables);
@@ -312,6 +316,55 @@ public sealed class CliRunnerTests : IDisposable
     Assert.Contains("\"Sales/Returns\",", rows);
     Assert.Equal(8, rows.Count(r => !r.EndsWith(',')) - 1); // every dependency, less the header
     Assert.Contains(app.Log.Messages(LogEventLevel.Information), m => m.Contains("14 queries", StringComparison.Ordinal));
+  }
+
+  [Fact]
+  public async Task AC11_query_files_written_from_a_workbook_read_back_as_a_folder_with_the_same_names_and_dependencies()
+  {
+    var workbook = temp.Combine("Queries.xlsx");
+    File.Copy(Fixtures.Workbook("Queries.xlsx"), workbook);
+    var folder = temp.Combine("PowerQuery");
+    using var app = App();
+
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(workbook, "-f", "csv"));
+    Assert.Contains("Sales%2FReturns.m", QueryFiles(folder));
+    Assert.Contains("Discount%25.m", QueryFiles(folder));
+    Assert.Equal(14, QueryFiles(folder).Length);
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(folder, "-f", "csv"));
+
+    var fromWorkbook = await File.ReadAllLinesAsync(Path.Combine(folder, "Queries-powerquery.csv"), TestContext.Current.CancellationToken);
+    var fromFolder = await File.ReadAllLinesAsync(Path.Combine(folder, "PowerQuery-powerquery.csv"), TestContext.Current.CancellationToken);
+    Assert.Equal(fromWorkbook, fromFolder);
+    Assert.Contains("\"Sales/Returns\",", fromFolder);
+  }
+
+  [Fact]
+  public async Task Query_files_are_kept_in_step_with_the_workbook_without_asking()
+  {
+    var workbook = temp.Combine("Book.xlsx");
+    await File.WriteAllBytesAsync(workbook, MashupWorkbook.With("section Section1;\r\nshared A = 1;\r\nshared B = A + 1;"), TestContext.Current.CancellationToken);
+    temp.WriteFile(Path.Combine("PowerQuery", "A.m"), "old");
+    temp.WriteFile(Path.Combine("PowerQuery", "Gone.m"), "no longer in the workbook");
+    using var app = App(); // not interactive, so an existing page would be refused, but query files aren't asked about
+
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(workbook));
+
+    Assert.Equal(new[] { "A.m", "B.m" }, QueryFiles(temp.Combine("PowerQuery")));
+    Assert.Equal("1", await File.ReadAllTextAsync(temp.Combine("PowerQuery", "A.m"), TestContext.Current.CancellationToken));
+    Assert.Contains(app.Log.Messages(LogEventLevel.Information), m => m.Contains("Gone.m", StringComparison.Ordinal));
+  }
+
+  [Fact]
+  public async Task A_workbook_whose_queries_cannot_be_read_leaves_existing_query_files_alone()
+  {
+    var workbook = temp.Combine("Book.xlsx");
+    await File.WriteAllBytesAsync(workbook, MashupWorkbook.With("section Section1;\r\nshared A = 1"), TestContext.Current.CancellationToken);
+    temp.WriteFile(Path.Combine("PowerQuery", "Kept.m"), "1");
+    using var app = App();
+
+    Assert.Equal(ExitCodes.InputError, await app.RunAsync(workbook));
+
+    Assert.Equal(new[] { "Kept.m" }, temp.FileNames("PowerQuery"));
   }
 
   [Fact]

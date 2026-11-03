@@ -110,6 +110,33 @@ Reading them is step B2 of the feedback plan.
 - **Checked by hand on the private workbook:** its one query reads exactly as the user's hand export, line endings
   included, and the CSVs are identical.
 
+## Query files (1.4.0, step B3)
+
+- **`Output/QueryFileExporter`, parallel to vbadoc's `ProjectExporter`,** with `QueryFileNames` for the escapes and
+  `QueryFileText` for line endings. It writes through `AtomicFileWriter`, which vbadoc's writer will share after C1.
+- **Each file holds the expression as Excel stores it**, without `shared <name> =` or the final `;`, which is what a
+  manual export contains, so pqdoc reads both the same way. A description isn't written: the file stays the query.
+- **File names escape with `%XX`, not vbadoc's `_`.** For VBA, `_` is a safety net that never runs, because module
+  names are identifiers; query names often need it, and `_` could make two names the same. The escaped characters are
+  those Windows forbids, control characters and `%`; a device name (`CON`, `LPT1`) has its first letter escaped.
+  Decoding reverses only those escapes, written in upper-case hex, so `Sales%20Data.m` made by hand stays
+  `Sales%20Data`, and every name survives the round trip.
+- **CRLF outside text literals; literal line breaks as Excel stored them** (agreed after B1). The walker follows the
+  tokeniser's rules for comments, text and `""` escapes. Line breaks in block comments become CRLF too.
+- **Kept in step like vbadoc's module files, with no manifest:** every top-level `.m` file in the folder is pqdoc's.
+  Unchanged files aren't rewritten; files whose query has gone are deleted (names compared exactly, so a rename by case
+  takes effect on Windows); other files and subfolders are left alone. The README warns against hand-written `.m` files
+  there.
+- **`--on-exists` doesn't apply to query files**, because they follow the workbook as vbadoc's module files do. They're
+  written after the overwrite check, so quitting at a prompt still writes nothing, and before the outputs.
+- **The created `.gitattributes`** marks `*.m` and `*.html` as `-text diff`. `-text` matters more than for VBA: a
+  literal's LF line break would otherwise be converted by git.
+- **Failures:** names that would share a file (impossible once the reader rejects duplicates, but checked anyway) stop
+  the run with exit code 3 before anything is written. A file that can't be written stops the query files, gives exit
+  code 5, and the outputs are still written; older outputs aren't cleared in that case.
+- **Checked by hand on the private workbook:** its query's file has the same name and text as the user's hand export,
+  apart from line endings, with no byte order mark.
+
 ## Output
 
 - **HTML is the default output** (1.1.0). Feedback from real use was that the page is what people use, and that CSV

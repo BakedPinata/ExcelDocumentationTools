@@ -174,6 +174,19 @@ public sealed class DependencyAnalyserTests : IDisposable
   }
 
   [Fact]
+  public async Task Escapes_in_file_names_are_reversed_so_names_match_the_workbook()
+  {
+    temp.WriteFile("Sales%2FReturns.m", "1");
+    temp.WriteFile("%43ON.m", "2");
+    temp.WriteFile("Sales%20Data.m", "3"); // made by hand: a space is never escaped, so the name is kept
+    temp.WriteFile("Report.m", "#\"Sales/Returns\" + #\"CON\" + #\"Sales%20Data\"");
+
+    var result = await CreateAnalyser().AnalyseFolderAsync(temp.Path, TestContext.Current.CancellationToken);
+
+    Assert.Equal(new[] { "CON>Report", "Sales%20Data>Report", "Sales/Returns>Report" }, EdgeList(result.Graph).Order(StringComparer.Ordinal));
+  }
+
+  [Fact]
   public async Task Files_with_a_byte_order_mark_are_read_correctly()
   {
     await File.WriteAllTextAsync(temp.Combine("Orders.m"), "1", new UTF8Encoding(true), TestContext.Current.CancellationToken);

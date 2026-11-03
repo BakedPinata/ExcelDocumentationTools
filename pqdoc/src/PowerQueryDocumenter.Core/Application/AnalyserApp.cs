@@ -39,9 +39,17 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
   {
     ArgumentNullException.ThrowIfNull(options);
 
-    var analysis = options.InputIsWorkbook
-      ? AnalyseWorkbook(options.Input)
-      : await AnalyseFolderAsync(options.Input, cancellationToken).ConfigureAwait(false);
+    IReadOnlyList<WorkbookQuery>? queries = null;
+    AnalysisResult? analysis;
+    if (options.InputIsWorkbook)
+    {
+      (analysis, queries) = AnalyseWorkbook(options.Input);
+    }
+    else
+    {
+      analysis = await AnalyseFolderAsync(options.Input, cancellationToken).ConfigureAwait(false);
+    }
+
     if (analysis is null)
     {
       return ExitCodes.InputError;
@@ -67,6 +75,29 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
       return ExitCodes.OutputRefused;
     }
 
+    // A workbook's queries go into .m files beside the outputs (FR-QF-1). A clash is found before anything is
+    // written, and stops the run; a failure to write stops only the .m files.
+    cancellationToken.ThrowIfCancellationRequested();
+    var queryFilesWritten = true;
+    if (queries is not null)
+    {
+      try
+      {
+        LogQueryFiles(await QueryFileExporter.ExportAsync(queries, options.OutputFolder).ConfigureAwait(false), options.OutputFolder);
+      }
+      catch (ExtractionException ex)
+      {
+        logger.Error("{Message}", ex.Message);
+        return ExitCodes.InputError;
+      }
+      catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+      {
+        logger.Error("Could not write the query files in {Folder}: {Reason}", options.OutputFolder, ErrorDescriber.DescribeOutputFailure(ex));
+        logger.Debug(ex, "Query file failure detail");
+        queryFilesWritten = false;
+      }
+    }
+
     var outcomes = resolution.Skipped
       .Select(o => new ExportOutcome(o.Format, o.Path, ExportStatus.Skipped))
       .ToList();
@@ -77,14 +108,15 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     }
 
     // Only once this run's outputs are safely written, so there's always a page.
-    if (outcomes.All(o => o.Status != ExportStatus.Failed))
+    var failed = !queryFilesWritten || outcomes.Any(o => o.Status == ExportStatus.Failed);
+    if (!failed)
     {
       HandleOlderOutputs(options);
     }
 
     LogSummary(graph, analysis, outcomes, options.OutputFolder);
 
-    if (outcomes.Any(o => o.Status == ExportStatus.Failed))
+    if (failed)
     {
       return ExitCodes.ExportFailed;
     }
@@ -128,8 +160,30 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     }
   }
 
-  /// <summary>Reads the queries straight from a workbook (FR-IN-2). Returns null after logging why, if it can't.</summary>
-  private AnalysisResult? AnalyseWorkbook(string workbook)
+  private void LogQueryFiles(QueryFileResult result, string folder)
+  {
+    logger.Information(
+      "Query files in {Folder}: {Written} written, {Unchanged} unchanged, {Deleted} deleted",
+      folder,
+      result.Written.Count,
+      result.Unchanged.Count,
+      result.Deleted.Count);
+    foreach (var name in result.Deleted)
+    {
+      logger.Information("  deleted {File} (no longer in the workbook)", name);
+    }
+
+    if (result.CreatedGitAttributes)
+    {
+      logger.Information("  created .gitattributes");
+    }
+  }
+
+  /// <summary>
+  /// Reads the queries straight from a workbook (FR-IN-2), and returns them with their analysis. Both are null after
+  /// logging why, if it can't.
+  /// </summary>
+  private (AnalysisResult? Analysis, IReadOnlyList<WorkbookQuery>? Queries) AnalyseWorkbook(string workbook)
   {
     logger.Information("Reading queries from {Workbook}", workbook);
     IReadOnlyList<WorkbookQuery> queries;
@@ -141,12 +195,12 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     {
       logger.Error("{Message}", ex.Message);
       logger.Debug(ex, "Workbook failure detail");
-      return null;
+      return (null, null);
     }
 
     logger.Information("  {Count} queries", queries.Count);
     var graph = new DependencyAnalyser(logger).Analyse(queries.Select(q => new QuerySource(q.Name, q.Expression)));
-    return new AnalysisResult(graph, queries.Count, [], []);
+    return (new AnalysisResult(graph, queries.Count, [], []), queries);
   }
 
   /// <summary>Reads every .m file in a folder. Returns null after logging why, if it can't.</summary>

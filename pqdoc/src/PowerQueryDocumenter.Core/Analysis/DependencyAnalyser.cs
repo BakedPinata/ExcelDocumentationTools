@@ -1,11 +1,12 @@
 using System.Text;
 using PowerQueryDocumenter.Core.Model;
+using PowerQueryDocumenter.Core.Output;
 using Serilog;
 
 namespace PowerQueryDocumenter.Core.Analysis;
 
 /// <summary>The text of one query.</summary>
-/// <param name="Name">The query name (the .m file name without its extension).</param>
+/// <param name="Name">The query name: for a folder, the .m file's name without its extension and with its escapes reversed.</param>
 /// <param name="Content">The M code.</param>
 public sealed record QuerySource(string Name, string Content);
 
@@ -80,7 +81,8 @@ public sealed class DependencyAnalyser
     var duplicates = new List<string>();
     foreach (var file in files)
     {
-      var name = Path.GetFileNameWithoutExtension(file);
+      // A file pqdoc wrote from a workbook has escapes in its name (Sales%2FReturns.m): reverse them (FR-QF-2).
+      var name = QueryFileNames.QueryName(Path.GetFileNameWithoutExtension(file));
       if (!pathsByName.TryAdd(name, file))
       {
         duplicates.Add(file);

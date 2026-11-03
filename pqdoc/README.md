@@ -46,7 +46,8 @@ pqdoc <input> [options]
 
 - **an Excel workbook** (`.xlsx`, `.xlsm` or `.xlsb`). pqdoc reads the queries straight from the
   file, with no export needed. It doesn't need Excel installed, and works while the workbook is open in
-  Excel. Outputs go in a `PowerQuery` folder next to the workbook; or
+  Excel. Outputs go in a `PowerQuery` folder next to the workbook, with each query in its own `.m`
+  file (see [Query files](#query-files)); or
 - **a folder of exported `.m` files**, one query per file. The query name is the file name without
   `.m`, and only the top level of the folder is scanned. Outputs go in the same folder.
 
@@ -121,6 +122,28 @@ It follows the system light or dark theme until you choose one with the switch i
 which it then remembers. The top bar also shows which build of pqdoc made the page, as
 `pqdoc <version> (<commit>)`, linking to the repository. The page blocks all network access with a
 Content-Security-Policy, so nothing in it can load anything from the network.
+
+## Query files
+
+With a workbook as input, pqdoc also writes each query to its own `.m` file next to the outputs, so
+the queries can be kept in git and read without Excel. Each file holds the query as Excel stores it,
+which is what the Advanced Editor shows, in UTF-8 with CRLF line endings. Line breaks inside text
+values are kept exactly as Excel stored them.
+
+A query name can hold characters Windows doesn't allow in a file name. Those characters, and `%`
+itself, become `%` and two hex digits, so `Sales/Returns` is written as `Sales%2FReturns.m`, and a
+name Windows keeps for devices, such as `CON`, as `%43ON.m`. Running pqdoc on the folder reverses
+those escapes, so the names come back exactly.
+
+The folder is kept in step with the workbook, as vbadoc keeps its module files:
+
+- unchanged files aren't rewritten, so they keep their timestamps;
+- **a top-level `.m` file whose query is no longer in the workbook is deleted**, so don't keep
+  `.m` files of your own in that folder;
+- other files, and anything in subfolders, are left alone;
+- a `.gitattributes` that stops git converting the files is created, unless the folder already has one.
+
+`--on-exists` doesn't apply to these files: they always follow the workbook.
 
 ## How references are detected
 

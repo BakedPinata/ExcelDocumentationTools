@@ -6,7 +6,7 @@ This document specifies pqdoc, a .NET console application that works out which P
 
 ## 2. Input and Terminology
 
-The input is either an Excel workbook, whose queries the tool reads straight from the file (see 4.2), or a folder. From a folder, the tool reads every `*.m` file in the top level (non-recursive). Each file is one Power Query query; the query name is the file name without extension.
+The input is either an Excel workbook, whose queries the tool reads straight from the file (see 4.2), or a folder. From a folder, the tool reads every `*.m` file in the top level (non-recursive). Each file is one Power Query query; the query name is the file name without extension, with any escapes pqdoc wrote reversed (FR-QF-2). From a workbook, the tool also writes each query to a `.m` file (see 4.9).
 
 ### 2.1 Terminology
 
@@ -149,6 +149,15 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 | FR-OUT-1 | Outputs are named after what they document, in the same way as vbadoc's page: the workbook's name, or the folder's, followed by `-powerquery` (`Sales.xlsx` gives `Sales-powerquery.html`). `#` and `%` become `_` in the name, because they break or confuse a browser's address; titles still show the real name. A drive's root, which has no name, gives `powerquery`. `--output-name` overrides the name, and MUST NOT contain `#` or `%`. |
 | FR-OUT-2 | Outputs pqdoc wrote earlier under another name are found through their page's generator tag, with every output sharing that page's name. In a workbook's output folder, which belongs to pqdoc, they MUST be deleted after this run's outputs are written without failure, so an old page can't pass for the current one. In a folder of `.m` files, which belongs to the user, they MUST only be mentioned. |
 
+### 4.9 Query Files
+
+| ID | Requirement |
+|----|-------------|
+| FR-QF-1 | With a workbook as input, each query MUST be written to its own `.m` file in the output folder, holding its expression as Excel stores it, without `shared <name> =` or the final `;` (what the Advanced Editor shows and a manual export contains). A folder as input writes no query files. |
+| FR-QF-2 | File names MUST be reversible: the characters Windows doesn't allow in a file name, control characters and `%` itself become `%XX` (upper-case hex), and a Windows device name (`CON`, `LPT1`, …) has its first letter escaped. So `Sales/Returns` is `Sales%2FReturns.m` and `CON` is `%43ON.m`. Reading a folder MUST reverse exactly those escapes and nothing else, so a hand-made file with some other `%` in its name keeps its name. |
+| FR-QF-3 | Files MUST be UTF-8 without a BOM, with CRLF line endings outside text literals. Line breaks inside a text literal MUST stay as Excel stored them, so the text is unchanged if the query is imported back. |
+| FR-QF-4 | The folder MUST be kept in step with the workbook: unchanged files aren't rewritten (so they keep their timestamps), top-level `.m` files whose query is no longer in the workbook are deleted, other files are left alone, and a `.gitattributes` (`*.m -text diff`, `*.html -text diff`) is created if there isn't one, never overwritten. `--on-exists` doesn't apply to query files. They're written after the overwrite check and before the outputs. Names that would share a file stop the run with exit code 3 before anything is written; a failure to write them gives exit code 5. |
+
 ## 5. Non-Functional Requirements
 
 ### 5.1 Logging (Console UX)
@@ -180,9 +189,9 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 | 0 | All requested outputs produced (skips due to `--on-exists skip` are not failures) |
 | 1 | Unexpected error |
 | 2 | Invalid arguments or configuration |
-| 3 | Input problem (input missing, no `.m` files, a workbook whose queries can't be read: see FR-IN-4) |
+| 3 | Input problem (input missing, no `.m` files, a workbook whose queries can't be read: see FR-IN-4; queries that would share a file: see FR-QF-4) |
 | 4 | Output refused (existing file with `fail` behaviour) |
-| 5 | One or more exports failed (others may have succeeded) |
+| 5 | One or more exports, or the query files, failed (others may have succeeded) |
 | 130 | Cancelled by user |
 
 ### 5.4 Code Structure and Quality
@@ -222,6 +231,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 8. A circular dependency produces a warning and all exports still complete.
 9. A render failure for PNG does not prevent SVG, HTML or CSV from being written, and the exit code is 5.
 10. `pqdoc <workbook>` reads the queries straight from the workbook and writes `<workbook name>-powerquery.html` in a `PowerQuery` folder next to it. The dependencies are the same as for the same queries exported by hand.
+11. With a workbook as input, each query is written to its own `.m` file beside the outputs. Running pqdoc on that folder afterwards gives the same query names and dependencies.
 
 ## 7. Decisions Made (Defaults Chosen)
 

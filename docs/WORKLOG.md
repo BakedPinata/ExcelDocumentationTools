@@ -12,11 +12,12 @@ rather than repeating it.
 
 - **vbadoc 0.8.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`. Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
-- **pqdoc 1.3.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
-  and writes HTML by default as `<workbook or folder>-powerquery.html`.
+- **pqdoc 1.4.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+  and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
+  `.m` file, kept in step with the workbook.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. A0 and A1 are pushed; the
-  user's build, test and publish of A0 on the work machine is still to come. A0–A3, F1, B1 and B2 are pushed. A4 is
-  done, waiting for review. B3 (pqdoc writes `.m` files) is next.
+  user's build, test and publish of A0 on the work machine is still to come. A0–A4, F1, B1 and B2 are pushed. B3 is
+  done, waiting for review. B4 (pqdoc's page shows highlighted M source) is next.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -26,6 +27,16 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-03: Step B3, pqdoc writes `.m` files
+
+- With a workbook as input, each query goes in its own `.m` file beside the outputs (`Output/QueryFileExporter`), kept
+  in step like vbadoc's module files: unchanged files kept, stale top-level `.m` files deleted, `.gitattributes`
+  created, `--on-exists` not applied. pqdoc 1.4.0.
+- File names escape Windows-forbidden characters, control characters and `%` as `%XX`, and a device name's first
+  letter; the folder reader reverses exactly those escapes, so names round-trip. CRLF outside text literals.
+- Requirements gained 4.9 (FR-QF-1 to FR-QF-4) and acceptance criterion 11. 35 new tests. The private workbook's file
+  matches the user's hand export apart from line endings.
 
 ### 2026-11-03: Step A4, documentation file names
 

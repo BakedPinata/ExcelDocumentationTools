@@ -39,7 +39,7 @@ questions the draft raised.
 | B1 | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | Done |
 | B2 | pqdoc reads queries from a workbook | Claude | Done |
 | A4 | Documentation files named after the workbook, the same way in both tools (added after B2) | Claude | Done |
-| B3 | pqdoc writes `.m` files, kept in step with the workbook | Claude | |
+| B3 | pqdoc writes `.m` files, kept in step with the workbook | Claude | Done |
 | B4 | pqdoc's page shows highlighted M source | Claude | |
 | C1 | Shared library: `shared/`, with the C# code both tools now duplicate | Claude | |
 | C2 | Shared page shell: both pages rebuilt on it, with no visible change | Claude | |
