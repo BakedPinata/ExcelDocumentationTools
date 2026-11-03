@@ -1,3 +1,4 @@
+using ExcelDocumenter.Shared.Workbooks;
 using PowerQueryDocumenter.Core.Analysis;
 
 namespace PowerQueryDocumenter.Core.Extraction;

@@ -1,5 +1,6 @@
 using System.Text;
 using PowerQueryDocumenter.Core.Analysis;
+using ExcelDocumenter.Shared.Workbooks;
 using PowerQueryDocumenter.Core.Extraction;
 using PowerQueryDocumenter.Tests.TestSupport;
 using Serilog.Core;

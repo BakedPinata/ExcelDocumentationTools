@@ -1,3 +1,6 @@
+using ExcelDocumenter.Shared;
+using ExcelDocumenter.Shared.Files;
+using ExcelDocumenter.Shared.Workbooks;
 using PowerQueryDocumenter.Core.Analysis;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Core.Export;
@@ -83,7 +86,7 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     {
       try
       {
-        LogQueryFiles(await QueryFileExporter.ExportAsync(queries, options.OutputFolder).ConfigureAwait(false), options.OutputFolder);
+        LogQueryFiles(QueryFileExporter.Export(queries, options.OutputFolder), options.OutputFolder);
       }
       catch (ExtractionException ex)
       {
@@ -160,7 +163,7 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     }
   }
 
-  private void LogQueryFiles(QueryFileResult result, string folder)
+  private void LogQueryFiles(SourceFolderResult result, string folder)
   {
     logger.Information(
       "Query files in {Folder}: {Written} written, {Unchanged} unchanged, {Deleted} deleted",

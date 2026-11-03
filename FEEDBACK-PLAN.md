@@ -41,7 +41,7 @@ questions the draft raised.
 | A4 | Documentation files named after the workbook, the same way in both tools (added after B2) | Claude | Done |
 | B3 | pqdoc writes `.m` files, kept in step with the workbook | Claude | Done |
 | B4 | pqdoc's page shows highlighted M source | Claude | Done |
-| C1 | Shared library: `shared/`, with the C# code both tools now duplicate | Claude | |
+| C1 | Shared library: `shared/`, with the C# code both tools now duplicate | Claude | Done |
 | C2 | Shared page shell: both pages rebuilt on it, with no visible change | Claude | |
 | D1 | Explorer: a tree of everything in the workbook, beside the view | Claude | |
 | D2 | Favourites, replacing Home and the trail | Claude | |

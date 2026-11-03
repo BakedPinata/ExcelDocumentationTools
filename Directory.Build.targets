@@ -2,8 +2,9 @@
 
   <!-- The SDK stamps the git commit into each assembly's informational version ("0.5.0+<sha>"), and the tools show
        it in the pages they make. The tools share a repository, so each stamp is the last commit that touched that
-       tool's folder ($(ToolRoot), set in its Directory.Build.props) or the root build files, not HEAD: otherwise a
-       commit to one tool would change the stamp in every other tool's pages. Root docs don't count.
+       tool's folder ($(ToolRoot), set in its Directory.Build.props), the shared library every tool uses (shared/) or
+       the root build files, not HEAD: otherwise a commit to one tool would change the stamp in every other tool's
+       pages. Root docs don't count.
 
        Uncommitted changes in those same paths add "-dirty" after the sha, so a page made by such a build can't be
        mistaken for one made from that commit. If git isn't available, the stamp is left as it is. -->
@@ -12,7 +13,7 @@
           Condition="'$(SourceRevisionId)' != '' and '$(ToolRoot)' != ''">
     <PropertyGroup>
       <!-- Git runs in the tool's folder, so "." is the tool and ":/" paths start at the repository root. -->
-      <_StampPaths>. :/Directory.Build.props :/Directory.Build.targets :/Directory.Packages.props :/global.json</_StampPaths>
+      <_StampPaths>. :/shared :/Directory.Build.props :/Directory.Build.targets :/Directory.Packages.props :/global.json</_StampPaths>
     </PropertyGroup>
     <Exec Command="git rev-list -1 HEAD -- $(_StampPaths)" WorkingDirectory="$(ToolRoot)" ConsoleToMSBuild="true"
           StandardOutputImportance="low" IgnoreExitCode="true" ContinueOnError="true">

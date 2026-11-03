@@ -26,7 +26,15 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **An environment variable or `.env` file, not .NET user secrets**, configures the integration tests. The tool already
   reads both, they work the same way locally and in a CI pipeline, and they need no extra packages.
 - **The PlantUML user agent is `pqdoc/<version>`**, with the version read from the assembly, so it can't drift.
-- **d3 7.9.0** is vendored byte-for-byte in `Resources/Vendor/`, and is the same file as vbadoc's copy.
+- **d3 7.9.0** is vendored byte-for-byte, once for both tools, in `shared/src/ExcelDocumenter.Shared/Resources/Vendor/`
+  since step C1. Until then pqdoc had its own copy, the same file as vbadoc's.
+- **The shared library** (1.5.1, step C1 of the feedback plan). Opening a workbook, exit codes, `ToolVersion`,
+  `ExtractionException`, `AtomicFileWriter`, the folder writer behind `QueryFileExporter`, the page-building helpers and
+  d3 moved to `shared/`, as one copy with vbadoc's (see [shared/README.md](../../shared/README.md)). pqdoc's messages and
+  outputs are unchanged: every fixture's output was byte-identical apart from the build stamp and generation time. The
+  page now escapes text as vbadoc's does (`&`, `<`, `>`, `"`), where `WebUtility.HtmlEncode` also wrote `'` and
+  non-ASCII characters as numeric references; a browser shows both the same. pqdoc now builds against OpenMcdf through
+  the shared library (MPL-2.0, unmodified), though it doesn't look inside compound files itself.
 - **The version stays 1.0.0 through stage 3d**, because none has been tagged yet.
 
 ## Analysis
@@ -87,8 +95,8 @@ Reading them is step B2 of the feedback plan.
 
 ## Reading workbooks: how it's done (1.2.0, step B2)
 
-- **`Extraction/` in Core**, named in parallel with vbadoc's: `WorkbookReader` and `ExtractionException`, plus
-  `SectionSplitter`. No new package: base64, `System.IO.Compression` and `System.Xml` are enough.
+- **`Extraction/` in Core**, named in parallel with vbadoc's: `WorkbookReader` and `ExtractionException` (shared with
+  vbadoc since C1), plus `SectionSplitter`. No new package: base64, `System.IO.Compression` and `System.Xml` are enough.
 - **An input that is a file is a workbook**; anything else is a folder of `.m` files, which the run reports if it's
   missing. The extension isn't checked, so a renamed workbook still works and a stray file gets a clear message.
 - **A workbook's outputs go in a `PowerQuery` folder beside it**, so they don't mix with other files next to the
@@ -113,7 +121,8 @@ Reading them is step B2 of the feedback plan.
 ## Query files (1.4.0, step B3)
 
 - **`Output/QueryFileExporter`, parallel to vbadoc's `ProjectExporter`,** with `QueryFileNames` for the escapes and
-  `QueryFileText` for line endings. It writes through `AtomicFileWriter`, which vbadoc's writer will share after C1.
+  `QueryFileText` for line endings. It writes through `AtomicFileWriter`. Since C1 both are shared with vbadoc:
+  `QueryFileExporter` works out the files and hands them to the shared `SourceFolderWriter`.
 - **Each file holds the expression as Excel stores it**, without `shared <name> =` or the final `;`, which is what a
   manual export contains, so pqdoc reads both the same way. A description isn't written: the file stays the query.
 - **File names escape with `%XX`, not vbadoc's `_`.** For VBA, `_` is a safety net that never runs, because module

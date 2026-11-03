@@ -17,17 +17,18 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **d3 7.9.0**, the latest. It is the only vendored script since 0.7.0, when the class diagram moved from Mermaid to d3
   (step F1 of the feedback plan; see "Built in stage 5").
 - Vendored scripts are stored **byte-for-byte unchanged** with their licence files (see
-  `src/VbaDocumenter.Core/Resources/Vendor/README.md`). The page writer adds each licence as a comment above its script,
-  and must refuse a script containing `<script` or `</script`, which would break inlining.
+  `shared/src/ExcelDocumenter.Shared/Resources/Vendor/README.md` since step C1). The page writer adds each licence as a
+  comment above its script, and must refuse a script containing `<script` or `</script`, which would break inlining.
 - **Central Package Management.** Every NuGet version is in the root `Directory.Packages.props`, and `PackageReference`
   items in the projects have no `Version`. Add or upgrade a package there, and keep a comment beside any version chosen for a reason.
 - **Shared project settings** (`TargetFramework`, `ImplicitUsings`, `Nullable`, `TreatWarningsAsErrors`,
   `Deterministic`) are in the root `Directory.Build.props`. `vbadoc/Directory.Build.props` imports it and sets `Version`,
   `Product` and `ToolRoot`. Each `.csproj` holds only what is specific to it.
 - **Version and build stamp.** `Version` (0.6.0 after stage 5e) is raised at the end of each stage. The root
-  `Directory.Build.targets` stamps the informational version with the last commit that touched `vbadoc/` or the root
-  build files, not `HEAD`, so a commit to another tool doesn't change vbadoc's pages. It adds `-dirty` when those paths
-  have uncommitted changes. `ToolVersion` reads it back for the page and `--version`.
+  `Directory.Build.targets` stamps the informational version with the last commit that touched `vbadoc/`, `shared/` or
+  the root build files, not `HEAD`, so a commit to another tool doesn't change vbadoc's pages. It adds `-dirty` when
+  those paths have uncommitted changes. The shared `ToolVersion` reads it back for the page, and System.CommandLine for
+  `--version`.
 - **`.editorconfig`** at the root records the code style as IDE suggestions, not build errors, and sets no line endings or
   charset, which are left to `.gitattributes`.
 - **C# uses 2-space indentation**, changed from 4 in one whitespace-only commit listed in `.git-blame-ignore-revs`.
@@ -105,6 +106,12 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **After removing Mermaid (0.7.0),** measured the same way: the private workbook's page is 0.8 MB, writing it takes
   1–2 ms on every run, and the first read of a newly written page (what a browser waits for) takes 0.1–0.2 s. The
   other steps are unchanged, and the executable is 3.6 MB smaller.
+- **The shared library** (0.8.1, step C1 of the feedback plan). Opening a workbook, exit codes, `ToolVersion`, the
+  folder writer behind `ProjectExporter`, the page-building helpers and d3 moved to `shared/`, as one copy with pqdoc's
+  (see [shared/README.md](../../shared/README.md)). vbadoc's messages and file formats are unchanged: every fixture's
+  output was byte-identical apart from the build stamp. Two things changed underneath: module files and the page are
+  now written atomically, through a temporary file, as pqdoc's outputs already were; and the page's JSON gets the same
+  script-element escaping as pqdoc's, which changes nothing because the serialiser already escapes those characters.
 
 ## Source analysis (stages 2–3)
 

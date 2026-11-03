@@ -1,5 +1,8 @@
+using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
+using ExcelDocumenter.Shared;
+using ExcelDocumenter.Shared.Files;
+using ExcelDocumenter.Shared.Pages;
 using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Extraction;
 
@@ -7,7 +10,8 @@ namespace VbaDocumenter.Core.Output;
 
 /// <summary>
 /// Builds the single, self-contained documentation page: the template from Resources/Page with the styles,
-/// scripts, data and (optionally) source written inline. Nothing in the page refers to another file or URL.
+/// scripts, data and (optionally) source written inline, put together as pqdoc's page is (<see cref="PageBuilder"/>).
+/// Nothing in the page refers to another file or URL.
 /// </summary>
 public static class HtmlPageWriter
 {
@@ -35,27 +39,28 @@ public static class HtmlPageWriter
   /// <summary>Our own scripts, in load order after the vendored libraries.</summary>
   static readonly string[] PageScripts = ["Page/vba-highlight.js", "Page/page.js", "Page/graph.js", "Page/classes.js"];
 
+  static Assembly Resources => typeof(HtmlPageWriter).Assembly;
+
+  /// <summary>The build of vbadoc that writes the page, shown in its top bar.</summary>
+  public static ToolVersion Version { get; } = ToolVersion.Of(typeof(HtmlPageWriter).Assembly);
+
   public static string Build(DependencyModel model, VbaProject project, string title, bool embedSource)
   {
     var data = PageData.From(model, project, title, embedSource);
     var parts = new Dictionary<string, string>
     {
-      ["TITLE"] = Escape(title),
-      ["TOOL_VERSION"] = Escape(ToolVersion.Current.ToString()),
-      ["TOOL_VERSION_DESCRIPTION"] = Escape(ToolVersion.Current.Description),
-      ["REPOSITORY_URL"] = Escape(ToolVersion.RepositoryUrl),
-      // A data URI, so the icon is part of the page and the CSP (img-src data:) allows it.
-      ["FAVICON"] = "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(EmbeddedResources.ReadText("Page/favicon.svg"))),
-      ["STYLE"] = EmbeddedResources.ReadText("Page/page.css"),
-      ["DATA"] = data.ToJson(),
+      ["TITLE"] = PageBuilder.Escape(title),
+      ["TOOL_VERSION"] = PageBuilder.Escape(Version.ToString()),
+      ["TOOL_VERSION_DESCRIPTION"] = PageBuilder.Escape(Version.Description),
+      ["REPOSITORY_URL"] = PageBuilder.Escape(ToolVersion.RepositoryUrl),
+      ["FAVICON"] = PageBuilder.FaviconDataUri(EmbeddedResources.ReadText(Resources, "Page/favicon.svg")),
+      ["STYLE"] = EmbeddedResources.ReadText(Resources, "Page/page.css"),
+      ["DATA"] = PageBuilder.EscapeForScriptElement(data.ToJson()),
       ["SOURCES"] = embedSource ? EmbeddedSources(project) : "",
-      ["SCRIPTS"] = Scripts(),
+      ["SCRIPTS"] = PageBuilder.Scripts(Resources, PageScripts),
     };
 
-    // Each {{NAME}} in the template is replaced once. Regex.Replace only scans the template itself, so a
-    // "{{...}}" that happens to appear inside inserted content is left alone.
-    var template = EmbeddedResources.ReadText("Page/page.html");
-    var html = Regex.Replace(template, @"\{\{(\w+)\}\}", m => parts[m.Groups[1].Value]);
+    var html = PageBuilder.Fill(EmbeddedResources.ReadText(Resources, "Page/page.html"), parts);
     return html.ReplaceLineEndings("\n");
   }
 
@@ -65,7 +70,7 @@ public static class HtmlPageWriter
     var path = Path.Combine(outputFolder, fileName);
     var bytes = new UTF8Encoding(false).GetBytes(html);
     if (File.Exists(path) && File.ReadAllBytes(path).AsSpan().SequenceEqual(bytes)) return false;
-    File.WriteAllBytes(path, bytes);
+    AtomicFileWriter.Write(path, bytes);
     return true;
   }
 
@@ -98,27 +103,6 @@ public static class HtmlPageWriter
     return Encoding.UTF8.GetString(head, 0, length).Contains(GeneratorTag, StringComparison.Ordinal);
   }
 
-  static string Scripts()
-  {
-    var sb = new StringBuilder();
-    // Licence first, as a comment, so it travels with the code.
-    var d3 = VendoredScripts.D3;
-    var licence = $"/*! {d3.Name} {d3.Version} ({d3.LicenceName} licence)\n\n{d3.LicenceText.Trim()}\n*/\n";
-    AppendScript(sb, $"{d3.Name} {d3.Version}", licence + d3.Code);
-    foreach (var name in PageScripts)
-      AppendScript(sb, name, EmbeddedResources.ReadText(name));
-    return sb.ToString();
-  }
-
-  static void AppendScript(StringBuilder sb, string name, string code)
-  {
-    // Inside <script>, "</script" would end the element early and "<!--" with "<script" changes how the end
-    // tag is found. Refuse rather than write a page that silently breaks.
-    if (code.Contains("</script", StringComparison.OrdinalIgnoreCase) || code.Contains("<script", StringComparison.OrdinalIgnoreCase))
-      throw new InvalidOperationException($"Script '{name}' contains '<script' or '</script' and can't be inlined.");
-    sb.Append("<script>\n").Append(code.TrimEnd()).Append("\n</script>\n");
-  }
-
   /// <summary>
   /// For --embed-source: each module's source in its own hidden &lt;pre&gt;, so a change to one module changes only
   /// its own lines of the page. The text is HTML-escaped and the page reads it back with textContent.
@@ -131,14 +115,10 @@ public static class HtmlPageWriter
     {
       var text = encoding.GetString(ProjectExporter.FileContent(module)).ReplaceLineEndings("\n");
       // The HTML parser drops a newline straight after <pre>, so add one to keep a leading blank line intact.
-      sb.Append($"<pre hidden class=\"vbadoc-source\" data-module=\"{Escape(module.Name)}\">\n")
-        .Append(Escape(text))
+      sb.Append($"<pre hidden class=\"vbadoc-source\" data-module=\"{PageBuilder.Escape(module.Name)}\">\n")
+        .Append(PageBuilder.Escape(text))
         .Append("</pre>\n");
     }
     return sb.ToString();
   }
-
-  /// <summary>Escapes text for HTML content or a double-quoted attribute. Leaves non-ASCII alone (the page is UTF-8).</summary>
-  static string Escape(string text) =>
-      text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
 }

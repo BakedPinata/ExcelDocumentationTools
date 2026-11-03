@@ -10,14 +10,15 @@ rather than repeating it.
 
 ## Current state (2026-11-03)
 
-- **vbadoc 0.8.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.8.1:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`. Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
-- **pqdoc 1.5.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.5.1**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted.
+- **`shared/`** (`ExcelDocumenter.Shared`): the code both tools use, since step C1. See its README.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. The user's build, test and
-  publish of A0 on the work machine is still to come. A0–A4, F1 and B1–B4 are pushed and reviewed. **Next: C1** (the
-  shared library). Its acceptance needs reference output from the fixtures saved before any code moves.
+  publish of A0 on the work machine is still to come. A0–A4, F1 and B1–B4 are pushed and reviewed. C1 is done, waiting
+  for review. **Next: C2** (the shared page shell: both pages rebuilt on it, with no visible change).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -27,6 +28,20 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-03: Step C1, the shared library
+
+- New `shared/`: `ExcelDocumenter.Shared` and its tests, in the root solution and both tools' solutions. One copy each
+  of opening a workbook (`WorkbookFile`, `ExtractionException`), `ExitCodes`, `ToolVersion`, `AtomicFileWriter`,
+  `SourceFolderWriter` (behind vbadoc's `ProjectExporter` and pqdoc's `QueryFileExporter`), the page helpers
+  (`PageBuilder`, `EmbeddedResources`, `VendoredScripts`) and d3. vbadoc 0.8.1, pqdoc 1.5.1.
+- Each tool keeps its own messages. vbadoc now writes its files atomically, as pqdoc did. pqdoc escapes text in its
+  page as vbadoc does, rather than with `WebUtility.HtmlEncode`.
+- Both stamps now follow `shared/` too. The guidelines' "no shared code project" rule is replaced by what belongs in
+  `shared/`.
+- Checked: output from every fixture in both tools (36 runs, 233 files, logs and exit codes included) is byte-identical
+  to the output before the move, apart from the build stamp and pqdoc's generation time. All tests pass: 39 shared,
+  250 + 87 vbadoc, 394 + 79 pqdoc (6 skipped as before). Duplicate tests moved to `shared/` with the code.
 
 ### 2026-11-03: Step B4, pqdoc's page shows M source
 

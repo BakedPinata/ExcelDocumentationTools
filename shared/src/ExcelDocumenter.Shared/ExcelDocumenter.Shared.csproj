@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The code both tools need, kept once (see "Structure" in docs/GUIDELINES.md). The tools' Core libraries use it;
+       it never uses them. -->
+
+  <ItemGroup>
+    <PackageReference Include="OpenMcdf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Explicit LogicalName so resource names are the same on Windows and Linux. -->
+    <!-- Vendored d3 (ISC licence). The licence is embedded too, because every page inlines it. -->
+    <EmbeddedResource Include="Resources\Vendor\d3.min.js" LogicalName="Vendor/d3.min.js" />
+    <EmbeddedResource Include="Resources\Vendor\d3.LICENSE.txt" LogicalName="Vendor/d3.LICENSE.txt" />
+  </ItemGroup>
+
+</Project>

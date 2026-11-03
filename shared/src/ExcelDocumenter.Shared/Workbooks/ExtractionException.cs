@@ -1,8 +1,8 @@
-namespace PowerQueryDocumenter.Core.Extraction;
+namespace ExcelDocumenter.Shared.Workbooks;
 
 /// <summary>
-/// A workbook's queries can't be read: it isn't a workbook, it has no queries, it's encrypted or it's damaged. The
-/// message says which, in words the user can act on. The run stops with exit code 3.
+/// What a tool documents can't be read from a workbook: it isn't a workbook, it doesn't hold what the tool reads, it's
+/// encrypted or it's damaged. The message says which, in words the user can act on. The run stops with exit code 3.
 /// </summary>
 public sealed class ExtractionException : Exception
 {

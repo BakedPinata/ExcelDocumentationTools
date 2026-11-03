@@ -1,8 +1,8 @@
-using VbaDocumenter.Core;
+using ExcelDocumenter.Shared.Pages;
 
-namespace VbaDocumenter.Tests;
+namespace ExcelDocumenter.Shared.Tests.Pages;
 
-public class VendoredScriptsTests
+public sealed class VendoredScriptsTests
 {
   [Fact]
   public void D3_and_its_licence_are_embedded()

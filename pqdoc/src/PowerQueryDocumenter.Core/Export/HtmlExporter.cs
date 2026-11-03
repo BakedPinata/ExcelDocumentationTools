@@ -1,9 +1,9 @@
 using System.Globalization;
-using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
+using ExcelDocumenter.Shared;
+using ExcelDocumenter.Shared.Pages;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Core.Model;
 
@@ -12,26 +12,27 @@ namespace PowerQueryDocumenter.Core.Export;
 /// <summary>
 /// Writes a single, self-contained interactive HTML page (FR-HTML-1 to FR-HTML-9): the template in
 /// Resources/Page with its styles, scripts, the vendored D3.js library and the graph as JSON written
-/// inline, so the file works offline and its Content-Security-Policy can block all network access.
+/// inline, so the file works offline and its Content-Security-Policy can block all network access. It's put together
+/// as vbadoc's page is (<see cref="PageBuilder"/>).
 /// </summary>
-public sealed partial class HtmlExporter : IExporter
+public sealed class HtmlExporter : IExporter
 {
-  /// <summary>The vendored D3.js version, named in the licence comment in the page.</summary>
-  public const string D3Version = "7.9.0";
-
   /// <summary>Our own scripts, in load order after D3.js.</summary>
   private static readonly string[] PageScripts = ["Page/m-highlight.js", "Page/page.js", "Page/graph.js"];
 
-  private static readonly Lazy<string> Template = new(() => ReadResource("Page/page.html"));
-  private static readonly Lazy<string> Stylesheet = new(() => ReadResource("Page/page.css"));
-  private static readonly Lazy<string> Favicon = new(() =>
-    "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(ReadResource("Page/favicon.svg"))));
-  private static readonly Lazy<string> Scripts = new(BuildScripts);
+  private static readonly Assembly Resources = typeof(HtmlExporter).Assembly;
+  private static readonly Lazy<string> Template = new(() => EmbeddedResources.ReadText(Resources, "Page/page.html"));
+  private static readonly Lazy<string> Stylesheet = new(() => EmbeddedResources.ReadText(Resources, "Page/page.css"));
+  private static readonly Lazy<string> Favicon = new(() => PageBuilder.FaviconDataUri(EmbeddedResources.ReadText(Resources, "Page/favicon.svg")));
+  private static readonly Lazy<string> Scripts = new(() => PageBuilder.Scripts(Resources, PageScripts));
 
   private static readonly JsonSerializerOptions JsonOptions = new()
   {
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
   };
+
+  /// <summary>The build of pqdoc that writes the page, shown in its top bar.</summary>
+  public static ToolVersion Version { get; } = ToolVersion.Of(typeof(HtmlExporter).Assembly);
 
   /// <inheritdoc />
   public OutputFormat Format => OutputFormat.Html;
@@ -61,14 +62,13 @@ public sealed partial class HtmlExporter : IExporter
 
     var values = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-      ["PAGE_TITLE"] = WebUtility.HtmlEncode($"{context.Title}: {counts}, generated {generated}"),
-      ["TITLE"] = WebUtility.HtmlEncode(context.Title),
-      ["SUMMARY"] = WebUtility.HtmlEncode($"{counts}{cycles}. Generated {generated}."),
+      ["PAGE_TITLE"] = PageBuilder.Escape($"{context.Title}: {counts}, generated {generated}"),
+      ["TITLE"] = PageBuilder.Escape(context.Title),
+      ["SUMMARY"] = PageBuilder.Escape($"{counts}{cycles}. Generated {generated}."),
       ["NODE_COUNT"] = graph.Nodes.Count.ToString(CultureInfo.InvariantCulture),
-      ["TOOL_VERSION"] = WebUtility.HtmlEncode(ToolVersion.Current.ToString()),
-      ["TOOL_VERSION_DESCRIPTION"] = WebUtility.HtmlEncode(ToolVersion.Current.Description),
-      ["REPOSITORY_URL"] = WebUtility.HtmlEncode(ToolVersion.RepositoryUrl),
-      // A data URI, so the icon is part of the page and the Content-Security-Policy (img-src data:) allows it.
+      ["TOOL_VERSION"] = PageBuilder.Escape(Version.ToString()),
+      ["TOOL_VERSION_DESCRIPTION"] = PageBuilder.Escape(Version.Description),
+      ["REPOSITORY_URL"] = PageBuilder.Escape(ToolVersion.RepositoryUrl),
       ["FAVICON"] = Favicon.Value,
       ["STYLE"] = Stylesheet.Value,
       ["DATA"] = SerialiseGraph(graph, context),
@@ -76,11 +76,7 @@ public sealed partial class HtmlExporter : IExporter
       ["SCRIPTS"] = Scripts.Value,
     };
 
-    // A single pass, so text inserted for one placeholder is never scanned for another.
-    return PlaceholderPattern().Replace(Template.Value, match =>
-      values.TryGetValue(match.Groups[1].Value, out var value)
-        ? value
-        : throw new InvalidOperationException($"The HTML template contains an unknown placeholder '{match.Value}'."));
+    return PageBuilder.Fill(Template.Value, values);
   }
 
   /// <summary>
@@ -124,26 +120,7 @@ public sealed partial class HtmlExporter : IExporter
         cycleGroupOf.TryGetValue(e.Upstream, out var a) && cycleGroupOf.TryGetValue(e.Downstream, out var b) && a == b)).ToArray(),
       graph.Cycles.Select(c => c.Members).ToArray());
 
-    return EscapeForScriptElement(JsonSerializer.Serialize(document, JsonOptions));
-  }
-
-  /// <summary>
-  /// Escapes JSON so it cannot terminate or alter the <c>&lt;script&gt;</c> element that holds it:
-  /// <c>&lt;</c>, <c>&gt;</c> and <c>&amp;</c> become <c><</c>, <c>></c> and <c>&</c>,
-  /// so a name such as <c>&lt;/script&gt;</c> stays inert. JSON only allows these characters inside
-  /// strings, where the escapes mean the same thing. U+2028 and U+2029 are escaped as well.
-  /// The default System.Text.Json encoder already does this; it is repeated here so the guarantee
-  /// does not depend on serialiser settings.
-  /// </summary>
-  public static string EscapeForScriptElement(string json)
-  {
-    ArgumentNullException.ThrowIfNull(json);
-    return json
-      .Replace("<", "\\u003C", StringComparison.Ordinal)
-      .Replace(">", "\\u003E", StringComparison.Ordinal)
-      .Replace("&", "\\u0026", StringComparison.Ordinal)
-      .Replace("\u2028", "\\u2028", StringComparison.Ordinal)
-      .Replace("\u2029", "\\u2029", StringComparison.Ordinal);
+    return PageBuilder.EscapeForScriptElement(JsonSerializer.Serialize(document, JsonOptions));
   }
 
   /// <summary>
@@ -156,20 +133,13 @@ public sealed partial class HtmlExporter : IExporter
     foreach (var file in sources.OrderBy(f => f.Query, DependencyGraph.NameComparer))
     {
       // The HTML parser drops a line break straight after <pre>, so add one to keep a leading blank line intact.
-      html.Append("<pre hidden class=\"pqdoc-source\" data-query=\"").Append(EscapeText(file.Query)).Append("\">\n")
-        .Append(EscapeText(file.Text))
+      html.Append("<pre hidden class=\"pqdoc-source\" data-query=\"").Append(PageBuilder.Escape(file.Query)).Append("\">\n")
+        .Append(PageBuilder.Escape(file.Text))
         .Append("</pre>\n");
     }
 
     return html.ToString();
   }
-
-  /// <summary>Escapes text for HTML content or a double-quoted attribute, leaving other characters as they are.</summary>
-  private static string EscapeText(string text) =>
-    text.Replace("&", "&amp;", StringComparison.Ordinal)
-      .Replace("<", "&lt;", StringComparison.Ordinal)
-      .Replace(">", "&gt;", StringComparison.Ordinal)
-      .Replace("\"", "&quot;", StringComparison.Ordinal);
 
   /// <summary>Formats the generation time, for example "2026-10-02 10:03 (UTC+08:00)".</summary>
   public static string FormatTimestamp(DateTimeOffset value) =>
@@ -186,45 +156,6 @@ public sealed partial class HtmlExporter : IExporter
 
   private static string Plural(int count, string singular, string plural) =>
     count.ToString(CultureInfo.InvariantCulture) + " " + (count == 1 ? singular : plural);
-
-  private static string BuildScripts()
-  {
-    var scripts = new StringBuilder();
-
-    // Licence first, as a comment, so it travels with the code.
-    var licence = $"/*! d3 {D3Version} (ISC licence)\n\n{ReadResource("Vendor/d3.LICENSE.txt").Trim()}\n*/\n";
-    AppendScript(scripts, $"d3 {D3Version}", licence + ReadResource("Vendor/d3.min.js"));
-
-    foreach (var name in PageScripts)
-    {
-      AppendScript(scripts, name, ReadResource(name));
-    }
-
-    return scripts.ToString();
-  }
-
-  private static void AppendScript(StringBuilder scripts, string name, string code)
-  {
-    // Inside <script>, "</script" would end the element early and "<!--" with "<script" changes how
-    // the end tag is found. Refuse rather than write a page that silently breaks.
-    if (code.Contains("</script", StringComparison.OrdinalIgnoreCase) || code.Contains("<script", StringComparison.OrdinalIgnoreCase))
-    {
-      throw new InvalidOperationException($"Script '{name}' contains '<script' or '</script' and can't be inlined.");
-    }
-
-    scripts.Append("<script>\n").Append(code.TrimEnd()).Append("\n</script>\n");
-  }
-
-  private static string ReadResource(string name)
-  {
-    using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name)
-      ?? throw new InvalidOperationException($"Embedded resource '{name}' is missing from the build.");
-    using var reader = new StreamReader(stream, Encoding.UTF8);
-    return reader.ReadToEnd();
-  }
-
-  [GeneratedRegex(@"\{\{([A-Z0-9_]+)\}\}")]
-  private static partial Regex PlaceholderPattern();
 
   /// <param name="SourceMode">"embedded" (the page holds the text), "folder" (Load folder) or "none".</param>
   private sealed record GraphDocument(

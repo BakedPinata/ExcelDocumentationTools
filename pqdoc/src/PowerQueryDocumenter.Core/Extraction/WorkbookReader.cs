@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
+using ExcelDocumenter.Shared.Workbooks;
 
 namespace PowerQueryDocumenter.Core.Extraction;
 
@@ -14,7 +15,8 @@ public sealed record WorkbookQuery(string Name, string Expression, string? Descr
 
 /// <summary>
 /// Reads the Power Query queries out of an Excel workbook without Excel, following [MS-QDEFF]. What was confirmed
-/// about the format against real workbooks is in docs/DECISIONS.md.
+/// about the format against real workbooks is in docs/DECISIONS.md. Opening the file and telling which kind it is are
+/// shared with vbadoc (<see cref="WorkbookFile"/>).
 /// </summary>
 /// <remarks>
 /// The queries are in a custom XML part whose root is a <c>DataMashup</c> element holding base64. Decoded, that's a
@@ -34,39 +36,22 @@ public static partial class WorkbookReader
 
   /// <summary>Reads the queries of the workbook at <paramref name="workbookPath"/>.</summary>
   /// <exception cref="ExtractionException">The file can't be read, or holds no readable queries.</exception>
-  public static IReadOnlyList<WorkbookQuery> Read(string workbookPath)
-  {
-    ArgumentException.ThrowIfNullOrWhiteSpace(workbookPath);
-    byte[] bytes;
-    try
-    {
-      // FileShare.ReadWrite lets the file be read while Excel has it open.
-      using var file = new FileStream(workbookPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-      using var memory = new MemoryStream();
-      file.CopyTo(memory);
-      bytes = memory.ToArray();
-    }
-    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-    {
-      throw new ExtractionException($"Can't read {workbookPath}: {ex.Message}", ex);
-    }
-
-    return Read(bytes);
-  }
+  public static IReadOnlyList<WorkbookQuery> Read(string workbookPath) => Read(WorkbookFile.ReadAllBytes(workbookPath));
 
   /// <summary>Reads the queries of a workbook held in memory.</summary>
   /// <exception cref="ExtractionException">The bytes aren't a workbook, or hold no readable queries.</exception>
   public static IReadOnlyList<WorkbookQuery> Read(byte[] fileBytes)
   {
     ArgumentNullException.ThrowIfNull(fileBytes);
-    if (IsZip(fileBytes))
+    var container = WorkbookFile.ContainerOf(fileBytes);
+    if (container == WorkbookContainer.Zip)
     {
       return ReadZipBased(fileBytes);
     }
 
     // An encrypted workbook (password, IRM or sensitivity label) wraps the whole package in a compound file, which is
     // also what an older .xls is. Neither has queries that can be read, so there's no need to look inside.
-    if (IsCompoundFile(fileBytes))
+    if (container == WorkbookContainer.CompoundFile)
     {
       throw new ExtractionException(
         "The workbook is encrypted (password, IRM or sensitivity label) or is an older .xls workbook, and neither has " +
@@ -219,12 +204,6 @@ public static partial class WorkbookReader
 
   private static ExtractionException Damaged(string detail, Exception? inner = null) =>
     new($"The workbook's Power Query data is damaged: {detail}.", inner);
-
-  private static bool IsZip(byte[] b) => b.Length >= 4 && b[0] == 0x50 && b[1] == 0x4B && b[2] == 0x03 && b[3] == 0x04;
-
-  private static bool IsCompoundFile(byte[] b) =>
-    b.Length >= 8 && b[0] == 0xD0 && b[1] == 0xCF && b[2] == 0x11 && b[3] == 0xE0
-      && b[4] == 0xA1 && b[5] == 0xB1 && b[6] == 0x1A && b[7] == 0xE1;
 
   [GeneratedRegex(@"^customXml/item\d+\.xml$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
   private static partial Regex CustomXmlPart();

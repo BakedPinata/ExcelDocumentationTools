@@ -7,7 +7,8 @@ CLAUDE.md, so start in a tool's folder to work on that tool, and here for work a
 
 1. [docs/WORKLOG.md](docs/WORKLOG.md): where things stand and how they got there.
 2. [docs/GUIDELINES.md](docs/GUIDELINES.md): the conventions every tool follows.
-3. The tool's own CLAUDE.md: [vbadoc](vbadoc/CLAUDE.md) or [pqdoc](pqdoc/CLAUDE.md).
+3. The tool's own CLAUDE.md: [vbadoc](vbadoc/CLAUDE.md) or [pqdoc](pqdoc/CLAUDE.md). Code both tools use is in
+   [shared/](shared/README.md); work on it from the root, so both tools build and test against the change.
 
 ## Commands
 

@@ -8,6 +8,8 @@ and README, and they all follow the same [conventions](docs/GUIDELINES.md).
 | **vbadoc** | A macro-enabled workbook (`.xlsm`, `.xlsb`, `.xlam`, `.xls` or `.xla`) | The VBA as text files, and a self-contained HTML page with a dependency graph and class diagram | [vbadoc/README.md](vbadoc/README.md) |
 | **pqdoc** | An Excel workbook (`.xlsx`, `.xlsm` or `.xlsb`), or a folder of exported Power Query (`.m`) files | An interactive HTML graph of the dependencies between queries, and optionally CSV and PlantUML | [pqdoc/README.md](pqdoc/README.md) |
 
+Code both tools need, such as opening a workbook and building a page, is kept once in [shared/](shared/README.md).
+
 ## Building and testing
 
 You need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). Everything works from the `dotnet`

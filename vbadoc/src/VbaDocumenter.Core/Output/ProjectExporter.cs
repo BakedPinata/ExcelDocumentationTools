@@ -1,18 +1,13 @@
 using System.Text;
+using ExcelDocumenter.Shared.Files;
+using ExcelDocumenter.Shared.Workbooks;
 using VbaDocumenter.Core.Extraction;
 
 namespace VbaDocumenter.Core.Output;
 
-/// <summary>What an export did, so the console app can report it.</summary>
-public sealed record ExportResult(
-    IReadOnlyList<string> Written,
-    IReadOnlyList<string> Unchanged,
-    IReadOnlyList<string> Deleted,
-    bool CreatedGitAttributes);
-
 /// <summary>
 /// Writes each module to a source file that the VBA editor can import, and keeps the output
-/// folder in step with the workbook.
+/// folder in step with the workbook, as pqdoc keeps its .m files (<see cref="SourceFolderWriter"/>).
 /// </summary>
 public static class ProjectExporter
 {
@@ -56,7 +51,7 @@ public static class ProjectExporter
     return [.. Encoding.ASCII.GetBytes(ClassHeader), .. source];
   }
 
-  public static ExportResult Export(VbaProject project, string outputFolder)
+  public static SourceFolderResult Export(VbaProject project, string outputFolder)
   {
     // Work out every file first, so a problem (e.g. a name clash) stops us before anything changes on disk.
     var files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
@@ -68,44 +63,7 @@ public static class ProjectExporter
       files[name] = FileContent(module);
     }
 
-    Directory.CreateDirectory(outputFolder);
-
-    // Delete old module files first. Comparing names exactly (not ignoring case) means a module
-    // renamed only by case, e.g. utils -> Utils, is deleted and rewritten, so the new spelling
-    // shows up even on Windows, where the file system ignores case.
-    var deleted = new List<string>();
-    foreach (var path in Directory.GetFiles(outputFolder))
-    {
-      var fileName = Path.GetFileName(path);
-      bool isModuleFile = ModuleExtensions.Contains(Path.GetExtension(fileName), StringComparer.OrdinalIgnoreCase);
-      if (isModuleFile && !files.ContainsKey(fileName))
-      {
-        File.Delete(path);
-        deleted.Add(fileName);
-      }
-    }
-
-    // Only rewrite files whose content changed, so unchanged files keep their timestamps.
-    var written = new List<string>();
-    var unchanged = new List<string>();
-    foreach (var (fileName, content) in files.OrderBy(f => f.Key, StringComparer.OrdinalIgnoreCase))
-    {
-      var path = Path.Combine(outputFolder, fileName);
-      if (File.Exists(path) && File.ReadAllBytes(path).AsSpan().SequenceEqual(content))
-      {
-        unchanged.Add(fileName);
-        continue;
-      }
-      File.WriteAllBytes(path, content);
-      written.Add(fileName);
-    }
-
-    var gitAttributesPath = Path.Combine(outputFolder, ".gitattributes");
-    bool createdGitAttributes = !File.Exists(gitAttributesPath);
-    if (createdGitAttributes) File.WriteAllText(gitAttributesPath, GitAttributesContent, new UTF8Encoding(false));
-
-    deleted.Sort(StringComparer.OrdinalIgnoreCase);
-    return new ExportResult(written, unchanged, deleted, createdGitAttributes);
+    return SourceFolderWriter.Write(outputFolder, files, ModuleExtensions, GitAttributesContent);
   }
 
   /// <summary>Converts lone CR or LF bytes to CRLF. VBA source is normally CRLF already, so this is usually a no-op.</summary>

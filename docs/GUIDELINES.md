@@ -67,8 +67,12 @@ of generated pages, because changing one changes every page.
   sets the exit code.
 - Each tool's folder has a `README.md`, `Requirements.md`, `CLAUDE.md`, `docs/PLAN.md`, `docs/DECISIONS.md`, its
   solution, `src/` and `tests/`.
-- **There is no shared code project for now.** The overlap between the tools is cheaper to copy than to couple. Keep
-  them similar through this file and review. If real duplication appears, a shared library goes in `shared/`.
+- **Code both tools need lives once, in `shared/`** (`ExcelDocumenter.Shared`, with `ExcelDocumenter.Shared.Tests` and
+  its own solution). It holds only what is duplicated or needed by both: opening a workbook, exit codes, the build
+  stamp, writing a source folder and atomic writes, the page-building helpers, and vendored d3. The tools' Core
+  libraries use it and never each other, and it never uses them. It isn't a product, so it has no short name or version
+  of its own; `shared/README.md` says what's in it and records its decisions. Code that only one tool needs stays in
+  that tool, even if the other might need it one day.
 
 ## Command line, logging and exit codes
 
@@ -93,10 +97,11 @@ of generated pages, because changing one changes every page.
 
 - Each tool has its own version, in its own `Directory.Build.props`. Raise it at the end of a stage.
 - Each tool shows `<version>+<commit>[-dirty]`, in `--version` and in the pages it generates.
-- **The stamp is per tool.** The commit is the last one that touched the tool's folder or the root build files, and
-  `-dirty` means uncommitted changes in those paths. The root build files are exactly `Directory.Build.props`,
-  `Directory.Build.targets`, `Directory.Packages.props` and `global.json`, so root docs don't change a stamp and a
-  commit to one tool doesn't change another's pages.
+- **The stamp is per tool.** The commit is the last one that touched the tool's folder, `shared/` or the root build
+  files, and `-dirty` means uncommitted changes in those paths. The root build files are exactly
+  `Directory.Build.props`, `Directory.Build.targets`, `Directory.Packages.props` and `global.json`, so root docs don't
+  change a stamp and a commit to one tool doesn't change another's pages. A commit to `shared/` changes both, because
+  both are built from it.
 
 ## Publishing
 
@@ -116,8 +121,8 @@ of generated pages, because changing one changes every page.
   with system default, system UI fonts, a Content-Security-Policy that blocks all network access, a top bar showing
   the build stamp and linking to the repository, and a favicon in the same style.
 - **Generated pages never load anything from the network.**
-- Vendored libraries are stored byte-for-byte unchanged in `Resources/Vendor/` with their licence files, and are
-  inlined into the page with the licence as a comment.
+- Vendored libraries are stored once, byte-for-byte unchanged, in `shared/src/ExcelDocumenter.Shared/Resources/Vendor/`
+  with their licence files, and are inlined into each page with the licence as a comment.
 - Colours are validated with the dataviz palette validator, not eyeballed.
 
 ## Tests
@@ -153,12 +158,12 @@ of generated pages, because changing one changes every page.
   that the licence is still allowed (see above). Then merge it.
 - Dependabot doesn't check licences, and it doesn't update the .NET SDK, because moving to a new .NET version is a
   deliberate decision. Vendored d3 isn't a package dependency, so it's still updated by hand, following the `README.md`
-  in each tool's `Resources/Vendor/` folder.
+  in `shared/src/ExcelDocumenter.Shared/Resources/Vendor/`.
 
 ## Claude Code sessions
 
 - Start Claude Code **in a tool's folder** to work on one tool. It then loads the root `CLAUDE.md` and that tool's
   `CLAUDE.md`, searches stay within the tool, and `dotnet build` and `dotnet test` cover only that tool.
-- Start it **at the root** for work across tools: shared configuration, this file, aligning the tools.
+- Start it **at the root** for work across tools: shared configuration, `shared/`, this file, aligning the tools.
 - The root `CLAUDE.md` stays short: shared rules and a pointer here. Each tool's `CLAUDE.md` has its commands,
   current stage and tool-specific rules.

@@ -1,10 +1,12 @@
 using System.IO.Compression;
+using ExcelDocumenter.Shared.Workbooks;
 using OpenMcdf;
 
 namespace VbaDocumenter.Core.Extraction;
 
 /// <summary>
-/// Reads the VBA project out of an Excel workbook without Excel.
+/// Reads the VBA project out of an Excel workbook without Excel. Opening the file, telling which kind it is and
+/// spotting encryption are shared with pqdoc (<see cref="WorkbookFile"/>).
 /// </summary>
 /// <remarks>
 /// Zip-based files (.xlsm, .xlsb, .xlam) keep the project in "xl/vbaProject.bin", which is itself a
@@ -14,30 +16,17 @@ namespace VbaDocumenter.Core.Extraction;
 /// </remarks>
 public static class WorkbookReader
 {
-  public static VbaProject Read(string workbookPath)
-  {
-    byte[] bytes;
-    try
-    {
-      // FileShare.ReadWrite lets us read the file while Excel has it open.
-      using var file = new FileStream(workbookPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-      using var memory = new MemoryStream();
-      file.CopyTo(memory);
-      bytes = memory.ToArray();
-    }
-    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-    {
-      throw new ExtractionException($"Can't read {workbookPath}: {ex.Message}", ex);
-    }
-    return Read(bytes);
-  }
+  public static VbaProject Read(string workbookPath) => Read(WorkbookFile.ReadAllBytes(workbookPath));
 
   public static VbaProject Read(byte[] fileBytes)
   {
     try
     {
-      if (IsZip(fileBytes)) return ReadZipBased(fileBytes);
-      if (IsCompoundFile(fileBytes)) return ReadCompoundFile(fileBytes);
+      switch (WorkbookFile.ContainerOf(fileBytes))
+      {
+        case WorkbookContainer.Zip: return ReadZipBased(fileBytes);
+        case WorkbookContainer.CompoundFile: return ReadCompoundFile(fileBytes);
+      }
     }
     catch (Exception ex) when (ex is InvalidDataException or OpenMcdf.FileFormatException or EndOfStreamException)
     {
@@ -68,7 +57,7 @@ public static class WorkbookReader
 
     // Password-protected, IRM-protected and sensitivity-labelled files wrap the whole workbook
     // in an encrypted package, so nothing inside can be read.
-    if (root.ContainsEntry("EncryptedPackage"))
+    if (WorkbookFile.IsEncrypted(root))
       throw new ExtractionException(
           "The workbook is encrypted (password, IRM or sensitivity label), so its VBA can't be read. " +
           "Save a copy without encryption and run the tool on that.");
@@ -140,10 +129,4 @@ public static class WorkbookReader
     stream.CopyTo(buffer);
     return buffer.ToArray();
   }
-
-  static bool IsZip(byte[] b) => b.Length >= 4 && b[0] == 0x50 && b[1] == 0x4B && b[2] == 0x03 && b[3] == 0x04;
-
-  static bool IsCompoundFile(byte[] b) =>
-      b.Length >= 8 && b[0] == 0xD0 && b[1] == 0xCF && b[2] == 0x11 && b[3] == 0xE0
-                    && b[4] == 0xA1 && b[5] == 0xB1 && b[6] == 0x1A && b[7] == 0xE1;
 }

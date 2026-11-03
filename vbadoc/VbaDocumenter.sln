@@ -23,6 +23,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Directory.Packages.props = Directory.Packages.props
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{4F52FD11-658E-A102-6CD3-7D7C16FFA15B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelDocumenter.Shared", "..\shared\src\ExcelDocumenter.Shared\ExcelDocumenter.Shared.csproj", "{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,6 +85,18 @@ Global
 		{FA8E517A-0919-4114-803E-F3FE125FD42D}.Release|x64.Build.0 = Release|Any CPU
 		{FA8E517A-0919-4114-803E-F3FE125FD42D}.Release|x86.ActiveCfg = Release|Any CPU
 		{FA8E517A-0919-4114-803E-F3FE125FD42D}.Release|x86.Build.0 = Release|Any CPU
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}.Debug|x64.Build.0 = Debug|Any CPU
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}.Debug|x86.Build.0 = Debug|Any CPU
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}.Release|x64.ActiveCfg = Release|Any CPU
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}.Release|x64.Build.0 = Release|Any CPU
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}.Release|x86.ActiveCfg = Release|Any CPU
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -90,5 +106,6 @@ Global
 		{17438861-0CB2-4266-A8E2-EE87BAD0244F} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{E83C9F76-5D15-4270-B653-783F2DE47C62} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{FA8E517A-0919-4114-803E-F3FE125FD42D} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{D2D602C9-1F5D-4007-91D1-6E301ECD55EA} = {4F52FD11-658E-A102-6CD3-7D7C16FFA15B}
 	EndGlobalSection
 EndGlobal

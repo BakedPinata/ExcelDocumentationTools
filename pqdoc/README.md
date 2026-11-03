@@ -264,10 +264,10 @@ src/PowerQueryDocumenter.Core/     All the logic
   Analysis/               M tokeniser, reference extraction, analyser, cycle detection
   Model/                  Immutable graph types (DependencyGraph, QueryNode, DependencyEdge)
   Export/                 IExporter and the CSV, PlantUML source, PlantUML render and HTML exporters
-  Output/                 Overwrite policy, atomic file writes
-  Application/            Run orchestration, exit codes, error messages
+  Output/                 Overwrite policy, query files
+  Application/            Run orchestration, error messages
   Resources/Page/         The HTML page: template, styles, scripts and favicon (embedded resources)
-  Resources/Vendor/       Vendored D3.js (embedded resource)
+../shared/                Code shared with vbadoc: opening workbooks, exit codes, writing files, building the page, D3.js
 tests/PowerQueryDocumenter.Tests/
   Fixtures/Queries/       Sample .m files: a cycle, an isolated query, awkward names
   ...                     Unit tests per area, end-to-end tests, optional integration tests
@@ -285,12 +285,13 @@ analyser does not change.
 | `System.CommandLine` | Argument parsing, validation, help and version output |
 | `Serilog` | Structured logging |
 | `Serilog.Sinks.Console` | Coloured console output for Serilog |
+| `OpenMcdf` | Through the shared library, which vbadoc uses to read compound files (MPL-2.0, unmodified) |
 | `xunit.v3`, `xunit.runner.visualstudio`, `Microsoft.NET.Test.Sdk` | Tests only |
 | `Microsoft.Playwright` | Browser tests only |
 
 The `.env` reader is a small hand-written parser rather than a package. D3.js v7.9.0 is vendored
-in `src/PowerQueryDocumenter.Core/Resources/Vendor` (ISC licence, see `d3.LICENSE.txt`) and embedded
-into the HTML output.
+once for both tools in `shared/src/ExcelDocumenter.Shared/Resources/Vendor` (ISC licence, see
+`d3.LICENSE.txt`) and embedded into the HTML output.
 
 ## Tests
 

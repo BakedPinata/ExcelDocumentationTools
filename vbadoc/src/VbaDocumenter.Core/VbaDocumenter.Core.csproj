@@ -1,13 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <!-- Read directly as well as through the shared library: the VBA project is itself a compound file. -->
     <PackageReference Include="OpenMcdf" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Explicit LogicalName so resource names are the same on Windows and Linux. -->
-    <EmbeddedResource Include="Resources\Vendor\d3.min.js" LogicalName="Vendor/d3.min.js" />
-    <EmbeddedResource Include="Resources\Vendor\d3.LICENSE.txt" LogicalName="Vendor/d3.LICENSE.txt" />
+    <ProjectReference Include="..\..\..\shared\src\ExcelDocumenter.Shared\ExcelDocumenter.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Explicit LogicalName so resource names are the same on Windows and Linux. d3 comes from the shared library. -->
     <EmbeddedResource Include="Resources\Page\page.html" LogicalName="Page/page.html" />
     <EmbeddedResource Include="Resources\Page\page.css" LogicalName="Page/page.css" />
     <EmbeddedResource Include="Resources\Page\page.js" LogicalName="Page/page.js" />

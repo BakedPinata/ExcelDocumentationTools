@@ -1,7 +1,7 @@
-using System.Net;
 using System.Text;
 using System.Text.Json;
-using PowerQueryDocumenter.Core;
+using ExcelDocumenter.Shared;
+using ExcelDocumenter.Shared.Pages;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Core.Export;
 using PowerQueryDocumenter.Core.Model;
@@ -70,7 +70,7 @@ public sealed class HtmlExporterTests
   {
     var html = Render(Fixtures.Graph(["A>B"]));
 
-    var stamp = WebUtility.HtmlEncode(ToolVersion.Current.ToString());
+    var stamp = PageBuilder.Escape(HtmlExporter.Version.ToString());
     Assert.Contains($"<meta name=\"generator\" content=\"{stamp}\">", html);
     Assert.Contains($"<span>{stamp}</span>", html);
     Assert.Contains($"href=\"{ToolVersion.RepositoryUrl}\"", html);
@@ -123,16 +123,6 @@ public sealed class HtmlExporterTests
     Assert.DoesNotContain("<Co>", html);
     var names = EmbeddedData(html).GetProperty("queries").EnumerateArray().Select(q => q.GetProperty("id").GetString()).ToArray();
     Assert.Equal(new[] { hostile, "Report & <Co>" }, names);
-  }
-
-  [Theory]
-  [InlineData("{\"a\":\"</script>\"}", "{\"a\":\"\\u003C/script\\u003E\"}")]
-  [InlineData("{\"a\":\"x & y\"}", "{\"a\":\"x \\u0026 y\"}")]
-  [InlineData("{\"a\":\"line\u2028sep\"}", "{\"a\":\"line\\u2028sep\"}")]
-  [InlineData("{\"a\":1}", "{\"a\":1}")]
-  public void Script_escaping_neutralises_markup_characters(string json, string expected)
-  {
-    Assert.Equal(expected, HtmlExporter.EscapeForScriptElement(json));
   }
 
   [Fact]

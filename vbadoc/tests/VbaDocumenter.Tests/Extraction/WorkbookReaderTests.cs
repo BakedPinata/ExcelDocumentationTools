@@ -1,3 +1,4 @@
+using ExcelDocumenter.Shared.Workbooks;
 using VbaDocumenter.Core.Extraction;
 using VbaDocumenter.Tests.Support;
 

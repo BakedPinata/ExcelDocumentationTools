@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using VbaDocumenter.Core;
+using ExcelDocumenter.Shared;
+using ExcelDocumenter.Shared.Pages;
 using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Extraction;
 using VbaDocumenter.Core.Output;
@@ -56,11 +57,11 @@ public class HtmlPageWriterTests
   public void Shows_which_build_of_vbadoc_made_it()
   {
     var html = Build(embed: false);
-    var stamp = ToolVersion.Current.ToString().Replace("&", "&amp;");
+    var stamp = HtmlPageWriter.Version.ToString().Replace("&", "&amp;");
 
     Assert.Contains($"<meta name=\"generator\" content=\"{stamp}\">", html);
     Assert.Contains($">{stamp}</span>", html);
-    Assert.Contains(ToolVersion.Current.Description, html);
+    Assert.Contains(HtmlPageWriter.Version.Description, html);
   }
 
   [Fact]
