@@ -11,6 +11,7 @@
     <EmbeddedResource Include="Resources\Vendor\d3.LICENSE.txt" LogicalName="Vendor/d3.LICENSE.txt" />
     <EmbeddedResource Include="Resources\Page\page.html" LogicalName="Page/page.html" />
     <EmbeddedResource Include="Resources\Page\page.css" LogicalName="Page/page.css" />
+    <EmbeddedResource Include="Resources\Page\m-highlight.js" LogicalName="Page/m-highlight.js" />
     <EmbeddedResource Include="Resources\Page\page.js" LogicalName="Page/page.js" />
     <EmbeddedResource Include="Resources\Page\graph.js" LogicalName="Page/graph.js" />
     <EmbeddedResource Include="Resources\Page\favicon.svg" LogicalName="Page/favicon.svg" />

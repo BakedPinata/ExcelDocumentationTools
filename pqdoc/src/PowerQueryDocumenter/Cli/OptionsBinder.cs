@@ -82,6 +82,7 @@ internal static class OptionsBinder
       Formats = formats,
       PlantUmlServer = server,
       OnExists = onExists,
+      EmbedSource = parseResult.GetValue(cli.EmbedSource),
       Verbosity = GetVerbosity(parseResult, cli),
     };
 

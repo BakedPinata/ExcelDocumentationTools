@@ -33,6 +33,32 @@ public sealed class PageFixture : IAsyncLifetime
   /// <summary>A generated model of 300 queries, to check the view stays usable.</summary>
   public string LargePage { get; private set; } = string.Empty;
 
+  /// <summary>A copy of the sample .m files, with <see cref="FolderPage"/> beside them.</summary>
+  public string SourceFolder { get; private set; } = string.Empty;
+
+  /// <summary>The sample queries, with their source loaded from <see cref="SourceFolder"/>.</summary>
+  public string FolderPage { get; private set; } = string.Empty;
+
+  /// <summary>The sample queries with their source embedded (--embed-source).</summary>
+  public string EmbeddedPage { get; private set; } = string.Empty;
+
+  /// <summary>The awkward names, each with embedded source that holds markup.</summary>
+  public string AwkwardSourcePage { get; private set; } = string.Empty;
+
+  /// <summary>Two queries whose .m files are UTF-16, one each way round, with <see cref="EncodingPage"/> beside them.</summary>
+  public string EncodingFolder { get; private set; } = string.Empty;
+
+  public string EncodingPage { get; private set; } = string.Empty;
+
+  /// <summary>An Enter Data query whose compressed table is one very long line, embedded.</summary>
+  public string LongLinePage { get; private set; } = string.Empty;
+
+  /// <summary>How long <see cref="LongLinePage"/>'s long line is.</summary>
+  public const int LongLineLength = 1_000_000;
+
+  /// <summary>M code that would run if the page ever treated source as markup.</summary>
+  public const string HostileSource = "let\r\n    Html = \"</pre><script>window.injected = true</script>\"\r\nin\r\n    Html\r\n";
+
   public async ValueTask InitializeAsync()
   {
     var exitCode = Microsoft.Playwright.Program.Main(["install", "chromium"]);
@@ -45,10 +71,53 @@ public sealed class PageFixture : IAsyncLifetime
     Browser = await Playwright.Chromium.LaunchAsync();
 
     Directory.CreateDirectory(root);
-    SamplePage = Generate(await Fixtures.GraphAsync(), "sales-model");
+    var sample = await Fixtures.GraphAsync();
+    SamplePage = Generate(sample, "sales-model");
     AwkwardPage = Generate(AwkwardGraph(), "R&D <draft>");
     LargePage = Generate(LargeGraph(300), "large-model");
+
+    SourceFolder = CopyOfSources();
+    var sources = SourcesIn(SourceFolder);
+    FolderPage = Generate(sample, "sales-model", sources, embed: false, folder: SourceFolder);
+    EmbeddedPage = Generate(sample, "sales-model", sources, embed: true);
+
+    var awkward = AwkwardGraph();
+    AwkwardSourcePage = Generate(
+      awkward,
+      "R&D <draft>",
+      awkward.Nodes.Select((n, i) => QueryFile.FromBytes(n.Name, $"Query{i}.m", Encoding.UTF8.GetBytes(HostileSource))).ToArray(),
+      embed: true);
+
+    EncodingFolder = Path.Combine(root, "encoding");
+    Directory.CreateDirectory(EncodingFolder);
+    File.WriteAllBytes(Path.Combine(EncodingFolder, "Little.m"), WithByteOrderMark(Encoding.Unicode, "\"Zürich\" & \"Köln\""));
+    File.WriteAllBytes(Path.Combine(EncodingFolder, "Big.m"), WithByteOrderMark(Encoding.BigEndianUnicode, "\"Zürich\" & \"Köln\""));
+    EncodingPage = Generate(Fixtures.Graph([], "Little", "Big"), "encoding", SourcesIn(EncodingFolder), embed: false, folder: EncodingFolder);
+
+    var enterData = "let\r\n    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText(\""
+      + new string('A', LongLineLength) + "\", BinaryEncoding.Base64), Compression.Deflate)), type table [Name = text])\r\nin\r\n    Source\r\n";
+    LongLinePage = Generate(
+      Fixtures.Graph([], "Enter Data"),
+      "enter-data",
+      [QueryFile.FromBytes("Enter Data", "Enter Data.m", Encoding.UTF8.GetBytes(enterData))],
+      embed: true);
   }
+
+  private static byte[] WithByteOrderMark(Encoding encoding, string text) => [.. encoding.GetPreamble(), .. encoding.GetBytes(text)];
+
+  /// <summary>A new copy of the sample .m files, to change for a test.</summary>
+  public string CopyOfSources()
+  {
+    var folder = Path.Combine(root, $"sources-{Guid.NewGuid():N}");
+    Fixtures.CopyQueriesTo(folder);
+    return folder;
+  }
+
+  /// <summary>The .m files in a folder as the tool reads them: the sample names need no unescaping.</summary>
+  private static QueryFile[] SourcesIn(string folder) =>
+    Directory.GetFiles(folder, "*.m")
+      .Select(f => QueryFile.FromBytes(Path.GetFileNameWithoutExtension(f), Path.GetFileName(f), File.ReadAllBytes(f)))
+      .ToArray();
 
   public async ValueTask DisposeAsync()
   {
@@ -97,10 +166,10 @@ public sealed class PageFixture : IAsyncLifetime
   }
 
   /// <summary>Writes the page as the HTML exporter does and returns its path.</summary>
-  private string Generate(DependencyGraph graph, string outputName)
+  private string Generate(DependencyGraph graph, string outputName, IReadOnlyList<QueryFile>? sources = null, bool embed = false, string? folder = null)
   {
-    var context = new ExportContext(outputName, new DateTimeOffset(2026, 10, 2, 10, 3, 0, TimeSpan.FromHours(8)));
-    var path = Path.Combine(root, $"{Guid.NewGuid():N}.html");
+    var context = new ExportContext(outputName, new DateTimeOffset(2026, 10, 2, 10, 3, 0, TimeSpan.FromHours(8)), sources, embed);
+    var path = Path.Combine(folder ?? root, $"{Guid.NewGuid():N}.html");
     File.WriteAllText(path, HtmlExporter.Render(graph, context), new UTF8Encoding(false));
     return path;
   }

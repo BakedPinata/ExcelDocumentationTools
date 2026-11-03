@@ -56,6 +56,12 @@ internal sealed class CliDefinition
       DefaultValueFactory = _ => [],
     };
 
+    EmbedSource = new Option<bool>("--embed-source")
+    {
+      Description = "Put each query's M code inside the page, so it shows without \"Load folder\". M code can hold "
+        + "server names and file paths, so it's left out unless asked for.",
+    };
+
     PlantUmlServer = new Option<string?>("--plantuml-server")
     {
       Description = "Base URL of the PlantUML server used to render pdf, png and svg. Can also be set with the "
@@ -95,6 +101,7 @@ internal sealed class CliDefinition
       OutputName,
       Output,
       Formats,
+      EmbedSource,
       PlantUmlServer,
       OnExists,
       Force,
@@ -119,6 +126,9 @@ internal sealed class CliDefinition
 
   /// <summary><c>--format</c> / <c>-f</c>.</summary>
   public Option<IReadOnlyList<OutputFormat>> Formats { get; }
+
+  /// <summary><c>--embed-source</c>.</summary>
+  public Option<bool> EmbedSource { get; }
 
   /// <summary><c>--plantuml-server</c>.</summary>
   public Option<string?> PlantUmlServer { get; }

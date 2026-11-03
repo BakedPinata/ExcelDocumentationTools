@@ -104,7 +104,7 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
 
     if (resolution.ToWrite.Count > 0)
     {
-      outcomes.AddRange(await WriteOutputsAsync(graph, options, registry, resolution.ToWrite, cancellationToken).ConfigureAwait(false));
+      outcomes.AddRange(await WriteOutputsAsync(graph, options, registry, resolution.ToWrite, SourceFiles(queries, analysis), cancellationToken).ConfigureAwait(false));
     }
 
     // Only once this run's outputs are safely written, so there's always a page.
@@ -236,11 +236,42 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     return analysis;
   }
 
+  /// <summary>
+  /// Each query's .m file, for the page (FR-SRC-2): from a workbook, the files just written, made from the same
+  /// bytes; from a folder, the files the analysis read. A file that can't be read again is left out, and the page says
+  /// it has no source.
+  /// </summary>
+  private List<QueryFile> SourceFiles(IReadOnlyList<WorkbookQuery>? queries, AnalysisResult analysis)
+  {
+    if (queries is not null)
+    {
+      return queries
+        .Select(q => QueryFile.FromBytes(q.Name, QueryFileNames.FileName(q.Name), QueryFileText.Bytes(q.Expression)))
+        .ToList();
+    }
+
+    var files = new List<QueryFile>();
+    foreach (var (name, path) in analysis.Files ?? new Dictionary<string, string>())
+    {
+      try
+      {
+        files.Add(QueryFile.FromBytes(name, Path.GetFileName(path), File.ReadAllBytes(path)));
+      }
+      catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+      {
+        logger.Debug(ex, "Could not read {File} again for the page's source view", path);
+      }
+    }
+
+    return files;
+  }
+
   private async Task<List<ExportOutcome>> WriteOutputsAsync(
     DependencyGraph graph,
     AnalyserOptions options,
     ExporterRegistry registry,
     IReadOnlyList<PlannedOutput> outputs,
+    IReadOnlyList<QueryFile> sources,
     CancellationToken cancellationToken)
   {
     var outcomes = new List<ExportOutcome>();
@@ -260,7 +291,7 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
       return outcomes;
     }
 
-    var context = new ExportContext(options.Title, services.TimeProvider.GetLocalNow());
+    var context = new ExportContext(options.Title, services.TimeProvider.GetLocalNow(), sources, options.EmbedSource);
 
     // Each export is isolated: one failing never stops the others (FR-ERR-2).
     foreach (var output in outputs)

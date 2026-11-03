@@ -217,6 +217,71 @@ public sealed class HtmlExporterTests
     Assert.Equal(OutputFormat.Html, new HtmlExporter().Format);
   }
 
+  private static readonly QueryFile[] Sources =
+  [
+    QueryFile.FromBytes("A", "A.m", Encoding.UTF8.GetBytes("let\r\n    Source = \"</pre><script>alert(1)</script>\" & \"Tom & Jerry\"\r\nin\r\n    Source\r\n")),
+    QueryFile.FromBytes("Sales/Returns", "Sales%2FReturns.m", Encoding.UTF8.GetBytes("\r\n1 > 0")),
+  ];
+
+  private const string EmbeddedSourceStart = "<pre hidden class=\"pqdoc-source\"";
+
+  private static Dictionary<string, JsonElement> QueriesIn(string html) =>
+    EmbeddedData(html).GetProperty("queries").EnumerateArray().ToDictionary(q => q.GetProperty("id").GetString()!, q => q);
+
+  [Fact]
+  public void FR_SRC_1_without_sources_the_page_offers_none()
+  {
+    var html = Render(Fixtures.Graph(["A>B"]));
+
+    Assert.Equal("none", EmbeddedData(html).GetProperty("sourceMode").GetString());
+    Assert.Equal(JsonValueKind.Null, QueriesIn(html)["A"].GetProperty("file").ValueKind);
+    Assert.DoesNotContain(EmbeddedSourceStart, html);
+  }
+
+  [Fact]
+  public void FR_SRC_2_each_query_names_its_file_and_hash_but_its_M_code_stays_out_of_the_page()
+  {
+    var html = Render(Fixtures.Graph(["A>B"], "Sales/Returns"), Context with { Sources = Sources });
+
+    Assert.Equal("folder", EmbeddedData(html).GetProperty("sourceMode").GetString());
+    var queries = QueriesIn(html);
+    Assert.Equal("A.m", queries["A"].GetProperty("file").GetString());
+    Assert.Equal(Sources[0].Hash, queries["A"].GetProperty("hash").GetString());
+    Assert.Equal("Sales%2FReturns.m", queries["Sales/Returns"].GetProperty("file").GetString());
+    // B has no file, so the page says no source was found for it.
+    Assert.Equal(JsonValueKind.Null, queries["B"].GetProperty("file").ValueKind);
+    Assert.Equal(JsonValueKind.Null, queries["B"].GetProperty("hash").ValueKind);
+    Assert.DoesNotContain(EmbeddedSourceStart, html);
+    Assert.DoesNotContain("Jerry", html);
+  }
+
+  [Fact]
+  public void FR_SRC_2_embed_source_puts_each_querys_M_code_in_the_page_as_text()
+  {
+    var html = Render(Fixtures.Graph(["A>B"], "Sales/Returns"), Context with { Sources = Sources, EmbedSource = true });
+
+    Assert.Equal("embedded", EmbeddedData(html).GetProperty("sourceMode").GetString());
+    Assert.Contains(
+      "<pre hidden class=\"pqdoc-source\" data-query=\"A\">\nlet\r\n    Source = &quot;&lt;/pre&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot; " +
+      "&amp; &quot;Tom &amp; Jerry&quot;\r\nin\r\n    Source\r\n</pre>",
+      html);
+    // The line break the parser drops after <pre> is added, so the query's own leading blank line survives.
+    Assert.Contains("<pre hidden class=\"pqdoc-source\" data-query=\"Sales/Returns\">\n\r\n1 &gt; 0</pre>", html);
+    Assert.DoesNotContain("<script>alert(1)", html);
+  }
+
+  [Fact]
+  public void Query_names_in_embedded_source_are_attribute_safe()
+  {
+    var name = "It's \"quoted\" & <odd>";
+    var graph = Fixtures.Graph([], name);
+    var sources = new[] { QueryFile.FromBytes(name, "x.m", Encoding.UTF8.GetBytes("1")) };
+
+    var html = Render(graph, Context with { Sources = sources, EmbedSource = true });
+
+    Assert.Contains("data-query=\"It's &quot;quoted&quot; &amp; &lt;odd&gt;\">", html);
+  }
+
   [Fact]
   public async Task The_fixture_graph_renders()
   {

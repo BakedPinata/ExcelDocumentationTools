@@ -7,7 +7,9 @@ namespace PowerQueryDocumenter.Core.Export;
 /// <param name="Title">What the outputs document, used in their titles: the workbook's file name or the folder's name,
 /// as vbadoc titles its page with the workbook's file name.</param>
 /// <param name="GeneratedAt">When the run started (used in the HTML heading).</param>
-public sealed record ExportContext(string Title, DateTimeOffset GeneratedAt);
+/// <param name="Sources">The queries' .m files, for the page's source view, or null when there are none.</param>
+/// <param name="EmbedSource">Whether the page holds the files' text (<c>--embed-source</c>) or loads them from a folder.</param>
+public sealed record ExportContext(string Title, DateTimeOffset GeneratedAt, IReadOnlyList<QueryFile>? Sources = null, bool EmbedSource = false);
 
 /// <summary>
 /// Produces one output format from a <see cref="DependencyGraph"/> (NFR-ARCH-1). Exporters work

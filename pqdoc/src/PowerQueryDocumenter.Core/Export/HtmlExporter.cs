@@ -20,7 +20,7 @@ public sealed partial class HtmlExporter : IExporter
   public const string D3Version = "7.9.0";
 
   /// <summary>Our own scripts, in load order after D3.js.</summary>
-  private static readonly string[] PageScripts = ["Page/page.js", "Page/graph.js"];
+  private static readonly string[] PageScripts = ["Page/m-highlight.js", "Page/page.js", "Page/graph.js"];
 
   private static readonly Lazy<string> Template = new(() => ReadResource("Page/page.html"));
   private static readonly Lazy<string> Stylesheet = new(() => ReadResource("Page/page.css"));
@@ -72,6 +72,7 @@ public sealed partial class HtmlExporter : IExporter
       ["FAVICON"] = Favicon.Value,
       ["STYLE"] = Stylesheet.Value,
       ["DATA"] = SerialiseGraph(graph, context),
+      ["SOURCES"] = context.EmbedSource && context.Sources is not null ? EmbeddedSources(context.Sources) : string.Empty,
       ["SCRIPTS"] = Scripts.Value,
     };
 
@@ -101,10 +102,22 @@ public sealed partial class HtmlExporter : IExporter
       }
     }
 
+    // Each query's file name and hash, so the page can find and check its source; the text itself goes in the page
+    // only with --embed-source (FR-SRC-2). A query whose file couldn't be read has neither.
+    var files = new Dictionary<string, QueryFile>(DependencyGraph.NameComparer);
+    foreach (var file in context.Sources ?? [])
+    {
+      files.TryAdd(file.Query, file);
+    }
+
+    var sourceMode = files.Count == 0 ? "none" : context.EmbedSource ? "embedded" : "folder";
     var document = new GraphDocument(
       context.Title,
       FormatTimestamp(context.GeneratedAt),
-      graph.Nodes.Select(n => new QueryDocument(n.Name, RoleName(n.Role), n.IsInCycle, n.UpstreamCount, n.DownstreamCount)).ToArray(),
+      sourceMode,
+      graph.Nodes.Select(n => new QueryDocument(
+        n.Name, RoleName(n.Role), n.IsInCycle, n.UpstreamCount, n.DownstreamCount,
+        files.GetValueOrDefault(n.Name)?.FileName, files.GetValueOrDefault(n.Name)?.Hash)).ToArray(),
       graph.Edges.Select(e => new EdgeDocument(
         e.Upstream,
         e.Downstream,
@@ -132,6 +145,31 @@ public sealed partial class HtmlExporter : IExporter
       .Replace("\u2028", "\\u2028", StringComparison.Ordinal)
       .Replace("\u2029", "\\u2029", StringComparison.Ordinal);
   }
+
+  /// <summary>
+  /// For --embed-source: each query's text in its own hidden &lt;pre&gt;, as vbadoc does, so a change to one query
+  /// changes only its own lines of the page. The page reads the text back with textContent.
+  /// </summary>
+  private static string EmbeddedSources(IReadOnlyList<QueryFile> sources)
+  {
+    var html = new StringBuilder();
+    foreach (var file in sources.OrderBy(f => f.Query, DependencyGraph.NameComparer))
+    {
+      // The HTML parser drops a line break straight after <pre>, so add one to keep a leading blank line intact.
+      html.Append("<pre hidden class=\"pqdoc-source\" data-query=\"").Append(EscapeText(file.Query)).Append("\">\n")
+        .Append(EscapeText(file.Text))
+        .Append("</pre>\n");
+    }
+
+    return html.ToString();
+  }
+
+  /// <summary>Escapes text for HTML content or a double-quoted attribute, leaving other characters as they are.</summary>
+  private static string EscapeText(string text) =>
+    text.Replace("&", "&amp;", StringComparison.Ordinal)
+      .Replace("<", "&lt;", StringComparison.Ordinal)
+      .Replace(">", "&gt;", StringComparison.Ordinal)
+      .Replace("\"", "&quot;", StringComparison.Ordinal);
 
   /// <summary>Formats the generation time, for example "2026-10-02 10:03 (UTC+08:00)".</summary>
   public static string FormatTimestamp(DateTimeOffset value) =>
@@ -188,14 +226,18 @@ public sealed partial class HtmlExporter : IExporter
   [GeneratedRegex(@"\{\{([A-Z0-9_]+)\}\}")]
   private static partial Regex PlaceholderPattern();
 
+  /// <param name="SourceMode">"embedded" (the page holds the text), "folder" (Load folder) or "none".</param>
   private sealed record GraphDocument(
     string Title,
     string Generated,
+    string SourceMode,
     IReadOnlyList<QueryDocument> Queries,
     IReadOnlyList<EdgeDocument> Edges,
     IReadOnlyList<IReadOnlyList<string>> Cycles);
 
-  private sealed record QueryDocument(string Id, string Role, bool InCycle, int Upstream, int Downstream);
+  /// <param name="File">The query's .m file name, or null when it has no readable file.</param>
+  /// <param name="Hash">The first 16 hex digits of the SHA-256 of that file, or null.</param>
+  private sealed record QueryDocument(string Id, string Role, bool InCycle, int Upstream, int Downstream, string? File, string? Hash);
 
   private sealed record EdgeDocument(string From, string To, bool InCycle);
 }

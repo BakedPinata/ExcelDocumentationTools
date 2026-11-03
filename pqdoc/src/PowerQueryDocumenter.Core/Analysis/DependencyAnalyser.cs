@@ -15,11 +15,13 @@ public sealed record QuerySource(string Name, string Content);
 /// <param name="QueryFileCount">Number of .m files found, including unreadable and duplicate ones.</param>
 /// <param name="UnreadableFiles">Files that could not be read. Their queries are in the graph, but without their own references.</param>
 /// <param name="DuplicateFiles">Files ignored because another file has the same query name (names are case-insensitive).</param>
+/// <param name="Files">The path of each query's file that was read, by query name, for the page's source view.</param>
 public sealed record AnalysisResult(
   DependencyGraph Graph,
   int QueryFileCount,
   IReadOnlyList<string> UnreadableFiles,
-  IReadOnlyList<string> DuplicateFiles);
+  IReadOnlyList<string> DuplicateFiles,
+  IReadOnlyDictionary<string, string>? Files = null);
 
 /// <summary>
 /// Reads Power Query .m files and builds the <see cref="DependencyGraph"/> between them.
@@ -96,12 +98,14 @@ public sealed class DependencyAnalyser
 
     var sources = new List<QuerySource>();
     var unreadable = new List<string>();
+    var read = new Dictionary<string, string>(DependencyGraph.NameComparer);
     foreach (var (name, path) in pathsByName)
     {
       cancellationToken.ThrowIfCancellationRequested();
       try
       {
         sources.Add(new QuerySource(name, await readFile(path, cancellationToken).ConfigureAwait(false)));
+        read[name] = path;
       }
       catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or DecoderFallbackException)
       {
@@ -116,7 +120,7 @@ public sealed class DependencyAnalyser
     }
 
     var graph = Analyse(pathsByName.Keys, sources);
-    return new AnalysisResult(graph, files.Length, unreadable, duplicates);
+    return new AnalysisResult(graph, files.Length, unreadable, duplicates, read);
   }
 
   /// <summary>Builds a graph from in-memory query sources.</summary>

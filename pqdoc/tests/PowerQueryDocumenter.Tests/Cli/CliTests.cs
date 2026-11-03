@@ -274,6 +274,13 @@ public sealed class OptionsBinderTests : IDisposable
     Assert.Equal(expected, (await Bind("in", flag)).Options!.OnExists);
   }
 
+  [Fact]
+  public async Task FR_SRC_2_M_code_is_only_embedded_when_asked_for()
+  {
+    Assert.False((await Bind("in")).Options!.EmbedSource);
+    Assert.True((await Bind("in", "--embed-source")).Options!.EmbedSource);
+  }
+
   [Theory]
   [InlineData("-v", LogVerbosity.Verbose)]
   [InlineData("-q", LogVerbosity.Quiet)]

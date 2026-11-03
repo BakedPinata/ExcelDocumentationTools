@@ -2,6 +2,7 @@
 
 :root {
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-code: ui-monospace, "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, monospace;
   --radius: 6px;
 }
 
@@ -21,6 +22,15 @@ html[data-theme="dark"] {
   --role-cycle: #d95926;
   --role-intermediate: #9aa3ad;
   --edge: #7d8691;
+  /* Source: vbadoc's tokens, checked against the same background. */
+  --accent-text: #0b1220;
+  --warn: #f0b75a;
+  --syn-keyword: #c792ea;
+  --syn-string: #c3e88d;
+  --syn-comment: #7f8c98;
+  --syn-number: #f78c6c;
+  --syn-name: #82aaff;
+  --syn-type: #ffcb6b;
 }
 
 html[data-theme="light"] {
@@ -37,6 +47,14 @@ html[data-theme="light"] {
   --role-cycle: #eb6834;
   --role-intermediate: #5c6670;
   --edge: #8a939c;
+  --accent-text: #ffffff;
+  --warn: #8a5a00;
+  --syn-keyword: #8839ef;
+  --syn-string: #2b7a0b;
+  --syn-comment: #6a737d;
+  --syn-number: #b5530b;
+  --syn-name: #1f5fbf;
+  --syn-type: #9a6700;
 }
 
 * { box-sizing: border-box; }
@@ -117,6 +135,15 @@ a:hover { text-decoration: underline; }
   white-space: nowrap;
 }
 .button:hover { border-color: var(--accent); }
+.button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+
+/* Load folder and what it found. The file input is hidden; its label is the button. */
+.source-status { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.source-status[hidden] { display: none; }
+.source-status input[type="file"] { display: none; }
+#source-status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40ch; }
+.source-status.embedded #load-folder-label { display: none; }
+.warning { color: var(--warn); }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
@@ -214,6 +241,34 @@ body.resizing { cursor: col-resize; user-select: none; }
 .swatch { flex: none; width: 14px; height: 3px; border-radius: 2px; }
 .swatch.upstream { background: var(--role-root); }
 .swatch.downstream { background: var(--role-leaf); }
+
+/* ---- Source (FR-SRC-1): the same markup and classes as vbadoc's source panel ---- */
+
+.details-body h3 .file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.details-body .source-message { margin: 4px 0 0; color: var(--text-muted); }
+.details-body .source-message p { margin: 0; }
+.details-body .source-message .button { margin-top: 8px; }
+/* Only the code scrolls sideways, so a long line (an Enter Data query's) doesn't push the lists above out of view. */
+.details-body .source { margin-top: 4px; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+
+.code { margin: 0; padding: 8px 0; font: 12.5px/1.5 var(--font-code); tab-size: 4; min-width: max-content; }
+.code .line { display: flex; white-space: pre; }
+.code .ln {
+  flex: none;
+  width: 5ch;
+  padding-right: 12px;
+  text-align: right;
+  color: var(--text-muted);
+  user-select: none;
+}
+.code .lt { padding-right: 16px; }
+
+.tok-keyword { color: var(--syn-keyword); }
+.tok-string { color: var(--syn-string); }
+.tok-comment { color: var(--syn-comment); font-style: italic; }
+.tok-number { color: var(--syn-number); }
+.tok-name { color: var(--syn-name); font-weight: 600; }
+.tok-type { color: var(--syn-type); }
 
 /* ---- Dependency graph (graph.js) ---- */
 

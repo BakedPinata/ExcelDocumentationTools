@@ -44,6 +44,12 @@ public sealed record AnalyserOptions
   /// <summary>Formats to produce, distinct and in <see cref="OutputFormat"/> order. HTML alone unless <c>--format</c> was given.</summary>
   public required IReadOnlyList<OutputFormat> Formats { get; init; }
 
+  /// <summary>
+  /// Whether the page holds each query's M code (<c>--embed-source</c>), or loads it from the folder (FR-SRC-2). M code
+  /// can hold server names and file paths, so it's only embedded when asked for.
+  /// </summary>
+  public bool EmbedSource { get; init; }
+
   /// <summary>PlantUML server base URL. Required when any rendered format is requested.</summary>
   public Uri? PlantUmlServer { get; init; }
 

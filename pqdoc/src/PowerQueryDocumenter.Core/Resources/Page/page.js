@@ -1,4 +1,4 @@
-// page.js: the page's shared parts (data, theme, selection, details panel, tabs and search).
+// page.js: the page's shared parts (data, theme, source text, selection, details panel, tabs and search).
 // The views (the dependency graph) talk to it through window.pqdoc:
 //   pqdoc.select(id)                 select a query (id = query name), or null
 //   pqdoc.selection()                the selected id, or null
@@ -95,6 +95,123 @@
   }
   showTheme();
 
+  // ---- Source text ----
+  //
+  // Each query's M code, for the details panel (FR-SRC-1). With --embed-source the page holds it; otherwise the user
+  // picks the folder of .m files and the page reads them, checking each against the hash taken when the page was made.
+
+  var sources = new Map();      // query id -> array of lines
+  var highlighted = new Map();  // query id -> array of highlighted HTML lines (cached)
+  var statusBox = $("source-status");
+  var statusText = $("source-status-text");
+
+  function splitLines(text) {
+    var lines = text.split(/\r\n|\n|\r/);
+    if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+    return lines;
+  }
+
+  function setStatus(message, isWarning) {
+    statusText.textContent = message;
+    statusText.title = message;
+    statusText.classList.toggle("warning", !!isWarning);
+  }
+
+  if (data.sourceMode === "embedded") {
+    statusBox.classList.add("embedded");
+    document.querySelectorAll("pre.pqdoc-source").forEach(function (pre) {
+      sources.set(pre.getAttribute("data-query"), splitLines(pre.textContent));
+    });
+  } else if (data.sourceMode === "folder") {
+    setStatus("Source not loaded");
+  } else {
+    statusBox.hidden = true;
+  }
+
+  function hex(buffer) {
+    return Array.prototype.map.call(new Uint8Array(buffer), function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
+  }
+
+  // .m files are UTF-8 unless they start with a UTF-16 byte order mark, as Power Query's own exports can.
+  function decode(buffer) {
+    var bytes = new Uint8Array(buffer, 0, Math.min(2, buffer.byteLength));
+    var encoding = bytes[0] === 0xFF && bytes[1] === 0xFE ? "utf-16le" : bytes[0] === 0xFE && bytes[1] === 0xFF ? "utf-16be" : "utf-8";
+    return new TextDecoder(encoding).decode(buffer);
+  }
+
+  // Reads the .m files from the folder the user picked. Only files directly in that folder count, so a .git folder or
+  // other subfolders are ignored.
+  function loadFolder(files) {
+    var byName = new Map();
+    Array.prototype.forEach.call(files, function (file) {
+      var path = (file.webkitRelativePath || file.name).split("/");
+      if (path.length <= 2) byName.set(path[path.length - 1].toLowerCase(), file);
+    });
+
+    var missing = [];
+    var changed = [];
+    var found = 0;
+    var reads = data.queries.filter(function (q) { return q.file; }).map(function (query) {
+      var file = byName.get(query.file.toLowerCase());
+      if (!file) { missing.push(query.file); return Promise.resolve(); }
+      return file.arrayBuffer().then(function (buffer) {
+        found++;
+        sources.set(query.id, splitLines(decode(buffer)));
+        highlighted.delete(query.id);
+        if (!window.crypto || !crypto.subtle) return undefined;
+        return crypto.subtle.digest("SHA-256", buffer).then(function (digest) {
+          if (hex(digest).slice(0, 16) !== query.hash) changed.push(query.file);
+        });
+      });
+    });
+
+    return Promise.all(reads).then(function () {
+      if (found === 0) {
+        setStatus("No .m files for these queries in that folder. Choose the folder that holds this page's .m files.", true);
+      } else if (changed.length > 0) {
+        setStatus(changed.length + " file(s) changed since this page was made, so they may not match the graph. Run pqdoc again. (" +
+          changed.sort().join(", ") + ")", true);
+      } else if (missing.length > 0) {
+        setStatus("Loaded " + found + " file(s); missing: " + missing.sort().join(", "), true);
+      } else {
+        setStatus("Loaded " + found + " file(s)");
+      }
+      renderDetails();
+    });
+  }
+
+  var folderInput = $("load-folder");
+  folderInput.addEventListener("change", function () {
+    if (folderInput.files && folderInput.files.length > 0) loadFolder(folderInput.files);
+  });
+
+  function highlightedLines(id) {
+    if (!highlighted.has(id)) highlighted.set(id, window.MHighlight.highlightLines(sources.get(id)));
+    return highlighted.get(id);
+  }
+
+  function sourceSection(query) {
+    if (data.sourceMode === "none") return "";
+    var heading = "<h3>Source" + (query.file ? " <span class=\"muted file-name\">" + escapeHtml(query.file) + "</span>" : "") + "</h3>";
+
+    if (!sources.has(query.id)) {
+      if (data.sourceMode === "folder" && query.file) {
+        return heading + "<div class=\"source-message\" id=\"details-source\"><p>The source isn't loaded yet. Choose the folder " +
+          "that holds this page's .m files.</p><button type=\"button\" class=\"button primary\" id=\"load-folder-prompt\">Load folder</button></div>";
+      }
+      return heading + "<p class=\"source-message\" id=\"details-source\">No source was found for " + escapeHtml(query.id) + ".</p>";
+    }
+
+    var lines = highlightedLines(query.id);
+    var html = [];
+    for (var n = 1; n <= lines.length; n++) {
+      html.push("<div class=\"line\" data-line=\"" + n + "\"><span class=\"ln\">" + n + "</span><span class=\"lt\">" + (lines[n - 1] || " ") +
+        "</span></div>");
+    }
+    return heading + "<div class=\"source\" id=\"details-source\"><div class=\"code\" role=\"region\" aria-label=\"Source code\">" +
+      html.join("") + "</div></div>";
+  }
+
   // ---- Selection and the details panel ----
 
   var selection = null;
@@ -151,11 +268,13 @@
       "<div id=\"details-used-by\">" + queryList(usedBy.get(selection)) + "</div>" +
       "<p class=\"muted reach\" id=\"details-reach\">Including indirect links, " + countText(upstream) + " feed" + (upstream === 1 ? "s" : "") +
       " this query and " + countText(downstream) + " depend" + (downstream === 1 ? "s" : "") + " on it.</p>" +
-      "<div class=\"actions\"><button type=\"button\" class=\"button\" id=\"details-clear\">Clear selection</button></div>";
+      "<div class=\"actions\"><button type=\"button\" class=\"button\" id=\"details-clear\">Clear selection</button></div>" +
+      sourceSection(query);
   }
 
   panelBody.addEventListener("click", function (event) {
     if (event.target.closest("#details-clear")) { select(null); return; }
+    if (event.target.closest("#load-folder-prompt")) { folderInput.click(); return; }
     var link = event.target.closest("[data-select]");
     if (!link) return;
     event.preventDefault();

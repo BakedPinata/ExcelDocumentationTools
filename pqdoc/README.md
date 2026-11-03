@@ -65,6 +65,7 @@ renamed workbook's page. In a folder of `.m` files it only mentions them.
 | `--output-name` | `-n` | name | the workbook's or folder's name and `-powerquery` | Base file name for every output. The extension is added per format. Must not contain a folder, an extension, `#` or `%`. |
 | `--output` | `-o` | path | a `PowerQuery` folder next to a workbook, or the input folder | Where outputs are written. Created if missing. |
 | `--format` | `-f` | `html`, `csv`, `puml`, `pdf`, `png`, `svg` | `html` | The formats to write, comma-separated (`-f html,csv`) or repeated (`-f html -f csv`). Case-insensitive. Replaces the default, so include `html` to keep the page. |
+| `--embed-source` | | flag | off | Put each query's M code inside the page, so it shows without Load folder. See [the privacy note](#source-in-the-page). |
 | `--plantuml-server` | | URL | none | PlantUML server for `pdf`, `png` and `svg`. |
 | `--on-exists` | | `prompt`, `overwrite`, `skip`, `fail` | `prompt` when interactive, otherwise `fail` | What to do when an output file already exists. |
 | `--force` | `-y` | flag | off | Same as `--on-exists overwrite`. |
@@ -81,6 +82,9 @@ pqdoc C:\books\Sales.xlsx
 
 # The interactive page for a folder of .m files: C:\queries\queries-powerquery.html
 pqdoc C:\queries
+
+# The page with each query's M code inside it, so it shows without Load folder
+pqdoc C:\books\Sales.xlsx --embed-source
 
 # The page plus CSV and PlantUML source, custom name and location
 pqdoc C:\queries -n sales-model -o C:\docs -f html,csv,puml
@@ -113,7 +117,8 @@ left to right by depth (how many queries feed them). You can:
 - pan and zoom, and drag queries (double-click to release one);
 - hover a query to see its name and counts and highlight its direct neighbours;
 - click a query to trace everything upstream (blue) and downstream (aqua) of it, with a details
-  panel listing what it uses and what uses it; click the background or press Esc to clear;
+  panel listing what it uses and what uses it, and its M code (see below); click the background or
+  press Esc to clear;
 - search by name (press `/` to jump to the search box, Enter to select the first match);
 - resize or hide the details panel;
 - reset the view.
@@ -122,6 +127,20 @@ It follows the system light or dark theme until you choose one with the switch i
 which it then remembers. The top bar also shows which build of pqdoc made the page, as
 `pqdoc <version> (<commit>)`, linking to the repository. The page blocks all network access with a
 Content-Security-Policy, so nothing in it can load anything from the network.
+
+### Source in the page
+
+The details panel shows the selected query's M code, with line numbers and highlighting.
+
+- By default the page doesn't contain the code. Click **Load folder** and choose the folder of `.m`
+  files once per session: the page's own folder for a workbook, or the folder you ran pqdoc on.
+  Browsers don't let a page read files next to it on their own. If a file has changed since the page
+  was made, the top bar says so: run pqdoc again.
+- With `--embed-source` the code is inside the page instead, so it shows straight away.
+
+**Privacy.** M code can hold server and database names, file paths and other details of where the
+data comes from. That's why it's left out unless you ask for it: before using `--embed-source`, think
+about where the page will go, because anyone who opens it can read every query.
 
 ## Query files
 

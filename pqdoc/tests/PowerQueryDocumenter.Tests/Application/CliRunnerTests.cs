@@ -1,4 +1,6 @@
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using PowerQueryDocumenter.Core.Application;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Core.Export;
@@ -336,6 +338,60 @@ public sealed class CliRunnerTests : IDisposable
     var fromFolder = await File.ReadAllLinesAsync(Path.Combine(folder, "PowerQuery-powerquery.csv"), TestContext.Current.CancellationToken);
     Assert.Equal(fromWorkbook, fromFolder);
     Assert.Contains("\"Sales/Returns\",", fromFolder);
+  }
+
+  /// <summary>Escapes text as the page does for embedded source.</summary>
+  private static string Escaped(string text) =>
+    text.Replace("&", "&amp;", StringComparison.Ordinal).Replace("<", "&lt;", StringComparison.Ordinal)
+      .Replace(">", "&gt;", StringComparison.Ordinal).Replace("\"", "&quot;", StringComparison.Ordinal);
+
+  private static string Hash(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes))[..16];
+
+  [Fact]
+  public async Task FR_SRC_2_by_default_the_page_names_each_querys_file_but_holds_no_M_code()
+  {
+    using var app = App();
+
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(Queries));
+
+    var html = await File.ReadAllTextAsync(QueryFile("queries-powerquery.html"), TestContext.Current.CancellationToken);
+    var bytes = await File.ReadAllBytesAsync(QueryFile("Orders.m"), TestContext.Current.CancellationToken);
+    Assert.Contains("\"sourceMode\":\"folder\"", html);
+    Assert.Contains($"\"file\":\"Orders.m\",\"hash\":\"{Hash(bytes)}\"", html);
+    Assert.DoesNotContain("See the Customers query for details", html);
+  }
+
+  [Fact]
+  public async Task FR_SRC_2_embed_source_puts_the_folders_M_code_in_the_page_whatever_its_encoding()
+  {
+    byte[] wide = [.. Encoding.Unicode.GetPreamble(), .. Encoding.Unicode.GetBytes("\"Zürich\"")];
+    await File.WriteAllBytesAsync(QueryFile("Wide.m"), wide, TestContext.Current.CancellationToken);
+    using var app = App();
+
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(Queries, "--embed-source"));
+
+    var html = await File.ReadAllTextAsync(QueryFile("queries-powerquery.html"), TestContext.Current.CancellationToken);
+    var orders = await File.ReadAllTextAsync(QueryFile("Orders.m"), TestContext.Current.CancellationToken);
+    Assert.Contains("\"sourceMode\":\"embedded\"", html);
+    Assert.Contains("data-query=\"Orders\">\n" + Escaped(orders) + "</pre>", html);
+    Assert.Contains("data-query=\"Wide\">\n&quot;Zürich&quot;</pre>", html);
+    Assert.Contains($"\"hash\":\"{Hash(wide)}\"", html);
+  }
+
+  [Fact]
+  public async Task FR_SRC_2_M_code_embedded_from_a_workbook_matches_the_query_files_beside_the_page()
+  {
+    var workbook = temp.Combine("Queries.xlsx");
+    File.Copy(Fixtures.Workbook("Queries.xlsx"), workbook);
+    using var app = App();
+
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(workbook, "--embed-source"));
+
+    var folder = temp.Combine("PowerQuery");
+    var html = await File.ReadAllTextAsync(Path.Combine(folder, "Queries-powerquery.html"), TestContext.Current.CancellationToken);
+    var bytes = await File.ReadAllBytesAsync(Path.Combine(folder, "Sales Data.m"), TestContext.Current.CancellationToken);
+    Assert.Contains($"\"file\":\"Sales Data.m\",\"hash\":\"{Hash(bytes)}\"", html);
+    Assert.Contains("data-query=\"Sales Data\">\n" + Escaped(Encoding.UTF8.GetString(bytes)) + "</pre>", html);
   }
 
   [Fact]

@@ -12,12 +12,12 @@ rather than repeating it.
 
 - **vbadoc 0.8.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`. Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
-- **pqdoc 1.4.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.5.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
-  `.m` file, kept in step with the workbook.
-- **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. A0 and A1 are pushed; the
-  user's build, test and publish of A0 on the work machine is still to come. A0–A4, F1, B1 and B2 are pushed. B3 is
-  done, waiting for review. B4 (pqdoc's page shows highlighted M source) is next.
+  `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted.
+- **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. The user's build, test and
+  publish of A0 on the work machine is still to come. A0–A4, F1 and B1–B3 are pushed. B4 is done, waiting for review.
+  C1 (the shared library) is next.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -27,6 +27,16 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-03: Step B4, pqdoc's page shows M source
+
+- The details panel has a Source section: line numbers and highlighting by a new `m-highlight.js`. As in vbadoc, the
+  page holds only each query's file name and hash, and Load folder reads the `.m` files, warning when one has changed;
+  `--embed-source` puts the code in the page instead. pqdoc 1.5.0.
+- Copied from vbadoc's source panel under the same names, for C2 to merge. The syntax colours are vbadoc's, checked as
+  text: all at least 4.5:1 in both themes.
+- Requirements gained 4.10 (FR-SRC-1 to FR-SRC-3), the option and acceptance criterion 12; the README has a privacy
+  note. 34 new tests, including a 1 MB Enter Data line (about 0.1 s to show).
 
 ### 2026-11-03: Step B3, pqdoc writes `.m` files
 

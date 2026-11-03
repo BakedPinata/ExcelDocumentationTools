@@ -137,6 +137,28 @@ Reading them is step B2 of the feedback plan.
 - **Checked by hand on the private workbook:** its query's file has the same name and text as the user's hand export,
   apart from line endings, with no byte order mark.
 
+## Source in the page (1.5.0, step B4)
+
+- **Copied from vbadoc's source panel, under the same names**, so step C2 can merge them: `--embed-source`, hidden
+  `<pre>` blocks (`pre.pqdoc-source[data-query]`), Load folder with a top-level-only file list, the first 16 hex digits
+  of each file's SHA-256 to spot a folder that no longer matches, the status text in the top bar, and the
+  `.code .line .ln .lt` markup with `tok-*` classes.
+- **The source is a section of the details panel**, below Uses and Used by, not a panel of its own: a query's code is
+  usually short, and the panel already belongs to the selected query. Only the code scrolls sideways, so an Enter Data
+  query's long line doesn't push the lists out of view.
+- **M code isn't embedded by default**, as with vbadoc's VBA: it can hold server names and file paths, and pages get
+  emailed. A page with no source files at all (`sourceMode` "none") hides Load folder.
+- **The page's files are the ones beside it.** From a workbook, the hash is taken over the bytes written to each `.m`
+  file; from a folder, over the files the analysis read, read again. A hand export can be UTF-16 with a byte order
+  mark, so the page and `QueryFile` both decode UTF-16 when a BOM says so, and hash the raw bytes.
+- **`m-highlight.js` scans each line once**, carrying open text, quoted names and block comments to the next line, and
+  finds the end of text with `indexOf`. A 1 MB line takes about 0.1 s to show. `..` is the range operator, so the `3`
+  in `{1..3}` isn't read as `.3`. Dotted names ending in `.Type` (`Int64.Type`) count as type names.
+- **The syntax colours are vbadoc's, checked as text**, against the panel's background: every token is at least 4.5:1
+  in both themes (comments the lowest, at 4.8:1, and italic too). They aren't a categorical palette, and fail that
+  check, because a token's kind also shows in its text (quotes, `//`, digits, `#`). In the light theme numbers and type
+  names are close in colour, in vbadoc too; left for C2, which gives both pages one set of tokens.
+
 ## Output
 
 - **HTML is the default output** (1.1.0). Feedback from real use was that the page is what people use, and that CSV

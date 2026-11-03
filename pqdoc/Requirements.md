@@ -55,6 +55,7 @@ The input, a workbook or a folder, is a required positional argument.
 | `--output-name` | `-n` | string (no extension) | The workbook's or folder's name and `-powerquery` (FR-OUT-1) | Base file name for all outputs. The tool appends the correct extension per format. MUST NOT contain path separators, an extension, `#` or `%`; if it does, fail validation. |
 | `--output` | `-o` | path | A `PowerQuery` folder next to a workbook, or the input folder | Folder to write outputs to. Created if it does not exist. |
 | `--format` | `-f` | one or more of `html`, `csv`, `puml`, `pdf`, `png`, `svg` | `html` | The formats to generate. Accepts a comma-separated list (`-f html,csv`) and MAY be repeated (`-f html -f csv`). Values are case-insensitive. Giving it replaces the default. |
+| `--embed-source` | | flag | off | Put each query's M code inside the page, so it shows without Load folder. See FR-SRC-2. |
 | `--plantuml-server` | | URL | none | Base URL of the PlantUML server used for `pdf`, `png` and `svg` rendering. See FR-PUML-4. |
 | `--on-exists` | | `prompt`, `overwrite`, `skip`, `fail` | `prompt` when interactive, otherwise `fail` | Behaviour when an output file already exists. See FR-OVR. |
 | `--force` | `-y` | flag | off | Shorthand for `--on-exists overwrite`. If both are given and disagree, fail validation. |
@@ -158,6 +159,14 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 | FR-QF-3 | Files MUST be UTF-8 without a BOM, with CRLF line endings outside text literals. Line breaks inside a text literal MUST stay as Excel stored them, so the text is unchanged if the query is imported back. |
 | FR-QF-4 | The folder MUST be kept in step with the workbook: unchanged files aren't rewritten (so they keep their timestamps), top-level `.m` files whose query is no longer in the workbook are deleted, other files are left alone, and a `.gitattributes` (`*.m -text diff`, `*.html -text diff`) is created if there isn't one, never overwritten. `--on-exists` doesn't apply to query files. They're written after the overwrite check and before the outputs. Names that would share a file stop the run with exit code 3 before anything is written; a failure to write them gives exit code 5. |
 
+### 4.10 Source in the Page
+
+| ID | Requirement |
+|----|-------------|
+| FR-SRC-1 | Selecting a query in the page MUST show its M code in the details panel, with line numbers and highlighting of comments, text, quoted names (`#"Sales Data"`), keywords (including `#date`-style constructors), numbers and type names. Highlighting MUST stay quick on a very long line, such as an Enter Data query's compressed table. |
+| FR-SRC-2 | By default the page MUST NOT contain M code, which can hold server names, file paths and other details. It holds each query's `.m` file name and the first 16 hex digits of the file's SHA-256, and **Load folder** reads the files from a folder the user picks. With `--embed-source` the page holds each query's M code instead, from the folder's files or from the files written from the workbook, HTML-escaped so it can't break out of the page. A query with no readable file has no source, and a page with none offers no source at all. |
+| FR-SRC-3 | After Load folder, the page MUST say how many files it loaded, name any that are missing, and warn when a file's hash doesn't match the one taken when the page was made. Files MUST be read as UTF-8 unless they start with a UTF-16 byte order mark. |
+
 ## 5. Non-Functional Requirements
 
 ### 5.1 Logging (Console UX)
@@ -217,7 +226,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 
 | ID | Requirement |
 |----|-------------|
-| NFR-DOC-1 | `README.md` MUST cover: purpose, installation/build, full option reference, examples, exit codes, PlantUML server configuration (flag, environment variable, `.env`), and a note on the privacy implications of using a remote PlantUML server. |
+| NFR-DOC-1 | `README.md` MUST cover: purpose, installation/build, full option reference, examples, exit codes, PlantUML server configuration (flag, environment variable, `.env`), and a note on the privacy implications of using a remote PlantUML server and of `--embed-source`. |
 
 ## 6. Acceptance Criteria (Summary)
 
@@ -232,6 +241,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 9. A render failure for PNG does not prevent SVG, HTML or CSV from being written, and the exit code is 5.
 10. `pqdoc <workbook>` reads the queries straight from the workbook and writes `<workbook name>-powerquery.html` in a `PowerQuery` folder next to it. The dependencies are the same as for the same queries exported by hand.
 11. With a workbook as input, each query is written to its own `.m` file beside the outputs. Running pqdoc on that folder afterwards gives the same query names and dependencies.
+12. Without `--embed-source` the page contains no M code, and after Load folder on the folder of `.m` files, selecting a query shows its code, highlighted. With `--embed-source` the code shows without Load folder.
 
 ## 7. Decisions Made (Defaults Chosen)
 
@@ -245,6 +255,8 @@ These are deliberate defaults.
 - **HTML is the default output**, and `--format` lists exactly what to write. Until 1.1.0 the CSV was the default and
   `--format` added to it, but the page turned out to be the output people use.
 - **CSV header** is `Query Name,Referenced By Query Name`, so each row says plainly which query uses which.
+- **M code isn't embedded in the page by default** (FR-SRC-2), so a page that's emailed or shared doesn't carry server
+  names and file paths unless the user asks for that with `--embed-source`, as vbadoc does with VBA.
 
 ## 8. Out of Scope / Possible Future Work
 
