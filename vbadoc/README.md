@@ -51,13 +51,14 @@ dotnet publish src/VbaDocumenter -c Release -p:PublishProfile=FolderProfile
 ## Usage
 
 ```bash
-dotnet run --project src/VbaDocumenter -- <workbook> [--output <folder>] [--embed-source] [--verbose]
+dotnet run --project src/VbaDocumenter -- <workbook> [--output <folder>] [--output-name <name>] [--embed-source] [--verbose]
 ```
 
 | Argument | Alias | |
 |---|---|---|
 | `<workbook>` | | `.xlsm`, `.xlsb`, `.xlam`, `.xls` or `.xla` |
 | `--output <folder>` | `-o` | Output folder. Default: a `VBAProject` folder next to the workbook |
+| `--output-name <name>` | `-n` | The page's file name, without `.html`. Default: the workbook's name and `-vba`, such as `Sales-vba`. It can't contain a folder, an extension, `#` or `%` |
 | `--embed-source` | | Put the module source inside the page, so it works without Load folder |
 | `--verbose` | `-v` | List every member found in each module, with its line range, show how long each step took, and show debug-level log output |
 | `--quiet` | `-q` | Show warnings and errors only |
@@ -79,6 +80,15 @@ output is only used by `--help` and `--version`.
 The codes are shared with pqdoc. Code 4 means an output was refused, which never happens here: vbadoc always brings
 the output folder in line with the workbook.
 
+### Changes in 0.8.0
+
+- The page is named after the workbook: `Sales.xlsm` gives `VBAProject/Sales-vba.html`, not `index.html`, so a page
+  that's emailed or printed says what it documents. Update any bookmark or script that opens `index.html`. vbadoc
+  deletes the old `index.html` on its next run, and any other page it wrote under a name that's no longer used, such as
+  a renamed workbook's. Pages it didn't write are left alone.
+- A `.gitattributes` created from now on covers `*.html`. One created before covers only `index.html`, so change
+  that line to `*.html -text diff` to keep git from converting the page's line endings.
+
 ### Changes in 0.6.0
 
 These break anything that runs vbadoc from a script:
@@ -95,7 +105,9 @@ These break anything that runs vbadoc from a script:
   Files use the project's code page and CRLF line endings, as the VBA editor's own Export does.
   Classes get the VBA editor's `VERSION 1.0 CLASS` header so they import back as classes.
 - A `.gitattributes` that stops git converting those files, unless the folder already has one.
-- `index.html`: a single self-contained page that documents the project. Open it from disk.
+- `<workbook>-vba.html`, such as `Sales-vba.html`: a single self-contained page that documents the project. Open it
+  from disk. `#` and `%` in the workbook's name become `_` in the file's name, because they confuse a browser's
+  address.
   - By default it doesn't contain the source. Click **Load folder** and choose the output folder once per session;
     browsers don't let a page read files next to it on their own.
   - With `--embed-source` the source is inside the page instead. The page is larger, and code changes appear in its

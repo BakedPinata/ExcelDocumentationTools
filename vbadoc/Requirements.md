@@ -48,6 +48,8 @@ A second spike (a sequence-diagram generator, since abandoned) proved that a lig
 
 - The output folder sits beside the workbook and is intended to be a git repository, for example `MyBook.xlsm` with a `MyBook/` folder next to it. The tool must not run `git` commands itself.
 - The source files and the HTML page live together in that one folder.
+- The page is named after the workbook and `-vba` (`MyBook-vba.html`), the same rule as pqdoc's outputs, so a page that travels on its own says what it documents. `#` and `%` become `_` in the file name only. `--output-name` (`-n`) chooses another name.
+- Pages vbadoc wrote earlier under another name (recognised by their generator tag) are deleted from the folder after the new page is written, so an old page can't pass for the current one. Other `.html` files are left alone.
 - File extensions: `.bas` (standard module), `.cls` (class and document modules), `.frm` (forms, see below).
 - **Encoding and line endings:** write source files in the project's code page (as the VBA editor's own Export does), with CRLF line endings, so they can be imported back into the VBA editor unchanged. The HTML page must decode them with the same code page; record the code page in the page's data and use `TextDecoder`.
 - If no `.gitattributes` exists in the output folder, create one that stops git converting line endings or encoding on the source files. Never overwrite an existing one.

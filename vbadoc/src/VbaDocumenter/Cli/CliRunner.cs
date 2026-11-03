@@ -100,11 +100,16 @@ static class CliRunner
       foreach (var name in result.Deleted) logger.Information("    deleted {File} (no longer in the workbook)", name);
       if (result.CreatedGitAttributes) logger.Information("  Created .gitattributes");
 
-      bool pageWritten = Timed(logger, "Writing the page", () => HtmlPageWriter.Write(options.OutputFolder, html));
+      var pageFile = HtmlPageWriter.FileName(options.OutputName);
+      bool pageWritten = Timed(logger, "Writing the page", () => HtmlPageWriter.Write(options.OutputFolder, pageFile, html));
       logger.Information("  {Page} {Outcome} {Hint}",
-          HtmlPageWriter.FileName,
+          pageFile,
           pageWritten ? "written" : "unchanged",
           options.EmbedSource ? "(source embedded)" : "(open it and use Load folder to see source)");
+
+      // Only once the new page is safely written, so there's always a page.
+      foreach (var name in HtmlPageWriter.RemoveOlderPages(options.OutputFolder, pageFile))
+        logger.Information("    deleted {File} (an older page from vbadoc)", name);
     }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
     {

@@ -52,7 +52,7 @@ The input, a workbook or a folder, is a required positional argument.
 
 | Option | Alias | Value | Default | Description |
 |--------|-------|-------|---------|-------------|
-| `--output-name` | `-n` | string (no extension) | `powerquery-dependencies` | Base file name for all outputs. The tool appends the correct extension per format. MUST NOT contain path separators or an extension; if it does, fail validation. |
+| `--output-name` | `-n` | string (no extension) | The workbook's or folder's name and `-powerquery` (FR-OUT-1) | Base file name for all outputs. The tool appends the correct extension per format. MUST NOT contain path separators, an extension, `#` or `%`; if it does, fail validation. |
 | `--output` | `-o` | path | A `PowerQuery` folder next to a workbook, or the input folder | Folder to write outputs to. Created if it does not exist. |
 | `--format` | `-f` | one or more of `html`, `csv`, `puml`, `pdf`, `png`, `svg` | `html` | The formats to generate. Accepts a comma-separated list (`-f html,csv`) and MAY be repeated (`-f html -f csv`). Values are case-insensitive. Giving it replaces the default. |
 | `--plantuml-server` | | URL | none | Base URL of the PlantUML server used for `pdf`, `png` and `svg` rendering. See FR-PUML-4. |
@@ -129,7 +129,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 | FR-HTML-5 | Nodes SHOULD be coloured by role (root, leaf, isolated, in-cycle) with a legend. Labels MUST be legible; long names SHOULD be truncated with the full name in a tooltip. |
 | FR-HTML-6 | The page MUST adapt to light/dark colour scheme via `prefers-color-scheme` and be usable on a laptop-sized viewport. |
 | FR-HTML-7 | Graph data MUST be embedded as JSON with proper escaping (including `</script>` sequences in names) so that query names cannot break out of the page or inject script. |
-| FR-HTML-8 | The page title and a visible heading SHOULD include the output name and the generation date/time, plus node and edge counts. |
+| FR-HTML-8 | The page title and a visible heading SHOULD name what is documented (the workbook's file name or the folder's name), and the title SHOULD include the generation date/time, plus node and edge counts. |
 | FR-HTML-9 | The HTML template SHOULD be kept as a separate embedded resource file rather than an inline C# string. |
 | FR-HTML-10 | HTML is the default output: it is the only output when `--format` isn't given. |
 
@@ -141,6 +141,13 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 | FR-OVR-2 | `prompt`: if stdin/stdout are interactive, ask per file with options *yes / no / all / quit*. If the session is not interactive (redirected input, CI), `prompt` MUST behave as `fail` and the error message MUST say how to proceed (`--force` or `--on-exists`). |
 | FR-OVR-3 | `overwrite`: replace silently (logged at information level). `skip`: leave the existing file and log a warning. `fail`: abort before writing anything and exit with code 4. |
 | FR-OVR-4 | Writes SHOULD be atomic where practical (write to a temporary file in the target folder, then move over the destination) so that a failure never leaves a truncated file. |
+
+### 4.8 Output Names
+
+| ID | Requirement |
+|----|-------------|
+| FR-OUT-1 | Outputs are named after what they document, in the same way as vbadoc's page: the workbook's name, or the folder's, followed by `-powerquery` (`Sales.xlsx` gives `Sales-powerquery.html`). `#` and `%` become `_` in the name, because they break or confuse a browser's address; titles still show the real name. A drive's root, which has no name, gives `powerquery`. `--output-name` overrides the name, and MUST NOT contain `#` or `%`. |
+| FR-OUT-2 | Outputs pqdoc wrote earlier under another name are found through their page's generator tag, with every output sharing that page's name. In a workbook's output folder, which belongs to pqdoc, they MUST be deleted after this run's outputs are written without failure, so an old page can't pass for the current one. In a folder of `.m` files, which belongs to the user, they MUST only be mentioned. |
 
 ## 5. Non-Functional Requirements
 
@@ -205,7 +212,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 
 ## 6. Acceptance Criteria (Summary)
 
-1. `pqdoc <folder>` with no other options writes `powerquery-dependencies.html` next to the inputs, and nothing else.
+1. `pqdoc <folder>` with no other options writes `<folder name>-powerquery.html` next to the inputs, and nothing else.
 2. `-f csv,puml,html` produces `.csv`, `.puml` and `.html` side by side. The CSV has the header row `Query Name,Referenced By Query Name`. The HTML opens offline and renders an interactive graph. The PUML renders without syntax errors in a PlantUML server.
 3. `-f csv` writes only the CSV, because `--format` replaces the default.
 4. Existing output files with default settings in a non-interactive session cause exit code 4 and no files are written or modified.
@@ -214,13 +221,13 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 7. A query name appearing only inside a comment or string literal creates no dependency.
 8. A circular dependency produces a warning and all exports still complete.
 9. A render failure for PNG does not prevent SVG, HTML or CSV from being written, and the exit code is 5.
-10. `pqdoc <workbook>` reads the queries straight from the workbook and writes `powerquery-dependencies.html` in a `PowerQuery` folder next to it. The dependencies are the same as for the same queries exported by hand.
+10. `pqdoc <workbook>` reads the queries straight from the workbook and writes `<workbook name>-powerquery.html` in a `PowerQuery` folder next to it. The dependencies are the same as for the same queries exported by hand.
 
 ## 7. Decisions Made (Defaults Chosen)
 
 These are deliberate defaults.
 
-- **Default output name** is `powerquery-dependencies`.
+- **Default output name** is the workbook's or folder's name and `-powerquery` (FR-OUT-1). Until 1.3.0 it was `powerquery-dependencies`.
 - **Overwrite default** is *prompt when interactive, fail when not*, with `--force` / `--on-exists` to override. This is the safest default and still scriptable.
 - **No default PlantUML server**, to avoid sending query names to a public service unintentionally.
 - **D3 is embedded** in the HTML so the file works offline and can be shared by email or from a file share without external requests.

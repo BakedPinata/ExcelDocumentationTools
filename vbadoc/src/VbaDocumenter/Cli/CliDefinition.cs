@@ -25,6 +25,12 @@ sealed class CliDefinition
       HelpName = "folder",
     };
 
+    OutputName = new Option<string?>("--output-name", "-n")
+    {
+      Description = "The page's file name, without \".html\". [default: the workbook's name and \"-vba\", e.g. Sales-vba]",
+      HelpName = "name",
+    };
+
     EmbedSource = new Option<bool>("--embed-source")
     {
       Description = "Put the module source inside the page, so it works without \"Load folder\".",
@@ -46,6 +52,7 @@ sealed class CliDefinition
     {
       Workbook,
       Output,
+      OutputName,
       EmbedSource,
       Verbose,
       Quiet,
@@ -60,6 +67,9 @@ sealed class CliDefinition
 
   /// <summary><c>--output</c> / <c>-o</c>.</summary>
   public Option<string?> Output { get; }
+
+  /// <summary><c>--output-name</c> / <c>-n</c>.</summary>
+  public Option<string?> OutputName { get; }
 
   /// <summary><c>--embed-source</c>.</summary>
   public Option<bool> EmbedSource { get; }
@@ -78,9 +88,37 @@ sealed class CliDefinition
 
   void Validate(CommandResult result)
   {
+    var name = result.GetResult(OutputName);
+    if (name is { Implicit: false, Tokens.Count: > 0 } && ValidateOutputName(name.Tokens[^1].Value) is { } nameError)
+    {
+      result.AddError(nameError);
+    }
+
     if (result.GetValue(Verbose) && result.GetValue(Quiet))
     {
       result.AddError("--verbose (-v) and --quiet (-q) cannot be used together.");
     }
+  }
+
+  // Characters Windows doesn't allow in file names, checked on every platform so a name works everywhere, and # and
+  // %, which break or confuse a browser's address. The same rule as pqdoc's --output-name.
+  static readonly char[] InvalidNameCharacters = ['<', '>', ':', '"', '|', '?', '*', '#', '%'];
+
+  /// <summary>
+  /// Checks a page name: a plain file name with no folder and no extension. Returns an error message, or null when the
+  /// name is fine.
+  /// </summary>
+  public static string? ValidateOutputName(string? name)
+  {
+    if (string.IsNullOrWhiteSpace(name)) return "--output-name must not be empty.";
+    if (name.IndexOfAny(['/', '\\']) >= 0)
+      return $"--output-name '{name}' must be a file name, not a path. Use --output to choose where files are written.";
+    if (name.IndexOfAny(InvalidNameCharacters) >= 0 || name.Any(char.IsControl))
+      return $"--output-name '{name}' contains a character that can't be used in the page's name ({string.Join(' ', InvalidNameCharacters)}).";
+    if (name.StartsWith(' ') || name.EndsWith(' ') || name.EndsWith('.'))
+      return $"--output-name '{name}' must not start or end with a space, or end with a dot.";
+    if (Path.HasExtension(name))
+      return $"--output-name '{name}' must not include an extension ('{Path.GetExtension(name)}'). \".html\" is added.";
+    return null;
   }
 }

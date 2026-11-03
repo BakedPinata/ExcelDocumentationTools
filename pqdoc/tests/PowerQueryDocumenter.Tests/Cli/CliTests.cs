@@ -19,7 +19,7 @@ public sealed class CliDefinitionTests
 
     Assert.Empty(result.Errors);
     Assert.Equal("C:\\queries", result.GetValue(cli.Input));
-    Assert.Equal("powerquery-dependencies", result.GetValue(cli.OutputName));
+    Assert.Null(result.GetValue(cli.OutputName)); // the binder names outputs after the input
     Assert.Empty(result.GetValue(cli.Formats) ?? []); // the binder turns this into the default, html
     Assert.Null(result.GetValue(cli.OnExists));
   }
@@ -201,13 +201,30 @@ public sealed class OptionsBinderTests : IDisposable
 
     Assert.Equal(temp.Combine("queries"), options.Input);
     Assert.Equal(options.Input, options.OutputFolder);
-    Assert.Equal("powerquery-dependencies", options.OutputName);
+    Assert.Equal("queries-powerquery", options.OutputName);
     Assert.Equal(new[] { OutputFormat.Html }, options.Formats);
     Assert.Equal(OnExistsBehaviour.Prompt, options.OnExists);
     Assert.Equal(LogVerbosity.Normal, options.Verbosity);
     Assert.Null(options.PlantUmlServer);
     Assert.Equal(TimeSpan.FromSeconds(30), options.RenderTimeout);
-    Assert.Equal(temp.Combine("queries", "powerquery-dependencies.html"), options.GetOutputPath(OutputFormat.Html));
+    Assert.Equal(temp.Combine("queries", "queries-powerquery.html"), options.GetOutputPath(OutputFormat.Html));
+  }
+
+  [Theory]
+  [InlineData("a#b")]
+  [InlineData("50%")]
+  public void Output_names_with_characters_that_confuse_a_browser_are_rejected(string name)
+  {
+    Assert.Contains("can't be used in an output name", Assert.Single(cli.Parse(["in", "-n", name]).Errors).Message);
+  }
+
+  [Fact]
+  public void The_default_output_name_comes_from_the_workbook_or_folder()
+  {
+    Assert.Equal("Sales-powerquery", AnalyserOptions.DefaultOutputName(Path.Combine("C:", "books", "Sales.xlsx"), inputIsWorkbook: true));
+    Assert.Equal("queries-powerquery", AnalyserOptions.DefaultOutputName(Path.Combine("C:", "queries") + Path.DirectorySeparatorChar, inputIsWorkbook: false));
+    Assert.Equal("Q_1 at 5_-powerquery", AnalyserOptions.DefaultOutputName("Q#1 at 5%.xlsx", inputIsWorkbook: true));
+    Assert.Equal("powerquery", AnalyserOptions.DefaultOutputName(Path.GetPathRoot(Path.GetTempPath())!, inputIsWorkbook: false)); // a drive's root has no name
   }
 
   [Fact]

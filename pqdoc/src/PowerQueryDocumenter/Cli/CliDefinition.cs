@@ -15,9 +15,10 @@ internal sealed class CliDefinition
   /// <summary>The tool's name as shown in usage text.</summary>
   public const string ToolName = "pqdoc";
 
-  // Characters that are invalid in a Windows file name. Checked on every platform so that the
-  // same --output-name works everywhere.
-  private static readonly char[] InvalidFileNameCharacters = ['<', '>', ':', '"', '|', '?', '*'];
+  // Characters that are invalid in a Windows file name, checked on every platform so that the same
+  // --output-name works everywhere, and # and %, which break or confuse a browser's address. The
+  // same rule as vbadoc's --output-name.
+  private static readonly char[] InvalidFileNameCharacters = ['<', '>', ':', '"', '|', '?', '*', '#', '%'];
 
   /// <summary>Creates the command and all of its options.</summary>
   public CliDefinition()
@@ -28,11 +29,11 @@ internal sealed class CliDefinition
         + "per file; subfolders are not scanned).",
     };
 
-    OutputName = new Option<string>("--output-name", "-n")
+    OutputName = new Option<string?>("--output-name", "-n")
     {
-      Description = "Base file name for all outputs, without an extension. The right extension is added per format.",
+      Description = "Base file name for all outputs, without an extension. The right extension is added per format. "
+        + "[default: the workbook's or folder's name and \"-powerquery\", e.g. Sales-powerquery]",
       HelpName = "name",
-      DefaultValueFactory = _ => AnalyserOptions.DefaultOutputName,
     };
 
     Output = new Option<string?>("--output", "-o")
@@ -111,7 +112,7 @@ internal sealed class CliDefinition
   public Argument<string> Input { get; }
 
   /// <summary><c>--output-name</c> / <c>-n</c>.</summary>
-  public Option<string> OutputName { get; }
+  public Option<string?> OutputName { get; }
 
   /// <summary><c>--output</c> / <c>-o</c>.</summary>
   public Option<string?> Output { get; }
@@ -159,7 +160,7 @@ internal sealed class CliDefinition
 
     if (name.IndexOfAny(InvalidFileNameCharacters) >= 0 || name.Any(char.IsControl))
     {
-      return $"--output-name '{name}' contains a character that is not allowed in file names "
+      return $"--output-name '{name}' contains a character that can't be used in an output name "
         + $"({string.Join(' ', InvalidFileNameCharacters)}).";
     }
 

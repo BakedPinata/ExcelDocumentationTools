@@ -11,7 +11,26 @@ namespace VbaDocumenter.Core.Output;
 /// </summary>
 public static class HtmlPageWriter
 {
-  public const string FileName = "index.html";
+  /// <summary>Added to the workbook's name to name the page, so a page that travels on its own says what it documents.</summary>
+  public const string NameSuffix = "-vba";
+
+  /// <summary>
+  /// The page's default name, without ".html": the workbook's name and <see cref="NameSuffix"/>, so
+  /// <c>Sales.xlsm</c> gives <c>Sales-vba</c>.
+  /// </summary>
+  public static string DefaultName(string workbookPath) => SafeForAddress(Path.GetFileNameWithoutExtension(workbookPath)) + NameSuffix;
+
+  /// <summary>
+  /// Replaces characters that break or confuse a browser's address: <c>#</c> starts the part the page uses for Back
+  /// and Forward, and <c>%</c> starts an escape. Only the file name changes; the page still shows the real name.
+  /// </summary>
+  public static string SafeForAddress(string name) => name.Replace('#', '_').Replace('%', '_');
+
+  /// <summary>The page's file name for a name chosen by <see cref="DefaultName"/> or <c>--output-name</c>.</summary>
+  public static string FileName(string name) => name + ".html";
+
+  // The page template's generator tag starts with the tool's name, which is how older pages are recognised.
+  const string GeneratorTag = "<meta name=\"generator\" content=\"vbadoc ";
 
   /// <summary>Our own scripts, in load order after the vendored libraries.</summary>
   static readonly string[] PageScripts = ["Page/vba-highlight.js", "Page/page.js", "Page/graph.js", "Page/classes.js"];
@@ -41,13 +60,42 @@ public static class HtmlPageWriter
   }
 
   /// <summary>Writes the page if its content changed. Returns true if the file was written.</summary>
-  public static bool Write(string outputFolder, string html)
+  public static bool Write(string outputFolder, string fileName, string html)
   {
-    var path = Path.Combine(outputFolder, FileName);
+    var path = Path.Combine(outputFolder, fileName);
     var bytes = new UTF8Encoding(false).GetBytes(html);
     if (File.Exists(path) && File.ReadAllBytes(path).AsSpan().SequenceEqual(bytes)) return false;
     File.WriteAllBytes(path, bytes);
     return true;
+  }
+
+  /// <summary>
+  /// Deletes pages vbadoc wrote earlier under another name in the output folder, which belongs to vbadoc: a renamed
+  /// workbook's page, or <c>index.html</c> from before 0.8.0. They're recognised by their generator tag, so a page
+  /// written by hand or by another tool is left alone. Returns the names of the files deleted.
+  /// </summary>
+  public static IReadOnlyList<string> RemoveOlderPages(string outputFolder, string currentFileName)
+  {
+    var removed = new List<string>();
+    if (!Directory.Exists(outputFolder)) return removed;
+    foreach (var path in Directory.GetFiles(outputFolder, "*.html"))
+    {
+      var name = Path.GetFileName(path);
+      if (name.Equals(currentFileName, StringComparison.OrdinalIgnoreCase) || !WrittenByVbadoc(path)) continue;
+      File.Delete(path);
+      removed.Add(name);
+    }
+    removed.Sort(StringComparer.OrdinalIgnoreCase);
+    return removed;
+  }
+
+  /// <summary>Whether a page carries vbadoc's generator tag, which is within its first lines.</summary>
+  static bool WrittenByVbadoc(string path)
+  {
+    using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+    var head = new byte[2048];
+    var length = file.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
+    return Encoding.UTF8.GetString(head, 0, length).Contains(GeneratorTag, StringComparison.Ordinal);
   }
 
   static string Scripts()

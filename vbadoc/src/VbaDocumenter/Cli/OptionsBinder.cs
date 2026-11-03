@@ -1,4 +1,5 @@
 using System.CommandLine;
+using VbaDocumenter.Core.Output;
 using VbaDocumenter.Logging;
 
 namespace VbaDocumenter.Cli;
@@ -23,7 +24,8 @@ static class OptionsBinder
 
     if (workbook is null || outputFolder is null) return new BindingResult(null, errors);
 
-    var options = new CommandLineOptions(workbook, outputFolder, parseResult.GetValue(cli.EmbedSource), GetVerbosity(parseResult, cli));
+    var outputName = parseResult.GetValue(cli.OutputName) ?? HtmlPageWriter.DefaultName(workbook);
+    var options = new CommandLineOptions(workbook, outputFolder, outputName, parseResult.GetValue(cli.EmbedSource), GetVerbosity(parseResult, cli));
     return new BindingResult(options, errors);
   }
 

@@ -76,6 +76,12 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
       outcomes.AddRange(await WriteOutputsAsync(graph, options, registry, resolution.ToWrite, cancellationToken).ConfigureAwait(false));
     }
 
+    // Only once this run's outputs are safely written, so there's always a page.
+    if (outcomes.All(o => o.Status != ExportStatus.Failed))
+    {
+      HandleOlderOutputs(options);
+    }
+
     LogSummary(graph, analysis, outcomes, options.OutputFolder);
 
     if (outcomes.Any(o => o.Status == ExportStatus.Failed))
@@ -84,6 +90,42 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     }
 
     return analysis.UnreadableFiles.Count > 0 ? ExitCodes.InputError : ExitCodes.Success;
+  }
+
+  /// <summary>
+  /// Outputs pqdoc wrote earlier under another name (FR-OUT-2). A workbook's output folder belongs to pqdoc, so they're
+  /// deleted there, and an old page can't pass for the current one. A folder of .m files belongs to the user, so
+  /// there they're only mentioned.
+  /// </summary>
+  private void HandleOlderOutputs(AnalyserOptions options)
+  {
+    var older = OlderOutputs.Find(options.OutputFolder, options.OutputName);
+    if (older.Count == 0)
+    {
+      return;
+    }
+
+    if (!options.InputIsWorkbook)
+    {
+      logger.Information(
+        "Older outputs from pqdoc are still in {Folder}, under another name: {Files}. Delete them if they're no longer wanted",
+        options.OutputFolder,
+        older.Select(Path.GetFileName));
+      return;
+    }
+
+    foreach (var path in older)
+    {
+      try
+      {
+        File.Delete(path);
+        logger.Information("Deleted {File}, an older output from pqdoc", Path.GetFileName(path));
+      }
+      catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+      {
+        logger.Warning("Could not delete {File}, an older output from pqdoc: {Reason}", path, ex.Message);
+      }
+    }
   }
 
   /// <summary>Reads the queries straight from a workbook (FR-IN-2). Returns null after logging why, if it can't.</summary>
@@ -164,7 +206,7 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
       return outcomes;
     }
 
-    var context = new ExportContext(options.OutputName, services.TimeProvider.GetLocalNow());
+    var context = new ExportContext(options.Title, services.TimeProvider.GetLocalNow());
 
     // Each export is isolated: one failing never stops the others (FR-ERR-2).
     foreach (var output in outputs)

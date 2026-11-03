@@ -33,7 +33,7 @@ public static class ProjectExporter
       "*.cls -text diff\n" +
       "*.frm -text diff\n" +
       "*.frx binary\n" +
-      "index.html -text diff\n";
+      "*.html -text diff\n";
 
   public static string FileNameFor(VbaModule module)
   {

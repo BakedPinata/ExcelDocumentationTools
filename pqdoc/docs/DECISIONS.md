@@ -116,8 +116,19 @@ Reading them is step B2 of the feedback plan.
   and PlantUML only suit very simple workbooks. `--format` lists exactly what to write, so `-f csv` writes only the CSV,
   and `--no-csv` went. The default is applied when binding options, because an empty list is how System.CommandLine
   says the option wasn't given, and its help can't show a list's default.
-- **The default output name is `powerquery-dependencies`**, because it describes what the file contains.
-- **`--output-name` is checked against the characters Windows forbids, on every platform**, so the same name works
+- **Outputs are named after what they document** (1.3.0): the workbook's name, or the folder's, and `-powerquery`,
+  the same rule as vbadoc's `-vba` page (step A4 of the feedback plan). A file that's emailed, attached or printed loses
+  its folder, so its own name has to say what it is, and the suffix keeps it apart from vbadoc's page for the same
+  workbook. `#` and `%` become `_` in the name only. It replaced `powerquery-dependencies`, which said what the file
+  contains but not what it's about.
+- **Titles name what's documented, not the file:** the page's title and heading, and the PlantUML title, show the
+  workbook's file name or the folder's name (`ExportContext.Title`), as vbadoc's page shows the workbook's. With
+  `--output-name` the files change name but the titles don't.
+- **Older outputs under another name are found through their page's generator tag**, with every output sharing its
+  name. They're deleted in a workbook's output folder, which belongs to pqdoc, and only after this run wrote its outputs
+  without failure, so there's always a page. In a folder of `.m` files, which belongs to the user, they're only
+  mentioned. The first run after 1.3.0 clears away `powerquery-dependencies.*` beside a workbook this way.
+- **`--output-name` is checked against the characters Windows forbids, and `#` and `%`, on every platform**, so the same name works
   everywhere.
 - **The CSV is UTF-8 with a byte order mark**, which Excel relies on.
 - **PlantUML aliases are `q1`, `q2`, … in name order**, with the real name as the label, so a name can't break the diagram.

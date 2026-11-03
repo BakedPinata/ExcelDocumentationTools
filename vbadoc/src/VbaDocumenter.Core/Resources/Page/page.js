@@ -297,7 +297,7 @@
 
   // ---- Back and Forward ----
   //
-  // Each selection is added to the browser's history as the page address's #fragment (e.g. index.html#Order.Save),
+  // Each selection is added to the browser's history as the page address's #fragment (e.g. Sales-vba.html#Order.Save),
   // so Back and Forward step through selections, and an address with a fragment opens with that selection.
 
   var followingHistory = false;

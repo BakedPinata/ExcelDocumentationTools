@@ -53,9 +53,15 @@ pqdoc <input> [options]
 An encrypted workbook (password, IRM or sensitivity label) can't be read: save a copy without
 encryption and run pqdoc on that.
 
+Outputs are named after what they document: `Sales.xlsx` gives `Sales-powerquery.html` (and `.csv`,
+`.puml` and so on), and a folder called `queries` gives `queries-powerquery.html`. `#` and `%` in the
+name become `_`, because they confuse a browser's address. Beside a workbook, pqdoc deletes outputs it
+wrote earlier under another name, such as `powerquery-dependencies.html` from before 1.3.0 or a
+renamed workbook's page. In a folder of `.m` files it only mentions them.
+
 | Option | Alias | Value | Default | Description |
 |--------|-------|-------|---------|-------------|
-| `--output-name` | `-n` | name | `powerquery-dependencies` | Base file name for every output. The extension is added per format. Must not contain a folder or an extension. |
+| `--output-name` | `-n` | name | the workbook's or folder's name and `-powerquery` | Base file name for every output. The extension is added per format. Must not contain a folder, an extension, `#` or `%`. |
 | `--output` | `-o` | path | a `PowerQuery` folder next to a workbook, or the input folder | Where outputs are written. Created if missing. |
 | `--format` | `-f` | `html`, `csv`, `puml`, `pdf`, `png`, `svg` | `html` | The formats to write, comma-separated (`-f html,csv`) or repeated (`-f html -f csv`). Case-insensitive. Replaces the default, so include `html` to keep the page. |
 | `--plantuml-server` | | URL | none | PlantUML server for `pdf`, `png` and `svg`. |
@@ -69,10 +75,10 @@ encryption and run pqdoc on that.
 ### Examples
 
 ```
-# The interactive page for a workbook's queries, in C:\books\PowerQuery
+# The interactive page for a workbook's queries: C:\books\PowerQuery\Sales-powerquery.html
 pqdoc C:\books\Sales.xlsx
 
-# The interactive page only, default name, next to the inputs
+# The interactive page for a folder of .m files: C:\queries\queries-powerquery.html
 pqdoc C:\queries
 
 # The page plus CSV and PlantUML source, custom name and location

@@ -61,8 +61,8 @@ public sealed partial class HtmlExporter : IExporter
 
     var values = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-      ["PAGE_TITLE"] = WebUtility.HtmlEncode($"{context.OutputName}: {counts}, generated {generated}"),
-      ["OUTPUT_NAME"] = WebUtility.HtmlEncode(context.OutputName),
+      ["PAGE_TITLE"] = WebUtility.HtmlEncode($"{context.Title}: {counts}, generated {generated}"),
+      ["TITLE"] = WebUtility.HtmlEncode(context.Title),
       ["SUMMARY"] = WebUtility.HtmlEncode($"{counts}{cycles}. Generated {generated}."),
       ["NODE_COUNT"] = graph.Nodes.Count.ToString(CultureInfo.InvariantCulture),
       ["TOOL_VERSION"] = WebUtility.HtmlEncode(ToolVersion.Current.ToString()),
@@ -102,7 +102,7 @@ public sealed partial class HtmlExporter : IExporter
     }
 
     var document = new GraphDocument(
-      context.OutputName,
+      context.Title,
       FormatTimestamp(context.GeneratedAt),
       graph.Nodes.Select(n => new QueryDocument(n.Name, RoleName(n.Role), n.IsInCycle, n.UpstreamCount, n.DownstreamCount)).ToArray(),
       graph.Edges.Select(e => new EdgeDocument(
@@ -189,7 +189,7 @@ public sealed partial class HtmlExporter : IExporter
   private static partial Regex PlaceholderPattern();
 
   private sealed record GraphDocument(
-    string OutputName,
+    string Title,
     string Generated,
     IReadOnlyList<QueryDocument> Queries,
     IReadOnlyList<EdgeDocument> Edges,

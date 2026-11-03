@@ -78,7 +78,7 @@ internal static class OptionsBinder
       Input = input,
       InputIsWorkbook = inputIsWorkbook,
       OutputFolder = outputFolder,
-      OutputName = parseResult.GetValue(cli.OutputName) ?? AnalyserOptions.DefaultOutputName,
+      OutputName = parseResult.GetValue(cli.OutputName) ?? AnalyserOptions.DefaultOutputName(input, inputIsWorkbook),
       Formats = formats,
       PlantUmlServer = server,
       OnExists = onExists,

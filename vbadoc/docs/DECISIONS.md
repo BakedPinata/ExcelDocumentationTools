@@ -75,9 +75,18 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **Only changed files are rewritten.** Stale files are deleted before writing, so a module renamed only by case gets its
   new file name even on Windows.
 - **A module that can't be read stops the whole run** rather than being skipped, because skipping it would delete its file.
-- **The created `.gitattributes`** marks `*.bas`, `*.cls`, `*.frm` and `index.html` as `-text diff` (no conversion,
-  textual diffs) and `*.frx` as `binary`. An existing one is never overwritten.
-- **The HTML page is `index.html`.**
+- **The created `.gitattributes`** marks `*.bas`, `*.cls`, `*.frm` and `*.html` as `-text diff` (no conversion,
+  textual diffs) and `*.frx` as `binary`. An existing one is never overwritten, so one from before 0.8.0 still names
+  `index.html`; the README says to change that line.
+- **The page is named after the workbook** (0.8.0, step A4 of the feedback plan): `Sales.xlsm` gives `Sales-vba.html`,
+  the same rule as pqdoc's `-powerquery` outputs. It was `index.html`, which says nothing once the page is emailed,
+  attached or printed and loses its folder. The suffix keeps it apart from pqdoc's page for the same workbook.
+  `--output-name` (`-n`, as in pqdoc, with the same checks plus `#` and `%`) chooses another name. `#` and `%` in a
+  workbook's name become `_` in the file name only, because `#` starts the address's fragment, which the page uses for
+  Back and Forward, and `%` starts an escape.
+- **Older pages are deleted.** After writing the page, vbadoc deletes any other `.html` in the output folder whose
+  generator tag says vbadoc wrote it: `index.html` from before 0.8.0, or a renamed workbook's page. Pages written by
+  hand or by pqdoc are left alone. It reads only each file's first 2 KB, where the tag is.
 
 ## Speed (step A2 of the feedback plan)
 
@@ -400,7 +409,7 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
     or Home is the selection at this level. Turning it on leaves Focus (the path may lie outside the neighbourhood)
     and clears the legend; Focus, a legend click, the background or Escape turn it off.
 - **Back and Forward:** each selection is pushed onto the browser history as the address's fragment, e.g.
-  `index.html#Order.Status%5BLet%5D` (the id, URI-encoded). Back/Forward reselect, and a page opened with a fragment
+  `Sales-vba.html#Order.Status%5BLet%5D` (the id, URI-encoded). Back/Forward reselect, and a page opened with a fragment
   starts with that selection (unknown names are ignored). Clearing the selection pushes an empty fragment.
   Browsers that refuse history changes for pages opened from disk just don't get this; selection still works.
 - **Fit keeps clear of the toolbar's real height**, since the toolbar wraps onto a second row in narrow views.

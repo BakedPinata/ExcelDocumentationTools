@@ -103,9 +103,9 @@ public sealed class HtmlExporterTests
   }
 
   [Fact]
-  public void The_output_name_is_HTML_encoded()
+  public void The_title_is_HTML_encoded()
   {
-    var html = Render(Fixtures.Graph(["A>B"]), Context with { OutputName = "R&D <draft>" });
+    var html = Render(Fixtures.Graph(["A>B"]), Context with { Title = "R&D <draft>" });
 
     Assert.Contains(">R&amp;D &lt;draft&gt;</h1>", html);
     Assert.DoesNotContain("<draft>", html);

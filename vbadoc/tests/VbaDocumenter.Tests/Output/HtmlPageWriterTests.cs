@@ -133,9 +133,9 @@ public class HtmlPageWriterTests
     Directory.CreateDirectory(folder);
     try
     {
-      Assert.True(HtmlPageWriter.Write(folder, "<p>one</p>"));
-      Assert.False(HtmlPageWriter.Write(folder, "<p>one</p>"));
-      Assert.True(HtmlPageWriter.Write(folder, "<p>two</p>"));
+      Assert.True(HtmlPageWriter.Write(folder, "Book-vba.html", "<p>one</p>"));
+      Assert.False(HtmlPageWriter.Write(folder, "Book-vba.html", "<p>one</p>"));
+      Assert.True(HtmlPageWriter.Write(folder, "Book-vba.html", "<p>two</p>"));
     }
     finally
     {

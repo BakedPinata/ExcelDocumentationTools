@@ -4,9 +4,10 @@ using PowerQueryDocumenter.Core.Model;
 namespace PowerQueryDocumenter.Core.Export;
 
 /// <summary>Information shared by every exporter during a run.</summary>
-/// <param name="OutputName">The output base name (used in titles).</param>
+/// <param name="Title">What the outputs document, used in their titles: the workbook's file name or the folder's name,
+/// as vbadoc titles its page with the workbook's file name.</param>
 /// <param name="GeneratedAt">When the run started (used in the HTML heading).</param>
-public sealed record ExportContext(string OutputName, DateTimeOffset GeneratedAt);
+public sealed record ExportContext(string Title, DateTimeOffset GeneratedAt);
 
 /// <summary>
 /// Produces one output format from a <see cref="DependencyGraph"/> (NFR-ARCH-1). Exporters work

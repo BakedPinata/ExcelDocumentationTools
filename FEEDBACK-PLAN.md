@@ -38,7 +38,7 @@ questions the draft raised.
 | F1 | Class diagram drawn by the page, with boxes you can move; Mermaid removed (moved up after A2) | Claude | Done |
 | B1 | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | Done |
 | B2 | pqdoc reads queries from a workbook | Claude | Done |
-| A4 | Documentation files named after the workbook, the same way in both tools (added after B2) | Claude | |
+| A4 | Documentation files named after the workbook, the same way in both tools (added after B2) | Claude | Done |
 | B3 | pqdoc writes `.m` files, kept in step with the workbook | Claude | |
 | B4 | pqdoc's page shows highlighted M source | Claude | |
 | C1 | Shared library: `shared/`, with the C# code both tools now duplicate | Claude | |

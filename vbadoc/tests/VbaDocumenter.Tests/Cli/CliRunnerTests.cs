@@ -18,7 +18,7 @@ public sealed class CliRunnerTests : IDisposable
   readonly StringWriter _error = new();
 
   string Output => Path.Combine(_folder, "out");
-  string Page => Path.Combine(Output, "index.html");
+  string Page => Path.Combine(Output, "SimpleMacro-vba.html");
 
   public CliRunnerTests() => Directory.CreateDirectory(_folder);
 
@@ -46,6 +46,23 @@ public sealed class CliRunnerTests : IDisposable
     Assert.True(File.Exists(Page));
     Assert.Contains(_log.Messages(LogEventLevel.Information), m => m.StartsWith("Reading "));
     Assert.Equal("", _output.ToString());
+  }
+
+  [Fact]
+  public void Older_pages_from_vbadoc_are_deleted_and_other_pages_are_left_alone()
+  {
+    Directory.CreateDirectory(Output);
+    var vbadocPage = "<!DOCTYPE html>\n<html>\n<head>\n<meta name=\"generator\" content=\"vbadoc 0.6.0 (feacd3f)\">\n</head></html>";
+    File.WriteAllText(Path.Combine(Output, "index.html"), vbadocPage);         // from before the page was renamed
+    File.WriteAllText(Path.Combine(Output, "OldName-vba.html"), vbadocPage);   // from before the workbook was renamed
+    File.WriteAllText(Path.Combine(Output, "notes.html"), "<p>written by hand</p>");
+    File.WriteAllText(Path.Combine(Output, "queries.html"), "<meta name=\"generator\" content=\"pqdoc 1.2.0 (271f0f3)\">");
+
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output));
+
+    Assert.Equal(new[] { "notes.html", "queries.html", "SimpleMacro-vba.html" },
+        Directory.GetFiles(Output, "*.html").Select(Path.GetFileName).Order(StringComparer.OrdinalIgnoreCase));
+    Assert.Contains(_log.Messages(LogEventLevel.Information), m => m.Contains("deleted") && m.Contains("index.html"));
   }
 
   [Fact]

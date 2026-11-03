@@ -20,7 +20,7 @@ public sealed class PlantUmlSourceExporter : IExporter
   public static string Title(ExportContext context)
   {
     ArgumentNullException.ThrowIfNull(context);
-    return $"Power Query dependencies: {context.OutputName}";
+    return $"Power Query dependencies: {context.Title}";
   }
 
   /// <inheritdoc />

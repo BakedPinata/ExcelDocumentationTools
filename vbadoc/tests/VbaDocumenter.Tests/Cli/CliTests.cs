@@ -24,8 +24,30 @@ public class CliTests
     var options = Bind(Workbook);
 
     Assert.Equal(Path.Combine(Path.GetDirectoryName(Workbook)!, "VBAProject"), options.OutputFolder);
+    Assert.Equal("MyBook-vba", options.OutputName);
     Assert.False(options.EmbedSource);
     Assert.Equal(LogVerbosity.Normal, options.Verbosity);
+  }
+
+  [Fact]
+  public void The_page_is_named_after_the_workbook_unless_output_name_says_otherwise()
+  {
+    Assert.Equal("Sales_Q_1-vba", Bind(Path.GetFullPath("Sales#Q%1.xlsm")).OutputName); // # and % confuse a browser's address
+    Assert.Equal("overview", Bind(Workbook, "--output-name", "overview").OutputName);
+    Assert.Equal("overview", Bind(Workbook, "-n", "overview").OutputName);
+  }
+
+  [Theory]
+  [InlineData("sub/page", "not a path")]
+  [InlineData("page.html", "extension")]
+  [InlineData("a#b", "can't be used")]
+  [InlineData("50%", "can't be used")]
+  [InlineData(" page", "space")]
+  public void An_unsuitable_output_name_is_rejected(string name, string expected)
+  {
+    var error = Assert.Single(_cli.Parse([Workbook, "-n", name]).Errors);
+
+    Assert.Contains(expected, error.Message);
   }
 
   [Fact]

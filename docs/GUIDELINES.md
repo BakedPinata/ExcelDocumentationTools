@@ -14,10 +14,17 @@ Decisions that belong to one tool are in its own `docs/DECISIONS.md`.
 | Product name in docs, page titles, `Product` | vbadoc | pqdoc |
 | Release tags | `vbadoc-v<version>` | `pqdoc-v<version>` |
 | Page JavaScript global and browser storage keys | `window.vbadoc`, `vbadoc-…` | `window.pqdoc`, `pqdoc-…` |
+| Documentation files, for `Sales.xlsm` (`--output-name` overrides) | `Sales-vba.html` | `Sales-powerquery.html`, `.csv`, `.puml` |
 | Solution | `vbadoc/VbaDocumenter.sln` | `pqdoc/PowerQueryDocumenter.sln` |
 | Projects and namespaces | `VbaDocumenter`, `VbaDocumenter.Core`, `VbaDocumenter.Tests`, `VbaDocumenter.BrowserTests` | `PowerQueryDocumenter`, `PowerQueryDocumenter.Core`, `PowerQueryDocumenter.Tests`, `PowerQueryDocumenter.BrowserTests` |
 
 Classes keep names that describe what they do, such as `DependencyAnalyser`.
+
+**Documentation files are named after what they document**, the workbook's name (or a folder's) and a suffix for the
+tool, because a file that's emailed or printed loses its folder. `#` and `%` become `_` in file names only, and titles
+show the real name. Each tool deletes older files it wrote under another name from a folder it owns, recognising them
+by the generator tag every page carries, and leaves everything else alone. Settings files, such as saved views, keep
+fixed names.
 
 ## Spelling
 

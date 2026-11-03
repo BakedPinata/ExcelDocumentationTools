@@ -10,13 +10,13 @@ rather than repeating it.
 
 ## Current state (2026-11-03)
 
-- **vbadoc 0.7.0:** stages 0–5e are done, and the class diagram is drawn with d3 (no Mermaid). Stage 6 (UserForms) is
-  parked; stage 7 waits for the feedback plan.
-- **pqdoc 1.2.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
-  and writes HTML by default.
+- **vbadoc 0.8.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+  `<workbook>-vba.html`. Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
+- **pqdoc 1.3.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+  and writes HTML by default as `<workbook or folder>-powerquery.html`.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. A0 and A1 are pushed; the
-  user's build, test and publish of A0 on the work machine is still to come. A0–A3, F1, B1 and B2 are pushed. A4
-  (documentation files named after the workbook, added after B2) is next, then B3 (pqdoc writes `.m` files).
+  user's build, test and publish of A0 on the work machine is still to come. A0–A3, F1, B1 and B2 are pushed. A4 is
+  done, waiting for review. B3 (pqdoc writes `.m` files) is next.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -26,6 +26,16 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-03: Step A4, documentation file names
+
+- vbadoc writes `<workbook>-vba.html` (was `index.html`) and gains `--output-name`; pqdoc writes
+  `<workbook or folder>-powerquery.*` (was `powerquery-dependencies.*`). `#` and `%` become `_`, and `--output-name`
+  refuses them. vbadoc 0.8.0, pqdoc 1.3.0.
+- Older outputs a tool wrote under another name are found by their page's generator tag and deleted from a folder the
+  tool owns (vbadoc's output folder, a workbook's `PowerQuery` folder), or only mentioned in a folder of `.m` files.
+- pqdoc's titles now show the workbook's file name or the folder's name, as vbadoc's do (`ExportContext.Title`).
+- pqdoc's requirements gained 4.8 (FR-OUT-1, FR-OUT-2); the guidelines' naming section has the shared rule.
 
 ### 2026-11-03: Documentation file names added to the plan
 

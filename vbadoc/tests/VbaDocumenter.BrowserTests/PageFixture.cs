@@ -109,7 +109,7 @@ public sealed class PageFixture : IAsyncLifetime
     var project = WorkbookReader.Read(workbook);
     var model = DependencyAnalyser.Analyse(ProjectParser.Parse(project));
     ProjectExporter.Export(project, folder);
-    HtmlPageWriter.Write(folder, HtmlPageWriter.Build(model, project, title, embedSource));
+    HtmlPageWriter.Write(folder, HtmlPageWriter.FileName(HtmlPageWriter.DefaultName(title)), HtmlPageWriter.Build(model, project, title, embedSource));
     return folder;
   }
 
@@ -122,7 +122,8 @@ public sealed class PageFixture : IAsyncLifetime
     return copy;
   }
 
-  public static string PageUrl(string folder) => new Uri(Path.Combine(folder, HtmlPageWriter.FileName)).AbsoluteUri;
+  /// <summary>The address of the one page in an output folder.</summary>
+  public static string PageUrl(string folder) => new Uri(Directory.GetFiles(folder, "*.html").Single()).AbsoluteUri;
 }
 
 [CollectionDefinition("Browser")]
