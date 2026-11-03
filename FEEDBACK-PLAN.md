@@ -4,8 +4,9 @@ This plan acts on the first round of feedback from using vbadoc and pqdoc on rea
 tool plan (`COMBINED-TOOL-PLAN.md`, in the repository's history). pqdoc still learns to read workbooks, and the two
 pages still move onto one shared shell. One executable, a combined page and links from VBA to queries move to
 [Later](#9-later), because the workbooks in use rarely hold both and never link them. Most of the plan is about
-helping someone understand a workbook and leave documentation behind. It is written to be handed to a fresh Claude
-Code session (or a developer) to carry out.
+helping someone understand a workbook and leave documentation behind. Its last phase imports chosen modules or queries,
+with what they depend on, into a new or existing workbook. It is written to be handed to a fresh Claude Code session
+(or a developer) to carry out.
 
 **Status: agreed on 2026-11-03.** The progress table shows how far it has got. Section 1 records the answers to the
 questions the draft raised.
@@ -53,6 +54,10 @@ questions the draft raised.
 | G2 | A views file in the output folder is built into the page | Claude | |
 | G3 | Printing a view or every view, with descriptions | Claude, then you on a work machine | |
 | G4 | Optional: copy a view as text, to paste into a chat | Claude | |
+| H1 | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | |
+| H2 | Choosing what to import, with its dependencies, and writing it out as a bundle folder | Claude | |
+| H3 | vbadoc imports into a new workbook or a copy of an existing one, if H1 shows it works | Claude | |
+| H4 | pqdoc imports into a new workbook or a copy of an existing one, if H1 shows it works | Claude | |
 
 ## 1. Questions settled
 
@@ -122,6 +127,7 @@ The notes behind this plan are kept out of the repository. This section is what 
 | Arrange a view, export it with a printed version, regenerate it after changes | G1–G3 |
 | Documentation for future developers and users | G2, G3 |
 | AI help is a chat window with no access to the project | G4 (optional) |
+| Import chosen files into a new or existing workbook, with what they depend on (raised after the notes) | H1–H4 |
 | draw.io? | Later: export a view as a `.drawio` file |
 | The VBA editor shows every module in one window | Later: open a module's source in its own window |
 | Shared code and conventions drift between workbooks | Later: a third tool, with its own plan |
@@ -139,12 +145,16 @@ The notes behind this plan are kept out of the repository. This section is what 
 5. See the path execution takes: calls in order, with the logic around them, and a query's steps.
 6. A class diagram whose boxes can be moved.
 7. Save arrangements as named views, keep them in git beside the source, and print them as documentation.
+8. Import chosen modules or queries into a new or existing workbook, bringing what they depend on, and saying what
+   couldn't come.
 
 **Non-goals**
 
 - Running code, or fully parsing VBA or M. The call tree is built from the code as written, so calls made through
   `Application.Run`, a button's `OnAction` text or late binding can't be followed. The page says so.
-- Writing anything back into a workbook.
+- Changing a workbook in place. Importing writes a new workbook, or a changed copy of an existing one, and never
+  touches the workbook it reads from.
+- Driving Excel itself. Importing works on the files, not through Excel's automation.
 - Anything that needs the network, an install or admin rights, on either the developer's machine or a reader's.
 - Power BI files (`.pbix`, `.pbit`).
 - Re-indenting M, or reading Power Query's Permissions and Permission Bindings sections.
@@ -241,6 +251,8 @@ the long name is the code's identity.
 - **Finding your way (D) comes before the execution path (E),** because the call tree relies on hiding items and on
   the explorer's list of entry points. If the call tree is wanted sooner, E2 could move before C2 as a vbadoc-only step,
   at the cost of moving it again in C2.
+- **Importing (H) comes last,** because it chooses what to import with the explorer (D1) and saved views (G1), and
+  needs pqdoc to read workbooks (B).
 - **vbadoc's stage 6 (UserForms) moves to Later.** Its stage 7 (polish) comes after this plan.
 
 ### Reading queries
@@ -376,6 +388,36 @@ the long name is the code's identity.
 - **Descriptions** come from a member's `VB_Description` attribute if it has one, otherwise from the comments directly
   above it (already part of its source), and from a module's comments at the top. For queries, from the description in
   the workbook if B1 finds one is stored, otherwise from comments at the top of the query. They show in the panel too.
+
+### Importing into a workbook
+
+H1 is a spike, so these are the starting position. H1's findings confirm or change them before H2 begins.
+
+- **What to import is chosen in the page,** by ticking items in the explorer or saving them as a view, and the views
+  file carries the choice to the command line. The command also takes names directly.
+- **Dependencies come along automatically.** Core follows what the chosen items use, transitively: Uses, Implements and
+  Events edges for VBA, and query references for Power Query (functions and parameters are queries, so they come too).
+  Before anything is written, the page and the command show the full list: what was chosen, and what it brings.
+- **What can't come along is listed, never dropped silently:**
+  - VBA: document modules (`ThisWorkbook` and sheets) and code that relies on particular sheets or their controls;
+    library references (Tools > References); anything reached only through strings (`Application.Run`, `OnAction`) or
+    late binding; UserForms, which can't be imported from text because the export has no `.frx`.
+  - Power Query: data sources and their credentials and privacy levels, and tables or named ranges that
+    `Excel.CurrentWorkbook()` reads.
+- **A bundle folder always works.** It holds the chosen files and their dependencies, with a `README.md` listing what
+  the target also needs and how to import by hand: File > Import in the VBA editor, or a blank query per `.m` file,
+  named after it, in dependency order. It needs nothing installed or switched on.
+- **Writing straight into a workbook happens only if H1 shows it's reliable:** VBA by rewriting `vbaProject.bin` with
+  source only and no compiled code, so Excel compiles it on opening; Power Query by rewriting the `DataMashup` part and
+  whatever else Excel needs. Not through Excel's automation, which needs "Trust access to the VBA project object
+  model", often turned off on locked-down machines.
+- **The workbook read is never changed.** Importing into an existing workbook writes a new file. A new workbook starts
+  from a blank template made in Excel and embedded in the tool.
+- **Name clashes:** an item already in the target with identical text is skipped. One that differs stops the run with
+  exit code 4, unless the user says to replace it.
+- **Signed VBA projects:** a change breaks the signature, so the tool refuses unless told to go ahead.
+- **Macro security:** a workbook written by the tool is unsigned. Machines that only run signed macros, or macros from
+  trusted locations, block it until it's signed or moved. The README says so.
 
 ## 6. Steps
 
@@ -582,6 +624,40 @@ This can be dropped without affecting anything else.
   Calls tree, and optionally the source. It warns when the text is long. If the browser refuses the clipboard, the text
   appears in a box to copy by hand.
 
+### Step H1: Spike on writing into a workbook
+
+Throwaway code, kept out of the tools. The findings go in each tool's `DECISIONS.md`.
+
+- **VBA:** write a module, as source only with no compiled code, into the `vbaProject.bin` of a copy of a sample
+  workbook. Check that Excel opens it, compiles and runs the module, and keeps it after saving. Do the same with a new
+  workbook made from a blank template.
+- **Power Query:** add two queries, one using the other, to the `DataMashup` part of a copy of `Queries.xlsx`. Check
+  that Excel lists them, refreshes them and can load them. Find which other parts (connections, Permission Bindings)
+  have to change, and whether a new workbook works the same way.
+- You open the results in Excel at home and on a work machine, since macro settings there may differ.
+- Recommend, for each tool, whether H3 and H4 write straight into workbooks or stop at bundles. Settle the command's
+  shape (for example an `import` subcommand), how the new file is named, and whether `.xlsb` is supported.
+
+### Step H2: Choosing what to import, and bundles
+
+- Core works out the full set for a choice of items, as section 5 describes, with what can't come along and why. Unit
+  tests on the fixtures: interfaces, events, Enums and Types in standard modules, cycles, Power Query functions and
+  parameters.
+- The page shows the full set for what's ticked in the explorer or saved in a view, before anything is exported.
+- The command writes a bundle folder for a view or a list of names, with its `README.md`.
+- Acceptance: importing a bundle by hand into a blank workbook gives a project that compiles, and queries that refresh,
+  for the fixtures.
+
+### Steps H3 and H4: Importing into a workbook
+
+Only if H1 recommends it. Otherwise the bundle from H2 is the import, and these steps are dropped.
+
+- H3 (vbadoc) and H4 (pqdoc) write H2's set into a new workbook, or into a new copy of an existing one, following
+  section 5 and H1's findings.
+- Tests: a new workbook, a copy of an existing one, identical and differing name clashes, a signed project refused,
+  and the workbook read left byte-for-byte unchanged.
+- You check the results in Excel at home and on a work machine.
+
 ## 7. Changes to existing documents
 
 The rule is to ask before changing a tool's `Requirements.md` or `DECISIONS.md`, or going against the guidelines.
@@ -598,7 +674,8 @@ Approving this plan covers the changes below. Anything else still needs asking.
 | `docs/GUIDELINES.md` | Structure: `shared/` and what belongs there | C1 |
 | `docs/GUIDELINES.md` | HTML pages: the shell, the explorer, views files | C2, G2 |
 | `docs/GUIDELINES.md` | Dependencies: Mermaid removed | F1 |
-| Both `README.md`s | Usage and features | A3, B2–G4 |
+| Both `Requirements.md`s and `DECISIONS.md`s | Importing: what's chosen, dependencies, bundles, writing workbooks | H1–H4 |
+| Both `README.md`s | Usage and features | A3, B2–H4 |
 
 ## 8. When the plan is finished
 
