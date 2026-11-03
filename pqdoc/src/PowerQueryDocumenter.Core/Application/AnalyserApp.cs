@@ -1,6 +1,7 @@
 using PowerQueryDocumenter.Core.Analysis;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Core.Export;
+using PowerQueryDocumenter.Core.Extraction;
 using PowerQueryDocumenter.Core.Model;
 using PowerQueryDocumenter.Core.Output;
 using Serilog;
@@ -27,8 +28,9 @@ public enum ExportStatus
 public sealed record ExportOutcome(OutputFormat Format, string Path, ExportStatus Status);
 
 /// <summary>
-/// Runs one analysis from validated options: analyse the input folder, decide which outputs to
-/// write, run each exporter in isolation, then log a summary. Returns the process exit code.
+/// Runs one analysis from validated options: read the queries from the workbook or folder, decide
+/// which outputs to write, run each exporter in isolation, then log a summary. Returns the process
+/// exit code.
 /// </summary>
 public sealed class AnalyserApp(ILogger logger, AppServices services)
 {
@@ -37,35 +39,15 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
   {
     ArgumentNullException.ThrowIfNull(options);
 
-    if (!Directory.Exists(options.InputFolder))
+    var analysis = options.InputIsWorkbook
+      ? AnalyseWorkbook(options.Input)
+      : await AnalyseFolderAsync(options.Input, cancellationToken).ConfigureAwait(false);
+    if (analysis is null)
     {
-      logger.Error("The input folder {Folder} does not exist", options.InputFolder);
       return ExitCodes.InputError;
     }
 
-    AnalysisResult analysis;
-    try
-    {
-      logger.Information("Analysing queries in {Folder}", options.InputFolder);
-      analysis = await new DependencyAnalyser(logger)
-        .AnalyseFolderAsync(options.InputFolder, cancellationToken)
-        .ConfigureAwait(false);
-    }
-    catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
-    {
-      logger.Error("Cannot read the input folder {Folder}: {Reason}", options.InputFolder, ex.Message);
-      logger.Debug(ex, "Input folder failure detail");
-      return ExitCodes.InputError;
-    }
-
-    if (analysis.QueryFileCount == 0)
-    {
-      logger.Error(
-        "No .m files were found in {Folder}. Export each Power Query query to its own .m file in that folder (subfolders are not scanned)",
-        options.InputFolder);
-      return ExitCodes.InputError;
-    }
-
+    cancellationToken.ThrowIfCancellationRequested();
     var graph = analysis.Graph;
     foreach (var cycle in graph.Cycles)
     {
@@ -102,6 +84,60 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     }
 
     return analysis.UnreadableFiles.Count > 0 ? ExitCodes.InputError : ExitCodes.Success;
+  }
+
+  /// <summary>Reads the queries straight from a workbook (FR-IN-2). Returns null after logging why, if it can't.</summary>
+  private AnalysisResult? AnalyseWorkbook(string workbook)
+  {
+    logger.Information("Reading queries from {Workbook}", workbook);
+    IReadOnlyList<WorkbookQuery> queries;
+    try
+    {
+      queries = WorkbookReader.Read(workbook);
+    }
+    catch (ExtractionException ex)
+    {
+      logger.Error("{Message}", ex.Message);
+      logger.Debug(ex, "Workbook failure detail");
+      return null;
+    }
+
+    logger.Information("  {Count} queries", queries.Count);
+    var graph = new DependencyAnalyser(logger).Analyse(queries.Select(q => new QuerySource(q.Name, q.Expression)));
+    return new AnalysisResult(graph, queries.Count, [], []);
+  }
+
+  /// <summary>Reads every .m file in a folder. Returns null after logging why, if it can't.</summary>
+  private async Task<AnalysisResult?> AnalyseFolderAsync(string folder, CancellationToken cancellationToken)
+  {
+    if (!Directory.Exists(folder))
+    {
+      logger.Error("The input {Input} does not exist", folder);
+      return null;
+    }
+
+    AnalysisResult analysis;
+    try
+    {
+      logger.Information("Analysing queries in {Folder}", folder);
+      analysis = await new DependencyAnalyser(logger).AnalyseFolderAsync(folder, cancellationToken).ConfigureAwait(false);
+    }
+    catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+    {
+      logger.Error("Cannot read the input folder {Folder}: {Reason}", folder, ex.Message);
+      logger.Debug(ex, "Input folder failure detail");
+      return null;
+    }
+
+    if (analysis.QueryFileCount == 0)
+    {
+      logger.Error(
+        "No .m files were found in {Folder}. Export each Power Query query to its own .m file in that folder (subfolders are not scanned), or run pqdoc on the workbook itself",
+        folder);
+      return null;
+    }
+
+    return analysis;
   }
 
   private async Task<List<ExportOutcome>> WriteOutputsAsync(

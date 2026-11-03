@@ -6,11 +6,17 @@ public sealed record AnalyserOptions
   /// <summary>Default base name for output files.</summary>
   public const string DefaultOutputName = "powerquery-dependencies";
 
+  /// <summary>The folder, next to a workbook, that its outputs go in unless <c>--output</c> says otherwise.</summary>
+  public const string DefaultWorkbookOutputFolder = "PowerQuery";
+
   /// <summary>Default timeout for one PlantUML render request (FR-PUML-6).</summary>
   public static TimeSpan DefaultRenderTimeout { get; } = TimeSpan.FromSeconds(30);
 
-  /// <summary>Absolute path of the folder containing the .m files.</summary>
-  public required string InputFolder { get; init; }
+  /// <summary>Absolute path of the input: a workbook, or a folder of .m files.</summary>
+  public required string Input { get; init; }
+
+  /// <summary>True when <see cref="Input"/> is a workbook file rather than a folder (FR-IN-1).</summary>
+  public bool InputIsWorkbook { get; init; }
 
   /// <summary>Absolute path of the folder outputs are written to.</summary>
   public required string OutputFolder { get; init; }

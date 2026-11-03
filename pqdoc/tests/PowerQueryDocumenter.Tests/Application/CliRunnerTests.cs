@@ -293,6 +293,51 @@ public sealed class CliRunnerTests : IDisposable
   }
 
   [Fact]
+  public async Task AC10_a_workbook_is_read_directly_and_its_outputs_go_in_a_folder_beside_it()
+  {
+    var workbook = temp.Combine("Queries.xlsx");
+    File.Copy(Fixtures.Workbook("Queries.xlsx"), workbook);
+    using var app = App();
+
+    var exitCode = await app.RunAsync(workbook, "-f", "csv,html");
+
+    Assert.Equal(ExitCodes.Success, exitCode);
+    var output = temp.Combine("PowerQuery");
+    Assert.Equal(new[] { "powerquery-dependencies.csv", "powerquery-dependencies.html" }, OutputFiles(output));
+    var rows = await File.ReadAllLinesAsync(Path.Combine(output, "powerquery-dependencies.csv"), TestContext.Current.CancellationToken);
+    Assert.Contains("\"Sales Data\",\"Chain_A\"", rows);
+    Assert.Contains("\"fnClean\",\"Manual Targets\"", rows);
+    Assert.Contains("\"Sales/Returns\",", rows);
+    Assert.Equal(8, rows.Count(r => !r.EndsWith(',')) - 1); // every dependency, less the header
+    Assert.Contains(app.Log.Messages(LogEventLevel.Information), m => m.Contains("14 queries", StringComparison.Ordinal));
+  }
+
+  [Fact]
+  public async Task A_file_that_is_not_a_workbook_exits_with_3()
+  {
+    temp.WriteFile("notes.txt", "not a workbook");
+    using var app = App();
+
+    var exitCode = await app.RunAsync(temp.Combine("notes.txt"));
+
+    Assert.Equal(ExitCodes.InputError, exitCode);
+    Assert.Contains(app.Log.Messages(LogEventLevel.Error), m => m.Contains("not an Excel workbook", StringComparison.Ordinal));
+    Assert.False(Directory.Exists(temp.Combine("PowerQuery")));
+  }
+
+  [Fact]
+  public async Task A_workbook_without_queries_exits_with_3()
+  {
+    await File.WriteAllBytesAsync(temp.Combine("Empty.xlsx"), MashupWorkbook.Zip(new() { ["xl/workbook.xml"] = "<workbook/>"u8.ToArray() }), TestContext.Current.CancellationToken);
+    using var app = App();
+
+    var exitCode = await app.RunAsync(temp.Combine("Empty.xlsx"));
+
+    Assert.Equal(ExitCodes.InputError, exitCode);
+    Assert.Contains(app.Log.Messages(LogEventLevel.Error), m => m.Contains("has no Power Query queries", StringComparison.Ordinal));
+  }
+
+  [Fact]
   public async Task A_missing_input_folder_exits_with_3()
   {
     using var app = App();

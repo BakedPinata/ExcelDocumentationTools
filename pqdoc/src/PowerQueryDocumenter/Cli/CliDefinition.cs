@@ -22,9 +22,10 @@ internal sealed class CliDefinition
   /// <summary>Creates the command and all of its options.</summary>
   public CliDefinition()
   {
-    InputFolder = new Argument<string>("input_folder")
+    Input = new Argument<string>("input")
     {
-      Description = "Folder containing the exported Power Query .m files (one query per file). Subfolders are not scanned.",
+      Description = "An Excel workbook (.xlsx, .xlsm or .xlsb), or a folder of exported Power Query .m files (one query "
+        + "per file; subfolders are not scanned).",
     };
 
     OutputName = new Option<string>("--output-name", "-n")
@@ -36,7 +37,7 @@ internal sealed class CliDefinition
 
     Output = new Option<string?>("--output", "-o")
     {
-      Description = "Folder to write outputs to. Created if it does not exist. [default: the input folder]",
+      Description = "Folder to write outputs to. Created if it does not exist. [default: a PowerQuery folder beside a workbook, or the input folder]",
       HelpName = "path",
     };
 
@@ -85,10 +86,11 @@ internal sealed class CliDefinition
     };
 
     RootCommand = new RootCommand(
-      "Analyses the dependencies between exported Power Query (.m) queries and shows them as an interactive HTML "
-      + "graph. It can also write them as CSV, PlantUML, or diagrams rendered by a PlantUML server.")
+      "Analyses the dependencies between the Power Query queries in an Excel workbook, or in a folder of exported .m "
+      + "files, and shows them as an interactive HTML graph. It can also write them as CSV, PlantUML, or diagrams "
+      + "rendered by a PlantUML server.")
     {
-      InputFolder,
+      Input,
       OutputName,
       Output,
       Formats,
@@ -105,8 +107,8 @@ internal sealed class CliDefinition
   /// <summary>The root command.</summary>
   public RootCommand RootCommand { get; }
 
-  /// <summary>The required input folder argument.</summary>
-  public Argument<string> InputFolder { get; }
+  /// <summary>The required input: a workbook or a folder.</summary>
+  public Argument<string> Input { get; }
 
   /// <summary><c>--output-name</c> / <c>-n</c>.</summary>
   public Option<string> OutputName { get; }
@@ -134,7 +136,7 @@ internal sealed class CliDefinition
 
   /// <summary>One-line usage shown after a validation error (FR-CLI-3).</summary>
   public static string BriefUsage =>
-    $"Usage: {ToolName} <input_folder> [options]{Environment.NewLine}Run '{ToolName} --help' for the full list of options.";
+    $"Usage: {ToolName} <input> [options]{Environment.NewLine}Run '{ToolName} --help' for the full list of options.";
 
   /// <summary>Parses command-line arguments.</summary>
   public ParseResult Parse(IReadOnlyList<string> args) => RootCommand.Parse(args);

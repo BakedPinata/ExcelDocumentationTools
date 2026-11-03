@@ -13,6 +13,22 @@ public static class Fixtures
   /// <summary>The expected CSV for the fixture queries.</summary>
   public static string ExpectedCsvPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "expected-dependencies.csv");
 
+  /// <summary>The path of a sample workbook in Fixtures/Workbooks (see the README there).</summary>
+  public static string Workbook(string fileName) => Path.Combine(AppContext.BaseDirectory, "Fixtures", "Workbooks", fileName);
+
+  /// <summary>
+  /// The dependencies between the sample workbooks' queries, as "Upstream>Downstream" pairs, worked out by hand from
+  /// the queries. Chain_E's description mentions pRegion, but a description isn't code.
+  /// </summary>
+  public static string[] WorkbookEdges { get; } =
+  [
+    "Sales Data>Chain_A", "Chain_A>Chain_B", "pRegion>Chain_B", "Chain_B>Chain_C", "fnClean>Chain_C",
+    "Chain_C>Chain_D", "Chain_D>Chain_E", "fnClean>Manual Targets",
+  ];
+
+  /// <summary>The sample workbooks' queries that neither use nor are used by another.</summary>
+  public static string[] WorkbookIsolated { get; } = ["Companies", "Sales/Returns", "Discount%", "Notes", "Commented"];
+
   /// <summary>Copies the fixture queries into <paramref name="destination"/> (created if needed).</summary>
   public static void CopyQueriesTo(string destination)
   {

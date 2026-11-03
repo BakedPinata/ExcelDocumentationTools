@@ -28,11 +28,16 @@ internal static class OptionsBinder
 
     var errors = new List<string>();
 
-    var inputFolder = ResolvePath(parseResult.GetValue(cli.InputFolder), environment, "input_folder", errors);
+    // An input that is a file is taken as a workbook; anything else as a folder of .m files, which the run reports
+    // if it doesn't exist. A workbook's outputs go in a folder beside it, a folder's next to its .m files.
+    var input = ResolvePath(parseResult.GetValue(cli.Input), environment, "input", errors);
+    var inputIsWorkbook = input is not null && File.Exists(input);
     var outputFolderValue = parseResult.GetValue(cli.Output);
-    var outputFolder = string.IsNullOrWhiteSpace(outputFolderValue)
-      ? inputFolder
-      : ResolvePath(outputFolderValue, environment, "--output", errors);
+    var outputFolder = !string.IsNullOrWhiteSpace(outputFolderValue)
+      ? ResolvePath(outputFolderValue, environment, "--output", errors)
+      : inputIsWorkbook
+        ? Path.Combine(Path.GetDirectoryName(input!)!, AnalyserOptions.DefaultWorkbookOutputFolder)
+        : input;
 
     // --format can't be given empty, so an empty list means it wasn't given.
     var requested = parseResult.GetValue(cli.Formats) is { Count: > 0 } given ? given : OutputFormatExtensions.Default;
@@ -63,14 +68,15 @@ internal static class OptionsBinder
       ? OnExistsBehaviour.Overwrite
       : parseResult.GetValue(cli.OnExists) ?? OnExistsBehaviour.Prompt;
 
-    if (errors.Count > 0 || inputFolder is null || outputFolder is null)
+    if (errors.Count > 0 || input is null || outputFolder is null)
     {
       return new BindingResult(null, errors);
     }
 
     var options = new AnalyserOptions
     {
-      InputFolder = inputFolder,
+      Input = input,
+      InputIsWorkbook = inputIsWorkbook,
       OutputFolder = outputFolder,
       OutputName = parseResult.GetValue(cli.OutputName) ?? AnalyserOptions.DefaultOutputName,
       Formats = formats,

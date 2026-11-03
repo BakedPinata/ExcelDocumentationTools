@@ -37,7 +37,7 @@ questions the draft raised.
 | A3 | pqdoc writes HTML by default | Claude | Done |
 | F1 | Class diagram drawn by the page, with boxes you can move; Mermaid removed (moved up after A2) | Claude | Done |
 | B1 | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | Done |
-| B2 | pqdoc reads queries from a workbook | Claude | |
+| B2 | pqdoc reads queries from a workbook | Claude | Done |
 | B3 | pqdoc writes `.m` files, kept in step with the workbook | Claude | |
 | B4 | pqdoc's page shows highlighted M source | Claude | |
 | C1 | Shared library: `shared/`, with the C# code both tools now duplicate | Claude | |

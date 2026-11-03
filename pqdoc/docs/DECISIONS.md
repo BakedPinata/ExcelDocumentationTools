@@ -85,6 +85,31 @@ Reading them is step B2 of the feedback plan.
   breaks inside a text literal stay as Excel stored them, so the text is unchanged if a query is imported back into a
   workbook.
 
+## Reading workbooks: how it's done (1.2.0, step B2)
+
+- **`Extraction/` in Core**, named in parallel with vbadoc's: `WorkbookReader` and `ExtractionException`, plus
+  `SectionSplitter`. No new package: base64, `System.IO.Compression` and `System.Xml` are enough.
+- **An input that is a file is a workbook**; anything else is a folder of `.m` files, which the run reports if it's
+  missing. The extension isn't checked, so a renamed workbook still works and a stray file gets a clear message.
+- **A workbook's outputs go in a `PowerQuery` folder beside it**, so they don't mix with other files next to the
+  workbook and the folder can go into git. `--output` still wins. A folder's outputs stay next to its `.m` files.
+- **The first bytes decide what the file is:** a zip is read; a compound file is reported as encrypted or an older
+  `.xls` without looking inside, since neither has readable queries (pqdoc doesn't need OpenMcdf for that); anything
+  else isn't a workbook.
+- **The DataMashup is the first `customXml/item<n>.xml` whose root is `DataMashup` in its namespace.** Custom XML that
+  isn't well-formed belongs to something else and is passed over. The reader takes each part's encoding from its byte
+  order mark, with DTD processing off.
+- **Every length is checked against the bytes left,** in all four sections, and a version other than 0 is refused.
+  Anything that doesn't fit is reported as damage, and nothing is read past the end.
+- **`Section1.m` is split on tokens:** the section declaration, then for each member an optional attribute record, an
+  optional `shared`, the name, `=`, and everything up to the next `;` token, trimmed. The description is a top-level
+  `Description` text field of the attribute record. A section that can't be split stops the run, saying which line,
+  because a query left out would later delete its `.m` file.
+- **Two queries with the same name, ignoring case, stop the run**, since every other part of pqdoc treats names as
+  case-insensitive.
+- **Checked by hand on the private workbook:** its one query reads exactly as the user's hand export, line endings
+  included, and the CSVs are identical.
+
 ## Output
 
 - **HTML is the default output** (1.1.0). Feedback from real use was that the page is what people use, and that CSV

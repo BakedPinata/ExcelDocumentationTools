@@ -2,11 +2,11 @@
 
 ## 1. Purpose and Audience
 
-This document specifies pqdoc version 1.0.0, a .NET console application that works out which Power Query queries reference which and exports the result. It is written for the developers and LLMs who work on the tool. Requirements use the keywords **MUST**, **SHOULD** and **MAY** as defined in RFC 2119. Each requirement has an ID so it can be referenced in review and testing.
+This document specifies pqdoc, a .NET console application that works out which Power Query queries reference which and exports the result. It is written for the developers and LLMs who work on the tool. Requirements use the keywords **MUST**, **SHOULD** and **MAY** as defined in RFC 2119. Each requirement has an ID so it can be referenced in review and testing.
 
 ## 2. Input and Terminology
 
-The tool reads every `*.m` file in the top level of the input folder (non-recursive). Each file is one Power Query query; the query name is the file name without extension.
+The input is either an Excel workbook, whose queries the tool reads straight from the file (see 4.2), or a folder. From a folder, the tool reads every `*.m` file in the top level (non-recursive). Each file is one Power Query query; the query name is the file name without extension.
 
 ### 2.1 Terminology
 
@@ -37,10 +37,10 @@ In graph terms, an edge runs **from the referenced (upstream) query to the refer
 **Synopsis**
 
 ```
-pqdoc <input_folder> [options]
+pqdoc <input> [options]
 ```
 
-The input folder is a required positional argument.
+The input, a workbook or a folder, is a required positional argument.
 
 | ID | Requirement |
 |----|-------------|
@@ -53,7 +53,7 @@ The input folder is a required positional argument.
 | Option | Alias | Value | Default | Description |
 |--------|-------|-------|---------|-------------|
 | `--output-name` | `-n` | string (no extension) | `powerquery-dependencies` | Base file name for all outputs. The tool appends the correct extension per format. MUST NOT contain path separators or an extension; if it does, fail validation. |
-| `--output` | `-o` | path | Same as the input folder | Folder to write outputs to. Created if it does not exist. |
+| `--output` | `-o` | path | A `PowerQuery` folder next to a workbook, or the input folder | Folder to write outputs to. Created if it does not exist. |
 | `--format` | `-f` | one or more of `html`, `csv`, `puml`, `pdf`, `png`, `svg` | `html` | The formats to generate. Accepts a comma-separated list (`-f html,csv`) and MAY be repeated (`-f html -f csv`). Values are case-insensitive. Giving it replaces the default. |
 | `--plantuml-server` | | URL | none | Base URL of the PlantUML server used for `pdf`, `png` and `svg` rendering. See FR-PUML-4. |
 | `--on-exists` | | `prompt`, `overwrite`, `skip`, `fail` | `prompt` when interactive, otherwise `fail` | Behaviour when an output file already exists. See FR-OVR. |
@@ -74,7 +74,16 @@ pqdoc C:\queries -n sales-model -o C:\docs -f html,csv,puml
 pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --force
 ```
 
-### 4.2 Dependency Analysis
+### 4.2 Reading Workbooks
+
+| ID | Requirement |
+|----|-------------|
+| FR-IN-1 | The input MAY be a workbook or a folder. An input that is a file is taken as a workbook. A workbook's outputs go in a `PowerQuery` folder next to it unless `--output` says otherwise. |
+| FR-IN-2 | A workbook's queries MUST be read from the file itself, without Excel, following [MS-QDEFF](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-qdeff/27b1dd1e-7de8-45d9-9c84-dfcc7a802e37): the custom XML part whose root is `DataMashup` (found by its root, not its name), then the Package Parts section and its `Formulas/Section1.m`. `.xlsx`, `.xlsm` and `.xlsb` MUST all work. The file MUST be opened for shared reading, so it can be read while open in Excel. The other sections MUST NOT be read beyond checking their lengths. |
+| FR-IN-3 | `Section1.m` MUST be split into queries with the M tokeniser (FR-ANA-1), so that text and comments can't split a query. Each query's text is its expression as Excel stores it, without `shared <name> =` or the final `;`. A description (an attribute record before the query) is kept, but isn't part of the expression. A member without `shared` is still a query. |
+| FR-IN-4 | Each of these MUST stop the run with exit code 3 and a clear message, before anything is written: a file that isn't a workbook; an encrypted workbook or an older `.xls`; a workbook with no queries; damage (a length longer than the bytes left, invalid base64, a missing `Section1.m`, a section that can't be split); two queries with the same name, ignoring case. |
+
+### 4.3 Dependency Analysis
 
 | ID | Requirement |
 |----|-------------|
@@ -88,7 +97,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 | FR-ANA-8 | Files MUST be read as UTF-8 (with BOM detection). A file that cannot be read MUST be logged as an error and skipped, and the run continues (see FR-ERR). |
 | FR-ANA-9 | A `--recursive` option MAY be added later; it is out of scope for version 1.0.0. Scanning is top-level only. |
 
-### 4.3 Export: CSV
+### 4.4 Export: CSV
 
 | ID | Requirement |
 |----|-------------|
@@ -96,7 +105,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 | FR-CSV-2 | File name is `<output-name>.csv`. |
 | FR-CSV-3 | CSV export is produced only when `csv` is one of the `--format` values. |
 
-### 4.4 Export: PlantUML Source (`puml`)
+### 4.5 Export: PlantUML Source (`puml`)
 
 | ID | Requirement |
 |----|-------------|
@@ -109,7 +118,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 | FR-PUML-7 | Requesting a render format does **not** also write the `.puml` file unless `puml` is also requested. |
 | FR-PUML-8 | Output files are `<output-name>.pdf`, `<output-name>.png`, `<output-name>.svg`. |
 
-### 4.5 Export: Interactive HTML (`html`)
+### 4.6 Export: Interactive HTML (`html`)
 
 | ID | Requirement |
 |----|-------------|
@@ -124,7 +133,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 | FR-HTML-9 | The HTML template SHOULD be kept as a separate embedded resource file rather than an inline C# string. |
 | FR-HTML-10 | HTML is the default output: it is the only output when `--format` isn't given. |
 
-### 4.6 Overwrite Behaviour
+### 4.7 Overwrite Behaviour
 
 | ID | Requirement |
 |----|-------------|
@@ -164,7 +173,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 | 0 | All requested outputs produced (skips due to `--on-exists skip` are not failures) |
 | 1 | Unexpected error |
 | 2 | Invalid arguments or configuration |
-| 3 | Input problem (folder missing, no `.m` files) |
+| 3 | Input problem (input missing, no `.m` files, a workbook whose queries can't be read: see FR-IN-4) |
 | 4 | Output refused (existing file with `fail` behaviour) |
 | 5 | One or more exports failed (others may have succeeded) |
 | 130 | Cancelled by user |
@@ -186,7 +195,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 |----|-------------|
 | NFR-TEST-1 | The xUnit test project MUST cover: the tokeniser (comments, strings, escaped quotes, quoted identifiers, queries named like built-ins), graph building, cycle detection, role classification, CSV output (against a fixture, including the header), PlantUML alias/escaping, PlantUML encoding, HTML JSON escaping, option validation, overwrite behaviour, and exit-code mapping. |
 | NFR-TEST-2 | Tests MUST use temporary folders and a fake/stub HTTP handler for the PlantUML server. No test may need real network access, apart from the browser tests' one-off download of Chromium on their first run. |
-| NFR-TEST-3 | Test fixtures MUST include a sample set of `.m` files with a cycle, an isolated query, and awkward names. |
+| NFR-TEST-3 | Test fixtures MUST include a sample set of `.m` files with a cycle, an isolated query, and awkward names, and sample workbooks (`.xlsx` and `.xlsb`) made in Excel with made-up data. Damaged workbooks are built by the tests. |
 
 ### 5.6 Documentation
 
@@ -205,6 +214,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 7. A query name appearing only inside a comment or string literal creates no dependency.
 8. A circular dependency produces a warning and all exports still complete.
 9. A render failure for PNG does not prevent SVG, HTML or CSV from being written, and the exit code is 5.
+10. `pqdoc <workbook>` reads the queries straight from the workbook and writes `powerquery-dependencies.html` in a `PowerQuery` folder next to it. The dependencies are the same as for the same queries exported by hand.
 
 ## 7. Decisions Made (Defaults Chosen)
 
@@ -224,6 +234,6 @@ These are deliberate defaults.
 - Recursive folder scanning (`--recursive`).
 - Local PlantUML rendering via a Java/`plantuml.jar` or Docker invocation.
 - Additional formats (Mermaid, Graphviz DOT, GraphML, JSON).
-- Parsing queries directly from `.pbix` / `.xlsx` files.
+- Reading queries from Power BI files (`.pbix`, `.pbit`).
 - Filtering the graph by query name or depth (for example, "show everything downstream of `X`").
 - Configuration file support (`appsettings.json`) for persisting defaults.

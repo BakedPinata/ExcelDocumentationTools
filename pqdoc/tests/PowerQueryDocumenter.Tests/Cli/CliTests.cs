@@ -18,7 +18,7 @@ public sealed class CliDefinitionTests
     var result = cli.Parse(["C:\\queries"]);
 
     Assert.Empty(result.Errors);
-    Assert.Equal("C:\\queries", result.GetValue(cli.InputFolder));
+    Assert.Equal("C:\\queries", result.GetValue(cli.Input));
     Assert.Equal("powerquery-dependencies", result.GetValue(cli.OutputName));
     Assert.Empty(result.GetValue(cli.Formats) ?? []); // the binder turns this into the default, html
     Assert.Null(result.GetValue(cli.OnExists));
@@ -199,8 +199,8 @@ public sealed class OptionsBinderTests : IDisposable
   {
     var options = (await Bind("queries")).Options!;
 
-    Assert.Equal(temp.Combine("queries"), options.InputFolder);
-    Assert.Equal(options.InputFolder, options.OutputFolder);
+    Assert.Equal(temp.Combine("queries"), options.Input);
+    Assert.Equal(options.Input, options.OutputFolder);
     Assert.Equal("powerquery-dependencies", options.OutputName);
     Assert.Equal(new[] { OutputFormat.Html }, options.Formats);
     Assert.Equal(OnExistsBehaviour.Prompt, options.OnExists);
@@ -208,6 +208,20 @@ public sealed class OptionsBinderTests : IDisposable
     Assert.Null(options.PlantUmlServer);
     Assert.Equal(TimeSpan.FromSeconds(30), options.RenderTimeout);
     Assert.Equal(temp.Combine("queries", "powerquery-dependencies.html"), options.GetOutputPath(OutputFormat.Html));
+  }
+
+  [Fact]
+  public async Task A_workbook_writes_into_a_PowerQuery_folder_beside_it_unless_told_otherwise()
+  {
+    temp.WriteFile(Path.Combine("books", "Sales.xlsx"), "");
+
+    var options = (await Bind(Path.Combine("books", "Sales.xlsx"))).Options!;
+    Assert.True(options.InputIsWorkbook);
+    Assert.Equal(temp.Combine("books", "Sales.xlsx"), options.Input);
+    Assert.Equal(temp.Combine("books", "PowerQuery"), options.OutputFolder);
+
+    Assert.Equal(temp.Combine("out"), (await Bind(Path.Combine("books", "Sales.xlsx"), "-o", "out")).Options!.OutputFolder);
+    Assert.False((await Bind("books")).Options!.InputIsWorkbook);
   }
 
   [Fact]

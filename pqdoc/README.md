@@ -1,7 +1,7 @@
 # pqdoc: Power Query Documentation Tool
 
-A .NET console tool that reads a folder of exported Power Query (`.m`) queries, works out which
-queries reference which, and exports the dependency graph as:
+A .NET console tool that reads the Power Query queries in an Excel workbook, or in a folder of
+exported `.m` files, works out which queries reference which, and exports the dependency graph as:
 
 - **Interactive HTML** (default): a single, self-contained page with a D3 force-directed graph that
   works offline.
@@ -39,16 +39,24 @@ dotnet publish src/PowerQueryDocumenter -c Release -p:PublishProfile=FolderProfi
 ## Usage
 
 ```
-pqdoc <input_folder> [options]
+pqdoc <input> [options]
 ```
 
-`<input_folder>` is the folder containing the `.m` files, one query per file. The query name is
-the file name without `.m`. Only the top level of the folder is scanned.
+`<input>` is either:
+
+- **an Excel workbook** (`.xlsx`, `.xlsm` or `.xlsb`). pqdoc reads the queries straight from the
+  file, with no export needed. It doesn't need Excel installed, and works while the workbook is open in
+  Excel. Outputs go in a `PowerQuery` folder next to the workbook; or
+- **a folder of exported `.m` files**, one query per file. The query name is the file name without
+  `.m`, and only the top level of the folder is scanned. Outputs go in the same folder.
+
+An encrypted workbook (password, IRM or sensitivity label) can't be read: save a copy without
+encryption and run pqdoc on that.
 
 | Option | Alias | Value | Default | Description |
 |--------|-------|-------|---------|-------------|
 | `--output-name` | `-n` | name | `powerquery-dependencies` | Base file name for every output. The extension is added per format. Must not contain a folder or an extension. |
-| `--output` | `-o` | path | the input folder | Where outputs are written. Created if missing. |
+| `--output` | `-o` | path | a `PowerQuery` folder next to a workbook, or the input folder | Where outputs are written. Created if missing. |
 | `--format` | `-f` | `html`, `csv`, `puml`, `pdf`, `png`, `svg` | `html` | The formats to write, comma-separated (`-f html,csv`) or repeated (`-f html -f csv`). Case-insensitive. Replaces the default, so include `html` to keep the page. |
 | `--plantuml-server` | | URL | none | PlantUML server for `pdf`, `png` and `svg`. |
 | `--on-exists` | | `prompt`, `overwrite`, `skip`, `fail` | `prompt` when interactive, otherwise `fail` | What to do when an output file already exists. |
@@ -61,6 +69,9 @@ the file name without `.m`. Only the top level of the folder is scanned.
 ### Examples
 
 ```
+# The interactive page for a workbook's queries, in C:\books\PowerQuery
+pqdoc C:\books\Sales.xlsx
+
 # The interactive page only, default name, next to the inputs
 pqdoc C:\queries
 
@@ -187,7 +198,7 @@ written, skipped or failed is logged at the end.
 | 0 | All requested outputs produced (files skipped by `--on-exists skip` are not failures) |
 | 1 | Unexpected error |
 | 2 | Invalid arguments or configuration |
-| 3 | Input problem: folder missing or unreadable, no `.m` files, or a `.m` file could not be read (outputs are still produced in the last case) |
+| 3 | Input problem: the input is missing or unreadable; a file isn't a workbook, is encrypted, has no queries or is damaged; a folder has no `.m` files; or a `.m` file could not be read (outputs are still produced in the last case) |
 | 4 | Output refused: an output file exists and overwriting was refused |
 | 5 | One or more exports failed (others may have succeeded) |
 | 130 | Cancelled with Ctrl+C |
@@ -201,6 +212,7 @@ src/PowerQueryDocumenter/          The console app
   Logging/                Serilog console configuration
 src/PowerQueryDocumenter.Core/     All the logic
   Configuration/          Options record, formats, .env reader, PlantUML server resolution
+  Extraction/             Reading queries straight from a workbook (MS-QDEFF), and splitting Section1.m
   Analysis/               M tokeniser, reference extraction, analyser, cycle detection
   Model/                  Immutable graph types (DependencyGraph, QueryNode, DependencyEdge)
   Export/                 IExporter and the CSV, PlantUML source, PlantUML render and HTML exporters

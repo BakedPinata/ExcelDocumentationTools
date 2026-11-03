@@ -12,10 +12,11 @@ rather than repeating it.
 
 - **vbadoc 0.7.0:** stages 0–5e are done, and the class diagram is drawn with d3 (no Mermaid). Stage 6 (UserForms) is
   parked; stage 7 waits for the feedback plan.
-- **pqdoc 1.1.0**, plus stages 3b–3d: reads a folder of hand-exported `.m` files, and writes HTML by default.
+- **pqdoc 1.2.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+  and writes HTML by default.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. A0 and A1 are pushed; the
-  user's build, test and publish of A0 on the work machine is still to come. A0–A3 and F1 are pushed. B1 is done,
-  waiting for review. B2 (pqdoc reads queries from a workbook) is next.
+  user's build, test and publish of A0 on the work machine is still to come. A0–A3, F1 and B1 are pushed. B2 is
+  done, waiting for review. B3 (pqdoc writes `.m` files) is next.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -25,6 +26,15 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-03: Step B2, pqdoc reads workbooks
+
+- `pqdoc <workbook>` reads the queries straight from `.xlsx`, `.xlsm` or `.xlsb` (`Extraction/`: `WorkbookReader`,
+  `SectionSplitter`, `ExtractionException`), and writes into a `PowerQuery` folder beside the workbook. The argument is
+  now `<input>`, a workbook or a folder. pqdoc 1.2.0.
+- Requirements gained section 4.2 (FR-IN-1 to FR-IN-4) and acceptance criterion 10. Every unreadable case stops with
+  exit code 3 and says why. 24 new tests, with damaged workbooks built by a test helper.
+- The private workbook's query reads exactly as the user's hand export.
 
 ### 2026-11-03: Step B1, sample workbooks
 
