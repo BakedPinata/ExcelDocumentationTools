@@ -14,10 +14,14 @@ intermediate query.
 
 ## Requirements
 
-- .NET SDK 9.0. The target framework is set once in `Directory.Build.props` (`net9.0`).
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). The target framework is set once in the root
+  `Directory.Build.props` (`net10.0`). Visual Studio 2022 doesn't support .NET 10, so build there from the command line
+  (see the [root README](../README.md#building-and-testing)).
 - For `svg`, `png` and `pdf` only: access to a PlantUML server (see below).
 
 ## Build and run
+
+From the `pqdoc` folder:
 
 ```
 dotnet build
@@ -255,5 +259,5 @@ reads both, they work the same way locally and in a CI pipeline, and they need n
 To run only the unit tests, with no download:
 
 ```
-dotnet test tests/PowerQueryDocumenter.Tests --filter "Category!=Integration"
+dotnet test --project tests/PowerQueryDocumenter.Tests --filter "Category!=Integration"
 ```

@@ -30,7 +30,8 @@ jobs:
       # The browser tests would install Chromium themselves, but a failed download then only shows as "exit code 1".
       # As a step of its own, the reason appears in the log.
       - name: Install Chromium
-        run: ./vbadoc/tests/VbaDocumenter.BrowserTests/bin/Debug/net9.0/playwright.ps1 install chromium
+        run: ./vbadoc/tests/VbaDocumenter.BrowserTests/bin/Debug/net10.0/playwright.ps1 install chromium
 
       - name: Test
-        run: dotnet test ExcelDocumentationTools.sln --no-build
+        # global.json switches dotnet test to the Microsoft Testing Platform, which takes the solution as --solution.
+        run: dotnet test --solution ExcelDocumentationTools.sln --no-build

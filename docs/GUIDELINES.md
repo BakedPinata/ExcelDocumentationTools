@@ -30,9 +30,14 @@ of generated pages, because changing one changes every page.
 
 ## Platform and build
 
-- Every project targets **.NET 9**, set once in the root `Directory.Build.props`. The root `global.json` selects the
-  SDK. .NET 9 support ends on 2026-11-10; moving to .NET 10 is a one-line change, to be made when the machine the
-  tools run on allows it.
+- Every project targets **.NET 10**, set once in the root `Directory.Build.props`. .NET 10 is a long-term support
+  release, supported until November 2028. Moving to a newer version is a deliberate decision, made when the work
+  machine has its SDK.
+- The root `global.json` selects the SDK, and switches `dotnet test` to the Microsoft Testing Platform, which xUnit v3
+  needs on .NET 10.
+- **Everything works from the `dotnet` command line:** building, testing, running and publishing, as the root
+  `README.md` sets out. The work machine has Visual Studio 2022, which doesn't support .NET 10, so no step may need an
+  IDE.
 - The root `Directory.Build.props` holds `TargetFramework`, `ImplicitUsings`, `Nullable`, `TreatWarningsAsErrors`,
   `Deterministic` and `ToolsPublishDir`. Each tool's `Directory.Build.props` imports it and sets `Version`, `Product` and
   `ToolRoot`.
@@ -111,6 +116,8 @@ of generated pages, because changing one changes every page.
 ## Tests
 
 - Every test project uses **xUnit v3**. Test projects don't collect coverage, because nothing reads it.
+- `dotnet test` runs on the Microsoft Testing Platform, so it takes a project or solution as `--project` or
+  `--solution`, not as a bare path. A bare `dotnet test` in a tool's folder runs that tool's tests.
 - A normal test run needs no network and nothing that exists only on one machine, apart from the browser tests'
   one-off download of Chromium on their first run. Any other test that needs something extra is optional, and skips
   itself with a message saying how to enable it.
@@ -137,8 +144,8 @@ of generated pages, because changing one changes every page.
   one pull request, and each major update gets its own. It never merges anything itself.
 - For each Dependabot pull request: read the release notes, check that the build passed, and for a major version check
   that the licence is still allowed (see above). Then merge it.
-- Dependabot doesn't check licences, and it doesn't update the .NET SDK, because moving past .NET 9 is a deliberate
-  decision. Vendored d3 and Mermaid aren't package dependencies, so they're still updated by hand, following the
+- Dependabot doesn't check licences, and it doesn't update the .NET SDK, because moving to a new .NET version is a
+  deliberate decision. Vendored d3 and Mermaid aren't package dependencies, so they're still updated by hand, following the
   `README.md` in each tool's `Resources/Vendor/` folder.
 
 ## Claude Code sessions

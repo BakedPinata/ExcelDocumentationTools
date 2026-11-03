@@ -10,17 +10,31 @@ rather than repeating it.
 
 ## Current state (2026-11-03)
 
-- **vbadoc 0.6.0:** stages 0–5e are done. Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
-- **pqdoc 1.0.0**, plus stages 3b–3d: reads a folder of hand-exported `.m` files.
-- **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–G4. Step A0 (.NET 10) is next.
+- **vbadoc 0.6.1:** stages 0–5e are done. Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
+- **pqdoc 1.0.1**, plus stages 3b–3d: reads a folder of hand-exported `.m` files.
+- **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–G4. A0 (.NET 10) is done, waiting
+  for review and for the user to build, test and publish on the work machine. A1 is next.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
-- **.NET 9** support ends 2026-11-10. Moving to .NET 10 waits until the work machine allows it.
+- **.NET 10** since step A0. `dotnet test` runs on the Microsoft Testing Platform, so it takes `--project` or
+  `--solution`, not a bare path.
 
 ## Log
 
 Newest first.
+
+### 2026-11-03: Step A0, .NET 10
+
+- Moved every project to .NET 10 (`Directory.Build.props`, `global.json`), a week before .NET 9's support ended.
+  vbadoc 0.6.1, pqdoc 1.0.1.
+- The .NET 10 SDK refuses to run xUnit v3 4.x projects through VSTest, so `global.json` switches `dotnet test` to the
+  Microsoft Testing Platform. Commands changed from a bare path to `--project`/`--solution`, in the build workflow,
+  every CLAUDE.md, the READMEs and vbadoc's decisions.
+- The root README now covers building, testing, running and publishing from the command line, because the work machine
+  only has Visual Studio 2022, which can't build .NET 10.
+- Checked: clean build; all 723 tests (6 skipped as before); published executables run; output from every fixture and
+  the private workbook is byte-identical to .NET 9's apart from the build stamp (and pqdoc's generation time).
 
 ### 2026-11-03: Feedback gathered, plan revised, work log started
 

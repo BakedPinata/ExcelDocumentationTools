@@ -17,7 +17,7 @@ The exported files and the HTML page are meant to be committed to a git reposito
 
 ## Constraints
 
-- **Target framework:** .NET 9 console application.
+- **Target framework:** .NET 10 console application.
 - **Licensing:** only free, open-source libraries with MIT or equivalent permissive licences (MIT, BSD, Apache-2.0, ISC). MPL-2.0 is acceptable for unmodified packages.
 - **No Excel dependency:** the tool must not use Excel COM interop or require Excel to be installed. It must not require the "Trust access to the VBA project object model" setting.
 - **Input formats:** `.xlsm`, `.xlsb`, `.xlam` (zip-based) and `.xls`, `.xla` (compound file). The tool must work while the workbook is open in Excel (open with `FileShare.ReadWrite`).

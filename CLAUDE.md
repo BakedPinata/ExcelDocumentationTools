@@ -13,8 +13,12 @@ CLAUDE.md, so start in a tool's folder to work on that tool, and here for work a
 
 ```bash
 dotnet build ExcelDocumentationTools.sln -warnaserror    # every tool, from the root
+dotnet test --solution ExcelDocumentationTools.sln       # every test; one project: --project <path>
 pwsh ./publish.ps1                                       # publish every tool into one folder
 ```
+
+`dotnet test` runs on the Microsoft Testing Platform (set in `global.json`), so it takes `--project` or `--solution`
+rather than a bare path.
 
 ## Way of working
 

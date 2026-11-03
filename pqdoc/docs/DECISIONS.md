@@ -8,7 +8,8 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 
 - **The first version is 1.0.0.** The tool's earlier form came from a Claude chat and isn't counted, so the docs
   describe the tool as it is, not how it differs from that.
-- **.NET 9**, the same as vbadoc. The target framework is in the root `Directory.Build.props`.
+- **.NET 10**, the same as vbadoc (moved from .NET 9 on 2026-11-03). The target framework is in the root
+  `Directory.Build.props`.
 - **Central Package Management.** Every NuGet version is in the root `Directory.Packages.props`.
 - **Shared project settings** are in the root `Directory.Build.props`. `pqdoc/Directory.Build.props` imports it and sets
   `Version`, `Product` and `ToolRoot`.

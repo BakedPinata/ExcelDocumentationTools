@@ -17,7 +17,7 @@ Run these from `pqdoc/`.
 dotnet build -warnaserror
 dotnet test                                      # unit + browser tests (browser tests download Chromium on first run);
                                                  # also runs the PlantUML server tests, if a server is configured
-dotnet test tests/PowerQueryDocumenter.Tests --filter "Category!=Integration"     # unit tests only
+dotnet test --project tests/PowerQueryDocumenter.Tests --filter "Category!=Integration"     # unit tests only
 dotnet run --project src/PowerQueryDocumenter -- <input_folder> [--output <folder>] [-f puml,html] [--verbose]
 ```
 

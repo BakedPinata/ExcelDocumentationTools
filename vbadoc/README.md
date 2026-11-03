@@ -23,14 +23,18 @@ for the design decisions behind them.
 
 ## Requirements
 
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). Visual Studio 2022 doesn't support .NET 10, so
+  build there from the command line (see the [root README](../README.md#building-and-testing)).
 
 ## Build and test
 
+From the `vbadoc` folder:
+
 ```bash
 dotnet build
-dotnet test                              # unit tests and browser tests
-dotnet test tests/VbaDocumenter.Tests    # unit tests only
+dotnet test                                        # unit tests and browser tests
+dotnet test --project tests/VbaDocumenter.Tests    # unit tests only
+dotnet run --project src/VbaDocumenter -- <workbook>
 ```
 
 The browser tests check the generated page in headless Chromium. On their first run they download Playwright's
