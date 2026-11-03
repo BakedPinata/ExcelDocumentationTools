@@ -171,7 +171,7 @@ public sealed class OpenedPage(IBrowserContext context, IPage page, List<string>
 
   /// <summary>Line numbers shown in the source panel.</summary>
   public async Task<int[]> ShownLinesAsync() =>
-      (await Page.Locator("#source-body .line .ln").AllInnerTextsAsync()).Select(int.Parse).ToArray();
+      (await Page.Locator("#side-panel-body .line .ln").AllInnerTextsAsync()).Select(int.Parse).ToArray();
 
   public async ValueTask DisposeAsync() => await Context.DisposeAsync();
 }

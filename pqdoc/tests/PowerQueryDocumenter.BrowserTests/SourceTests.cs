@@ -32,7 +32,7 @@ public sealed class SourceTests(PageFixture fixture)
     Assert.Equal(["let", "type", "in"], await Texts(opened, "#details-source .tok-keyword"));
     Assert.Equal(["#\"Sales Region Map\""], await Texts(opened, "#details-source .tok-name"));
     Assert.Contains(await Texts(opened, "#details-source .tok-string"), s => s == "\"See the Customers query for details\"");
-    Assert.Contains("Orders.m", await page.InnerTextAsync("#details-body h3:has-text('Source')"));
+    Assert.Contains("Orders.m", await page.InnerTextAsync("#side-panel-body h3:has-text('Source')"));
     Assert.False(await page.IsVisibleAsync("#load-folder-label"));
     Assert.Empty(opened.Errors);
   }
@@ -200,7 +200,7 @@ public sealed class SourceTests(PageFixture fixture)
 
     Assert.False(await page.IsVisibleAsync("#source-status"));
     Assert.Equal(0, await page.Locator("#details-source").CountAsync());
-    Assert.DoesNotContain(await Texts(opened, "#details-body h3"), h => h.StartsWith("Source", StringComparison.Ordinal));
+    Assert.DoesNotContain(await Texts(opened, "#side-panel-body h3"), h => h.StartsWith("Source", StringComparison.Ordinal));
   }
 
   [Theory]

@@ -92,7 +92,7 @@ public class DependenciesListTests(PageFixture fixture)
 
     Assert.Equal("Utils", await page.EvaluateAsync<string?>("() => window.vbadoc.selection()"));
     Assert.Equal(1, await page.Locator("#graph-svg g.node.selected[data-id='Utils']").CountAsync());
-    Assert.Contains("Utils", await page.InnerTextAsync("#source-header h2"));
+    Assert.Contains("Utils", await page.InnerTextAsync("#side-panel-header h2"));
     Assert.Equal(["Order"], await Entries(page, "usedBy")); // still open, now for Utils
   }
 

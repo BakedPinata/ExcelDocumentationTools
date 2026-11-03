@@ -134,8 +134,9 @@ src/VbaDocumenter.Core/     all the logic
   Parsing/                  lightweight VBA parser: declarations, line ranges, procedure bodies
   Analysis/                 reference resolution and the module/member dependency graphs
   Output/                   writing the source files and the page
-  Resources/Page/           the page's HTML template, CSS and JavaScript (plain files, no build step)
-../shared/                  code shared with pqdoc: opening workbooks, writing files, building the page, d3
+  Resources/Page/           vbadoc's part of the page: its views, CSS and JavaScript (plain files, no build step),
+                            set into the page shell from ../shared
+../shared/                  code shared with pqdoc: opening workbooks, writing files, the page shell, d3
 tests/VbaDocumenter.Tests/  xUnit tests
   Fixtures/SampleVba/       synthetic 12-module VBA project
   Fixtures/SampleVbaExtras/ declarations SampleVba doesn't cover

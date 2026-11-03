@@ -10,10 +10,10 @@ using PowerQueryDocumenter.Core.Model;
 namespace PowerQueryDocumenter.Core.Export;
 
 /// <summary>
-/// Writes a single, self-contained interactive HTML page (FR-HTML-1 to FR-HTML-9): the template in
-/// Resources/Page with its styles, scripts, the vendored D3.js library and the graph as JSON written
-/// inline, so the file works offline and its Content-Security-Policy can block all network access. It's put together
-/// as vbadoc's page is (<see cref="PageBuilder"/>).
+/// Writes a single, self-contained interactive HTML page (FR-HTML-1 to FR-HTML-9) on the shell vbadoc's page shares
+/// (<see cref="ShellPage"/>): pqdoc's view and search box from Resources/Page, with the styles, scripts, the vendored
+/// D3.js library and the graph as JSON written inline, so the file works offline and its Content-Security-Policy can
+/// block all network access.
 /// </summary>
 public sealed class HtmlExporter : IExporter
 {
@@ -21,10 +21,10 @@ public sealed class HtmlExporter : IExporter
   private static readonly string[] PageScripts = ["Page/m-highlight.js", "Page/page.js", "Page/graph.js"];
 
   private static readonly Assembly Resources = typeof(HtmlExporter).Assembly;
-  private static readonly Lazy<string> Template = new(() => EmbeddedResources.ReadText(Resources, "Page/page.html"));
+  private static readonly Lazy<string> Search = new(() => EmbeddedResources.ReadText(Resources, "Page/search.html"));
+  private static readonly Lazy<string> Views = new(() => EmbeddedResources.ReadText(Resources, "Page/views.html"));
   private static readonly Lazy<string> Stylesheet = new(() => EmbeddedResources.ReadText(Resources, "Page/page.css"));
-  private static readonly Lazy<string> Favicon = new(() => PageBuilder.FaviconDataUri(EmbeddedResources.ReadText(Resources, "Page/favicon.svg")));
-  private static readonly Lazy<string> Scripts = new(() => PageBuilder.Scripts(Resources, PageScripts));
+  private static readonly Lazy<string> Favicon = new(() => EmbeddedResources.ReadText(Resources, "Page/favicon.svg"));
 
   private static readonly JsonSerializerOptions JsonOptions = new()
   {
@@ -60,23 +60,33 @@ public sealed class HtmlExporter : IExporter
       ? string.Empty
       : $", {Plural(graph.Cycles.Count, "circular dependency", "circular dependencies")}";
 
-    var values = new Dictionary<string, string>(StringComparer.Ordinal)
+    var views = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-      ["PAGE_TITLE"] = PageBuilder.Escape($"{context.Title}: {counts}, generated {generated}"),
-      ["TITLE"] = PageBuilder.Escape(context.Title),
-      ["SUMMARY"] = PageBuilder.Escape($"{counts}{cycles}. Generated {generated}."),
       ["NODE_COUNT"] = graph.Nodes.Count.ToString(CultureInfo.InvariantCulture),
-      ["TOOL_VERSION"] = PageBuilder.Escape(Version.ToString()),
-      ["TOOL_VERSION_DESCRIPTION"] = PageBuilder.Escape(Version.Description),
-      ["REPOSITORY_URL"] = PageBuilder.Escape(ToolVersion.RepositoryUrl),
-      ["FAVICON"] = Favicon.Value,
-      ["STYLE"] = Stylesheet.Value,
-      ["DATA"] = SerialiseGraph(graph, context),
-      ["SOURCES"] = context.EmbedSource && context.Sources is not null ? EmbeddedSources(context.Sources) : string.Empty,
-      ["SCRIPTS"] = Scripts.Value,
     };
 
-    return PageBuilder.Fill(Template.Value, values);
+    var page = new ShellPage
+    {
+      Tool = "pqdoc",
+      Version = Version,
+      PageTitle = $"{context.Title}: {counts}, generated {generated}",
+      Title = context.Title,
+      Tabs = [new ShellTab("graph", "Dependency graph")],
+      SearchHtml = Search.Value,
+      LoadFolderHint = "Choose the folder that holds this page's .m files, to see each query's source",
+      // Wraps rather than being cut off in the top bar, because the generation time is at the end.
+      TopBarHtml = "  <p class=\"summary muted\" id=\"page-summary\">" + PageBuilder.Escape($"{counts}{cycles}. Generated {generated}.") + "</p>",
+      PanelName = "Details",
+      ViewsHtml = PageBuilder.Fill(Views.Value, views),
+      FaviconSvg = Favicon.Value,
+      Stylesheet = Stylesheet.Value,
+      DataJson = SerialiseGraph(graph, context),
+      SourcesHtml = context.EmbedSource && context.Sources is not null ? EmbeddedSources(context.Sources) : string.Empty,
+      ScriptAssembly = Resources,
+      Scripts = PageScripts,
+    };
+
+    return page.Render();
   }
 
   /// <summary>

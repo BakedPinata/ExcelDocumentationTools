@@ -11,7 +11,8 @@ build stamps. See "Structure" in [docs/GUIDELINES.md](../docs/GUIDELINES.md) for
 | (root) | `ExitCodes`, the codes every tool returns; `ToolVersion`, the build stamp read from a tool's own assembly | both |
 | `Workbooks/` | `WorkbookFile`: reading a workbook while Excel has it open, telling zip-based from compound files, spotting encryption; `ExtractionException`, exit code 3 | both readers |
 | `Files/` | `AtomicFileWriter`: write to a temporary file, then move it into place; `SourceFolderWriter`: keep a folder of source files in step with a workbook | vbadoc's module files and page; pqdoc's `.m` files and outputs |
-| `Pages/` | `PageBuilder`: filling a template's placeholders, inlining scripts after d3, escaping text and JSON, the favicon; `EmbeddedResources`; `VendoredScripts` | both pages |
+| `Pages/` | `ShellPage`: a page built on the shell, from the parts a tool brings; `PageBuilder`: filling a template's placeholders, inlining scripts after d3 and the shell's, escaping text and JSON, the favicon; `EmbeddedResources`; `VendoredScripts` | both pages |
+| `Resources/Shell/` | The page shell: `shell.html` (the template), `shell.css` (the frame and shared colour tokens) and `shell.js` (theme, settings, tabs, side panel, splitter, Load folder, source view; its interface is at the top) | both pages |
 | `Resources/Vendor/` | d3 and its licence, byte-for-byte as published (see its README) | both pages |
 
 ## Commands
@@ -41,3 +42,25 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
   also wrote `'` and non-ASCII characters as numeric references. Browsers show both the same, so only a page's bytes
   change, and only for a title with such characters.
 - **One copy of d3**, here. Each tool had its own, and they were identical.
+
+### The page shell (step C2)
+
+- **The shell owns the frame, the tools own what's in it.** The shell has the top bar, tabs, theme, stored settings,
+  side panel and splitter, Load folder and the source view, which were line for line the same in both pages. Each tool
+  keeps its views, its search box (vbadoc jumps to a match from a list; pqdoc lights up every match), what its side
+  panel shows, and vbadoc its trail.
+- **Nothing visible changed.** Screenshots of both pages, in both themes, wide and narrow, were compared pixel by pixel
+  before and after, with the build stamp made the same; they differed only where the same page differs from itself
+  between runs. Where the two pages' rules differed (the side panel's default size, the search box's width, pqdoc's
+  placeholder colour), each tool keeps its own.
+- **The side panel's ids are the shell's now:** `side-panel`, `side-panel-header`, `side-panel-body`,
+  `side-panel-toggle`, `side-panel-close` and `side-panel-splitter`, in place of vbadoc's `source-…` and pqdoc's
+  `details-…`. The browser tests changed only there. The panel keeps its name in each tool (Source, Details), and its
+  stored size and visibility keep their keys (`vbadoc-source-size`, `pqdoc-details-hidden`), so nobody loses them.
+- **Two tooltips are new in vbadoc**, because the template is shared: its heading's (the workbook's name) and Load
+  folder's.
+- **Marked lines are the shell's `marked` class**, in place of vbadoc's `in-member`, so the source view doesn't name a
+  vbadoc idea. The colour token for them (`--line-highlight`) moved with it.
+- **The tool starts the shell, then says where its source comes from** (`shell.source.init`), because only the tool
+  can read its data: vbadoc decodes with the project's code page, pqdoc by byte order mark.
+- **No colour changed.** The shared tokens were identical in both pages, so none needed validating again.

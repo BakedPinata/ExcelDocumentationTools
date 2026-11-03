@@ -31,6 +31,7 @@ dotnet run --project src/PowerQueryDocumenter -- <workbook or folder> [--output 
 - Requirement IDs (`FR-ANA-2`) appear in comments and tests, so keep them stable.
 - Tests use the fixtures in `tests/PowerQueryDocumenter.Tests/Fixtures/`, temporary folders, and the stub HTTP handler
   for the PlantUML server.
-- The page is built like vbadoc's, with the same structure and names, so a later combined page can host both tools'
-  views. Keep `window.pqdoc` shaped like `window.vbadoc` and change the two in step.
+- The page is built on the shell in `../shared/` (`ShellPage`, `Resources/Shell/`), as vbadoc's is: the top bar, tabs,
+  theme, side panel, Load folder and source view are the shell's, and pqdoc brings its view, search box and details.
+  Keep `window.pqdoc` shaped like `window.vbadoc` and change the two in step.
 - Diagram text contains query names, so nothing may send it to a server the user hasn't configured.

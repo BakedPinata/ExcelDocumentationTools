@@ -9,9 +9,9 @@ using VbaDocumenter.Core.Extraction;
 namespace VbaDocumenter.Core.Output;
 
 /// <summary>
-/// Builds the single, self-contained documentation page: the template from Resources/Page with the styles,
-/// scripts, data and (optionally) source written inline, put together as pqdoc's page is (<see cref="PageBuilder"/>).
-/// Nothing in the page refers to another file or URL.
+/// Builds the single, self-contained documentation page on the shell pqdoc's page shares (<see cref="ShellPage"/>):
+/// vbadoc's views, search box and trail from Resources/Page, with the styles, scripts, data and (optionally) source
+/// written inline. Nothing in the page refers to another file or URL.
 /// </summary>
 public static class HtmlPageWriter
 {
@@ -47,20 +47,27 @@ public static class HtmlPageWriter
   public static string Build(DependencyModel model, VbaProject project, string title, bool embedSource)
   {
     var data = PageData.From(model, project, title, embedSource);
-    var parts = new Dictionary<string, string>
+    var page = new ShellPage
     {
-      ["TITLE"] = PageBuilder.Escape(title),
-      ["TOOL_VERSION"] = PageBuilder.Escape(Version.ToString()),
-      ["TOOL_VERSION_DESCRIPTION"] = PageBuilder.Escape(Version.Description),
-      ["REPOSITORY_URL"] = PageBuilder.Escape(ToolVersion.RepositoryUrl),
-      ["FAVICON"] = PageBuilder.FaviconDataUri(EmbeddedResources.ReadText(Resources, "Page/favicon.svg")),
-      ["STYLE"] = EmbeddedResources.ReadText(Resources, "Page/page.css"),
-      ["DATA"] = PageBuilder.EscapeForScriptElement(data.ToJson()),
-      ["SOURCES"] = embedSource ? EmbeddedSources(project) : "",
-      ["SCRIPTS"] = PageBuilder.Scripts(Resources, PageScripts),
+      Tool = "vbadoc",
+      Version = Version,
+      PageTitle = title,
+      Title = title,
+      Tabs = [new ShellTab("graph", "Dependency graph"), new ShellTab("classes", "Class diagram")],
+      SearchHtml = EmbeddedResources.ReadText(Resources, "Page/search.html"),
+      LoadFolderHint = "Choose the folder that holds this page's module files, to see their source",
+      PanelName = "Source",
+      BeforeLayoutHtml = EmbeddedResources.ReadText(Resources, "Page/trail.html"),
+      ViewsHtml = EmbeddedResources.ReadText(Resources, "Page/views.html"),
+      FaviconSvg = EmbeddedResources.ReadText(Resources, "Page/favicon.svg"),
+      Stylesheet = EmbeddedResources.ReadText(Resources, "Page/page.css"),
+      DataJson = data.ToJson(),
+      SourcesHtml = embedSource ? EmbeddedSources(project) : "",
+      ScriptAssembly = Resources,
+      Scripts = PageScripts,
     };
 
-    var html = PageBuilder.Fill(EmbeddedResources.ReadText(Resources, "Page/page.html"), parts);
+    var html = page.Render();
     return html.ReplaceLineEndings("\n");
   }
 

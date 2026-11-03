@@ -1,5 +1,6 @@
-// page.js: the page's shared parts (data, theme, source text, selection, details panel, tabs and search).
-// The views (the dependency graph) talk to it through window.pqdoc:
+// page.js: pqdoc's part of the page: its data, the selection, what the details panel shows, and search. The frame
+// around it (theme, tabs, side panel, Load folder, source text) is the shell's (shell.js in the shared library). The
+// views (the dependency graph) talk to it through window.pqdoc:
 //   pqdoc.select(id)                 select a query (id = query name), or null
 //   pqdoc.selection()                the selected id, or null
 //   pqdoc.onSelectionChange(fn)      fn(id) after the selection changes
@@ -15,7 +16,8 @@
 
   function $(id) { return document.getElementById(id); }
 
-  var data = JSON.parse($("pqdoc-data").textContent);
+  var shell = window.ExcelDocumenterShell.create({ tool: "pqdoc", panel: "details", rememberView: false });
+  var data = shell.data;
   var queriesById = new Map();
   var uses = new Map();
   var usedBy = new Map();
@@ -43,94 +45,19 @@
 
   function countText(count) { return count === 1 ? "1 query" : count + " queries"; }
 
-  function escapeHtml(text) {
-    return String(text).replace(/[&<>"]/g, function (c) {
-      return c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : "&quot;";
-    });
-  }
+  var escapeHtml = shell.escapeHtml;
 
-  // localStorage can throw when the page is opened from disk, so every access is guarded.
-  function loadSetting(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
-  function saveSetting(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* not remembered */ } }
-
-  var listeners = { selection: [], theme: [], view: [], search: [] };
+  var listeners = { selection: [], search: [] };
   function emit(name, value) {
     listeners[name].forEach(function (fn) {
       try { fn(value); } catch (e) { console.error(e); }
     });
   }
 
-  // ---- Theme ----
-
-  var root = document.documentElement;
-  var themeButton = $("theme-toggle");
-  var systemLight = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
-
-  function currentTheme() { return root.getAttribute("data-theme") === "light" ? "light" : "dark"; }
-
-  function showTheme() {
-    var dark = currentTheme() === "dark";
-    themeButton.setAttribute("aria-pressed", dark ? "true" : "false");
-    themeButton.querySelector(".theme-label").textContent = dark ? "Dark" : "Light";
-  }
-
-  function applyTheme(theme) {
-    if (theme === currentTheme()) return;
-    root.setAttribute("data-theme", theme);
-    showTheme();
-    emit("theme", theme);
-  }
-
-  themeButton.addEventListener("click", function () {
-    var next = currentTheme() === "dark" ? "light" : "dark";
-    saveSetting("pqdoc-theme", next); // the user's choice now wins over the system setting
-    applyTheme(next);
-  });
-
-  if (systemLight && systemLight.addEventListener) {
-    systemLight.addEventListener("change", function (e) {
-      var stored = loadSetting("pqdoc-theme");
-      if (stored !== "light" && stored !== "dark") applyTheme(e.matches ? "light" : "dark");
-    });
-  }
-  showTheme();
-
   // ---- Source text ----
   //
-  // Each query's M code, for the details panel (FR-SRC-1). With --embed-source the page holds it; otherwise the user
-  // picks the folder of .m files and the page reads them, checking each against the hash taken when the page was made.
-
-  var sources = new Map();      // query id -> array of lines
-  var highlighted = new Map();  // query id -> array of highlighted HTML lines (cached)
-  var statusBox = $("source-status");
-  var statusText = $("source-status-text");
-
-  function splitLines(text) {
-    var lines = text.split(/\r\n|\n|\r/);
-    if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
-    return lines;
-  }
-
-  function setStatus(message, isWarning) {
-    statusText.textContent = message;
-    statusText.title = message;
-    statusText.classList.toggle("warning", !!isWarning);
-  }
-
-  if (data.sourceMode === "embedded") {
-    statusBox.classList.add("embedded");
-    document.querySelectorAll("pre.pqdoc-source").forEach(function (pre) {
-      sources.set(pre.getAttribute("data-query"), splitLines(pre.textContent));
-    });
-  } else if (data.sourceMode === "folder") {
-    setStatus("Source not loaded");
-  } else {
-    statusBox.hidden = true;
-  }
-
-  function hex(buffer) {
-    return Array.prototype.map.call(new Uint8Array(buffer), function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
-  }
+  // Each query's M code, for the details panel (FR-SRC-1): embedded with --embed-source, or read with Load folder and
+  // checked against the hash taken when the page was made (see shell.js).
 
   // .m files are UTF-8 unless they start with a UTF-16 byte order mark, as Power Query's own exports can.
   function decode(buffer) {
@@ -139,62 +66,25 @@
     return new TextDecoder(encoding).decode(buffer);
   }
 
-  // Reads the .m files from the folder the user picked. Only files directly in that folder count, so a .git folder or
-  // other subfolders are ignored.
-  function loadFolder(files) {
-    var byName = new Map();
-    Array.prototype.forEach.call(files, function (file) {
-      var path = (file.webkitRelativePath || file.name).split("/");
-      if (path.length <= 2) byName.set(path[path.length - 1].toLowerCase(), file);
-    });
-
-    var missing = [];
-    var changed = [];
-    var found = 0;
-    var reads = data.queries.filter(function (q) { return q.file; }).map(function (query) {
-      var file = byName.get(query.file.toLowerCase());
-      if (!file) { missing.push(query.file); return Promise.resolve(); }
-      return file.arrayBuffer().then(function (buffer) {
-        found++;
-        sources.set(query.id, splitLines(decode(buffer)));
-        highlighted.delete(query.id);
-        if (!window.crypto || !crypto.subtle) return undefined;
-        return crypto.subtle.digest("SHA-256", buffer).then(function (digest) {
-          if (hex(digest).slice(0, 16) !== query.hash) changed.push(query.file);
-        });
-      });
-    });
-
-    return Promise.all(reads).then(function () {
-      if (found === 0) {
-        setStatus("No .m files for these queries in that folder. Choose the folder that holds this page's .m files.", true);
-      } else if (changed.length > 0) {
-        setStatus(changed.length + " file(s) changed since this page was made, so they may not match the graph. Run pqdoc again. (" +
-          changed.sort().join(", ") + ")", true);
-      } else if (missing.length > 0) {
-        setStatus("Loaded " + found + " file(s); missing: " + missing.sort().join(", "), true);
-      } else {
-        setStatus("Loaded " + found + " file(s)");
-      }
-      renderDetails();
-    });
-  }
-
-  var folderInput = $("load-folder");
-  folderInput.addEventListener("change", function () {
-    if (folderInput.files && folderInput.files.length > 0) loadFolder(folderInput.files);
+  shell.source.init({
+    mode: data.sourceMode,
+    attribute: "data-query",
+    files: function () {
+      return data.queries.filter(function (q) { return q.file; }).map(function (q) { return { id: q.id, file: q.file, hash: q.hash }; });
+    },
+    decode: decode,
+    note: "",
+    highlight: function (lines) { return window.MHighlight.highlightLines(lines); },
+    noFiles: "No .m files for these queries in that folder. Choose the folder that holds this page's .m files.",
+    mismatch: "they may not match the graph",
+    loaded: function () { renderDetails(); }
   });
-
-  function highlightedLines(id) {
-    if (!highlighted.has(id)) highlighted.set(id, window.MHighlight.highlightLines(sources.get(id)));
-    return highlighted.get(id);
-  }
 
   function sourceSection(query) {
     if (data.sourceMode === "none") return "";
     var heading = "<h3>Source" + (query.file ? " <span class=\"muted file-name\">" + escapeHtml(query.file) + "</span>" : "") + "</h3>";
 
-    if (!sources.has(query.id)) {
+    if (!shell.source.has(query.id)) {
       if (data.sourceMode === "folder" && query.file) {
         return heading + "<div class=\"source-message\" id=\"details-source\"><p>The source isn't loaded yet. Choose the folder " +
           "that holds this page's .m files.</p><button type=\"button\" class=\"button primary\" id=\"load-folder-prompt\">Load folder</button></div>";
@@ -202,21 +92,15 @@
       return heading + "<p class=\"source-message\" id=\"details-source\">No source was found for " + escapeHtml(query.id) + ".</p>";
     }
 
-    var lines = highlightedLines(query.id);
-    var html = [];
-    for (var n = 1; n <= lines.length; n++) {
-      html.push("<div class=\"line\" data-line=\"" + n + "\"><span class=\"ln\">" + n + "</span><span class=\"lt\">" + (lines[n - 1] || " ") +
-        "</span></div>");
-    }
-    return heading + "<div class=\"source\" id=\"details-source\"><div class=\"code\" role=\"region\" aria-label=\"Source code\">" +
-      html.join("") + "</div></div>";
+    return heading + "<div class=\"source\" id=\"details-source\">" + shell.source.codeHtml(query.id) + "</div>";
   }
 
   // ---- Selection and the details panel ----
 
   var selection = null;
-  var panelHeader = $("details-header");
-  var panelBody = $("details-body");
+  var panelHeader = shell.panel.header;
+  var panelBody = shell.panel.body;
+  shell.panel.element.setAttribute("aria-live", "polite"); // the details are short, so read them out
 
   function select(id) {
     id = id || null;
@@ -274,144 +158,10 @@
 
   panelBody.addEventListener("click", function (event) {
     if (event.target.closest("#details-clear")) { select(null); return; }
-    if (event.target.closest("#load-folder-prompt")) { folderInput.click(); return; }
     var link = event.target.closest("[data-select]");
     if (!link) return;
     event.preventDefault();
     select(link.getAttribute("data-select"));
-  });
-
-  // ---- Showing, hiding and resizing the details panel ----
-  //
-  // The size is the panel's share of the layout (of its width, or of its height when the page is narrow and the
-  // panel sits below the view), kept as the --details-size CSS variable. Until the user resizes it, the stylesheet's
-  // defaults apply. The view needs no telling: the graph's SVG fills its box and watches its size.
-
-  var layout = $("layout");
-  var detailsPanel = $("details-panel");
-  var splitter = $("details-splitter");
-  var detailsToggle = $("details-toggle");
-  var stacked = window.matchMedia ? window.matchMedia("(max-width: 900px)") : { matches: false };
-  var MIN_DETAILS_SIZE = 0.2;
-  var MAX_DETAILS_SIZE = 0.7;
-  var KEY_STEP = 0.02;
-
-  function clampSize(size) { return Math.min(MAX_DETAILS_SIZE, Math.max(MIN_DETAILS_SIZE, size)); }
-
-  function currentDetailsSize() {
-    var rect = layout.getBoundingClientRect();
-    var panel = detailsPanel.getBoundingClientRect();
-    return stacked.matches ? panel.height / rect.height : panel.width / rect.width;
-  }
-
-  // size: a share of the layout, or null for the stylesheet's default.
-  function setDetailsSize(size, remember) {
-    if (size === null) {
-      layout.style.removeProperty("--details-size");
-    } else {
-      size = clampSize(size);
-      layout.style.setProperty("--details-size", (size * 100).toFixed(1) + "%");
-    }
-    if (remember) saveSetting("pqdoc-details-size", size === null ? "" : size.toFixed(3));
-    updateSplitter();
-  }
-
-  function updateSplitter() {
-    splitter.setAttribute("aria-orientation", stacked.matches ? "horizontal" : "vertical");
-    if (!detailsPanel.hidden) splitter.setAttribute("aria-valuenow", String(Math.round(currentDetailsSize() * 100)));
-  }
-
-  function setDetailsVisible(visible, remember) {
-    detailsPanel.hidden = !visible;
-    splitter.hidden = !visible;
-    layout.classList.toggle("details-hidden", !visible);
-    detailsToggle.setAttribute("aria-pressed", visible ? "true" : "false");
-    if (remember) saveSetting("pqdoc-details-hidden", visible ? "false" : "true");
-    updateSplitter();
-  }
-
-  detailsToggle.addEventListener("click", function () { setDetailsVisible(detailsPanel.hidden, true); });
-  $("details-close").addEventListener("click", function () {
-    setDetailsVisible(false, true);
-    detailsToggle.focus(); // the button that had focus has gone
-  });
-
-  // Dragging. The panel is on the right (or at the bottom), so its size is the distance from the pointer to the
-  // layout's far edge, less where in the splitter it was grabbed. Without that, a click would move the splitter out
-  // from under the pointer, and the second click of a double-click would miss it.
-  var grabOffset = 0;
-
-  function sizeAtPointer(event) {
-    var rect = layout.getBoundingClientRect();
-    return stacked.matches ? (rect.bottom - event.clientY) / rect.height : (rect.right - event.clientX) / rect.width;
-  }
-
-  splitter.addEventListener("pointerdown", function (event) {
-    if (event.button !== 0) return;
-    grabOffset = sizeAtPointer(event) - currentDetailsSize();
-    splitter.setPointerCapture(event.pointerId);
-    splitter.classList.add("dragging");
-    document.body.classList.add("resizing");
-    event.preventDefault();
-  });
-  splitter.addEventListener("pointermove", function (event) {
-    if (splitter.hasPointerCapture(event.pointerId)) setDetailsSize(sizeAtPointer(event) - grabOffset, false);
-  });
-  function endDrag(event) {
-    if (!splitter.hasPointerCapture(event.pointerId)) return;
-    splitter.releasePointerCapture(event.pointerId);
-    splitter.classList.remove("dragging");
-    document.body.classList.remove("resizing");
-    setDetailsSize(sizeAtPointer(event) - grabOffset, true);
-  }
-  splitter.addEventListener("pointerup", endDrag);
-  splitter.addEventListener("pointercancel", endDrag);
-  splitter.addEventListener("dblclick", function () { setDetailsSize(null, true); });
-
-  // Keyboard, as for a separator: the arrows move the splitter, Home and End make the panel smallest or largest.
-  splitter.addEventListener("keydown", function (event) {
-    var grow = stacked.matches ? { ArrowUp: 1, ArrowDown: -1 } : { ArrowLeft: 1, ArrowRight: -1 };
-    var size;
-    if (grow[event.key]) size = currentDetailsSize() + grow[event.key] * KEY_STEP;
-    else if (event.key === "Home") size = MIN_DETAILS_SIZE;
-    else if (event.key === "End") size = MAX_DETAILS_SIZE;
-    else if (event.key === "Enter") size = null; // like double-click: back to the default
-    else return;
-    setDetailsSize(size, true);
-    event.preventDefault();
-  });
-
-  if (stacked.addEventListener) stacked.addEventListener("change", updateSplitter);
-
-  var storedSize = parseFloat(loadSetting("pqdoc-details-size"));
-  setDetailsSize(isNaN(storedSize) ? null : storedSize, false);
-  setDetailsVisible(loadSetting("pqdoc-details-hidden") !== "true", false);
-
-  // ---- Tabs ----
-
-  var tabs = [$("tab-graph")];
-  var activeView = "graph";
-
-  function showView(name, focus) {
-    activeView = name;
-    tabs.forEach(function (tab) {
-      var on = tab.id === "tab-" + name;
-      tab.setAttribute("aria-selected", on ? "true" : "false");
-      tab.tabIndex = on ? 0 : -1;
-      $(tab.getAttribute("aria-controls")).hidden = !on;
-      if (on && focus) tab.focus();
-    });
-    emit("view", name);
-  }
-
-  tabs.forEach(function (tab, index) {
-    tab.addEventListener("click", function () { showView(tab.id.slice(4)); });
-    tab.addEventListener("keydown", function (e) {
-      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-      var next = tabs[(index + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
-      showView(next.id.slice(4), true);
-      e.preventDefault();
-    });
   });
 
   // ---- Search ----
@@ -465,10 +215,10 @@
     select: select,
     selection: function () { return selection; },
     onSelectionChange: function (fn) { listeners.selection.push(fn); },
-    theme: currentTheme,
-    onThemeChange: function (fn) { listeners.theme.push(fn); },
-    activeView: function () { return activeView; },
-    onViewChange: function (fn) { listeners.view.push(fn); },
+    theme: shell.theme,
+    onThemeChange: shell.onThemeChange,
+    activeView: shell.activeView,
+    onViewChange: shell.onViewChange,
     matches: function () { return matches; },
     onSearchChange: function (fn) { listeners.search.push(fn); },
     clearSearch: clearSearch,
@@ -479,6 +229,6 @@
     countText: countText
   };
 
-  showView("graph");
+  shell.start();
   renderDetails();
 })();

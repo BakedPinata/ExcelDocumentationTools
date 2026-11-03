@@ -12,6 +12,10 @@
     <!-- Vendored d3 (ISC licence). The licence is embedded too, because every page inlines it. -->
     <EmbeddedResource Include="Resources\Vendor\d3.min.js" LogicalName="Vendor/d3.min.js" />
     <EmbeddedResource Include="Resources\Vendor\d3.LICENSE.txt" LogicalName="Vendor/d3.LICENSE.txt" />
+    <!-- The page shell both tools' pages are built on (ShellPage). -->
+    <EmbeddedResource Include="Resources\Shell\shell.html" LogicalName="Shell/shell.html" />
+    <EmbeddedResource Include="Resources\Shell\shell.css" LogicalName="Shell/shell.css" />
+    <EmbeddedResource Include="Resources\Shell\shell.js" LogicalName="Shell/shell.js" />
   </ItemGroup>
 
 </Project>

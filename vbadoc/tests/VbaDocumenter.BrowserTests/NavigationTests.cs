@@ -214,7 +214,7 @@ public class NavigationTests(PageFixture fixture)
     await page.WaitForFunctionAsync("() => !!window.vbadocGraph");
 
     Assert.Equal("Order.Describe", await Selection(page));
-    Assert.Contains("Describe", await page.InnerTextAsync("#source-header h2"));
+    Assert.Contains("Describe", await page.InnerTextAsync("#side-panel-header h2"));
     Assert.Equal(1, await page.Locator("#graph-svg g.node.selected[data-id='Order']").CountAsync());
 
     // An unknown name is ignored.

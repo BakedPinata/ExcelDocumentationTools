@@ -210,6 +210,12 @@ Reading them is step B2 of the feedback plan.
 - **The page is built like vbadoc's**: the same top bar, tabs, tokens, theme switch, fonts and Content-Security-Policy.
   Its view talks to the page through `window.pqdoc`, shaped like `window.vbadoc`, so a later combined page can host both
   tools' views.
+- **On the same shell as vbadoc's** (1.5.2, step C2; see [shared/README.md](../../shared/README.md)). The top bar, tabs,
+  theme, details panel and splitter, Load folder and source view are the shell's; pqdoc's page keeps its view, search,
+  summary and what the details panel shows. `page.html` became two fragments (`search.html`, `views.html`) that
+  `HtmlExporter` gives to `ShellPage`, which keeps FR-HTML-9's template as an embedded resource, now the shell's. The
+  page looks and works as before, checked pixel by pixel. The panel's ids are now `side-panel-…`; its stored size and
+  visibility keep their keys, and its content keeps its `details-…` ids.
 - **A query's id in the page is its name**, as a module's is in vbadoc, so `pqdoc.select` takes a name.
 - **The details panel is part of the layout**, like vbadoc's source panel, not a drawer over the graph.
 - **Colours were validated, not eyeballed.** Root, leaf and cycle use vbadoc's three hues, the only ones that pass with

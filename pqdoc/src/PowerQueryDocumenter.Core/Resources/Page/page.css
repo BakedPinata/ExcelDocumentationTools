@@ -1,20 +1,14 @@
-/* pqdoc page styles. Colours are tokens per theme (html[data-theme]); everything else uses the tokens. */
+/* pqdoc's page styles: its view, its summary in the top bar, and what it shows in the details panel. The frame
+   and the shared colour tokens are the shell's (shell.css in the shared library), which comes first. Colours
+   are tokens per theme (html[data-theme]); everything else uses the tokens. */
 
+/* The details panel's share of the layout until the user resizes it: narrow, so the graph has the room. */
 :root {
-  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-code: ui-monospace, "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, monospace;
-  --radius: 6px;
+  --side-panel-default: 28%;
+  --side-panel-default-stacked: 40%;
 }
 
 html[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #14161a;
-  --surface: #1c1f24;
-  --surface-2: #252930;
-  --border: #343a42;
-  --text: #e6e8eb;
-  --text-muted: #9aa3ad;
-  --accent: #6ea8fe;
   /* Graph: vbadoc's three validated categorical hues (all-pairs). A query in a cycle is always intermediate, so
      the fourth state needs no fourth hue: intermediate queries are neutral, and orange means only "cycle". */
   --role-root: #3987e5;
@@ -22,253 +16,55 @@ html[data-theme="dark"] {
   --role-cycle: #d95926;
   --role-intermediate: #9aa3ad;
   --edge: #7d8691;
-  /* Source: vbadoc's tokens, checked against the same background. */
-  --accent-text: #0b1220;
-  --warn: #f0b75a;
-  --syn-keyword: #c792ea;
-  --syn-string: #c3e88d;
-  --syn-comment: #7f8c98;
-  --syn-number: #f78c6c;
-  --syn-name: #82aaff;
-  --syn-type: #ffcb6b;
 }
 
 html[data-theme="light"] {
-  color-scheme: light;
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #eef1f4;
-  --border: #d6dbe1;
-  --text: #1d2228;
-  --text-muted: #5c6670;
-  --accent: #2f6fde;
   --role-root: #2a78d6;
   --role-leaf: #1baf7a;
   --role-cycle: #eb6834;
   --role-intermediate: #5c6670;
   --edge: #8a939c;
-  --accent-text: #ffffff;
-  --warn: #8a5a00;
-  --syn-keyword: #8839ef;
-  --syn-string: #2b7a0b;
-  --syn-comment: #6a737d;
-  --syn-number: #b5530b;
-  --syn-name: #1f5fbf;
-  --syn-type: #9a6700;
 }
 
-* { box-sizing: border-box; }
+/* ---- Top bar: room for the summary ---- */
 
-html, body { height: 100%; margin: 0; }
-
-body {
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-  color: var(--text);
-  font: 14px/1.45 var(--font-ui);
-}
-
-.visually-hidden {
-  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
-}
-
-.muted { color: var(--text-muted); }
-
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-/* ---- Top bar ---- */
-
-.topbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  padding: 8px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-}
-
-.title { margin: 0; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30ch; }
-
-.tabs { display: flex; gap: 4px; }
-
-.tabs [role="tab"] {
-  padding: 6px 12px;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  background: none;
-  color: var(--text-muted);
-  font: inherit;
-  cursor: pointer;
-}
-.tabs [role="tab"]:hover { color: var(--text); background: var(--surface-2); }
-.tabs [role="tab"][aria-selected="true"] { color: var(--text); background: var(--surface-2); border-color: var(--border); font-weight: 600; }
-
-.search { flex: 1 1 160px; min-width: 160px; max-width: 420px; }
-.search input {
-  width: 100%;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg);
-  color: var(--text);
-  font: inherit;
-}
+.search { flex-basis: 160px; }
 .search input::placeholder { color: var(--text-muted); }
 
 /* Wraps rather than being cut off, because the generation time is at the end. */
 .summary { flex: 1 1 200px; min-width: 200px; margin: 0; font-size: 12px; line-height: 1.25; }
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.button:hover { border-color: var(--accent); }
-.button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
-
-/* Load folder and what it found. The file input is hidden; its label is the button. */
-.source-status { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.source-status[hidden] { display: none; }
-.source-status input[type="file"] { display: none; }
-#source-status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40ch; }
-.source-status.embedded #load-folder-label { display: none; }
-.warning { color: var(--warn); }
-
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-
-/* Details and theme switches and the version, kept together at the right end of the bar. */
-.topbar-end { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-left: auto; }
-.details-toggle[aria-pressed="true"] { border-color: var(--accent); }
-/* The version links to the project on GitHub; following a link isn't loading anything, so the CSP needn't allow it. */
-.tool-version { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); white-space: nowrap; text-decoration: none; }
-.tool-version:hover { color: var(--text); text-decoration: underline; }
-.github-mark { width: 14px; height: 14px; flex: none; fill: currentColor; }
-html[data-theme="dark"] .theme-icon::before { content: "\263E"; }  /* moon */
-html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
-
-/* ---- Layout: view on the left, details on the right; stacked on narrow screens ----
-   The splitter between them sets --details-size (a percentage, see page.js), and the details panel can be hidden. */
-
-.layout {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 7px minmax(240px, var(--details-size, 28%));
-}
-.layout.details-hidden { grid-template-columns: minmax(0, 1fr); }
-
-.view { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
-.view[hidden] { display: none; }
-
-.details-panel {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  background: var(--surface);
-}
-.details-panel[hidden], .splitter[hidden] { display: none; }
-
-/* The splitter is wider than the line it draws, so it's easy to grab. */
-.splitter {
-  position: relative;
-  cursor: col-resize;
-  touch-action: none;
-  background: var(--surface);
-}
-.splitter::before { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: var(--border); }
-.splitter:hover::before, .splitter.dragging::before { left: 2px; width: 3px; background: var(--accent); }
-.splitter:focus-visible { outline-offset: -2px; }
-body.resizing { cursor: col-resize; user-select: none; }
-
-.details-close {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  z-index: 1;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  background: none;
-  color: var(--text-muted);
-  font: 18px/1 var(--font-ui);
-  cursor: pointer;
-}
-.details-close:hover { color: var(--text); border-color: var(--border); background: var(--surface-2); }
-
 @media (max-width: 900px) {
-  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(200px, 1fr) 7px minmax(160px, var(--details-size, 40%)); }
-  .layout.details-hidden { grid-template-rows: minmax(0, 1fr); }
-  .splitter { cursor: row-resize; }
-  .splitter::before { top: 3px; bottom: auto; left: 0; right: 0; width: auto; height: 1px; }
-  .splitter:hover::before, .splitter.dragging::before { top: 2px; left: 0; width: auto; height: 3px; }
-  body.resizing { cursor: row-resize; }
-  .title { max-width: 100%; flex-basis: 100%; }
   .summary { flex-basis: 100%; }
 }
 
 /* ---- Details panel ---- */
 
-.details-header { padding: 12px 40px 12px 16px; border-bottom: 1px solid var(--border); }
-.details-header:empty { display: none; }
-.details-header h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
-.details-header p { margin: 0; font-size: 12.5px; }
+.side-panel-header h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.side-panel-header p { margin: 0; font-size: 12.5px; }
 
-.details-body { flex: 1; min-height: 0; overflow: auto; padding: 4px 16px 16px; font-size: 12.5px; }
+.side-panel-body { padding: 4px 16px 16px; font-size: 12.5px; }
 .details-message { margin: 12px 24px 0 0; color: var(--text-muted); font-size: 14px; }
-.details-body h3 { display: flex; align-items: center; gap: 6px; margin: 12px 0 2px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
-.details-body ul { list-style: none; margin: 0; padding: 0; }
-.details-body li { padding: 1px 0; overflow-wrap: anywhere; }
-.details-body .none { margin: 2px 0 0; }
-.details-body .reach { margin: 14px 0 0; }
-.details-body .actions { margin-top: 12px; }
-.details-body .button { padding: 3px 8px; }
+.side-panel-body h3 { display: flex; align-items: center; gap: 6px; margin: 12px 0 2px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.side-panel-body ul { list-style: none; margin: 0; padding: 0; }
+.side-panel-body li { padding: 1px 0; overflow-wrap: anywhere; }
+.side-panel-body .none { margin: 2px 0 0; }
+.side-panel-body .reach { margin: 14px 0 0; }
+.side-panel-body .actions { margin-top: 12px; }
+.side-panel-body .button { padding: 3px 8px; }
 /* The colour ties a list to its edges in the graph; the heading itself stays in a text colour. */
 .swatch { flex: none; width: 14px; height: 3px; border-radius: 2px; }
 .swatch.upstream { background: var(--role-root); }
 .swatch.downstream { background: var(--role-leaf); }
 
-/* ---- Source (FR-SRC-1): the same markup and classes as vbadoc's source panel ---- */
+/* ---- Source (FR-SRC-1): the shell's source view, set into the details ---- */
 
-.details-body h3 .file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; text-transform: none; letter-spacing: 0; }
-.details-body .source-message { margin: 4px 0 0; color: var(--text-muted); }
-.details-body .source-message p { margin: 0; }
-.details-body .source-message .button { margin-top: 8px; }
+.side-panel-body h3 .file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.side-panel-body .source-message { margin: 4px 0 0; color: var(--text-muted); }
+.side-panel-body .source-message p { margin: 0; }
+.side-panel-body .source-message .button { margin-top: 8px; }
 /* Only the code scrolls sideways, so a long line (an Enter Data query's) doesn't push the lists above out of view. */
-.details-body .source { margin-top: 4px; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
-
-.code { margin: 0; padding: 8px 0; font: 12.5px/1.5 var(--font-code); tab-size: 4; min-width: max-content; }
-.code .line { display: flex; white-space: pre; }
-.code .ln {
-  flex: none;
-  width: 5ch;
-  padding-right: 12px;
-  text-align: right;
-  color: var(--text-muted);
-  user-select: none;
-}
-.code .lt { padding-right: 16px; }
-
-.tok-keyword { color: var(--syn-keyword); }
-.tok-string { color: var(--syn-string); }
-.tok-comment { color: var(--syn-comment); font-style: italic; }
-.tok-number { color: var(--syn-number); }
-.tok-name { color: var(--syn-name); font-weight: 600; }
-.tok-type { color: var(--syn-type); }
+.side-panel-body .source { margin-top: 4px; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
 
 /* ---- Dependency graph (graph.js) ---- */
 

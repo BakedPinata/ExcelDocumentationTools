@@ -112,6 +112,12 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   output was byte-identical apart from the build stamp. Two things changed underneath: module files and the page are
   now written atomically, through a temporary file, as pqdoc's outputs already were; and the page's JSON gets the same
   script-element escaping as pqdoc's, which changes nothing because the serialiser already escapes those characters.
+- **The page shell** (0.8.2, step C2). The top bar, tabs, theme, stored settings, source panel and splitter, Load folder
+  and the source view are the shared shell's now (see [shared/README.md](../../shared/README.md)); vbadoc's page keeps
+  its views, search, trail, Home and what the panel shows. `page.html` became three fragments (`search.html`,
+  `trail.html`, `views.html`) that `HtmlPageWriter` gives to `ShellPage`. The page looks and works as before, checked
+  pixel by pixel. The panel's ids are now `side-panel-…`, and marked lines use the class `marked`; stored settings keep
+  their keys. The heading and Load folder gained tooltips.
 
 ## Source analysis (stages 2–3)
 

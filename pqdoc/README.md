@@ -266,8 +266,9 @@ src/PowerQueryDocumenter.Core/     All the logic
   Export/                 IExporter and the CSV, PlantUML source, PlantUML render and HTML exporters
   Output/                 Overwrite policy, query files
   Application/            Run orchestration, error messages
-  Resources/Page/         The HTML page: template, styles, scripts and favicon (embedded resources)
-../shared/                Code shared with vbadoc: opening workbooks, exit codes, writing files, building the page, D3.js
+  Resources/Page/         pqdoc's part of the page: its view, search box, styles, scripts and favicon (embedded
+                          resources), set into the page shell from ../shared
+../shared/                Code shared with vbadoc: opening workbooks, exit codes, writing files, the page shell, D3.js
 tests/PowerQueryDocumenter.Tests/
   Fixtures/Queries/       Sample .m files: a cycle, an isolated query, awkward names
   ...                     Unit tests per area, end-to-end tests, optional integration tests

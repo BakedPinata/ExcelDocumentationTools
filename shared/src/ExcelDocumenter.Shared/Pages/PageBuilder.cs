@@ -31,8 +31,9 @@ public static partial class PageBuilder
   }
 
   /// <summary>
-  /// The page's scripts, each in its own <c>&lt;script&gt;</c> element: vendored d3 with its licence as a comment, then
-  /// the tool's own scripts, embedded in <paramref name="assembly"/>, in the order given.
+  /// The page's scripts, each in its own <c>&lt;script&gt;</c> element: vendored d3 with its licence as a comment, the
+  /// shell's script (<see cref="ShellPage"/>), then the tool's own scripts, embedded in <paramref name="assembly"/>, in
+  /// the order given.
   /// </summary>
   /// <exception cref="InvalidOperationException">A script can't be inlined safely.</exception>
   public static string Scripts(Assembly assembly, IEnumerable<string> pageScripts)
@@ -45,6 +46,7 @@ public static partial class PageBuilder
     var d3 = VendoredScripts.D3;
     var licence = $"/*! {d3.Name} {d3.Version} ({d3.LicenceName} licence)\n\n{d3.LicenceText.Trim()}\n*/\n";
     AppendScript(scripts, $"{d3.Name} {d3.Version}", licence + d3.Code);
+    AppendScript(scripts, "Shell/shell.js", EmbeddedResources.ReadText(typeof(PageBuilder).Assembly, "Shell/shell.js"));
 
     foreach (var name in pageScripts)
     {

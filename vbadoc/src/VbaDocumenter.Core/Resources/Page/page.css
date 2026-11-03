@@ -1,29 +1,14 @@
-/* vbadoc page styles. Colours are tokens per theme (html[data-theme]); everything else uses the tokens. */
+/* vbadoc's page styles: its views, and what it shows in the side panel and under the top bar. The frame and the
+   shared colour tokens are the shell's (shell.css in the shared library), which comes first. Colours are tokens
+   per theme (html[data-theme]); everything else uses the tokens. */
 
+/* The side panel's share of the layout until the user resizes it: wide, because it shows the source. */
 :root {
-  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-code: ui-monospace, "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, monospace;
-  --radius: 6px;
+  --side-panel-default: 42%;
+  --side-panel-default-stacked: 45%;
 }
 
 html[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #14161a;
-  --surface: #1c1f24;
-  --surface-2: #252930;
-  --border: #343a42;
-  --text: #e6e8eb;
-  --text-muted: #9aa3ad;
-  --accent: #6ea8fe;
-  --accent-text: #0b1220;
-  --warn: #f0b75a;
-  --line-highlight: rgba(110, 168, 254, 0.14);
-  --syn-keyword: #c792ea;
-  --syn-string: #c3e88d;
-  --syn-comment: #7f8c98;
-  --syn-number: #f78c6c;
-  --syn-name: #82aaff;
-  --syn-type: #ffcb6b;
   /* Graph: three validated categorical hues (all-pairs) for module groups; edge kinds also differ by dash. */
   --kind-code: #3987e5;
   --kind-class: #d95926;
@@ -36,23 +21,6 @@ html[data-theme="dark"] {
 }
 
 html[data-theme="light"] {
-  color-scheme: light;
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #eef1f4;
-  --border: #d6dbe1;
-  --text: #1d2228;
-  --text-muted: #5c6670;
-  --accent: #2f6fde;
-  --accent-text: #ffffff;
-  --warn: #8a5a00;
-  --line-highlight: rgba(47, 111, 222, 0.10);
-  --syn-keyword: #8839ef;
-  --syn-string: #2b7a0b;
-  --syn-comment: #6a737d;
-  --syn-number: #b5530b;
-  --syn-name: #1f5fbf;
-  --syn-type: #9a6700;
   --kind-code: #2a78d6;
   --kind-class: #eb6834;
   --kind-host: #1baf7a;
@@ -62,103 +30,6 @@ html[data-theme="light"] {
   --hull-fill: rgba(11, 11, 11, 0.03);
   --hull-stroke: rgba(11, 11, 11, 0.14);
 }
-
-* { box-sizing: border-box; }
-
-html, body { height: 100%; margin: 0; }
-
-body {
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-  color: var(--text);
-  font: 14px/1.45 var(--font-ui);
-}
-
-.visually-hidden {
-  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
-}
-
-.muted { color: var(--text-muted); }
-
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-/* ---- Top bar ---- */
-
-.topbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  padding: 8px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-}
-
-.title { margin: 0; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30ch; }
-
-.tabs { display: flex; gap: 4px; }
-
-.tabs [role="tab"] {
-  padding: 6px 12px;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  background: none;
-  color: var(--text-muted);
-  font: inherit;
-  cursor: pointer;
-}
-.tabs [role="tab"]:hover { color: var(--text); background: var(--surface-2); }
-.tabs [role="tab"][aria-selected="true"] { color: var(--text); background: var(--surface-2); border-color: var(--border); font-weight: 600; }
-
-.search { flex: 1 1 220px; min-width: 160px; max-width: 420px; }
-.search input {
-  width: 100%;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg);
-  color: var(--text);
-  font: inherit;
-}
-
-.button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.button:hover { border-color: var(--accent); }
-.button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
-
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-
-.source-status { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.source-status input[type="file"] { display: none; }
-#source-status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40ch; }
-.source-status.embedded #load-folder-label { display: none; }
-.warning { color: var(--warn); }
-
-/* Source and theme switches and the version, kept together at the right end of the bar. */
-.topbar-end { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-left: auto; }
-.source-toggle[aria-pressed="true"] { border-color: var(--accent); }
-/* The version links to the project on GitHub; following a link isn't loading anything, so the CSP needn't allow it. */
-.tool-version { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); white-space: nowrap; text-decoration: none; }
-.tool-version:hover { color: var(--text); text-decoration: underline; }
-.github-mark { width: 14px; height: 14px; flex: none; fill: currentColor; }
-html[data-theme="dark"] .theme-icon::before { content: "\263E"; }  /* moon */
-html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
-
-/* ---- Layout: view on the left, source on the right; stacked on narrow screens ----
-   The splitter between them sets --source-size (a percentage, see page.js), and the source panel can be hidden. */
 
 /* ---- Trail: the route walked from Home, under the top bar ---- */
 
@@ -174,84 +45,23 @@ html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
 .trail-clear { flex: none; color: var(--text-muted); font-size: 16px; line-height: 1; }
 .trail-clear[hidden] { display: none; }
 
-.layout {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 7px minmax(240px, var(--source-size, 42%));
-}
-.layout.source-hidden { grid-template-columns: minmax(0, 1fr); }
-
-.view { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
-.view[hidden] { display: none; }
 .placeholder { margin: 24px; color: var(--text-muted); }
-
-.source-panel {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  background: var(--surface);
-}
-.source-panel[hidden], .splitter[hidden] { display: none; }
-
-/* The splitter is wider than the line it draws, so it's easy to grab. */
-.splitter {
-  position: relative;
-  cursor: col-resize;
-  touch-action: none;
-  background: var(--surface);
-}
-.splitter::before { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: var(--border); }
-.splitter:hover::before, .splitter.dragging::before { left: 2px; width: 3px; background: var(--accent); }
-.splitter:focus-visible { outline-offset: -2px; }
-body.resizing { cursor: col-resize; user-select: none; }
-
-.source-close {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  z-index: 1;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  background: none;
-  color: var(--text-muted);
-  font: 18px/1 var(--font-ui);
-  cursor: pointer;
-}
-.source-close:hover { color: var(--text); border-color: var(--border); background: var(--surface-2); }
-
-@media (max-width: 900px) {
-  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(200px, 1fr) 7px minmax(160px, var(--source-size, 45%)); }
-  .layout.source-hidden { grid-template-rows: minmax(0, 1fr); }
-  .splitter { cursor: row-resize; }
-  .splitter::before { top: 3px; bottom: auto; left: 0; right: 0; width: auto; height: 1px; }
-  .splitter:hover::before, .splitter.dragging::before { top: 2px; left: 0; width: auto; height: 3px; }
-  body.resizing { cursor: row-resize; }
-  .title { max-width: 100%; flex-basis: 100%; }
-}
 
 /* ---- Source panel ---- */
 
-.source-header { padding: 12px 40px 12px 16px; border-bottom: 1px solid var(--border); }
-.source-header:empty { display: none; }
-.source-header h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; word-break: break-word; }
+.side-panel-header h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; word-break: break-word; }
 .home-toggle { margin-left: 4px; padding: 0 3px; font: inherit; font-size: 15px; line-height: 1; color: var(--text-muted); background: none; border: 1px solid transparent; border-radius: var(--radius); cursor: pointer; vertical-align: 1px; }
 .home-toggle:hover { color: var(--warn); background: var(--surface-2); }
 .home-toggle[aria-pressed="true"] { color: var(--warn); }
 #graph-path .star { color: var(--warn); }
-.source-header .kind { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--text-muted); }
-.source-header .signature { margin: 0 0 6px; font-family: var(--font-code); font-size: 12.5px; color: var(--text-muted); word-break: break-word; }
-.source-header .badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.side-panel-header .kind { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--text-muted); }
+.side-panel-header .signature { margin: 0 0 6px; font-family: var(--font-code); font-size: 12.5px; color: var(--text-muted); word-break: break-word; }
+.side-panel-header .badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
 .badge { padding: 1px 8px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; color: var(--text-muted); }
 .badge.warning { border-color: var(--warn); color: var(--warn); }
-.source-header .late-bound { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; }
-.source-header .late-bound code { font-family: var(--font-code); }
-.source-header .actions { margin-top: 8px; }
+.side-panel-header .late-bound { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; }
+.side-panel-header .late-bound code { font-family: var(--font-code); }
+.side-panel-header .actions { margin-top: 8px; }
 
 /* The Dependencies list: collapsible, each list scrolls on its own so the header can't take over the panel. */
 .dependencies { margin-top: 8px; font-size: 12.5px; }
@@ -264,23 +74,6 @@ body.resizing { cursor: col-resize; user-select: none; }
 .edge-tag { padding: 0 6px; border: 1px solid var(--border); border-radius: 999px; font-size: 11px; }
 .edge-tag.implements { border-color: var(--edge-implements); border-style: dashed; }
 .edge-tag.events { border-color: var(--edge-events); border-style: dotted; }
-
-.source-body { flex: 1; min-height: 0; overflow: auto; }
-.source-message { margin: 16px 40px 16px 16px; color: var(--text-muted); }
-.source-message .button { margin-top: 8px; }
-
-.code { margin: 0; padding: 8px 0; font: 12.5px/1.5 var(--font-code); tab-size: 4; min-width: max-content; }
-.code .line { display: flex; white-space: pre; }
-.code .line.in-member { background: var(--line-highlight); }
-.code .ln {
-  flex: none;
-  width: 5ch;
-  padding-right: 12px;
-  text-align: right;
-  color: var(--text-muted);
-  user-select: none;
-}
-.code .lt { padding-right: 16px; }
 
 /* ---- Dependency graph (graph.js) ---- */
 
@@ -476,10 +269,3 @@ body.resizing { cursor: col-resize; user-select: none; }
 .view-message { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--text-muted); pointer-events: none; }
 .view-message[hidden] { display: none; }
 
-/* Syntax highlighting (classes from vba-highlight.js) */
-.tok-keyword { color: var(--syn-keyword); }
-.tok-string { color: var(--syn-string); }
-.tok-comment { color: var(--syn-comment); font-style: italic; }
-.tok-number { color: var(--syn-number); }
-.tok-name { color: var(--syn-name); font-weight: 600; }
-.tok-type { color: var(--syn-type); }

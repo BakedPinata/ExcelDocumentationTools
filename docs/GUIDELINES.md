@@ -69,7 +69,7 @@ of generated pages, because changing one changes every page.
   solution, `src/` and `tests/`.
 - **Code both tools need lives once, in `shared/`** (`ExcelDocumenter.Shared`, with `ExcelDocumenter.Shared.Tests` and
   its own solution). It holds only what is duplicated or needed by both: opening a workbook, exit codes, the build
-  stamp, writing a source folder and atomic writes, the page-building helpers, and vendored d3. The tools' Core
+  stamp, writing a source folder and atomic writes, the page shell and its helpers, and vendored d3. The tools' Core
   libraries use it and never each other, and it never uses them. It isn't a product, so it has no short name or version
   of its own; `shared/README.md` says what's in it and records its decisions. Code that only one tool needs stays in
   that tool, even if the other might need it one day.
@@ -117,9 +117,14 @@ of generated pages, because changing one changes every page.
 
 ## HTML pages
 
-- vbadoc's page is the reference design: colour tokens per theme on `html[data-theme]`, a remembered theme switch
-  with system default, system UI fonts, a Content-Security-Policy that blocks all network access, a top bar showing
-  the build stamp and linking to the repository, and a favicon in the same style.
+- **Every page is built on one shell**, in `shared/` (`ShellPage`, with `shell.html`, `shell.css` and `shell.js` in
+  `Resources/Shell/`). It owns the frame: colour tokens per theme on `html[data-theme]`, a remembered theme switch
+  with system default, system UI fonts, a Content-Security-Policy that blocks all network access, a top bar with tabs,
+  search box, Load folder and the build stamp linking to the repository, the side panel and its splitter, and the
+  source view. A tool brings its views, its search box, what its side panel shows, its data and a favicon in the same
+  style. The shell's interface is written at the top of `shell.js`.
+- **Each tool keeps its own global, data block and stored settings** (`window.vbadoc`, `#vbadoc-data`, `vbadoc-…`),
+  so its views talk to the tool, not the shell, and a setting remembered before the shell keeps working.
 - **Generated pages never load anything from the network.**
 - Vendored libraries are stored once, byte-for-byte unchanged, in `shared/src/ExcelDocumenter.Shared/Resources/Vendor/`
   with their licence files, and are inlined into each page with the licence as a comment.

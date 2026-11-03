@@ -51,7 +51,7 @@ public class GraphTests(PageFixture fixture)
     await page.ClickAsync("#graph-svg g.node[data-id='Main']");
 
     Assert.Equal("Main", await Selection(page));
-    Assert.Contains("Main", await page.InnerTextAsync("#source-header h2"));
+    Assert.Contains("Main", await page.InnerTextAsync("#side-panel-header h2"));
     Assert.Equal(1, await Count(page, "#graph-svg g.node.selected"));
     Assert.Equal(9, await Count(page, "#graph-svg g.node.related")); // 8 it uses + Sheet1, which uses it
     Assert.Equal(9, await Count(page, "#graph-svg path.edge.highlighted"));
@@ -583,7 +583,7 @@ public class GraphTests(PageFixture fixture)
     Assert.True(await page.EvaluateAsync<bool>(withinView));
 
     await page.Keyboard.PressAsync("Escape");
-    await page.ClickAsync("#source-toggle");
+    await page.ClickAsync("#side-panel-toggle");
     await page.ClickAsync("#graph-filters summary");
     Assert.False(await page.EvaluateAsync<bool>(stacked));
     Assert.True(await page.EvaluateAsync<bool>(withinView));

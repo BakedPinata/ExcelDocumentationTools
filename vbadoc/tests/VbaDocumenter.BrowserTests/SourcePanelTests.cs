@@ -13,8 +13,8 @@ public class SourcePanelTests(PageFixture fixture)
     await opened.SelectAsync("Order.Describe");
 
     Assert.Equal(new[] { 42, 43, 44 }, await opened.ShownLinesAsync());
-    Assert.Contains("Describe = m_Id", await opened.Page.InnerTextAsync("#source-body"));
-    Assert.Contains("Public Function Describe() As String", await opened.Page.InnerTextAsync("#source-header .signature"));
+    Assert.Contains("Describe = m_Id", await opened.Page.InnerTextAsync("#side-panel-body"));
+    Assert.Contains("Public Function Describe() As String", await opened.Page.InnerTextAsync("#side-panel-header .signature"));
   }
 
   [Fact]
@@ -27,7 +27,7 @@ public class SourcePanelTests(PageFixture fixture)
     await page.ClickAsync("#toggle-context");
 
     Assert.Equal(Enumerable.Range(1, 44), await opened.ShownLinesAsync());
-    var marked = await page.Locator("#source-body .line.in-member .ln").AllInnerTextsAsync();
+    var marked = await page.Locator("#side-panel-body .line.marked .ln").AllInnerTextsAsync();
     Assert.Equal(["42", "43", "44"], marked);
 
     await page.ClickAsync("#toggle-context");
@@ -41,7 +41,7 @@ public class SourcePanelTests(PageFixture fixture)
     await opened.SelectAsync("Order");
 
     Assert.Equal(44, (await opened.ShownLinesAsync()).Length);
-    Assert.StartsWith("1VERSION 1.0 CLASS", (await opened.Page.InnerTextAsync("#source-body .line")).Replace("\n", ""));
+    Assert.StartsWith("1VERSION 1.0 CLASS", (await opened.Page.InnerTextAsync("#side-panel-body .line")).Replace("\n", ""));
   }
 
   [Fact]
@@ -51,17 +51,17 @@ public class SourcePanelTests(PageFixture fixture)
     var page = opened.Page;
 
     await opened.SelectAsync("Main.ProcessOrders");
-    Assert.Contains("Macro", await page.InnerTextAsync("#source-header .badges"));
-    Assert.Contains("legacy.ExportAll", await page.InnerTextAsync("#source-header .late-bound"));
+    Assert.Contains("Macro", await page.InnerTextAsync("#side-panel-header .badges"));
+    Assert.Contains("legacy.ExportAll", await page.InnerTextAsync("#side-panel-header .late-bound"));
 
     await opened.SelectAsync("Utils.UnusedHelper");
-    Assert.Contains("Unreferenced", await page.InnerTextAsync("#source-header .badges"));
+    Assert.Contains("Unreferenced", await page.InnerTextAsync("#side-panel-header .badges"));
 
     await opened.SelectAsync("Sheet1.btnRun_Click");
-    Assert.Contains("not in the VBA project", await page.InnerTextAsync("#source-header .badges"));
+    Assert.Contains("not in the VBA project", await page.InnerTextAsync("#side-panel-header .badges"));
 
     // The module link in the header selects the module.
-    await page.ClickAsync("#source-header a[data-select]");
+    await page.ClickAsync("#side-panel-header a[data-select]");
     Assert.Equal("Sheet1", await page.EvaluateAsync<string>("() => window.vbadoc.selection()"));
   }
 
@@ -72,7 +72,7 @@ public class SourcePanelTests(PageFixture fixture)
     var page = opened.Page;
     await opened.SelectAsync("Main");
 
-    async Task<IReadOnlyList<string>> Tokens(string kind) => await page.Locator($"#source-body .tok-{kind}").AllInnerTextsAsync();
+    async Task<IReadOnlyList<string>> Tokens(string kind) => await page.Locator($"#side-panel-body .tok-{kind}").AllInnerTextsAsync();
 
     Assert.Contains("Sub", await Tokens("keyword"));
     Assert.Contains("ProcessOrders", await Tokens("name"));
@@ -106,11 +106,11 @@ public class SourcePanelTests(PageFixture fixture)
     var page = opened.Page;
     await opened.SelectAsync("Order.Describe");
 
-    Assert.Contains("isn't loaded yet", await page.InnerTextAsync("#source-body"));
+    Assert.Contains("isn't loaded yet", await page.InnerTextAsync("#side-panel-body"));
     Assert.True(await page.IsVisibleAsync("#load-folder-prompt"));
 
     await page.SetInputFilesAsync("#load-folder", fixture.SampleFolder);
-    await page.WaitForFunctionAsync("() => document.querySelector('#source-body .line') !== null");
+    await page.WaitForFunctionAsync("() => document.querySelector('#side-panel-body .line') !== null");
 
     Assert.Equal("Loaded 12 file(s)", await page.InnerTextAsync("#source-status-text"));
     Assert.Equal(new[] { 42, 43, 44 }, await opened.ShownLinesAsync());
@@ -143,6 +143,6 @@ public class SourcePanelTests(PageFixture fixture)
 
     await opened.SelectAsync("Summary_graph");
 
-    Assert.Contains("Redirigés_Smry_FormPil", await page.InnerTextAsync("#source-body"));
+    Assert.Contains("Redirigés_Smry_FormPil", await page.InnerTextAsync("#side-panel-body"));
   }
 }

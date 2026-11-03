@@ -75,7 +75,7 @@ public class PageShellTests(PageFixture fixture)
 
     // Links follow the theme's accent colour, not the browser's default blue.
     await opened.SelectAsync("Order.Describe");
-    var linkColour = await page.EvaluateAsync<string>("() => getComputedStyle(document.querySelector('#source-header a')).color");
+    var linkColour = await page.EvaluateAsync<string>("() => getComputedStyle(document.querySelector('#side-panel-header a')).color");
     Assert.Equal("rgb(47, 111, 222)", linkColour);
 
     await page.ReloadAsync();
@@ -92,7 +92,7 @@ public class PageShellTests(PageFixture fixture)
     await page.PressAsync("#search", "Enter");
 
     Assert.Equal("Order.IsValid", await page.EvaluateAsync<string>("() => window.vbadoc.selection()"));
-    Assert.Contains("IsValid", await page.InnerTextAsync("#source-header h2"));
+    Assert.Contains("IsValid", await page.InnerTextAsync("#side-panel-header h2"));
   }
 
   [Fact]

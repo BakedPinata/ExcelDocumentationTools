@@ -442,11 +442,11 @@ public sealed class GraphTests(PageFixture fixture)
     Assert.Equal(0, await Count(page, "img"));
 
     await opened.SelectAsync(PageFixture.HostileQuery);
-    Assert.Equal(PageFixture.HostileQuery, await page.InnerTextAsync("#details-header h2"));
+    Assert.Equal(PageFixture.HostileQuery, await page.InnerTextAsync("#side-panel-header h2"));
     Assert.Equal(0, await Count(page, "img"));
 
     await opened.SelectAsync("__proto__");
-    Assert.Equal("__proto__", await page.InnerTextAsync("#details-header h2"));
+    Assert.Equal("__proto__", await page.InnerTextAsync("#side-panel-header h2"));
 
     // Only two queries that use each other get curved arrows, however their names read when joined up.
     Assert.Equal(0, await Count(page, "#graph-svg path.edge[d*='Q']"));

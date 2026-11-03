@@ -12,7 +12,7 @@ public sealed class DetailsPanelTests(PageFixture fixture)
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);
 
-    Assert.Contains("Select a query", await opened.Page.InnerTextAsync("#details-body"));
+    Assert.Contains("Select a query", await opened.Page.InnerTextAsync("#side-panel-body"));
   }
 
   [Fact]
@@ -23,7 +23,7 @@ public sealed class DetailsPanelTests(PageFixture fixture)
 
     await opened.SelectAsync("Orders");
 
-    Assert.Equal("Orders", await page.InnerTextAsync("#details-header h2"));
+    Assert.Equal("Orders", await page.InnerTextAsync("#side-panel-header h2"));
     Assert.Equal("Intermediate query.", await page.InnerTextAsync("#details-role"));
     Assert.Equal(["fnCleanText", "Sales Region Map", "Source"], await Listed(opened, "uses"));
     Assert.Equal(["Q1.Summary", "Sales Report"], await Listed(opened, "used-by"));
@@ -70,7 +70,7 @@ public sealed class DetailsPanelTests(PageFixture fixture)
     await page.ClickAsync("#details-used-by a[data-select='Sales Report']");
 
     Assert.Equal("Sales Report", await opened.SelectionAsync());
-    Assert.Equal("Sales Report", await page.InnerTextAsync("#details-header h2"));
+    Assert.Equal("Sales Report", await page.InnerTextAsync("#side-panel-header h2"));
     Assert.Equal(["Sales Report"], await opened.DrawnIdsAsync("#graph-svg g.node.selected"));
   }
 
@@ -84,7 +84,7 @@ public sealed class DetailsPanelTests(PageFixture fixture)
     await page.ClickAsync("#details-clear");
 
     Assert.Null(await opened.SelectionAsync());
-    Assert.Contains("Select a query", await page.InnerTextAsync("#details-body"));
+    Assert.Contains("Select a query", await page.InnerTextAsync("#side-panel-body"));
   }
 
   [Fact]
@@ -95,20 +95,20 @@ public sealed class DetailsPanelTests(PageFixture fixture)
     const string graphWidth = "() => document.getElementById('graph-svg').clientWidth";
     var narrow = await page.EvaluateAsync<int>(graphWidth);
 
-    await page.ClickAsync("#details-close");
+    await page.ClickAsync("#side-panel-close");
 
-    Assert.False(await page.IsVisibleAsync("#details-panel"));
-    Assert.False(await page.IsVisibleAsync("#details-splitter"));
-    Assert.Equal("false", await page.GetAttributeAsync("#details-toggle", "aria-pressed"));
-    Assert.Equal("details-toggle", await page.EvaluateAsync<string>("() => document.activeElement.id"));
+    Assert.False(await page.IsVisibleAsync("#side-panel"));
+    Assert.False(await page.IsVisibleAsync("#side-panel-splitter"));
+    Assert.Equal("false", await page.GetAttributeAsync("#side-panel-toggle", "aria-pressed"));
+    Assert.Equal("side-panel-toggle", await page.EvaluateAsync<string>("() => document.activeElement.id"));
     Assert.True(await page.EvaluateAsync<int>(graphWidth) > narrow);
 
     await page.ReloadAsync();
     await page.WaitForFunctionAsync("() => !!window.pqdocGraph");
-    Assert.False(await page.IsVisibleAsync("#details-panel"));
+    Assert.False(await page.IsVisibleAsync("#side-panel"));
 
-    await page.ClickAsync("#details-toggle");
-    Assert.True(await page.IsVisibleAsync("#details-panel"));
+    await page.ClickAsync("#side-panel-toggle");
+    Assert.True(await page.IsVisibleAsync("#side-panel"));
   }
 
   [Fact]
@@ -116,9 +116,9 @@ public sealed class DetailsPanelTests(PageFixture fixture)
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);
     var page = opened.Page;
-    const string panelWidth = "() => document.getElementById('details-panel').getBoundingClientRect().width";
+    const string panelWidth = "() => document.getElementById('side-panel').getBoundingClientRect().width";
     var before = await page.EvaluateAsync<double>(panelWidth);
-    var splitter = (await page.Locator("#details-splitter").BoundingBoxAsync())!;
+    var splitter = (await page.Locator("#side-panel-splitter").BoundingBoxAsync())!;
     var x = splitter.X + splitter.Width / 2;
     var y = splitter.Y + splitter.Height / 2;
 
@@ -134,7 +134,7 @@ public sealed class DetailsPanelTests(PageFixture fixture)
     await page.WaitForFunctionAsync("() => !!window.pqdocGraph");
     Assert.Equal(after, await page.EvaluateAsync<double>(panelWidth), 0);
 
-    await page.DblClickAsync("#details-splitter"); // back to the default
+    await page.DblClickAsync("#side-panel-splitter"); // back to the default
     Assert.Equal(before, await page.EvaluateAsync<double>(panelWidth), 0);
   }
 
@@ -143,10 +143,10 @@ public sealed class DetailsPanelTests(PageFixture fixture)
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);
     var page = opened.Page;
-    const string panelWidth = "() => document.getElementById('details-panel').getBoundingClientRect().width";
+    const string panelWidth = "() => document.getElementById('side-panel').getBoundingClientRect().width";
     var before = await page.EvaluateAsync<double>(panelWidth);
 
-    await page.ClickAsync("#details-splitter");
+    await page.ClickAsync("#side-panel-splitter");
 
     Assert.Equal(before, await page.EvaluateAsync<double>(panelWidth), 0);
   }
@@ -156,16 +156,16 @@ public sealed class DetailsPanelTests(PageFixture fixture)
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);
     var page = opened.Page;
-    await page.FocusAsync("#details-splitter");
+    await page.FocusAsync("#side-panel-splitter");
 
     await page.Keyboard.PressAsync("End");
-    Assert.Equal("70", await page.GetAttributeAsync("#details-splitter", "aria-valuenow"));
+    Assert.Equal("70", await page.GetAttributeAsync("#side-panel-splitter", "aria-valuenow"));
 
     await page.Keyboard.PressAsync("Home");
-    Assert.Equal("20", await page.GetAttributeAsync("#details-splitter", "aria-valuenow"));
+    Assert.Equal("20", await page.GetAttributeAsync("#side-panel-splitter", "aria-valuenow"));
 
     await page.Keyboard.PressAsync("ArrowLeft");
-    Assert.Equal("22", await page.GetAttributeAsync("#details-splitter", "aria-valuenow"));
+    Assert.Equal("22", await page.GetAttributeAsync("#side-panel-splitter", "aria-valuenow"));
   }
 
   [Fact]
@@ -176,7 +176,7 @@ public sealed class DetailsPanelTests(PageFixture fixture)
     const string transform = "() => document.querySelector('#graph-svg .viewport').getAttribute('transform')";
     var fitted = await page.EvaluateAsync<string>(transform);
 
-    await page.ClickAsync("#details-toggle");
+    await page.ClickAsync("#side-panel-toggle");
     await page.WaitForFunctionAsync($"t => ({transform})() !== t", fitted);
 
     await page.Mouse.MoveAsync(300, 400);
@@ -184,7 +184,7 @@ public sealed class DetailsPanelTests(PageFixture fixture)
     var zoomed = await page.EvaluateAsync<string>(transform);
     await page.WaitForFunctionAsync($"t => ({transform})() !== t", fitted);
 
-    await page.ClickAsync("#details-toggle");
+    await page.ClickAsync("#side-panel-toggle");
 
     // Same zoom: the view shifted to keep its middle, but it wasn't refitted.
     await page.WaitForFunctionAsync($"t => ({transform})() !== t", zoomed);

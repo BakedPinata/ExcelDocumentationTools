@@ -57,14 +57,15 @@ public sealed class PageBuilderTests
   }
 
   [Fact]
-  public void D3_comes_first_with_its_licence_then_the_tools_scripts_in_order()
+  public void D3_comes_first_with_its_licence_then_the_shells_script_then_the_tools()
   {
-    // This assembly embeds no scripts, so the tool's own list is empty here; the tools' tests cover theirs.
+    // A tool's scripts come from its own assembly, so the list is empty here; the tools' tests cover theirs.
     var scripts = PageBuilder.Scripts(typeof(PageBuilder).Assembly, []);
 
     Assert.StartsWith($"<script>\n/*! d3 {VendoredScripts.D3Version} (ISC licence)\n\n", scripts, StringComparison.Ordinal);
     Assert.Contains($"*/\n// https://d3js.org v{VendoredScripts.D3Version} ", scripts, StringComparison.Ordinal);
-    Assert.EndsWith("\n</script>\n", scripts, StringComparison.Ordinal);
+    Assert.Contains("\n</script>\n<script>\n// shell.js:", scripts, StringComparison.Ordinal);
+    Assert.EndsWith("window.ExcelDocumenterShell = { create: create };\n})();\n</script>\n", scripts, StringComparison.Ordinal);
   }
 
   [Fact]
