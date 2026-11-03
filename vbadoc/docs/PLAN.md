@@ -3,7 +3,8 @@
 The tool is built in small stages. Each stage ends with passing tests, a commit and a pause for
 review. It is pushed after the review, and then the next one starts.
 
-**Current state:** stages 0–5 and 5b–5e are done. **Next: stage 6.**
+**Current state:** stages 0–5 and 5b–5e are done. **Next: the [feedback plan](../../FEEDBACK-PLAN.md)**, which works
+across both tools. Stage 7 comes after it, and stage 6 is parked (see [Later](#later)).
 
 | Stage | Scope | Status |
 |---|---|---|
@@ -18,9 +19,14 @@ review. It is pushed after the review, and then the next one starts.
 | 5c | "Uses / Used by" list: a collapsible Dependencies section in the source panel (closed by default), direct links at the selection's level, each entry selects its target | Done |
 | 5d | Navigation: a Home node (one per workbook, remembered per browser, starred in the graph); a breadcrumb trail of the route walked from Home (loops collapse, click a step to go back); "Path from Home" highlights the shortest dependency chain; selections update the page address so browser Back/Forward work | Done |
 | 5e | Command line aligned with pqdoc (version 0.6.0): System.CommandLine, Serilog, the shared exit codes, `--output`, `--quiet` | Done |
-| 6 | UserForms: read controls from the designer storage (MS-OFORMS), link handlers to controls, warn instead of failing on unreadable designer data | Next |
-| 7 | Polish: whole-output determinism test, README, third-party notices | |
+| 6 | UserForms | Parked |
+| 7 | Polish: whole-output determinism test, README, third-party notices | After the feedback plan |
 
 Decisions agreed along the way are in [DECISIONS.md](DECISIONS.md). The specification is [Requirements.md](../Requirements.md).
-Ideas for later that involve both tools, such as combining them into one program, are in
-[pqdoc's plan](../../pqdoc/docs/PLAN.md#later).
+
+## Later
+
+- **Stage 6, UserForms:** read controls from the designer storage (MS-OFORMS), link handlers to controls, and warn
+  instead of failing on unreadable designer data. Parked on 2026-11-03, because the workbooks in use seldom have forms.
+- Ideas that involve both tools, such as combining them into one program, are in the
+  [feedback plan's Later section](../../FEEDBACK-PLAN.md#9-later).
