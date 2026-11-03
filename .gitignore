@@ -18,5 +18,6 @@ private/
 # Local configuration: may hold a private PlantUML server URL
 .env
 
-# Outputs produced by trying pqdoc inside the repository
+# Outputs produced by trying pqdoc inside the repository: before 1.3.0, and beside the sample workbooks
 powerquery-dependencies.*
+pqdoc/tests/PowerQueryDocumenter.Tests/Fixtures/Workbooks/PowerQuery/

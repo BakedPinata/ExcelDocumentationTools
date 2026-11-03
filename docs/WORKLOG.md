@@ -16,8 +16,8 @@ rather than repeating it.
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. The user's build, test and
-  publish of A0 on the work machine is still to come. A0–A4, F1 and B1–B3 are pushed. B4 is done, waiting for review.
-  C1 (the shared library) is next.
+  publish of A0 on the work machine is still to come. A0–A4, F1 and B1–B4 are pushed and reviewed. **Next: C1** (the
+  shared library). Its acceptance needs reference output from the fixtures saved before any code moves.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
