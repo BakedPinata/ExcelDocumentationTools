@@ -212,7 +212,8 @@ public class ClassDiagramTests(PageFixture fixture)
   [Fact]
   public async Task The_selection_is_shared_with_the_dependency_graph()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    // Without the explorer, so OrderService is in view in the graph at the starting zoom.
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutExplorer);
     var page = opened.Page;
     await page.ClickAsync("#graph-svg g.node[data-id='OrderService']");
 

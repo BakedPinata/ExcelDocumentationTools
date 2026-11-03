@@ -119,6 +119,13 @@ These break anything that runs vbadoc from a script:
 - The report now goes to standard error, with each line starting with its level, such as `[INF]`.
 - `--version` now prints `<version>+<commit>`, with `-dirty` if the build had uncommitted changes.
 
+### The page
+
+The explorer on the left lists every module with its members. If your modules have Rubberduck's
+`'@Folder("Parent.Child")` comments, it groups them into those folders; otherwise by kind. Its filter box narrows the
+list, and choosing an item selects it in the graph, the class diagram and the source panel. Hide it with **Explorer**
+in the top bar, or drag its edge to resize it.
+
 ### What it writes
 
 - One file per module: `.bas` (standard module), `.cls` (class, ThisWorkbook and sheets), `.frm` (UserForm).

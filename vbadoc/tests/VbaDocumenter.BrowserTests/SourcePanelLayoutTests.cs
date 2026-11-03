@@ -13,7 +13,7 @@ public class SourcePanelLayoutTests(PageFixture fixture)
       (await page.Locator(selector).BoundingBoxAsync())!.Height;
 
   [Fact]
-  public async Task Hiding_the_panel_gives_both_views_the_full_width_and_is_remembered()
+  public async Task Hiding_the_panel_gives_both_views_the_room_beside_the_explorer_and_is_remembered()
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
@@ -28,11 +28,12 @@ public class SourcePanelLayoutTests(PageFixture fixture)
     Assert.True(await page.Locator("#side-panel").IsHiddenAsync());
     Assert.True(await page.Locator("#side-panel-splitter").IsHiddenAsync());
     Assert.Equal("false", await page.GetAttributeAsync("#side-panel-toggle", "aria-pressed"));
-    Assert.Equal(1280, await WidthAsync(page, "#view-graph"), tolerance: 2);
+    var room = 1280 - await WidthAsync(page, "#explorer") - 7; // everything but the explorer and its splitter
+    Assert.Equal(room, await WidthAsync(page, "#view-graph"), tolerance: 2);
     // The graph moves by half the extra width, so what was in the middle stays in the middle.
-    await page.WaitForFunctionAsync(FormattableString.Invariant($"() => Math.abs(({panX})() - {panBefore} - {(1280 - graphWidth) / 2}) < 2"));
+    await page.WaitForFunctionAsync(FormattableString.Invariant($"() => Math.abs(({panX})() - {panBefore} - {(room - graphWidth) / 2}) < 2"));
     await page.ClickAsync("#tab-classes");
-    Assert.Equal(1280, await WidthAsync(page, "#view-classes"), tolerance: 2);
+    Assert.Equal(room, await WidthAsync(page, "#view-classes"), tolerance: 2);
 
     await page.ReloadAsync();
     Assert.True(await page.Locator("#side-panel").IsHiddenAsync());

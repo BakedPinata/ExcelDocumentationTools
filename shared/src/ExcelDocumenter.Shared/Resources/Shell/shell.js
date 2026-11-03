@@ -19,6 +19,9 @@
 //   shell.activeView() / showView(name, focus) / onViewChange(fn)   tab #tab-<name> shows view #view-<name>
 //   shell.start()                      shows the remembered tab, or the first; call it once the tool is ready
 //   shell.panel.element / header / body   the side panel, for the tool to fill
+//   shell.explorer.setTree(nodes, select)   fills the explorer: nodes are { label, id, detail, badge, title,
+//                                      className, children, expanded }, and choosing one with an id calls select(id)
+//   shell.explorer.reveal(id)          marks the selected item, opening what holds it; null for none
 //   shell.source.init(source)          says where the source text comes from (call it once, before start):
 //     mode         "embedded" (in the page), "folder" (Load folder) or "none" (there's no source to show)
 //     attribute    the attribute that holds each embedded source's id, such as "data-module"
@@ -214,112 +217,330 @@
       return "<div class=\"code\" role=\"region\" aria-label=\"Source code\">" + html.join("") + "</div>";
     }
 
-    // ---- Showing, hiding and resizing the side panel ----
+    // ---- Showing, hiding and resizing the panels ----
     //
-    // One panel serves every view, so they all share its size and whether it's shown. The size is the panel's share
-    // of the layout (of its width, or of its height when the page is narrow and the panel sits below the views), kept
-    // as the --side-panel-size CSS variable. Until the user resizes it, the stylesheets' defaults apply. The views
-    // need no telling: an SVG fills its box and keeps its zoom, and a scrolling box scrolls.
+    // The explorer sits before the views (left, or above them on a narrow screen) and the side panel after them (right,
+    // or below). Every view shares both, so they all share each panel's size and whether it's shown. A panel's size is
+    // its share of the layout (of its width, or of its height when the page is narrow and the panels are stacked), kept
+    // as a CSS variable. Until the user resizes it, the stylesheets' defaults apply. The views need no telling: an SVG
+    // fills its box and keeps its zoom, and a scrolling box scrolls.
 
     var layout = $("layout");
-    var panel = $("side-panel");
-    var splitter = $("side-panel-splitter");
-    var panelToggle = $("side-panel-toggle");
     var stacked = window.matchMedia ? window.matchMedia("(max-width: 900px)") : { matches: false };
-    var MIN_PANEL_SIZE = 0.2;
-    var MAX_PANEL_SIZE = 0.7;
     var KEY_STEP = 0.02;
 
-    function clampSize(size) { return Math.min(MAX_PANEL_SIZE, Math.max(MIN_PANEL_SIZE, size)); }
+    // config: element, splitter, toggle, close (ids); end: true when the panel is after the views; sizeVariable;
+    // setting (stored as <setting>-size and <setting>-hidden); hiddenClass; min and max shares; visibleByDefault().
+    function resizablePanel(config) {
+      var element = $(config.element);
+      var splitter = $(config.splitter);
+      var toggle = $(config.toggle);
 
-    function currentPanelSize() {
-      var rect = layout.getBoundingClientRect();
-      var box = panel.getBoundingClientRect();
-      return stacked.matches ? box.height / rect.height : box.width / rect.width;
-    }
+      function clampSize(size) { return Math.min(config.max, Math.max(config.min, size)); }
 
-    // size: a share of the layout, or null for the stylesheets' default.
-    function setPanelSize(size, remember) {
-      if (size === null) {
-        layout.style.removeProperty("--side-panel-size");
-      } else {
-        size = clampSize(size);
-        layout.style.setProperty("--side-panel-size", (size * 100).toFixed(1) + "%");
+      function currentSize() {
+        var rect = layout.getBoundingClientRect();
+        var box = element.getBoundingClientRect();
+        return stacked.matches ? box.height / rect.height : box.width / rect.width;
       }
-      if (remember) settings.save(options.panel + "-size", size === null ? "" : size.toFixed(3));
-      updateSplitter();
+
+      // size: a share of the layout, or null for the stylesheets' default.
+      function setSize(size, remember) {
+        if (size === null) {
+          layout.style.removeProperty(config.sizeVariable);
+        } else {
+          size = clampSize(size);
+          layout.style.setProperty(config.sizeVariable, (size * 100).toFixed(1) + "%");
+        }
+        if (remember) settings.save(config.setting + "-size", size === null ? "" : size.toFixed(3));
+        updateSplitter();
+      }
+
+      function updateSplitter() {
+        splitter.setAttribute("aria-orientation", stacked.matches ? "horizontal" : "vertical");
+        if (!element.hidden) splitter.setAttribute("aria-valuenow", String(Math.round(currentSize() * 100)));
+      }
+
+      function setVisible(visible, remember) {
+        element.hidden = !visible;
+        splitter.hidden = !visible;
+        layout.classList.toggle(config.hiddenClass, !visible);
+        toggle.setAttribute("aria-pressed", visible ? "true" : "false");
+        if (remember) settings.save(config.setting + "-hidden", visible ? "false" : "true");
+        updateSplitter();
+      }
+
+      toggle.addEventListener("click", function () { setVisible(element.hidden, true); });
+      $(config.close).addEventListener("click", function () {
+        setVisible(false, true);
+        toggle.focus(); // the button that had focus has gone
+      });
+
+      // Dragging. The size is the distance from the pointer to the panel's own edge of the layout, less where in the
+      // splitter it was grabbed. Without that, a click would move the splitter out from under the pointer, and the
+      // second click of a double-click would miss it.
+      var grabOffset = 0;
+
+      function sizeAtPointer(event) {
+        var rect = layout.getBoundingClientRect();
+        if (stacked.matches) return config.end ? (rect.bottom - event.clientY) / rect.height : (event.clientY - rect.top) / rect.height;
+        return config.end ? (rect.right - event.clientX) / rect.width : (event.clientX - rect.left) / rect.width;
+      }
+
+      splitter.addEventListener("pointerdown", function (event) {
+        if (event.button !== 0) return;
+        grabOffset = sizeAtPointer(event) - currentSize();
+        splitter.setPointerCapture(event.pointerId);
+        splitter.classList.add("dragging");
+        document.body.classList.add("resizing");
+        event.preventDefault();
+      });
+      splitter.addEventListener("pointermove", function (event) {
+        if (splitter.hasPointerCapture(event.pointerId)) setSize(sizeAtPointer(event) - grabOffset, false);
+      });
+      function endDrag(event) {
+        if (!splitter.hasPointerCapture(event.pointerId)) return;
+        splitter.releasePointerCapture(event.pointerId);
+        splitter.classList.remove("dragging");
+        document.body.classList.remove("resizing");
+        setSize(sizeAtPointer(event) - grabOffset, true);
+      }
+      splitter.addEventListener("pointerup", endDrag);
+      splitter.addEventListener("pointercancel", endDrag);
+      splitter.addEventListener("dblclick", function () { setSize(null, true); });
+
+      // Keyboard, as for a separator: the arrows move the splitter, Home and End make the panel smallest or largest.
+      splitter.addEventListener("keydown", function (event) {
+        var grow = stacked.matches
+          ? (config.end ? { ArrowUp: 1, ArrowDown: -1 } : { ArrowDown: 1, ArrowUp: -1 })
+          : (config.end ? { ArrowLeft: 1, ArrowRight: -1 } : { ArrowRight: 1, ArrowLeft: -1 });
+        var size;
+        if (grow[event.key]) size = currentSize() + grow[event.key] * KEY_STEP;
+        else if (event.key === "Home") size = config.min;
+        else if (event.key === "End") size = config.max;
+        else if (event.key === "Enter") size = null; // like double-click: back to the default
+        else return;
+        setSize(size, true);
+        event.preventDefault();
+      });
+
+      if (stacked.addEventListener) stacked.addEventListener("change", updateSplitter);
+
+      var storedSize = parseFloat(settings.load(config.setting + "-size"));
+      setSize(isNaN(storedSize) ? null : storedSize, false);
+      var storedHidden = settings.load(config.setting + "-hidden");
+      setVisible(storedHidden === null ? config.visibleByDefault() : storedHidden !== "true", false);
+      return element;
     }
 
-    function updateSplitter() {
-      splitter.setAttribute("aria-orientation", stacked.matches ? "horizontal" : "vertical");
-      if (!panel.hidden) splitter.setAttribute("aria-valuenow", String(Math.round(currentPanelSize() * 100)));
-    }
-
-    function setPanelVisible(visible, remember) {
-      panel.hidden = !visible;
-      splitter.hidden = !visible;
-      layout.classList.toggle("side-panel-hidden", !visible);
-      panelToggle.setAttribute("aria-pressed", visible ? "true" : "false");
-      if (remember) settings.save(options.panel + "-hidden", visible ? "false" : "true");
-      updateSplitter();
-    }
-
-    panelToggle.addEventListener("click", function () { setPanelVisible(panel.hidden, true); });
-    $("side-panel-close").addEventListener("click", function () {
-      setPanelVisible(false, true);
-      panelToggle.focus(); // the button that had focus has gone
+    var panel = resizablePanel({
+      element: "side-panel", splitter: "side-panel-splitter", toggle: "side-panel-toggle", close: "side-panel-close",
+      end: true, sizeVariable: "--side-panel-size", setting: options.panel, hiddenClass: "side-panel-hidden",
+      min: 0.2, max: 0.7, visibleByDefault: function () { return true; }
     });
 
-    // Dragging. The panel is on the right (or at the bottom), so its size is the distance from the pointer to the
-    // layout's far edge, less where in the splitter it was grabbed. Without that, a click would move the splitter out
-    // from under the pointer, and the second click of a double-click would miss it.
-    var grabOffset = 0;
+    // Open by default on a wide screen, where there's room beside the views; on a narrow one it would push them down.
+    resizablePanel({
+      element: "explorer", splitter: "explorer-splitter", toggle: "explorer-toggle", close: "explorer-close",
+      end: false, sizeVariable: "--explorer-size", setting: "explorer", hiddenClass: "explorer-hidden",
+      min: 0.1, max: 0.4, visibleByDefault: function () { return !stacked.matches; }
+    });
 
-    function sizeAtPointer(event) {
-      var rect = layout.getBoundingClientRect();
-      return stacked.matches ? (rect.bottom - event.clientY) / rect.height : (rect.right - event.clientX) / rect.width;
+    // ---- Explorer tree ----
+    //
+    // The tool gives the tree as nodes: { label, id, detail, badge, title, className, children, expanded }. A node with
+    // an id is something the page documents, and choosing it calls the tool's select; one without is a group. Groups
+    // start open and other nodes with children start closed. It's a tree in the ARIA sense: one item is in the tab
+    // order, the arrow keys move through what's showing, and Enter chooses.
+
+    var treeBox = $("explorer-tree");
+    var filterBox = $("explorer-filter");
+    var emptyNote = $("explorer-empty");
+    var itemsById = new Map();
+    var labels = new WeakMap();   // item -> its label in lower case, for the filter
+    var selectItem = function () { };
+    var selectedItem = null;
+
+    function treeNode(node, depth) {
+      var li = document.createElement("li");
+      var isItem = node.id !== undefined && node.id !== null;
+      li.setAttribute("role", "treeitem");
+      li.setAttribute("aria-level", String(depth + 1));
+      li.tabIndex = -1;
+      li.className = (isItem ? "item" : "group") + (node.className ? " " + node.className : "");
+      if (node.title) li.title = node.title;
+      labels.set(li, String(node.label).toLowerCase());
+
+      var row = document.createElement("div");
+      row.className = "tree-row";
+      row.style.setProperty("--depth", String(depth));
+      row.innerHTML = "<span class=\"tree-twisty\" aria-hidden=\"true\"></span><span class=\"tree-label\">" + escapeHtml(node.label) + "</span>" +
+        (node.detail ? "<span class=\"tree-detail\">" + escapeHtml(node.detail) + "</span>" : "") +
+        (node.badge ? "<span class=\"tree-badge\">" + escapeHtml(node.badge) + "</span>" : "");
+      li.appendChild(row);
+
+      if (isItem) {
+        li.dataset.id = node.id;
+        li.setAttribute("aria-selected", "false");
+        itemsById.set(node.id, li);
+      }
+
+      if (node.children && node.children.length > 0) {
+        var open = node.expanded !== undefined ? node.expanded : !isItem;
+        li.setAttribute("aria-expanded", open ? "true" : "false");
+        li.classList.toggle("collapsed", !open);
+        var group = document.createElement("ul");
+        group.setAttribute("role", "group");
+        node.children.forEach(function (child) { group.appendChild(treeNode(child, depth + 1)); });
+        li.appendChild(group);
+      }
+      return li;
     }
 
-    splitter.addEventListener("pointerdown", function (event) {
-      if (event.button !== 0) return;
-      grabOffset = sizeAtPointer(event) - currentPanelSize();
-      splitter.setPointerCapture(event.pointerId);
-      splitter.classList.add("dragging");
-      document.body.classList.add("resizing");
-      event.preventDefault();
-    });
-    splitter.addEventListener("pointermove", function (event) {
-      if (splitter.hasPointerCapture(event.pointerId)) setPanelSize(sizeAtPointer(event) - grabOffset, false);
-    });
-    function endDrag(event) {
-      if (!splitter.hasPointerCapture(event.pointerId)) return;
-      splitter.releasePointerCapture(event.pointerId);
-      splitter.classList.remove("dragging");
-      document.body.classList.remove("resizing");
-      setPanelSize(sizeAtPointer(event) - grabOffset, true);
+    function setTree(nodes, select) {
+      selectItem = select;
+      itemsById.clear();
+      selectedItem = null;
+      treeBox.innerHTML = "";
+      nodes.forEach(function (node) { treeBox.appendChild(treeNode(node, 0)); });
+      var first = treeBox.querySelector("li");
+      if (first) first.tabIndex = 0;
+      applyFilter();
     }
-    splitter.addEventListener("pointerup", endDrag);
-    splitter.addEventListener("pointercancel", endDrag);
-    splitter.addEventListener("dblclick", function () { setPanelSize(null, true); });
 
-    // Keyboard, as for a separator: the arrows move the splitter, Home and End make the panel smallest or largest.
-    splitter.addEventListener("keydown", function (event) {
-      var grow = stacked.matches ? { ArrowUp: 1, ArrowDown: -1 } : { ArrowLeft: 1, ArrowRight: -1 };
-      var size;
-      if (grow[event.key]) size = currentPanelSize() + grow[event.key] * KEY_STEP;
-      else if (event.key === "Home") size = MIN_PANEL_SIZE;
-      else if (event.key === "End") size = MAX_PANEL_SIZE;
-      else if (event.key === "Enter") size = null; // like double-click: back to the default
-      else return;
-      setPanelSize(size, true);
-      event.preventDefault();
+    function hasChildren(li) { return li.hasAttribute("aria-expanded"); }
+
+    function isOpen(li) { return li.getAttribute("aria-expanded") === "true" || li.classList.contains("open-for-filter"); }
+
+    function setExpanded(li, open) {
+      if (!hasChildren(li)) return;
+      li.setAttribute("aria-expanded", open ? "true" : "false");
+      li.classList.toggle("collapsed", !open);
+    }
+
+    function parentItem(li) {
+      var parent = li.parentElement ? li.parentElement.closest("li") : null;
+      return parent && treeBox.contains(parent) ? parent : null;
+    }
+
+    // What's showing: items not filtered out whose ancestors are all open, in order.
+    function visibleItems() {
+      return Array.prototype.filter.call(treeBox.querySelectorAll("li"), function (li) {
+        if (li.hidden) return false;
+        for (var at = parentItem(li); at; at = parentItem(at)) {
+          if (at.hidden || !isOpen(at)) return false;
+        }
+        return true;
+      });
+    }
+
+    function focusItem(li) {
+      treeBox.querySelectorAll("li[tabindex=\"0\"]").forEach(function (other) { other.tabIndex = -1; });
+      li.tabIndex = 0;
+      li.focus();
+    }
+
+    function choose(li) {
+      if (li.dataset.id !== undefined) selectItem(li.dataset.id);
+      else setExpanded(li, !isOpen(li));
+    }
+
+    treeBox.addEventListener("click", function (event) {
+      var li = event.target.closest("li");
+      if (!li || !treeBox.contains(li)) return;
+      focusItem(li);
+      if (event.target.closest(".tree-twisty") && hasChildren(li)) setExpanded(li, !isOpen(li));
+      else choose(li);
     });
 
-    if (stacked.addEventListener) stacked.addEventListener("change", updateSplitter);
+    treeBox.addEventListener("keydown", function (event) {
+      var li = event.target.closest("li");
+      if (!li) return;
+      var items = visibleItems();
+      var at = items.indexOf(li);
+      var handled = true;
+      if (event.key === "ArrowDown") {
+        if (at + 1 < items.length) focusItem(items[at + 1]);
+      } else if (event.key === "ArrowUp") {
+        if (at > 0) focusItem(items[at - 1]); else filterBox.focus();
+      } else if (event.key === "Home") {
+        focusItem(items[0]);
+      } else if (event.key === "End") {
+        focusItem(items[items.length - 1]);
+      } else if (event.key === "ArrowRight") {
+        if (hasChildren(li) && !isOpen(li)) setExpanded(li, true);
+        else if (hasChildren(li) && items[at + 1] && parentItem(items[at + 1]) === li) focusItem(items[at + 1]);
+      } else if (event.key === "ArrowLeft") {
+        if (hasChildren(li) && isOpen(li) && !li.classList.contains("open-for-filter")) setExpanded(li, false);
+        else if (parentItem(li)) focusItem(parentItem(li));
+      } else if (event.key === "Enter" || event.key === " ") {
+        choose(li);
+      } else {
+        handled = false;
+      }
+      if (handled) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
 
-    var storedSize = parseFloat(settings.load(options.panel + "-size"));
-    setPanelSize(isNaN(storedSize) ? null : storedSize, false);
-    setPanelVisible(settings.load(options.panel + "-hidden") !== "true", false);
+    // The filter keeps every item whose name contains the text, with what holds it, opening that while it filters.
+    // Clearing it puts back what was open before.
+    function applyFilter() {
+      var wanted = filterBox.value.trim().toLowerCase();
+      treeBox.classList.toggle("filtering", wanted !== "");
+      treeBox.querySelectorAll("li").forEach(function (li) {
+        li.hidden = false;
+        li.classList.remove("match", "open-for-filter");
+      });
+      if (wanted === "") {
+        emptyNote.hidden = true;
+        return;
+      }
+
+      var shown = 0;
+      function filter(li) {
+        var matches = labels.get(li).indexOf(wanted) >= 0;
+        var childMatches = false;
+        var group = li.querySelector(":scope > ul");
+        if (group) {
+          Array.prototype.forEach.call(group.children, function (child) { if (filter(child)) childMatches = true; });
+        }
+        li.hidden = !matches && !childMatches;
+        li.classList.toggle("match", matches);
+        li.classList.toggle("open-for-filter", childMatches);
+        if (matches && li.dataset.id !== undefined) shown++;
+        return matches || childMatches;
+      }
+      Array.prototype.forEach.call(treeBox.children, filter);
+      emptyNote.hidden = shown > 0;
+    }
+
+    filterBox.addEventListener("input", applyFilter);
+    filterBox.addEventListener("keydown", function (event) {
+      if (event.key === "ArrowDown") {
+        var first = visibleItems()[0];
+        if (first) focusItem(first);
+        event.preventDefault();
+      } else if (event.key === "Escape" && filterBox.value !== "") {
+        filterBox.value = "";
+        applyFilter();
+        event.stopPropagation(); // emptying the box isn't clearing the selection
+      }
+    });
+
+    // Marks the selected item, opening what holds it and scrolling it into view, without taking the focus.
+    function reveal(id) {
+      if (selectedItem) selectedItem.setAttribute("aria-selected", "false");
+      selectedItem = id === null || id === undefined ? null : itemsById.get(id) || null;
+      if (!selectedItem) return;
+      selectedItem.setAttribute("aria-selected", "true");
+      for (var at = parentItem(selectedItem); at; at = parentItem(at)) setExpanded(at, true);
+      treeBox.querySelectorAll("li[tabindex=\"0\"]").forEach(function (other) { other.tabIndex = -1; });
+      selectedItem.tabIndex = 0;
+      var row = selectedItem.querySelector(".tree-row");
+      if (row && row.offsetParent !== null) row.scrollIntoView({ block: "nearest" });
+    }
 
     // ---- Tabs ----
 
@@ -367,6 +588,7 @@
       onViewChange: function (fn) { listeners.view.push(fn); },
       start: start,
       panel: { element: panel, header: $("side-panel-header"), body: $("side-panel-body") },
+      explorer: { setTree: setTree, reveal: reveal },
       source: {
         init: initSource,
         has: function (id) { return sources.has(id); },

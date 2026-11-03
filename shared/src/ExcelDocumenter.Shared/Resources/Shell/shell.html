@@ -42,6 +42,7 @@
   </div>
 {{TOP_BAR}}
   <div class="topbar-end">
+    <button type="button" class="button explorer-toggle" id="explorer-toggle" aria-pressed="true" aria-controls="explorer" title="Show or hide the explorer">Explorer</button>
     <button type="button" class="button side-panel-toggle" id="side-panel-toggle" aria-pressed="true" aria-controls="side-panel" title="Show or hide the {{PANEL_LABEL}} panel">{{PANEL_NAME}}</button>
     <button type="button" class="button theme-toggle" id="theme-toggle" aria-pressed="false" title="Switch between light and dark">
       <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Dark</span>
@@ -53,12 +54,24 @@
 </header>
 {{BEFORE_LAYOUT}}
 <main class="layout" id="layout">
+  <nav class="explorer" id="explorer" aria-label="Explorer">
+    <div class="explorer-header">
+      <label for="explorer-filter" class="visually-hidden">Filter the explorer</label>
+      <input id="explorer-filter" type="search" placeholder="Filter…" autocomplete="off" spellcheck="false">
+      <button type="button" class="panel-close" id="explorer-close" title="Hide the explorer" aria-label="Hide the explorer">&times;</button>
+    </div>
+    <ul class="tree" id="explorer-tree" role="tree" aria-label="{{EXPLORER_LABEL}}"></ul>
+    <p class="explorer-empty muted" id="explorer-empty" hidden>Nothing matches.</p>
+  </nav>
+  <div class="splitter" id="explorer-splitter" role="separator" tabindex="0" aria-controls="explorer"
+       aria-orientation="vertical" aria-label="Resize the explorer" aria-valuemin="10" aria-valuemax="40"
+       title="Drag to resize. Double-click to reset."></div>
 {{VIEWS}}
   <div class="splitter" id="side-panel-splitter" role="separator" tabindex="0" aria-controls="side-panel"
        aria-orientation="vertical" aria-label="Resize the {{PANEL_LABEL}} panel" aria-valuemin="20" aria-valuemax="70"
        title="Drag to resize. Double-click to reset."></div>
   <aside class="side-panel" id="side-panel" aria-label="{{PANEL_NAME}}">
-    <button type="button" class="side-panel-close" id="side-panel-close" title="Hide the {{PANEL_LABEL}} panel" aria-label="Hide the {{PANEL_LABEL}} panel">&times;</button>
+    <button type="button" class="panel-close side-panel-close" id="side-panel-close" title="Hide the {{PANEL_LABEL}} panel" aria-label="Hide the {{PANEL_LABEL}} panel">&times;</button>
     <div class="side-panel-header" id="side-panel-header"></div>
     <div class="side-panel-body" id="side-panel-body"></div>
   </aside>

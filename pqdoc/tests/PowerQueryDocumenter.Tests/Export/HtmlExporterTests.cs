@@ -4,6 +4,7 @@ using ExcelDocumenter.Shared;
 using ExcelDocumenter.Shared.Pages;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Core.Export;
+using PowerQueryDocumenter.Core.Extraction;
 using PowerQueryDocumenter.Core.Model;
 using PowerQueryDocumenter.Tests.TestSupport;
 
@@ -270,6 +271,27 @@ public sealed class HtmlExporterTests
     var html = Render(graph, Context with { Sources = sources, EmbedSource = true });
 
     Assert.Contains("data-query=\"It's &quot;quoted&quot; &amp; &lt;odd&gt;\">", html);
+  }
+
+  [Fact]
+  public void FR_HTML_11_each_query_has_its_kind_and_group_and_the_groups_keep_Excels_order()
+  {
+    var details = new[]
+    {
+      new QueryDetails("A", false, new QueryGroup("Staging", 1)),
+      new QueryDetails("B", true, new QueryGroup("Alpha", 2)),
+      new QueryDetails("C", false, new QueryGroup("Zulu", 0)),
+    };
+
+    var data = EmbeddedData(Render(Fixtures.Graph(["A>B"], "C", "D"), Context with { Details = details }));
+
+    var queries = data.GetProperty("queries").EnumerateArray().ToDictionary(q => q.GetProperty("id").GetString()!, q => q);
+    Assert.Equal("query", queries["A"].GetProperty("kind").GetString());
+    Assert.Equal("function", queries["B"].GetProperty("kind").GetString());
+    Assert.Equal("Staging", queries["A"].GetProperty("group").GetString());
+    Assert.Equal("query", queries["D"].GetProperty("kind").GetString());
+    Assert.Equal(JsonValueKind.Null, queries["D"].GetProperty("group").ValueKind);
+    Assert.Equal(new[] { "Zulu", "Staging", "Alpha" }, data.GetProperty("groups").EnumerateArray().Select(g => g.GetString()).ToArray());
   }
 
   [Fact]

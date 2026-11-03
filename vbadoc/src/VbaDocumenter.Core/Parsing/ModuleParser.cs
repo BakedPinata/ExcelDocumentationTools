@@ -27,6 +27,9 @@ public static partial class ModuleParser
   private static partial Regex ProcedureStart();
   [GeneratedRegex(@"^End\s+(?<kind>Sub|Function|Property)$", Opts)]
   private static partial Regex ProcedureEnd();
+  // Rubberduck's folder annotation, with or without brackets: '@Folder("Parent.Child") or '@Folder "Parent.Child".
+  [GeneratedRegex(@"^\s*@Folder\s*(?:\(\s*""(?<path>[^""]*)""\s*\)|""(?<path>[^""]*)"")", Opts)]
+  private static partial Regex FolderAnnotation();
   [GeneratedRegex($@"^(?:(?<vis>Public|Private)\s+)?Enum\s+(?<name>{Id})$", Opts)]
   private static partial Regex EnumStart();
   [GeneratedRegex($@"^(?:(?<vis>Public|Private)\s+)?Type\s+(?<name>{Id})$", Opts)]
@@ -92,6 +95,7 @@ public static partial class ModuleParser
       Implements = state.Implements,
       Attributes = state.Attributes,
       Options = state.Options,
+      Folder = state.Folder,
       LineCount = lineCount,
       Warnings = state.Warnings,
     };
@@ -105,15 +109,24 @@ public static partial class ModuleParser
     public Dictionary<string, string> Attributes { get; } = new(StringComparer.OrdinalIgnoreCase);
     public List<string> Options { get; } = [];
     public List<string> Warnings { get; } = [];
+    public string? Folder { get; private set; }
 
     Member? _procedure;          // the procedure we're inside, if any
     Member? _block;              // the Enum or Type we're inside, if any
     int? _commentBlockStart;    // first line of the run of comment lines directly above the current line
+    bool _sawProcedure;          // whether the declarations have ended
 
     public void Handle(LogicalLine line)
     {
       if (line.IsBlank) { _commentBlockStart = null; return; }
-      if (line.IsCommentOnly) { _commentBlockStart ??= line.FirstLine; return; }
+      if (line.IsCommentOnly)
+      {
+        // A folder annotation counts only in the declarations, before the first procedure, as in Rubberduck.
+        if (Folder == null && !_sawProcedure && FolderAnnotation().Match(line.Comment!) is { Success: true } folder)
+          Folder = folder.Groups["path"].Value.Trim();
+        _commentBlockStart ??= line.FirstLine;
+        return;
+      }
 
       var code = line.Code;
       if (code.StartsWith('#')) return; // #If / #Else / #Const: conditional compilation. Both branches are parsed.
@@ -280,6 +293,7 @@ public static partial class ModuleParser
         _ => MemberKind.PropertySet,
       };
       var signature = ParseSignature(m.Groups["rest"].Value, line);
+      _sawProcedure = true;
       _procedure = new Member
       {
         Name = m.Groups["name"].Value,

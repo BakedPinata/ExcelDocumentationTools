@@ -1,6 +1,8 @@
 using System.Text;
 using Microsoft.Playwright;
+using PowerQueryDocumenter.Core.Analysis;
 using PowerQueryDocumenter.Core.Export;
+using PowerQueryDocumenter.Core.Extraction;
 using PowerQueryDocumenter.Core.Model;
 using PowerQueryDocumenter.Tests.TestSupport;
 
@@ -38,6 +40,9 @@ public sealed class PageFixture : IAsyncLifetime
 
   /// <summary>The sample queries, with their source loaded from <see cref="SourceFolder"/>.</summary>
   public string FolderPage { get; private set; } = string.Empty;
+
+  /// <summary>The sample workbook's queries, in its Staging and Reference groups.</summary>
+  public string WorkbookPage { get; private set; } = string.Empty;
 
   /// <summary>The sample queries with their source embedded (--embed-source).</summary>
   public string EmbeddedPage { get; private set; } = string.Empty;
@@ -78,8 +83,18 @@ public sealed class PageFixture : IAsyncLifetime
 
     SourceFolder = CopyOfSources();
     var sources = SourcesIn(SourceFolder);
-    FolderPage = Generate(sample, "sales-model", sources, embed: false, folder: SourceFolder);
-    EmbeddedPage = Generate(sample, "sales-model", sources, embed: true);
+    // As the tool does for a folder: whether each query is a function comes from its code.
+    var details = sources.Select(f => new QueryDetails(f.Query, FunctionDetector.IsFunction(f.Text), null)).ToArray();
+    FolderPage = Generate(sample, "sales-model", sources, embed: false, folder: SourceFolder, details: details);
+    EmbeddedPage = Generate(sample, "sales-model", sources, embed: true, details: details);
+
+    // As the tool does for a workbook: groups and functions come from its metadata.
+    var queries = WorkbookReader.Read(Fixtures.Workbook("Queries.xlsx"));
+    var workbookGraph = new DependencyAnalyser(Serilog.Core.Logger.None).Analyse(queries.Select(q => new QuerySource(q.Name, q.Expression)));
+    WorkbookPage = Generate(
+      workbookGraph,
+      "Queries.xlsx",
+      details: queries.Select(q => new QueryDetails(q.Name, q.ResultType == "Function", q.Group)).ToArray());
 
     var awkward = AwkwardGraph();
     AwkwardSourcePage = Generate(
@@ -166,9 +181,15 @@ public sealed class PageFixture : IAsyncLifetime
   }
 
   /// <summary>Writes the page as the HTML exporter does and returns its path.</summary>
-  private string Generate(DependencyGraph graph, string outputName, IReadOnlyList<QueryFile>? sources = null, bool embed = false, string? folder = null)
+  private string Generate(
+    DependencyGraph graph,
+    string outputName,
+    IReadOnlyList<QueryFile>? sources = null,
+    bool embed = false,
+    string? folder = null,
+    IReadOnlyList<QueryDetails>? details = null)
   {
-    var context = new ExportContext(outputName, new DateTimeOffset(2026, 10, 2, 10, 3, 0, TimeSpan.FromHours(8)), sources, embed);
+    var context = new ExportContext(outputName, new DateTimeOffset(2026, 10, 2, 10, 3, 0, TimeSpan.FromHours(8)), sources, embed, details);
     var path = Path.Combine(folder ?? root, $"{Guid.NewGuid():N}.html");
     File.WriteAllText(path, HtmlExporter.Render(graph, context), new UTF8Encoding(false));
     return path;

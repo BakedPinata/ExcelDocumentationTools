@@ -114,13 +114,15 @@ server. Requesting these does not write the `.puml` file unless you also ask for
 D3.js), so it works offline and can be emailed or shared from a file share. Queries are laid out
 left to right by depth (how many queries feed them). You can:
 
+- find a query in the explorer on the left, which lists the queries in their Excel query groups (or, for a folder, as
+  queries and functions), with a filter box;
 - pan and zoom, and drag queries (double-click to release one);
 - hover a query to see its name and counts and highlight its direct neighbours;
 - click a query to trace everything upstream (blue) and downstream (aqua) of it, with a details
   panel listing what it uses and what uses it, and its M code (see below); click the background or
   press Esc to clear;
 - search by name (press `/` to jump to the search box, Enter to select the first match);
-- resize or hide the details panel;
+- resize or hide the explorer and the details panel;
 - reset the view.
 
 It follows the system light or dark theme until you choose one with the switch in the top bar,

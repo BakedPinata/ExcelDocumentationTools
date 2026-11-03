@@ -168,6 +168,20 @@ Reading them is step B2 of the feedback plan.
   check, because a token's kind also shows in its text (quotes, `//`, digits, `#`). In the light theme numbers and type
   names are close in colour, in vbadoc too; left for C2, which gives both pages one set of tokens.
 
+## Explorer (1.6.0, step D1 of the feedback plan)
+
+- **Groups come from the metadata** (`Extraction/QueryMetadata`): the `QueryGroups` list and each query's
+  `QueryGroupID`, as B1 found them, and `ResultType` for functions. The list's layout, checked again on the samples, is
+  a count, then per group an int32 (0 in both samples), the GUID, the name and description as .NET length-prefixed
+  UTF-8 strings, a byte and the group's order as an int32. A list that doesn't parse to exactly its length, or
+  metadata that isn't readable XML, means no groups and no result types, never a failed run. Nested groups still
+  aren't known, so each group is listed at the top level.
+- **Ungrouped queries go under Other queries,** as Excel's Queries pane shows them, after the groups in Excel's order.
+- **For a folder, functions are found in the code** (`Analysis/FunctionDetector`): a function literal, `each`, or a
+  `let` whose result is one of its own steps defined as a function, which is what Excel's Create Function writes.
+  Anything else counts as a query; a parameter does too, since it isn't a function.
+- **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
+
 ## Output
 
 - **HTML is the default output** (1.1.0). Feedback from real use was that the page is what people use, and that CSV

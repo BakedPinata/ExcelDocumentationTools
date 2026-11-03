@@ -16,6 +16,7 @@ public sealed class ShellPageTests
       SearchHtml = "    <input id=\"search\" type=\"search\">\n",
       LoadFolderHint = "Choose the folder",
       PanelName = "Details",
+      ExplorerLabel = "Queries",
       ViewsHtml = "  <section class=\"view\" id=\"view-graph\"></section>\n  <section class=\"view\" id=\"view-other\" hidden></section>\n",
       FaviconSvg = "<svg/>",
       Stylesheet = ".tool-rule { color: red; }",

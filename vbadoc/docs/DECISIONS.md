@@ -435,6 +435,20 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
   Browsers that refuse history changes for pages opened from disk just don't get this; selection still works.
 - **Fit keeps clear of the toolbar's real height**, since the toolbar wraps onto a second row in narrow views.
 
+### Explorer (0.10.0, step D1 of the feedback plan)
+
+- **The explorer is the shell's,** filled by `page.js` (`explorerTree()`); see `shared/README.md`.
+- **`'@Folder` is read as Rubberduck reads it:** a comment in the declarations, before the first procedure, with or
+  without brackets; the first one counts. It's kept as written in `ModuleModel.Folder` and the page splits it at the
+  dots. A module with none goes in No folder, at the end, rather than the project's name as Rubberduck shows it,
+  because "No folder" says why it's there.
+- **Grouping by kind** only when no module has a folder, in the order standard modules, classes, interfaces, forms,
+  document modules; empty groups aren't shown.
+- **Members in source order,** not by name, because that's how the module reads. An Enum's values go under it. Kind is
+  the detail, the role is a badge, and an unreferenced member is in italics with a tooltip.
+- **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
+  a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
+
 ### Agreed for later stages
 
 - **In `--embed-source` mode** each module goes in its own `<script type="text/plain">` block, so diffs of the page

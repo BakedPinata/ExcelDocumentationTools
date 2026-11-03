@@ -108,6 +108,7 @@
     if (id === selection) return true;
     selection = id;
     renderDetails();
+    shell.explorer.reveal(selection);
     emit("selection", selection);
     return true;
   }
@@ -163,6 +164,36 @@
     event.preventDefault();
     select(link.getAttribute("data-select"));
   });
+
+  // ---- Explorer ----
+  //
+  // Queries in their Excel query groups, in Excel's order, with the rest under "Other queries" as Excel's Queries pane
+  // shows them. Without groups (a folder of .m files, or a workbook that has none), queries and functions apart.
+
+  function queryNode(query, showKind) {
+    return { id: query.id, label: query.id, detail: showKind && query.kind === "function" ? "Function" : "" };
+  }
+
+  function groupNode(label, queries, showKind) {
+    return { label: label, detail: String(queries.length), children: queries.map(function (q) { return queryNode(q, showKind); }) };
+  }
+
+  function explorerTree() {
+    var queries = data.queries.slice().sort(function (a, b) { return byName(a.id, b.id); });
+    var nodes;
+    if (data.groups.length > 0) {
+      nodes = data.groups.map(function (name) {
+        return groupNode(name, queries.filter(function (q) { return q.group === name; }), true);
+      });
+      nodes.push(groupNode("Other queries", queries.filter(function (q) { return !q.group; }), true));
+    } else {
+      nodes = [
+        groupNode("Queries", queries.filter(function (q) { return q.kind !== "function"; }), false),
+        groupNode("Functions", queries.filter(function (q) { return q.kind === "function"; }), false)
+      ];
+    }
+    return nodes.filter(function (node) { return node.children.length > 0; });
+  }
 
   // ---- Search ----
   //
@@ -229,6 +260,7 @@
     countText: countText
   };
 
+  shell.explorer.setTree(explorerTree(), select);
   shell.start();
   renderDetails();
 })();

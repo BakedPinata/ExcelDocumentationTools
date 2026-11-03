@@ -133,6 +133,7 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 | FR-HTML-8 | The page title and a visible heading SHOULD name what is documented (the workbook's file name or the folder's name), and the title SHOULD include the generation date/time, plus node and edge counts. |
 | FR-HTML-9 | The HTML template SHOULD be kept as a separate embedded resource file rather than an inline C# string. |
 | FR-HTML-10 | HTML is the default output: it is the only output when `--format` isn't given. |
+| FR-HTML-11 | The page MUST have an explorer: a panel on the left listing every query, grouped by its Excel query group when the workbook has groups (in Excel's order, with the others under Other queries), otherwise into queries and functions. A workbook's metadata says which queries are functions; for a folder, a query counts as one when its code is a function literal, `each …`, or a `let` whose result is one of its steps defined as a function. Metadata that can't be read MUST NOT stop the run: the queries are then simply ungrouped. A filter box narrows the list; choosing a query selects it, and the explorer follows selections made in the graph. It can be hidden and resized, and is open by default on a wide screen. |
 
 ### 4.7 Overwrite Behaviour
 

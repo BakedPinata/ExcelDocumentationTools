@@ -50,6 +50,9 @@ public sealed partial record ShellPage
   /// <summary>The side panel's name, such as <c>Source</c>: its toggle's text and its label.</summary>
   public required string PanelName { get; init; }
 
+  /// <summary>What the explorer's tree lists, for screen readers, such as <c>Modules and members</c>.</summary>
+  public required string ExplorerLabel { get; init; }
+
   /// <summary>Anything between the top bar and the views, as HTML.</summary>
   public string BeforeLayoutHtml { get; init; } = string.Empty;
 
@@ -100,6 +103,7 @@ public sealed partial record ShellPage
       ["TOP_BAR"] = TopBarHtml.TrimEnd(),
       ["PANEL_NAME"] = PageBuilder.Escape(PanelName),
       ["PANEL_LABEL"] = PageBuilder.Escape(PanelName.ToLowerInvariant()),
+      ["EXPLORER_LABEL"] = PageBuilder.Escape(ExplorerLabel),
       ["BEFORE_LAYOUT"] = BeforeLayoutHtml.TrimEnd(),
       ["VIEWS"] = ViewsHtml.TrimEnd(),
       ["DATA"] = PageBuilder.EscapeForScriptElement(DataJson),

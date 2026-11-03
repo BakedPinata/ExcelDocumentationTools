@@ -13,7 +13,7 @@ build stamps. See "Structure" in [docs/GUIDELINES.md](../docs/GUIDELINES.md) for
 | `Files/` | `AtomicFileWriter`: write to a temporary file, then move it into place; `SourceFolderWriter`: keep a folder of source files in step with a workbook; `OverwriteResolver` and `OnExistsBehaviour`: what to do when an output already exists, asking through `IUserInteraction` | vbadoc's module files and page; pqdoc's `.m` files and outputs |
 | `CommandLine/` | `OverwriteOptions`: `--on-exists` and `--force` (`-y`), checked and bound the same way in both tools; `ConsoleUserInteraction`: the yes / no / all / quit prompt, on standard error | both command lines |
 | `Pages/` | `ShellPage`: a page built on the shell, from the parts a tool brings; `PageBuilder`: filling a template's placeholders, inlining scripts after d3 and the shell's, escaping text and JSON, the favicon; `EmbeddedResources`; `VendoredScripts` | both pages |
-| `Resources/Shell/` | The page shell: `shell.html` (the template), `shell.css` (the frame and shared colour tokens) and `shell.js` (theme, settings, tabs, side panel, splitter, Load folder, source view; its interface is at the top) | both pages |
+| `Resources/Shell/` | The page shell: `shell.html` (the template), `shell.css` (the frame and shared colour tokens) and `shell.js` (theme, settings, tabs, the explorer, the side panel, their splitters, Load folder, source view; its interface is at the top) | both pages |
 | `Resources/Vendor/` | d3 and its licence, byte-for-byte as published (see its README) | both pages |
 
 ## Commands
@@ -65,6 +65,17 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
 - **The tool starts the shell, then says where its source comes from** (`shell.source.init`), because only the tool
   can read its data: vbadoc decodes with the project's code page, pqdoc by byte order mark.
 - **No colour changed.** The shared tokens were identical in both pages, so none needed validating again.
+
+### The explorer (step D1)
+
+- **The shell draws the tree; each tool says what's in it** (`shell.explorer.setTree(nodes, select)`), as plain nodes
+  with a label, an id when choosable, a detail, a badge and children. The shell owns expanding, the filter, the
+  keyboard (the ARIA tree pattern) and following the selection (`reveal`).
+- **Both panels resize the same way:** the side panel's code became `resizablePanel`, which the explorer uses too, on
+  the other side. Each panel's size is its share of the layout, remembered per tool (`<tool>-explorer-size` and
+  `-hidden`), and the explorer is open by default only on a wide screen.
+- **The filter matches names only** and keeps what holds a match, opening it while filtering; clearing it puts back
+  what was open.
 
 ### Asking before overwriting (step A5)
 

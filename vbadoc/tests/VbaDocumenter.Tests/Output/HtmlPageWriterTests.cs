@@ -81,6 +81,22 @@ public class HtmlPageWriterTests
   }
 
   [Fact]
+  public void Records_each_modules_folder_for_the_explorer_and_leaves_it_out_without_one()
+  {
+    var modules = new[]
+    {
+      new SyntheticModule("Parser", VbaModuleKind.Standard, "Attribute VB_Name = \"Parser\"\r\n'@Folder(\"Import.Parsing\")\r\nOption Explicit\r\n"),
+      new SyntheticModule("Loose", VbaModuleKind.Standard, "Attribute VB_Name = \"Loose\"\r\nOption Explicit\r\n"),
+    };
+
+    var data = Data(Build(embed: false, modules));
+
+    var byId = data.GetProperty("modules").EnumerateArray().ToDictionary(m => m.GetProperty("id").GetString()!);
+    Assert.Equal("Import.Parsing", byId["Parser"].GetProperty("folder").GetString());
+    Assert.False(byId["Loose"].TryGetProperty("folder", out _));
+  }
+
+  [Fact]
   public void Records_the_code_page_and_a_hash_of_each_file()
   {
     var data = Data(Build(embed: false));

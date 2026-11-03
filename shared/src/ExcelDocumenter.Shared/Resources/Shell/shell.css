@@ -149,20 +149,26 @@ a:hover { text-decoration: underline; }
 html[data-theme="dark"] .theme-icon::before { content: "\263E"; }  /* moon */
 html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
 
-/* ---- Layout: the views on the left, the side panel on the right; stacked on narrow screens ---- */
+/* ---- Layout: the explorer, the views and the side panel, side by side; stacked on narrow screens ----
+   Each panel's share of the layout is a variable the splitters set (see shell.js), and either panel can be hidden. Grid
+   items that are hidden take no cell, so the classes below say which columns (or rows) are left. */
 
 .layout {
+  --explorer-track: minmax(180px, var(--explorer-size, var(--explorer-default, 18%)));
+  --side-panel-track: minmax(240px, var(--side-panel-size, var(--side-panel-default, 40%)));
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 7px minmax(240px, var(--side-panel-size, var(--side-panel-default, 40%)));
+  grid-template-columns: var(--explorer-track) 7px minmax(0, 1fr) 7px var(--side-panel-track);
 }
-.layout.side-panel-hidden { grid-template-columns: minmax(0, 1fr); }
+.layout.explorer-hidden { grid-template-columns: minmax(0, 1fr) 7px var(--side-panel-track); }
+.layout.side-panel-hidden { grid-template-columns: var(--explorer-track) 7px minmax(0, 1fr); }
+.layout.explorer-hidden.side-panel-hidden { grid-template-columns: minmax(0, 1fr); }
 
 .view { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
 .view[hidden] { display: none; }
 
-.side-panel {
+.side-panel, .explorer {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -170,7 +176,7 @@ html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
   min-height: 0;
   background: var(--surface);
 }
-.side-panel[hidden], .splitter[hidden] { display: none; }
+.side-panel[hidden], .explorer[hidden], .splitter[hidden] { display: none; }
 
 /* The splitter is wider than the line it draws, so it's easy to grab. */
 .splitter {
@@ -184,11 +190,8 @@ html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
 .splitter:focus-visible { outline-offset: -2px; }
 body.resizing { cursor: col-resize; user-select: none; }
 
-.side-panel-close {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  z-index: 1;
+/* Each panel's ×. The side panel's sits over its header; the explorer's sits beside its filter box. */
+.panel-close {
   width: 26px;
   height: 26px;
   padding: 0;
@@ -199,17 +202,72 @@ body.resizing { cursor: col-resize; user-select: none; }
   font: 18px/1 var(--font-ui);
   cursor: pointer;
 }
-.side-panel-close:hover { color: var(--text); border-color: var(--border); background: var(--surface-2); }
+.panel-close:hover { color: var(--text); border-color: var(--border); background: var(--surface-2); }
+.side-panel-close { position: absolute; top: 6px; right: 8px; z-index: 1; }
 
 @media (max-width: 900px) {
-  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(200px, 1fr) 7px minmax(160px, var(--side-panel-size, var(--side-panel-default-stacked, 40%))); }
-  .layout.side-panel-hidden { grid-template-rows: minmax(0, 1fr); }
+  .layout {
+    --explorer-track: minmax(100px, var(--explorer-size, var(--explorer-default-stacked, 30%)));
+    --side-panel-track: minmax(160px, var(--side-panel-size, var(--side-panel-default-stacked, 40%)));
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--explorer-track) 7px minmax(200px, 1fr) 7px var(--side-panel-track);
+  }
+  .layout.explorer-hidden { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(200px, 1fr) 7px var(--side-panel-track); }
+  .layout.side-panel-hidden { grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--explorer-track) 7px minmax(200px, 1fr); }
+  .layout.explorer-hidden.side-panel-hidden { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
   .splitter { cursor: row-resize; }
   .splitter::before { top: 3px; bottom: auto; left: 0; right: 0; width: auto; height: 1px; }
   .splitter:hover::before, .splitter.dragging::before { top: 2px; left: 0; width: auto; height: 3px; }
   body.resizing { cursor: row-resize; }
   .title { max-width: 100%; flex-basis: 100%; }
 }
+
+/* ---- Explorer (shell.js): a tree of everything the page documents, with a filter ---- */
+
+.explorer-toggle[aria-pressed="true"] { border-color: var(--accent); }
+.explorer-header { display: flex; align-items: center; gap: 6px; padding: 8px 8px 6px 10px; }
+.explorer-header input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+.explorer-empty { margin: 8px 12px; font-size: 13px; }
+.explorer-empty[hidden] { display: none; }
+
+.tree { flex: 1; min-height: 0; overflow: auto; margin: 0; padding: 0 0 12px; list-style: none; font-size: 13px; }
+.tree ul { margin: 0; padding: 0; list-style: none; }
+.tree li[hidden] { display: none; }
+.tree li.collapsed > ul { display: none; }
+.tree.filtering li.collapsed.open-for-filter > ul { display: block; }
+.tree-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 8px 2px calc(6px + var(--depth, 0) * 14px);
+  border-left: 2px solid transparent;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tree-row:hover { background: var(--surface-2); }
+.tree li:focus { outline: none; }
+.tree li:focus-visible > .tree-row { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tree li[aria-selected="true"] > .tree-row { background: var(--surface-2); border-left-color: var(--accent); }
+.tree-twisty { flex: none; width: 12px; color: var(--text-muted); text-align: center; }
+.tree li[aria-expanded="true"] > .tree-row .tree-twisty::before { content: "\25BE"; } /* down-pointing small triangle */
+.tree li[aria-expanded="false"] > .tree-row .tree-twisty::before { content: "\25B8"; } /* right-pointing small triangle */
+.tree.filtering li.open-for-filter > .tree-row .tree-twisty::before { content: "\25BE"; }
+.tree-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.tree li.group > .tree-row .tree-label { font-weight: 600; }
+.tree-detail { flex: none; color: var(--text-muted); font-size: 12px; }
+.tree-badge { flex: none; padding: 0 6px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-muted); font-size: 11px; }
+.tree li.unreferenced > .tree-row .tree-label { font-style: italic; color: var(--text-muted); }
+.tree li.match > .tree-row .tree-label { font-weight: 600; }
 
 /* ---- Side panel: the tool fills the header and the body ---- */
 

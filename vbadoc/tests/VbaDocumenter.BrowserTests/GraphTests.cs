@@ -347,8 +347,9 @@ public class GraphTests(PageFixture fixture)
   public async Task Clicks_select_without_moving_anything()
   {
     // A click used to wake the layout as soon as the button went down, so clicking inside a module's outline
-    // pulled the modules together until the graph came to rest again.
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    // pulled the modules together until the graph came to rest again. Without the explorer, so the nodes clicked are in
+    // view at the starting zoom.
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutExplorer);
     var page = opened.Page;
     await ShowMembers(page);
     await WaitUntilStill(page);
@@ -466,7 +467,8 @@ public class GraphTests(PageFixture fixture)
   [Fact]
   public async Task The_selection_survives_switching_tabs()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    // Without the explorer, so OrderService is in view at the starting zoom.
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutExplorer);
     var page = opened.Page;
     await page.ClickAsync("#graph-svg g.node[data-id='OrderService']");
 
@@ -569,9 +571,10 @@ public class GraphTests(PageFixture fixture)
   [Fact]
   public async Task The_Show_menu_uses_two_columns_at_member_level_unless_they_would_not_fit()
   {
-    // The widest source panel leaves the graph too narrow for two columns.
+    // The widest source panel leaves the graph too narrow for two columns. (With the explorer open as well, there's no
+    // room even for one, so it's closed here.)
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded,
-        initScript: "localStorage.setItem('vbadoc-source-size', '0.7');");
+        initScript: OpenedPage.WithoutExplorer + "localStorage.setItem('vbadoc-source-size', '0.7');");
     var page = opened.Page;
     await ShowMembers(page);
     const string stacked = "() => document.getElementById('graph-filter-menu').classList.contains('stacked')";

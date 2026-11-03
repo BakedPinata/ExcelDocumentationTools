@@ -77,6 +77,7 @@ public sealed class HtmlExporter : IExporter
       // Wraps rather than being cut off in the top bar, because the generation time is at the end.
       TopBarHtml = "  <p class=\"summary muted\" id=\"page-summary\">" + PageBuilder.Escape($"{counts}{cycles}. Generated {generated}.") + "</p>",
       PanelName = "Details",
+      ExplorerLabel = "Queries",
       ViewsHtml = PageBuilder.Fill(Views.Value, views),
       FaviconSvg = Favicon.Value,
       Stylesheet = Stylesheet.Value,
@@ -117,18 +118,37 @@ public sealed class HtmlExporter : IExporter
     }
 
     var sourceMode = files.Count == 0 ? "none" : context.EmbedSource ? "embedded" : "folder";
+
+    // For the explorer (FR-HTML-11): each query's kind and group, and the groups in Excel's order.
+    var details = new Dictionary<string, QueryDetails>(DependencyGraph.NameComparer);
+    foreach (var detail in context.Details ?? [])
+    {
+      details.TryAdd(detail.Query, detail);
+    }
+
+    var groups = details.Values
+      .Where(d => d.Group is not null)
+      .Select(d => d.Group!)
+      .DistinctBy(g => g.Name, StringComparer.Ordinal)
+      .OrderBy(g => g.Order)
+      .ThenBy(g => g.Name, StringComparer.OrdinalIgnoreCase)
+      .Select(g => g.Name)
+      .ToArray();
     var document = new GraphDocument(
       context.Title,
       FormatTimestamp(context.GeneratedAt),
       sourceMode,
       graph.Nodes.Select(n => new QueryDocument(
         n.Name, RoleName(n.Role), n.IsInCycle, n.UpstreamCount, n.DownstreamCount,
-        files.GetValueOrDefault(n.Name)?.FileName, files.GetValueOrDefault(n.Name)?.Hash)).ToArray(),
+        files.GetValueOrDefault(n.Name)?.FileName, files.GetValueOrDefault(n.Name)?.Hash,
+        details.GetValueOrDefault(n.Name)?.IsFunction == true ? "function" : "query",
+        details.GetValueOrDefault(n.Name)?.Group?.Name)).ToArray(),
       graph.Edges.Select(e => new EdgeDocument(
         e.Upstream,
         e.Downstream,
         cycleGroupOf.TryGetValue(e.Upstream, out var a) && cycleGroupOf.TryGetValue(e.Downstream, out var b) && a == b)).ToArray(),
-      graph.Cycles.Select(c => c.Members).ToArray());
+      graph.Cycles.Select(c => c.Members).ToArray(),
+      groups);
 
     return PageBuilder.EscapeForScriptElement(JsonSerializer.Serialize(document, JsonOptions));
   }
@@ -174,11 +194,15 @@ public sealed class HtmlExporter : IExporter
     string SourceMode,
     IReadOnlyList<QueryDocument> Queries,
     IReadOnlyList<EdgeDocument> Edges,
-    IReadOnlyList<IReadOnlyList<string>> Cycles);
+    IReadOnlyList<IReadOnlyList<string>> Cycles,
+    IReadOnlyList<string> Groups);
 
   /// <param name="File">The query's .m file name, or null when it has no readable file.</param>
   /// <param name="Hash">The first 16 hex digits of the SHA-256 of that file, or null.</param>
-  private sealed record QueryDocument(string Id, string Role, bool InCycle, int Upstream, int Downstream, string? File, string? Hash);
+  /// <param name="Kind">"function" or "query".</param>
+  /// <param name="Group">Its Excel query group, or null.</param>
+  private sealed record QueryDocument(
+    string Id, string Role, bool InCycle, int Upstream, int Downstream, string? File, string? Hash, string Kind, string? Group);
 
   private sealed record EdgeDocument(string From, string To, bool InCycle);
 }

@@ -126,6 +126,8 @@ of generated pages, because changing one changes every page.
   search box, Load folder and the build stamp linking to the repository, the side panel and its splitter, and the
   source view. A tool brings its views, its search box, what its side panel shows, its data and a favicon in the same
   style. The shell's interface is written at the top of `shell.js`.
+- **The explorer** is the shell's left panel: each tool fills its tree with what the page documents, and the shell
+  does the rest (filter, keyboard, following the selection, hiding and resizing).
 - **Each tool keeps its own global, data block and stored settings** (`window.vbadoc`, `#vbadoc-data`, `vbadoc-…`),
   so its views talk to the tool, not the shell, and a setting remembered before the shell keeps working.
 - **Generated pages never load anything from the network.**

@@ -8,19 +8,21 @@ rather than repeating it.
 - **Updating it:** at the end of each stage, and after any session that changes direction, update *Current state* and
   add an entry at the top of the log. Give the date, what changed and why, and commits, in a few lines.
 
-## Current state (2026-11-03)
+## Current state (2026-11-04)
 
-- **vbadoc 0.9.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
-  `<workbook>-vba.html`. It asks before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does.
-  Stage 6 (UserForms) is parked; stage 7 waits for the feedback plan.
-- **pqdoc 1.5.3**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **vbadoc 0.10.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+  `<workbook>-vba.html`, with an explorer of modules and members, grouped by `'@Folder` comments or by kind. It asks
+  before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
+  stage 7 waits for the feedback plan.
+- **pqdoc 1.6.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
-  `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted.
+  `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
+  queries in their Excel groups.
 - **`shared/`** (`ExcelDocumenter.Shared`): the code both tools use, since step C1, and the page shell both pages are
   built on, since C2. See its README.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. The user's build, test and
-  publish of A0 on the work machine is still to come. A0–A4, F1, B1–B4, C1 and C2 are pushed and reviewed. A5 is done,
-  waiting for review. **Next: D1** (the explorer: a tree of everything in the workbook, beside the view).
+  publish of A0 on the work machine is still to come. A0–A5, F1, B1–B4, C1 and C2 are pushed and reviewed. D1 is done,
+  waiting for review. **Next: D2** (favourites, replacing Home and the trail).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -30,6 +32,21 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-04: Step D1, the explorer
+
+- Both pages have an explorer on the left, in the shell: a tree with a filter box, ARIA tree keys, following the
+  selection, and hiding and resizing like the side panel (whose code became `resizablePanel`, used by both). Open by
+  default on a wide screen. vbadoc 0.10.0, pqdoc 1.6.0.
+- vbadoc groups modules by `'@Folder("Parent.Child")` comments (read in the declarations, `ModuleModel.Folder`), or by
+  kind, with members in source order. pqdoc reads query groups and result types from the workbook's metadata
+  (`Extraction/QueryMetadata`, failing safe), and for a folder finds functions in the code (`Analysis/FunctionDetector`);
+  it shows Excel's groups and Other queries, or queries and functions.
+- vbadoc's and pqdoc's requirements (an Explorer section; FR-HTML-11), decisions and READMEs, the guidelines' pages
+  section and the shared README follow. Four vbadoc browser tests written for the graph's geometry open the page
+  without the explorer; one width test now measures beside it.
+- Tests: 27 new pqdoc unit tests, 12 new vbadoc unit tests, 9 vbadoc and 5 pqdoc explorer browser tests. Screenshots
+  checked in both themes, wide and narrow.
 
 ### 2026-11-03: Step A5, vbadoc asks before overwriting its page
 

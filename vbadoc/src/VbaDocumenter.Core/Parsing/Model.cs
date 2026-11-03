@@ -125,6 +125,12 @@ public sealed class ModuleModel
   /// <summary>"Option" statements, e.g. "Option Explicit".</summary>
   public required IReadOnlyList<string> Options { get; init; }
 
+  /// <summary>
+  /// The folder from a <c>'@Folder("Parent.Child")</c> comment in the declarations (the Rubberduck convention), as
+  /// written, or null. The page groups modules by it, splitting it at the dots.
+  /// </summary>
+  public string? Folder { get; init; }
+
   /// <summary>Number of physical lines in the file.</summary>
   public required int LineCount { get; init; }
 

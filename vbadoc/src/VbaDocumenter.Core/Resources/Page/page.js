@@ -107,6 +107,7 @@
     if (id !== null) addStep(id);
     renderSource();
     renderTrail();
+    shell.explorer.reveal(selection);
     rememberInHistory(id);
     emit("selection", selection);
     return true;
@@ -374,6 +375,101 @@
     else panelBody.scrollTop = 0;
   }
 
+  // ---- Explorer ----
+  //
+  // Modules grouped by their '@Folder("Parent.Child") comments if any module has one (the Rubberduck convention),
+  // otherwise by kind. Each module lists its members in source order, with an Enum's values under it.
+
+  var KIND_GROUPS = [
+    ["standard", "Standard modules"], ["class", "Classes"], ["interface", "Interfaces"], ["form", "Forms"],
+    ["document", "Document modules"]
+  ];
+
+  function byLowerName(a, b) {
+    var x = a.toLowerCase();
+    var y = b.toLowerCase();
+    return x < y ? -1 : x > y ? 1 : a < b ? -1 : a > b ? 1 : 0;
+  }
+
+  function memberNode(member, children) {
+    return {
+      id: member.id,
+      label: member.name,
+      detail: KIND_LABELS[member.kind] || member.kind,
+      badge: member.role !== "none" ? ROLE_LABELS[member.role] || member.role : null,
+      className: member.unreferenced ? "unreferenced" : "",
+      title: member.signature + (member.unreferenced ? " (nothing in the code refers to it)" : ""),
+      children: children
+    };
+  }
+
+  function moduleNode(module, showKind, membersOf) {
+    var members = (membersOf.get(module.id) || []).slice().sort(function (a, b) { return a.start - b.start || a.declaration - b.declaration; });
+    var valuesOf = new Map();
+    members.forEach(function (m) {
+      if (m.kind !== "enumMember" || !m.parent) return;
+      if (!valuesOf.has(m.parent)) valuesOf.set(m.parent, []);
+      valuesOf.get(m.parent).push(m);
+    });
+    var children = members
+      .filter(function (m) { return !(m.kind === "enumMember" && m.parent && members.some(function (e) { return e.kind === "enum" && e.name === m.parent; })); })
+      .map(function (m) { return memberNode(m, m.kind === "enum" ? (valuesOf.get(m.name) || []).map(function (v) { return memberNode(v); }) : undefined); });
+    return { id: module.id, label: module.id, detail: showKind ? moduleKindLabel(module) : "", title: module.file, children: children };
+  }
+
+  function explorerTree() {
+    var membersOf = new Map();
+    data.members.forEach(function (m) {
+      if (!membersOf.has(m.module)) membersOf.set(m.module, []);
+      membersOf.get(m.module).push(m);
+    });
+    var modules = data.modules.slice().sort(function (a, b) { return byLowerName(a.id, b.id); });
+
+    if (!modules.some(function (m) { return m.folder; })) {
+      return KIND_GROUPS.map(function (group) {
+        var inGroup = modules.filter(function (m) { return (m.isInterface ? "interface" : m.kind) === group[0]; });
+        return { label: group[1], detail: String(inGroup.length), children: inGroup.map(function (m) { return moduleNode(m, false, membersOf); }) };
+      }).filter(function (group) { return group.children.length > 0; });
+    }
+
+    // Folders nest at the dots. A module with no folder goes in a "No folder" group at the end.
+    var root = { folders: new Map(), modules: [] };
+    var loose = [];
+    modules.forEach(function (m) {
+      var path = (m.folder || "").split(".").map(function (part) { return part.trim(); }).filter(function (part) { return part !== ""; });
+      if (path.length === 0) { loose.push(m); return; }
+      var at = root;
+      path.forEach(function (part) {
+        if (!at.folders.has(part)) at.folders.set(part, { folders: new Map(), modules: [] });
+        at = at.folders.get(part);
+      });
+      at.modules.push(m);
+    });
+
+    function count(folder) {
+      var total = folder.modules.length;
+      folder.folders.forEach(function (child) { total += count(child); });
+      return total;
+    }
+
+    function folderNodes(folder) {
+      return Array.from(folder.folders.keys()).sort(byLowerName).map(function (name) {
+        var child = folder.folders.get(name);
+        return {
+          label: name,
+          detail: String(count(child)),
+          children: folderNodes(child).concat(child.modules.map(function (m) { return moduleNode(m, true, membersOf); }))
+        };
+      });
+    }
+
+    var nodes = folderNodes(root);
+    if (loose.length > 0) {
+      nodes.push({ label: "No folder", detail: String(loose.length), children: loose.map(function (m) { return moduleNode(m, true, membersOf); }) });
+    }
+    return nodes;
+  }
+
   // ---- Search ----
 
   var searchBox = $("search");
@@ -435,6 +531,7 @@
     onHomeChange: function (fn) { listeners.home.push(fn); }
   };
 
+  shell.explorer.setTree(explorerTree(), select);
   shell.start();
   // The views read the selection when they first draw, so an address's selection is made before they do.
   if (idFromAddress() !== null) followAddress();

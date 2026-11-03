@@ -14,7 +14,8 @@ public sealed record PageProject(string Title, string Name, int CodePage, string
 
 /// <param name="Hash">First 16 hex digits of the SHA-256 of the exported file, so the page can tell whether a
 /// loaded folder still matches.</param>
-public sealed record PageModule(string Id, string Kind, string File, bool IsInterface, int Lines, string Hash);
+/// <param name="Folder">The module's <c>'@Folder</c>, such as <c>Import.Parsing</c>, or null.</param>
+public sealed record PageModule(string Id, string Kind, string File, bool IsInterface, int Lines, string Hash, string? Folder);
 
 /// <param name="Class">The member's line in the class diagram, or null if it isn't shown there.</param>
 public sealed record PageMember(
@@ -53,7 +54,8 @@ public sealed record PageData(
     {
       var content = ProjectExporter.FileContent(filesByName[node.Id]);
       return new PageModule(node.Id, Camel(node.Module.Kind), ProjectExporter.FileNameFor(filesByName[node.Id]),
-              node.IsInterface, node.Module.LineCount, Convert.ToHexStringLower(SHA256.HashData(content))[..16]);
+              node.IsInterface, node.Module.LineCount, Convert.ToHexStringLower(SHA256.HashData(content))[..16],
+              string.IsNullOrEmpty(node.Module.Folder) ? null : node.Module.Folder);
     }).ToList();
 
     var classLines = model.Modules.ToDictionary(m => m.Id, m => ClassDiagram.Lines(m.Module));

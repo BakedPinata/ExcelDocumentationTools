@@ -107,7 +107,8 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
 
     if (resolution.ToWrite.Count > 0)
     {
-      outcomes.AddRange(await WriteOutputsAsync(graph, options, registry, resolution.ToWrite, SourceFiles(queries, analysis), cancellationToken).ConfigureAwait(false));
+      var sources = SourceFiles(queries, analysis);
+      outcomes.AddRange(await WriteOutputsAsync(graph, options, registry, resolution.ToWrite, sources, Details(queries, sources), cancellationToken).ConfigureAwait(false));
     }
 
     // Only once this run's outputs are safely written, so there's always a page.
@@ -269,12 +270,27 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     return files;
   }
 
+  /// <summary>
+  /// Each query's kind and group, for the page's explorer (FR-HTML-11). A workbook's metadata says both; for a folder,
+  /// whether a query is a function comes from its code, and there are no groups.
+  /// </summary>
+  private static List<QueryDetails> Details(IReadOnlyList<WorkbookQuery>? queries, IReadOnlyList<QueryFile> sources) =>
+    queries is not null
+      ? queries
+        .Select(q => new QueryDetails(
+          q.Name,
+          q.ResultType is not null ? q.ResultType == "Function" : FunctionDetector.IsFunction(q.Expression),
+          q.Group))
+        .ToList()
+      : sources.Select(f => new QueryDetails(f.Query, FunctionDetector.IsFunction(f.Text), null)).ToList();
+
   private async Task<List<ExportOutcome>> WriteOutputsAsync(
     DependencyGraph graph,
     AnalyserOptions options,
     ExporterRegistry registry,
     IReadOnlyList<PlannedOutput> outputs,
     IReadOnlyList<QueryFile> sources,
+    IReadOnlyList<QueryDetails> details,
     CancellationToken cancellationToken)
   {
     var outcomes = new List<ExportOutcome>();
@@ -294,7 +310,7 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
       return outcomes;
     }
 
-    var context = new ExportContext(options.Title, services.TimeProvider.GetLocalNow(), sources, options.EmbedSource);
+    var context = new ExportContext(options.Title, services.TimeProvider.GetLocalNow(), sources, options.EmbedSource, details);
 
     // Each export is isolated: one failing never stops the others (FR-ERR-2).
     foreach (var output in outputs)

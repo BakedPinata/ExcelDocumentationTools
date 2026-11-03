@@ -63,6 +63,7 @@ public static class HtmlPageWriter
       SearchHtml = EmbeddedResources.ReadText(Resources, "Page/search.html"),
       LoadFolderHint = "Choose the folder that holds this page's module files, to see their source",
       PanelName = "Source",
+      ExplorerLabel = "Modules and members",
       BeforeLayoutHtml = EmbeddedResources.ReadText(Resources, "Page/trail.html"),
       ViewsHtml = EmbeddedResources.ReadText(Resources, "Page/views.html"),
       FaviconSvg = EmbeddedResources.ReadText(Resources, "Page/favicon.svg"),

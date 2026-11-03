@@ -185,4 +185,40 @@ public class ModuleParserTests
 
     Assert.Equal("Line 2: unrecognised module-level line 'This is not VBA'.", module.Warnings.Single());
   }
+
+  // ---- '@Folder, the Rubberduck convention the explorer groups modules by ----
+
+  [Theory]
+  [InlineData("'@Folder(\"Import.Parsing\")", "Import.Parsing")]
+  [InlineData("'@Folder \"Reports\"", "Reports")]
+  [InlineData("'  @folder ( \"Spaced Out\" )", "Spaced Out")]
+  [InlineData("Rem @Folder(\"Old Style\")", "Old Style")]
+  [InlineData("'@Folder(\"Import\") @PredeclaredId", "Import")]
+  public void A_folder_annotation_in_the_declarations_is_read(string comment, string expected)
+  {
+    var module = ModuleParser.Parse("M", VbaModuleKind.Standard,
+        $"Attribute VB_Name = \"M\"\r\n{comment}\r\nOption Explicit\r\n\r\nSub A()\r\nEnd Sub\r\n");
+
+    Assert.Equal(expected, module.Folder);
+    Assert.Empty(module.Warnings);
+  }
+
+  [Theory]
+  [InlineData("Option Explicit\r\n")]
+  [InlineData("' A module about @Folder(\"Not this\") annotations\r\n")]
+  [InlineData("'@Folder(\"Unclosed)\r\n")]
+  [InlineData("Sub A()\r\nEnd Sub\r\n'@Folder(\"After the declarations\")\r\n")]
+  [InlineData("Sub A()\r\n    '@Folder(\"Inside a procedure\")\r\nEnd Sub\r\n")]
+  public void Anything_else_gives_no_folder(string code)
+  {
+    Assert.Null(ModuleParser.Parse("M", VbaModuleKind.Standard, code).Folder);
+  }
+
+  [Fact]
+  public void Only_the_first_folder_annotation_counts()
+  {
+    var module = ModuleParser.Parse("M", VbaModuleKind.Class, "'@Folder(\"First\")\r\n'@Folder(\"Second\")\r\n");
+
+    Assert.Equal("First", module.Folder);
+  }
 }

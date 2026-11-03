@@ -42,6 +42,47 @@ public sealed class PageFixture : IAsyncLifetime
     RealFolder = Generate(File.ReadAllBytes(Fixtures.Workbook("57181.xlsm")), "57181.xlsm", "real-folder", embedSource: false);
     LargeEmbedded = Generate(SyntheticWorkbook.Xlsm(LargeProject(300)), "Large.xlsm", "large-embedded", embedSource: true);
     AwkwardEmbedded = Generate(SyntheticWorkbook.Xlsm(AwkwardProject()), "Awkward.xlsm", "awkward-embedded", embedSource: true);
+    FolderedEmbedded = Generate(SyntheticWorkbook.Xlsm(FolderedProject()), "Foldered.xlsm", "foldered-embedded", embedSource: true);
+  }
+
+  /// <summary>SampleVba with '@Folder comments on most modules, and a Settings module with an Enum.</summary>
+  public string FolderedEmbedded { get; private set; } = "";
+
+  static readonly Dictionary<string, string> Folders = new()
+  {
+    ["AppInit"] = "Startup",
+    ["Main"] = "Startup",
+    ["Settings"] = "Startup",
+    ["Order"] = "Orders.Model",
+    ["OrderService"] = "Orders.Model",
+    ["IOrderRepository"] = "Orders.Model",
+    ["CsvOrderRepository"] = "Orders.Storage",
+    ["SheetOrderRepository"] = "Orders.Storage",
+  };
+
+  static List<SyntheticModule> FolderedProject()
+  {
+    var settings = new SyntheticModule("Settings", VbaModuleKind.Standard, string.Join("\r\n",
+        "Attribute VB_Name = \"Settings\"",
+        "Option Explicit",
+        "Public Enum Level",
+        "    Low",
+        "    High",
+        "End Enum",
+        "Public Function Current() As Level",
+        "    Current = High",
+        "End Function",
+        ""));
+
+    // The annotation goes straight after the VB_Name attribute, where Rubberduck puts it. The sample files' line endings
+    // vary, so the new line uses whichever the attribute's line has.
+    return [.. Fixtures.SampleVbaModules().Append(settings).Select(m => Folders.TryGetValue(m.Name, out var folder)
+        ? m with
+        {
+          Source = System.Text.RegularExpressions.Regex.Replace(
+              m.Source, $"(Attribute VB_Name = \"{m.Name}\"(\r?\n))", $"$1'@Folder(\"{folder}\")$2", System.Text.RegularExpressions.RegexOptions.None),
+        }
+        : m)];
   }
 
   /// <summary>A generated project of 300 modules and about 2,700 members, to check the views stay usable.</summary>
@@ -142,6 +183,12 @@ public sealed class OpenedPage(IBrowserContext context, IPage page, List<string>
   public List<string> NetworkRequests { get; } = networkRequests;
 
   /// <param name="initScript">JavaScript run before the page's own scripts, e.g. to simulate an older browser.</param>
+  /// <summary>
+  /// An init script that hides the explorer, as if it had been closed before, for tests written for the graph's or
+  /// class diagram's geometry without it.
+  /// </summary>
+  public const string WithoutExplorer = "localStorage.setItem('vbadoc-explorer-hidden', 'true');";
+
   public static async Task<OpenedPage> OpenAsync(PageFixture fixture, string folder, ColorScheme colourScheme = ColorScheme.Dark,
       int width = 1280, int height = 800, string? initScript = null)
   {

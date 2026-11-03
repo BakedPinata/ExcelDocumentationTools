@@ -44,7 +44,7 @@ questions the draft raised.
 | C1 | Shared library: `shared/`, with the C# code both tools now duplicate | Claude | Done |
 | C2 | Shared page shell: both pages rebuilt on it, with no visible change | Claude | Done |
 | A5 | vbadoc asks before overwriting its page, with `--on-exists` and `--force` as pqdoc has them (added after C1) | Claude | Done |
-| D1 | Explorer: a tree of everything in the workbook, beside the view | Claude | |
+| D1 | Explorer: a tree of everything in the workbook, beside the view | Claude | Done |
 | D2 | Favourites, replacing Home and the trail | Claude | |
 | D3 | Hiding items, and flagging the ones used almost everywhere | Claude | |
 | E1 | Uses / Used by: each item once, with links to the exact lines | Claude | |
