@@ -14,8 +14,8 @@ rather than repeating it.
   parked; stage 7 waits for the feedback plan.
 - **pqdoc 1.1.0**, plus stages 3b–3d: reads a folder of hand-exported `.m` files, and writes HTML by default.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. A0 and A1 are pushed; the
-  user's build, test and publish of A0 on the work machine is still to come. A0–A3 are pushed. F1 is done, waiting
-  for review. B1 (sample workbooks with Power Query, made by the user in Excel) is next.
+  user's build, test and publish of A0 on the work machine is still to come. A0–A3 and F1 are pushed. B1 is done,
+  waiting for review. B2 (pqdoc reads queries from a workbook) is next.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -25,6 +25,17 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-03: Step B1, sample workbooks
+
+- The user made `Queries.xlsx` (14 queries) and saved it as `Queries.xlsb`, in
+  `pqdoc/tests/PowerQueryDocumenter.Tests/Fixtures/Workbooks/`, with a README of what each query covers.
+- A throwaway script confirmed the format (details in pqdoc's decisions). The `.xlsb` holds identical Power Query data.
+  Descriptions are attribute records in `Section1.m`, not metadata. Query groups are a binary list in the metadata.
+- Agreed with the user: `.m` files use CRLF outside text literals, and keep literal line breaks as Excel stored them.
+- Fixtures go into a public repo, so the author fields were removed before committing. Excel also stores the folder a
+  workbook was saved in, and the data model a temporary path. Both show only the home machine's user name, and the user
+  chose to commit them as they are.
 
 ### 2026-11-03: Step F1, class diagram drawn with d3
 

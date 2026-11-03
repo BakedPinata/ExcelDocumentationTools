@@ -36,7 +36,7 @@ questions the draft raised.
 | A2 | Fix: the export pauses while writing the page | Claude | Done: timings added; the cause, antivirus scanning Mermaid, is fixed by F1 |
 | A3 | pqdoc writes HTML by default | Claude | Done |
 | F1 | Class diagram drawn by the page, with boxes you can move; Mermaid removed (moved up after A2) | Claude | Done |
-| B1 | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | |
+| B1 | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | Done |
 | B2 | pqdoc reads queries from a workbook | Claude | |
 | B3 | pqdoc writes `.m` files, kept in step with the workbook | Claude | |
 | B4 | pqdoc's page shows highlighted M source | Claude | |
@@ -266,8 +266,8 @@ the long name is the code's identity.
 - **The format** ([MS-QDEFF](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-qdeff/27b1dd1e-7de8-45d9-9c84-dfcc7a802e37))
   was checked against a real workbook on 2026-10-31. Queries are in a `customXml/item<n>.xml` part holding a base64
   `DataMashup` element. Decoded, it's a 4-byte version, then four length-prefixed sections. The first is a zip whose
-  `Formulas/Section1.m` holds every query as `shared <name> = <expression>;`, in UTF-8 with mixed line endings. That
-  workbook had one query, so B1 confirms the rest.
+  `Formulas/Section1.m` holds every query as `shared <name> = <expression>;`, in UTF-8 with mixed line endings. B1
+  confirmed this against the sample workbooks, `.xlsb` included; pqdoc's `DECISIONS.md` has the details.
 - **The part is found by what it is, not where it is:** any `customXml/item*.xml` whose root is `DataMashup` in the
   `http://schemas.microsoft.com/DataMashup` namespace. The XML reader takes the encoding from the byte order mark, with
   DTD processing off.
@@ -275,6 +275,10 @@ the long name is the code's identity.
   code 3, and nothing is read past the end.
 - **`Section1.m` is split with pqdoc's tokeniser, not a regular expression,** because a text literal can hold a `;` or a
   line starting `shared`. A member without `shared` is still kept as a query.
+- **A description is an attribute record before the member** (`[ Description = "…" ] shared Name = …`), not
+  metadata, as B1 found. The splitter takes it off the expression and keeps it for the page.
+- **Query groups come from the metadata's `QueryGroups` entry,** whose binary layout B1 worked out from the samples.
+  A list that doesn't parse means no groups, not an error.
 - **A section that can't be split stops the run,** with exit code 3, because carrying on would delete that query's
   `.m` file. This is vbadoc's rule for an unreadable module.
 - **The file is opened for shared reading,** so it works while the workbook is open in Excel.
@@ -284,7 +288,9 @@ the long name is the code's identity.
 
 - **Each file holds the expression as Excel stores it,** without `shared <name> =` or the final `;`, which is what a
   manual export contains, so pqdoc reads both the same way.
-- **CRLF line endings and UTF-8 with no byte order mark,** matching vbadoc's output.
+- **CRLF line endings outside text literals, and UTF-8 with no byte order mark,** matching vbadoc's output. Line
+  breaks inside a text literal stay as Excel stored them, so the text is unchanged if the query is imported back
+  (agreed after B1).
 - **File names can be turned back into query names.** Query names can contain `/ \ : * ? < > |`. Those characters and
   `%` itself become `%XX`, so `Sales/Region` is `Sales%2FRegion.m`, and a reserved name such as `CON` is written
   `%43ON.m`. Reading a folder reverses exactly those escapes.

@@ -47,6 +47,44 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **A file that can't be read doesn't stop the run.** Its query stays in the graph, because other queries may reference
   it, but its own references are missing. Outputs are still produced, and the exit code is 3.
 
+## Reading workbooks: what step B1 confirmed
+
+Checked on 2026-11-03 against `Queries.xlsx` and `Queries.xlsb` (see the README beside them), following
+[MS-QDEFF](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-qdeff/27b1dd1e-7de8-45d9-9c84-dfcc7a802e37).
+Reading them is step B2 of the feedback plan.
+
+- **The part:** `customXml/item1.xml`, UTF-16 LE with a byte order mark, whose root is `DataMashup` in the
+  `http://schemas.microsoft.com/DataMashup` namespace (with an `sqmid` attribute), holding base64 text.
+- **`.xlsb` stores it the same way.** Its custom XML part is still XML, and the decoded bytes are identical to the
+  `.xlsx`'s, so binary workbooks need nothing extra.
+- **Layout:** a 4-byte version (0), then Package Parts, Permissions, Metadata and Permission Bindings, each after a
+  4-byte length. The lengths add up exactly to the end of the data.
+- **Package Parts** is a zip of `Config/Package.xml`, `[Content_Types].xml` and `Formulas/Section1.m` only. An Enter
+  Data table is stored in the M itself, compressed and in base64, so there are no `Content/` parts.
+- **`Section1.m`** is UTF-8 with no byte order mark, starting `section Section1;`. Every member is `shared`. Line endings
+  differ by query, following how each was written: some queries' code uses CRLF and others LF. The multi-line text
+  literal uses CRLF.
+- **Names:** Excel accepts spaces, `/` and `%` (`Sales Data`, `Sales/Returns`, `Discount%`). `Section1.m` writes
+  them as quoted identifiers (`#"Sales/Returns"`). The metadata's item paths URL-encode them
+  (`Section1/Sales%2FReturns`, `Section1/Discount%25`).
+- **A description isn't metadata.** Excel writes it into `Section1.m` as an attribute record before the member:
+  `[ Description = "…" ] shared Chain_E = …`. Splitting the section takes the record off, and keeps the description.
+- **Query groups** are a `QueryGroups` entry on the metadata's `AllFormulas` item: base64 of a small binary list. It
+  holds a count, then for each group an int32, a GUID, its name and description as length-prefixed strings, and 5
+  more bytes (apparently a flag and its order). A query in a group has a `QueryGroupID` entry with that GUID. The
+  layout was worked out from these samples, so reading it fails safe: a list that doesn't parse means no groups, not an
+  error. Nested groups weren't tested.
+- **Other metadata** is per query, at item path `Section1/<name>`: `ResultType` (`Function` for a function; a parameter
+  is marked in its M with `meta [IsParameterQuery = true]`), and where it loads: `FillObjectType` (`Table` or
+  `ConnectionOnly`), `FillToDataModelEnabled`, `AddedToDataModel` and `FillTarget` (the table's name). Values carry a
+  type prefix: `s` text, `l` number or true/false (`l1`), `d` date. `FillLastUpdated`, `FillCount`, `FillStatus` and
+  `FillErrorCount` change on refresh. Each query step has an item too (`Section1/<name>/<step>`), with no entries.
+- **The Metadata section** is a 4-byte version, the metadata XML after its 4-byte length, then a 4-byte length and an
+  empty zip.
+- **`.m` files will use CRLF outside text literals** (agreed with the user after B1, replacing "CRLF throughout"). Line
+  breaks inside a text literal stay as Excel stored them, so the text is unchanged if a query is imported back into a
+  workbook.
+
 ## Output
 
 - **HTML is the default output** (1.1.0). Feedback from real use was that the page is what people use, and that CSV
