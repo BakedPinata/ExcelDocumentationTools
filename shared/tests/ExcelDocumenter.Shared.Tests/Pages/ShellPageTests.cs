@@ -66,7 +66,7 @@ public sealed class ShellPageTests
     var html = Page(p => p with { Title = "R&D <draft>", PanelName = "Source & more" }).Render();
 
     Assert.Contains("<h1 class=\"title\" id=\"page-title\" title=\"R&amp;D &lt;draft&gt;\">R&amp;D &lt;draft&gt;</h1>", html, StringComparison.Ordinal);
-    Assert.Contains(">Source &amp; more</button>", html, StringComparison.Ordinal);
+    Assert.Contains("aria-label=\"Source &amp; more\" title=\"Show or hide the source &amp; more panel\"", html, StringComparison.Ordinal);
     Assert.Contains("aria-label=\"Hide the source &amp; more panel\"", html, StringComparison.Ordinal);
     Assert.Contains("<input id=\"search\" type=\"search\">", html, StringComparison.Ordinal);
     Assert.Contains("<section class=\"view\" id=\"view-other\" hidden></section>", html, StringComparison.Ordinal);

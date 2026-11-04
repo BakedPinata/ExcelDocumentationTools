@@ -105,9 +105,9 @@
     selection = id;
     showWholeModule = false;
     if (id !== null) addStep(id);
+    shell.selectionChanged(selection); // first, so the panel is open when its source is drawn and scrolled
     renderSource();
     renderTrail();
-    shell.explorer.reveal(selection);
     rememberInHistory(id);
     emit("selection", selection);
     return true;
@@ -533,6 +533,7 @@
     onThemeChange: shell.onThemeChange,
     activeView: shell.activeView,
     onViewChange: shell.onViewChange,
+    panelFollowing: shell.panel.following,
     home: function () { return home; },
     setHome: setHome,
     onHomeChange: function (fn) { listeners.home.push(fn); }

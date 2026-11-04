@@ -231,19 +231,29 @@
     moveTo(d3.zoomIdentity.translate(view.clientWidth / 2, view.clientHeight / 2).scale(k).translate(-n.x, -n.y), 400);
   }
 
+  function inView(n) {
+    var t = d3.zoomTransform(svg.node());
+    var x = t.applyX(n.x);
+    var y = t.applyY(n.y);
+    return x > 30 && x < view.clientWidth - 30 && y > 30 && y < view.clientHeight - 30;
+  }
+
   legend.addEventListener("toggle", function () { if (started && !userMovedView) fit(300); });
   simulation.on("end", function () { if (!userMovedView) fit(400); });
 
-  // When the view changes size (the details panel is resized or hidden, or the window), refit it, or once the view
-  // is the person's own, keep what was in the middle in the middle. A hidden view has no size, so changes while
-  // it's hidden are skipped.
+  // When the view changes size (the details panel is resized, or the window), refit it, or once the view is the
+  // person's own, keep what was in the middle in the middle. When the panel opened or closed with the selection,
+  // keep still instead, so what was clicked stays under the pointer; the selection has already been moved out from
+  // under the panel. A hidden view has no size, so changes while it's hidden are skipped.
   var lastSize = null;
   if (window.ResizeObserver) {
     new ResizeObserver(function () {
       var width = view.clientWidth;
       var height = view.clientHeight;
       if (width === 0 || height === 0) { lastSize = null; return; }
-      if (started && lastSize && !userMovedView) {
+      if (pq.panelFollowing()) {
+        // keep still
+      } else if (started && lastSize && !userMovedView) {
         fit(0);
       } else if (started && lastSize) {
         var k = d3.zoomTransform(svg.node()).k;
@@ -447,9 +457,9 @@
     hideTooltip();
     highlight();
     // A hidden view has no size, and moving it then would give d3-zoom a NaN transform.
-    if (id !== null && !clickedInGraph && pq.activeView() === "graph") {
-      centreOn(nodes.find(function (n) { return n.id === id; }));
-    }
+    // A query clicked here is already in view, unless the details panel has just opened over it.
+    var n = id !== null && pq.activeView() === "graph" ? nodes.find(function (q) { return q.id === id; }) : null;
+    if (n && (!clickedInGraph || (pq.panelFollowing() && !inView(n)))) centreOn(n);
   });
   pq.onSearchChange(function () { if (started) highlight(); });
   pq.onViewChange(drawIfVisible);

@@ -46,7 +46,7 @@ questions the draft raised.
 | A5 | vbadoc asks before overwriting its page, with `--on-exists` and `--force` as pqdoc has them (added after C1) | Claude | Done |
 | D1 | Explorer: a tree of everything in the workbook, beside the view | Claude | Done |
 | D1b | Explorer layouts: folders or kinds, with folders drawn as folders; pqdoc reads nested query groups (added after D1; first, because the samples now have nested groups) | You in Excel, then Claude | Done |
-| D1a | Panel controls: the toggles as icons at the two ends of the top bar; the side panel follows the selection unless locked; a button to copy the source (added after D1 and D1b) | Claude | |
+| D1a | Panel controls: the toggles as icons at the two ends of the top bar; the side panel follows the selection unless locked; a button to copy the source (added after D1 and D1b) | Claude | Done |
 | D1c | View controls: a Focus on click switch for every view, Ctrl+click for the other, Esc to deselect, Transitive into Settings, the class diagram's legend as the graph's, and the same summary in both pages (added after D1) | Claude | |
 | D1d | Speed: large projects stay smooth to pan and scroll (added after D1) | Claude, then you on a work machine | |
 | D2 | Favourites, replacing Home and the trail | Claude | |

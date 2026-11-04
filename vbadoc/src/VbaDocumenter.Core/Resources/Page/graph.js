@@ -1441,15 +1441,17 @@
   });
   // Colours are CSS variables, so a theme change needs no redraw.
 
-  // When the view changes size (the source panel is resized or hidden, or the window), keep what was in the
-  // middle in the middle. A hidden view has no size, so changes while it's hidden are skipped.
+  // When the view changes size (the source panel is resized, or the window), keep what was in the middle in the
+  // middle. When the panel opened or closed with the selection, keep still instead, so what was clicked stays under
+  // the pointer; bringIntoView has already moved the selection out from under the panel, allowing for the new size.
+  // A hidden view has no size, so changes while it's hidden are skipped.
   var lastSize = null;
   if (window.ResizeObserver) {
     new ResizeObserver(function () {
       var width = view.clientWidth;
       var height = view.clientHeight;
       if (width === 0 || height === 0) { lastSize = null; return; }
-      if (started && lastSize) {
+      if (started && lastSize && !vb.panelFollowing()) {
         var k = d3.zoomTransform(svg.node()).k;
         svg.call(zoom.translateBy, (width - lastSize.width) / 2 / k, (height - lastSize.height) / 2 / k);
       }

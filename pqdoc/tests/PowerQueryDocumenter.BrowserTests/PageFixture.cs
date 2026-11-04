@@ -212,6 +212,13 @@ public sealed class OpenedPage(IBrowserContext context, IPage page, List<string>
   /// <summary>Requests for anything other than the local page itself. These are blocked.</summary>
   public List<string> NetworkRequests { get; } = networkRequests;
 
+  /// <summary>
+  /// An init script that locks the details panel open, as if it had been locked before, for tests of its size, which
+  /// was always open before it followed the selection. It runs on every load, so it leaves a lock the test has
+  /// changed alone.
+  /// </summary>
+  public const string WithPanelLocked = "if (localStorage.getItem('pqdoc-details-locked') === null) localStorage.setItem('pqdoc-details-locked', 'true');";
+
   /// <param name="fixture">The shared browser.</param>
   /// <param name="path">The page to open.</param>
   /// <param name="colourScheme">The system theme the browser reports.</param>

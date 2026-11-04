@@ -1,6 +1,9 @@
 namespace PowerQueryDocumenter.BrowserTests;
 
-/// <summary>The details panel: what it lists, walking the graph from it, and hiding and resizing it.</summary>
+/// <summary>
+/// The details panel: what it lists, walking the graph from it, and hiding and resizing it. Tests of its size start
+/// with it locked open, as it always was before it followed the selection.
+/// </summary>
 [Collection("Browser")]
 public sealed class DetailsPanelTests(PageFixture fixture)
 {
@@ -88,9 +91,9 @@ public sealed class DetailsPanelTests(PageFixture fixture)
   }
 
   [Fact]
-  public async Task Can_be_hidden_and_stays_hidden()
+  public async Task Closing_it_by_hand_unlocks_it_so_it_stays_closed_until_something_is_selected()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage, initScript: OpenedPage.WithPanelLocked);
     var page = opened.Page;
     const string graphWidth = "() => document.getElementById('graph-svg').clientWidth";
     var narrow = await page.EvaluateAsync<int>(graphWidth);
@@ -102,6 +105,7 @@ public sealed class DetailsPanelTests(PageFixture fixture)
     Assert.Equal("false", await page.GetAttributeAsync("#side-panel-toggle", "aria-pressed"));
     Assert.Equal("side-panel-toggle", await page.EvaluateAsync<string>("() => document.activeElement.id"));
     Assert.True(await page.EvaluateAsync<int>(graphWidth) > narrow);
+    Assert.Equal("false", await page.GetAttributeAsync("#side-panel-lock", "aria-pressed"));
 
     await page.ReloadAsync();
     await page.WaitForFunctionAsync("() => !!window.pqdocGraph");
@@ -114,7 +118,7 @@ public sealed class DetailsPanelTests(PageFixture fixture)
   [Fact]
   public async Task The_splitter_resizes_the_panel_and_the_size_is_remembered()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage, initScript: OpenedPage.WithPanelLocked);
     var page = opened.Page;
     const string panelWidth = "() => document.getElementById('side-panel').getBoundingClientRect().width";
     var before = await page.EvaluateAsync<double>(panelWidth);
@@ -141,7 +145,7 @@ public sealed class DetailsPanelTests(PageFixture fixture)
   [Fact]
   public async Task A_click_on_the_splitter_does_not_move_it()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage, initScript: OpenedPage.WithPanelLocked);
     var page = opened.Page;
     const string panelWidth = "() => document.getElementById('side-panel').getBoundingClientRect().width";
     var before = await page.EvaluateAsync<double>(panelWidth);
@@ -154,7 +158,7 @@ public sealed class DetailsPanelTests(PageFixture fixture)
   [Fact]
   public async Task The_splitter_works_from_the_keyboard()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage, initScript: OpenedPage.WithPanelLocked);
     var page = opened.Page;
     await page.FocusAsync("#side-panel-splitter");
 

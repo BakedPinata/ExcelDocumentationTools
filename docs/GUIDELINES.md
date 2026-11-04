@@ -129,6 +129,9 @@ of generated pages, because changing one changes every page.
 - **The explorer** is the shell's left panel: each tool fills its tree with what the page documents, in one or more
   layouts (such as folders and kinds), and the shell does the rest (the switch between layouts, filter, keyboard,
   following the selection, hiding and resizing).
+- **The side panel follows the selection** unless locked open: it opens when something is selected and closes when
+  the selection is cleared, and the views keep still while it does. The panels' buttons are icons at the ends of the
+  top bar, each on its panel's side.
 - **Icons are our own inline SVG,** drawn for the page, not taken from an icon set, so there's no licence or
   attribution to carry. If many more are needed, an icon set can be weighed again, including its effect on how quickly
   the page responds.

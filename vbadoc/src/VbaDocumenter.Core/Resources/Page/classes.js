@@ -655,7 +655,8 @@
       return;
     }
     highlight();
-    if (!clickedHere && vb.activeView() === "classes") bringSelectionIntoView(true);
+    // A box clicked here is already in view, unless the side panel has just opened over it.
+    if ((!clickedHere || vb.panelFollowing()) && vb.activeView() === "classes") bringSelectionIntoView(true);
   });
 
   // Colours come from the page's CSS variables, so a theme change needs no redrawing.

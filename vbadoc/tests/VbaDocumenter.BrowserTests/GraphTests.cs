@@ -329,7 +329,8 @@ public class GraphTests(PageFixture fixture)
   [Fact]
   public async Task Dragged_nodes_can_be_pinned_and_released_with_a_double_click()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    // With the panel locked open, so the double-click's first click doesn't open it over the node.
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithPanelLocked);
     var page = opened.Page;
     await OpenSettings(page);
     await page.CheckAsync("#graph-setting-pinDragged");
@@ -574,7 +575,7 @@ public class GraphTests(PageFixture fixture)
     // The widest source panel leaves the graph too narrow for two columns. (With the explorer open as well, there's no
     // room even for one, so it's closed here.)
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded,
-        initScript: OpenedPage.WithoutExplorer + "localStorage.setItem('vbadoc-source-size', '0.7');");
+        initScript: OpenedPage.WithoutExplorer + OpenedPage.WithPanelLocked + "localStorage.setItem('vbadoc-source-size', '0.7');");
     var page = opened.Page;
     await ShowMembers(page);
     const string stacked = "() => document.getElementById('graph-filter-menu').classList.contains('stacked')";

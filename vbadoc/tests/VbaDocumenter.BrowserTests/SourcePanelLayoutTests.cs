@@ -2,7 +2,10 @@ using Microsoft.Playwright;
 
 namespace VbaDocumenter.BrowserTests;
 
-/// <summary>Hiding the source panel and resizing it with the splitter, in both views and on a narrow screen.</summary>
+/// <summary>
+/// Hiding the source panel and resizing it with the splitter, in both views and on a narrow screen. Each page starts
+/// with the panel locked open, as it always was before it followed the selection.
+/// </summary>
 [Collection("Browser")]
 public class SourcePanelLayoutTests(PageFixture fixture)
 {
@@ -13,9 +16,9 @@ public class SourcePanelLayoutTests(PageFixture fixture)
       (await page.Locator(selector).BoundingBoxAsync())!.Height;
 
   [Fact]
-  public async Task Hiding_the_panel_gives_both_views_the_room_beside_the_explorer_and_is_remembered()
+  public async Task Closing_the_panel_gives_both_views_the_room_beside_the_explorer_and_unlocks_it()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithPanelLocked);
     var page = opened.Page;
     Assert.Equal("true", await page.GetAttributeAsync("#side-panel-toggle", "aria-pressed"));
     var graphWidth = await WidthAsync(page, "#view-graph");
@@ -28,6 +31,7 @@ public class SourcePanelLayoutTests(PageFixture fixture)
     Assert.True(await page.Locator("#side-panel").IsHiddenAsync());
     Assert.True(await page.Locator("#side-panel-splitter").IsHiddenAsync());
     Assert.Equal("false", await page.GetAttributeAsync("#side-panel-toggle", "aria-pressed"));
+    Assert.Equal("false", await page.GetAttributeAsync("#side-panel-lock", "aria-pressed"));
     var room = 1280 - await WidthAsync(page, "#explorer") - 7; // everything but the explorer and its splitter
     Assert.Equal(room, await WidthAsync(page, "#view-graph"), tolerance: 2);
     // The graph moves by half the extra width, so what was in the middle stays in the middle.
@@ -35,7 +39,7 @@ public class SourcePanelLayoutTests(PageFixture fixture)
     await page.ClickAsync("#tab-classes");
     Assert.Equal(room, await WidthAsync(page, "#view-classes"), tolerance: 2);
 
-    await page.ReloadAsync();
+    await page.ReloadAsync(); // unlocked, with nothing selected
     Assert.True(await page.Locator("#side-panel").IsHiddenAsync());
 
     await page.ClickAsync("#side-panel-toggle");
@@ -47,7 +51,7 @@ public class SourcePanelLayoutTests(PageFixture fixture)
   [Fact]
   public async Task Dragging_the_splitter_resizes_the_panel_and_is_remembered()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithPanelLocked);
     var page = opened.Page;
     var before = await WidthAsync(page, "#side-panel");
     var splitter = (await page.Locator("#side-panel-splitter").BoundingBoxAsync())!;
@@ -82,7 +86,7 @@ public class SourcePanelLayoutTests(PageFixture fixture)
   [Fact]
   public async Task A_click_on_the_splitter_does_not_move_it()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithPanelLocked);
     var page = opened.Page;
     var before = await WidthAsync(page, "#side-panel");
 
@@ -94,7 +98,7 @@ public class SourcePanelLayoutTests(PageFixture fixture)
   [Fact]
   public async Task Double_click_resets_the_panel_away_from_its_largest_size()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithPanelLocked);
     var page = opened.Page;
     var before = await WidthAsync(page, "#side-panel");
     var splitter = (await page.Locator("#side-panel-splitter").BoundingBoxAsync())!;
@@ -115,7 +119,7 @@ public class SourcePanelLayoutTests(PageFixture fixture)
   [Fact]
   public async Task The_splitter_works_from_the_keyboard()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithPanelLocked);
     var page = opened.Page;
     await page.FocusAsync("#side-panel-splitter");
     var before = await WidthAsync(page, "#side-panel");
@@ -138,7 +142,7 @@ public class SourcePanelLayoutTests(PageFixture fixture)
   [Fact]
   public async Task On_a_narrow_screen_the_splitter_resizes_the_panel_below_the_view()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, width: 700, height: 900);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, width: 700, height: 900, initScript: OpenedPage.WithPanelLocked);
     var page = opened.Page;
     Assert.Equal("horizontal", await page.GetAttributeAsync("#side-panel-splitter", "aria-orientation"));
     var layout = (await page.Locator("#layout").BoundingBoxAsync())!;

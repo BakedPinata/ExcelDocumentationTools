@@ -123,7 +123,9 @@ left to right by depth (how many queries feed them). You can:
   panel listing what it uses and what uses it, and its M code (see below); click the background or
   press Esc to clear;
 - search by name (press `/` to jump to the search box, Enter to select the first match);
-- resize or hide the explorer and the details panel;
+- resize or hide the explorer and the details panel, with the buttons at the two ends of the top bar; the details
+  panel opens when you select a query and closes when you clear it, unless you lock it open with its padlock;
+- copy a query's M code with the button over it;
 - reset the view.
 
 It follows the system light or dark theme until you choose one with the switch in the top bar,

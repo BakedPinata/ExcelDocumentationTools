@@ -19,12 +19,17 @@
 //   shell.activeView() / showView(name, focus) / onViewChange(fn)   tab #tab-<name> shows view #view-<name>
 //   shell.start()                      shows the remembered tab, or the first; call it once the tool is ready
 //   shell.panel.element / header / body   the side panel, for the tool to fill
+//   shell.panel.following()            true while the views change size because the side panel opened or closed with
+//                                      the selection: a view then keeps still, rather than keeping its middle in the
+//                                      middle, and makes sure the selection isn't under the panel
 //   shell.explorer.setLayouts(layouts, select)   fills the explorer: layouts are [{ name, label, title, nodes }], the
 //                                      first the default. With more than one, a switch above the tree chooses, and the
 //                                      choice is remembered as <tool>-explorer-layout. nodes are { label, id, detail,
 //                                      badge, title, className, folder, children, expanded }; folder: true draws a
 //                                      folder before the label. Choosing a node with an id calls select(id)
-//   shell.explorer.reveal(id)          marks the selected item, opening what holds it; null for none
+//   shell.selectionChanged(id)         call on every change of selection (null for none): the explorer marks the
+//                                      item, opening what holds it, and the side panel opens or closes with it
+//                                      unless it's locked open
 //   shell.source.init(source)          says where the source text comes from (call it once, before start):
 //     mode         "embedded" (in the page), "folder" (Load folder) or "none" (there's no source to show)
 //     attribute    the attribute that holds each embedded source's id, such as "data-module"
@@ -38,7 +43,8 @@
 //     loaded()     called once Load folder has read a folder
 //   shell.source.has(id) / lines(id)   the source text, as an array of lines
 //   shell.source.codeHtml(id, first, last, marked)   lines first to last (default: all) as the numbered, highlighted
-//                                      code view; lines from marked.first to marked.last are marked
+//                                      code view, with a button that copies those lines; lines from marked.first to
+//                                      marked.last are marked
 //   A button with id "load-folder-prompt" anywhere in the page opens Load folder.
 (function () {
   "use strict";
@@ -207,6 +213,11 @@
       return highlighted.get(id);
     }
 
+    // The copy button sits in a row of no height above the code, which sticks to the top of what scrolls, and the
+    // button sticks to its right, so it stays in view however far the code is scrolled either way.
+    var COPY_ICON = "<svg class=\"icon copy-icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"5.5\" y=\"5.5\" width=\"8.5\" height=\"8.5\" rx=\"1.5\"/><path d=\"M10.5 3.5V3A1.5 1.5 0 0 0 9 1.5H3.5A1.5 1.5 0 0 0 2 3v5.5A1.5 1.5 0 0 0 3.5 10H4\"/></svg>";
+    var DONE_ICON = "<svg class=\"icon done-icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M3 8.5l3.25 3.25L13 5\"/></svg>";
+
     function codeHtml(id, first, last, marked) {
       var lines = highlightedLines(id);
       first = first || 1;
@@ -217,8 +228,83 @@
         html.push("<div class=\"line" + (mark ? " marked" : "") + "\" data-line=\"" + n + "\"><span class=\"ln\">" + n +
           "</span><span class=\"lt\">" + (lines[n - 1] || " ") + "</span></div>");
       }
-      return "<div class=\"code\" role=\"region\" aria-label=\"Source code\">" + html.join("") + "</div>";
+      return "<div class=\"code-view\"><div class=\"code-tools\"><button type=\"button\" class=\"copy-code\" data-source=\"" +
+        escapeHtml(id) + "\" data-first=\"" + first + "\" data-last=\"" + last + "\" title=\"Copy the code\" aria-label=\"Copy the code\">" +
+        COPY_ICON + DONE_ICON + "<span class=\"copy-label\"></span></button></div>" +
+        "<div class=\"code\" role=\"region\" aria-label=\"Source code\">" + html.join("") + "</div></div>";
     }
+
+    // ---- Copying the source ----
+    //
+    // The lines shown, as the file has them, without line numbers. The clipboard API needs a secure context, which a
+    // page opened from disk is in most browsers; failing that, the older copy command; failing both, the code is
+    // selected for Ctrl+C.
+
+    var announcer = $("announcer");
+
+    function announce(text) {
+      announcer.textContent = "";
+      window.setTimeout(function () { announcer.textContent = text; }, 50);
+    }
+
+    function copyWithCommand(text) {
+      var box = document.createElement("textarea");
+      box.value = text;
+      box.setAttribute("readonly", "");
+      box.style.position = "fixed";
+      box.style.top = "0";
+      box.style.opacity = "0";
+      var focused = document.activeElement;
+      document.body.appendChild(box);
+      box.select();
+      var copied = false;
+      try { copied = document.execCommand("copy"); } catch (e) { copied = false; }
+      document.body.removeChild(box);
+      if (focused && focused.focus) focused.focus();
+      return copied;
+    }
+
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return copyWithCommand(text); });
+      }
+      return Promise.resolve(copyWithCommand(text));
+    }
+
+    function selectCode(button) {
+      var code = button.closest(".code-view").querySelector(".code");
+      var range = document.createRange();
+      range.selectNodeContents(code);
+      var selected = window.getSelection();
+      selected.removeAllRanges();
+      selected.addRange(range);
+    }
+
+    function showCopied(button, text) {
+      button.classList.add("copied");
+      button.querySelector(".copy-label").textContent = text;
+      announce(text);
+      window.clearTimeout(button.copiedTimer);
+      button.copiedTimer = window.setTimeout(function () {
+        button.classList.remove("copied");
+        button.querySelector(".copy-label").textContent = "";
+      }, 2000);
+    }
+
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest && event.target.closest(".copy-code");
+      if (!button) return;
+      var lines = sources.get(button.getAttribute("data-source")) || [];
+      var text = lines.slice(Number(button.getAttribute("data-first")) - 1, Number(button.getAttribute("data-last"))).join("\n");
+      copyText(text).then(function (copied) {
+        if (copied) {
+          showCopied(button, "Copied");
+        } else {
+          selectCode(button);
+          showCopied(button, "Press Ctrl+C to copy");
+        }
+      });
+    });
 
     // ---- Showing, hiding and resizing the panels ----
     //
@@ -273,9 +359,16 @@
         updateSplitter();
       }
 
-      toggle.addEventListener("click", function () { setVisible(element.hidden, true); });
+      // Opening or closing by hand. A panel that doesn't remember whether it's shown (the side panel, which follows
+      // the selection) tells the shell instead.
+      function setByHand(visible) {
+        setVisible(visible, config.rememberVisible !== false);
+        if (config.changedByHand) config.changedByHand(visible);
+      }
+
+      toggle.addEventListener("click", function () { setByHand(element.hidden); });
       $(config.close).addEventListener("click", function () {
-        setVisible(false, true);
+        setByHand(false);
         toggle.focus(); // the button that had focus has gone
       });
 
@@ -331,16 +424,55 @@
 
       var storedSize = parseFloat(settings.load(config.setting + "-size"));
       setSize(isNaN(storedSize) ? null : storedSize, false);
-      var storedHidden = settings.load(config.setting + "-hidden");
+      var storedHidden = config.rememberVisible === false ? null : settings.load(config.setting + "-hidden");
       setVisible(storedHidden === null ? config.visibleByDefault() : storedHidden !== "true", false);
-      return element;
+      return { element: element, setVisible: setVisible, isVisible: function () { return !element.hidden; } };
     }
 
-    var panel = resizablePanel({
+    // ---- The side panel follows the selection ----
+    //
+    // It opens when something is selected and closes when the selection is cleared, giving the views the room, unless
+    // it's locked open. The lock is remembered per tool (<tool>-<panel>-locked); whether it's shown isn't, since the
+    // selection decides. Closing it by hand also unlocks it, because a lock keeps it open.
+
+    var lockButton = $("side-panel-lock");
+    var locked = settings.load(options.panel + "-locked") === "true";
+    var selected = null;
+
+    function setLocked(on) {
+      locked = on;
+      lockButton.setAttribute("aria-pressed", on ? "true" : "false");
+      lockButton.title = on
+        ? "Unlock: close the panel when nothing is selected"
+        : "Keep the panel open when nothing is selected";
+      settings.save(options.panel + "-locked", on ? "true" : "false");
+    }
+
+    var sidePanel = resizablePanel({
       element: "side-panel", splitter: "side-panel-splitter", toggle: "side-panel-toggle", close: "side-panel-close",
       end: true, sizeVariable: "--side-panel-size", setting: options.panel, hiddenClass: "side-panel-hidden",
-      min: 0.2, max: 0.7, visibleByDefault: function () { return true; }
+      min: 0.2, max: 0.7, visibleByDefault: function () { return locked; }, rememberVisible: false,
+      changedByHand: function (visible) { if (!visible && locked) setLocked(false); }
     });
+    var panel = sidePanel.element;
+    lockButton.setAttribute("aria-pressed", locked ? "true" : "false");
+    if (locked) lockButton.title = "Unlock: close the panel when nothing is selected";
+    lockButton.addEventListener("click", function () { setLocked(!locked); });
+
+    // Set while the views take their new size, which they're told of by a ResizeObserver in the next frame; cleared
+    // the frame after.
+    var following = false;
+
+    function selectionChanged(id) {
+      selected = id === undefined ? null : id;
+      reveal(selected);
+      if (locked || sidePanel.isVisible() === (selected !== null)) return;
+      following = true;
+      sidePanel.setVisible(selected !== null, false);
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () { following = false; });
+      });
+    }
 
     // Open by default on a wide screen, where there's room beside the views; on a narrow one it would push them down.
     resizablePanel({
@@ -628,8 +760,12 @@
       showView: showView,
       onViewChange: function (fn) { listeners.view.push(fn); },
       start: start,
-      panel: { element: panel, header: $("side-panel-header"), body: $("side-panel-body") },
-      explorer: { setLayouts: setLayouts, reveal: reveal },
+      panel: {
+        element: panel, header: $("side-panel-header"), body: $("side-panel-body"),
+        following: function () { return following; }
+      },
+      selectionChanged: selectionChanged,
+      explorer: { setLayouts: setLayouts },
       source: {
         init: initSource,
         has: function (id) { return sources.has(id); },

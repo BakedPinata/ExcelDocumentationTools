@@ -189,6 +189,13 @@ public sealed class OpenedPage(IBrowserContext context, IPage page, List<string>
   /// </summary>
   public const string WithoutExplorer = "localStorage.setItem('vbadoc-explorer-hidden', 'true');";
 
+  /// <summary>
+  /// An init script that locks the source panel open, as if it had been locked before, for tests of its size and of
+  /// views laid out beside it, which was always open before it followed the selection. It runs on every load, so it
+  /// leaves a lock the test has changed alone.
+  /// </summary>
+  public const string WithPanelLocked = "if (localStorage.getItem('vbadoc-source-locked') === null) localStorage.setItem('vbadoc-source-locked', 'true');";
+
   public static async Task<OpenedPage> OpenAsync(PageFixture fixture, string folder, ColorScheme colourScheme = ColorScheme.Dark,
       int width = 1280, int height = 800, string? initScript = null)
   {

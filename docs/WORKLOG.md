@@ -10,11 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.11.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.12.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.7.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.8.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -23,8 +23,8 @@ rather than repeating it.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. The user's build, test and
   publish of A0 on the work machine is still to come. A0–A5, F1, B1–B4, C1 and C2 are pushed and reviewed. D1 is done.
   The user's review of D1 added steps D1a to D1d, before D2, now settled (see the plan's "After D1's review"). D1b is
-  done, waiting for review and the user's check of the workbook with 20 groups. **Next: D1a** (panel controls), then
-  D1c and D1d.
+  pushed; the user's check of the workbook with 20 groups is still to come. D1a is done, with the copy button the user
+  asked for after D1b, waiting for review. **Next: D1c** (view controls and both pages' summary), then D1d.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -34,6 +34,22 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-04: Step D1a, panel controls and the copy button
+
+- The explorer's and side panel's buttons are icons at the two ends of the top bar (three bars beside the title, `</>`
+  after the version), with their names in tooltips and `aria-label`s. Our own SVG, as are the lock and copy icons.
+- The side panel follows the selection unless locked open: `shell.selectionChanged(id)` (replacing
+  `shell.explorer.reveal`) opens or closes it, and the lock in its corner is remembered per tool. Closing it by hand
+  unlocks it. The views keep still while it follows (`shell.panel.following()`), moving the selection into sight only
+  if the panel would cover it; before, the resize also interrupted vbadoc's move into sight.
+- The user asked for a copy button in the source after D1b, added to D1a in the plan (79481b7): it's in the shell's
+  code view, copies the lines shown as plain text, stays in view as the code scrolls, and selects the code for Ctrl+C
+  if the browser won't copy.
+- vbadoc's Source panel requirements, pqdoc's FR-HTML-12 and FR-SRC-4, both decisions and READMEs, the shared README
+  and the guidelines follow. vbadoc 0.12.0, pqdoc 1.8.0.
+- Tests: 12 new vbadoc and 6 new pqdoc browser tests; tests of the panel's size open the page with it locked open.
+  Screenshots checked in both themes, wide and narrow.
 
 ### 2026-11-04: Step D1b, explorer layouts and nested query groups
 

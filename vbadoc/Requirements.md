@@ -83,7 +83,7 @@ Forms (UserForms) are in scope, but no sample workbook with forms has been avail
 - When any module has a `'@Folder("Parent.Child")` comment in its declarations (the Rubberduck convention; `'@Folder "Parent.Child"` also counts), modules are shown in those folders by default, nested at the dots and drawn as folders, with modules that have none in a No folder group. A switch shows them by kind instead, and the choice is remembered. Without folders they're shown by kind: standard modules, classes, interfaces, forms and document modules.
 - A filter box narrows the tree to the names containing its text, with what holds them. Search stays for jumping straight to a name.
 - Choosing an item selects it in every view, and the explorer follows selections made elsewhere. It works from the keyboard as a tree: the arrows move and open or close, and Enter chooses.
-- It can be hidden and resized, and both are remembered. It's open by default on a wide screen and closed on a narrow one, where it opens above the views.
+- It can be hidden and resized, and both are remembered. It's open by default on a wide screen and closed on a narrow one, where it opens above the views. Its button is at the left end of the top bar, beside the title, as the source panel's is at the right end; both are icons, with their names in a tooltip.
 
 ### Light and dark mode
 
@@ -96,6 +96,8 @@ Forms (UserForms) are in scope, but no sample workbook with forms has been avail
 
 Shared by both views.
 
+- It opens when something is selected and closes when the selection is cleared, so the views get the room back. A lock keeps it open, and is remembered. Its button at the right end of the top bar still opens and closes it by hand; closing it by hand also unlocks it. When it opens over what was selected, the view moves that into sight; otherwise the views keep still.
+- A button over the code copies the lines shown to the clipboard as plain text, without line numbers, and stays in view as the code scrolls. If the browser won't allow it, the code is selected for Ctrl+C instead.
 - Selecting a module, class, interface or form shows its whole source.
 - Selecting a member shows **only that member's source**: its procedure, or the declaration lines of a `Const`, `Enum`, `Type`, variable, `Event` or `Declare`. Offer a way to see it in the context of the whole module.
 - The source is shown with **VBA syntax highlighting**:

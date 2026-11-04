@@ -77,6 +77,27 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
 - **The filter matches names only** and keeps what holds a match, opening it while filtering; clearing it puts back
   what was open.
 
+### Panel controls (step D1a)
+
+- **The explorer's button is at the left end of the top bar, beside the title, and the side panel's at the right
+  end,** after the version, as icons (three bars and `</>`) with their names as `aria-label`s and in a tooltip. On a
+  narrow screen the explorer's stays beside the title.
+- **The tool tells the shell of every change of selection** (`shell.selectionChanged(id)`, which replaced
+  `shell.explorer.reveal`), before drawing it, so the side panel is open when it's drawn. The explorer marks the item
+  and the side panel opens or closes with it, unless it's locked open. The lock is remembered
+  (`<tool>-<panel>-locked`); whether the panel is shown no longer is, since the selection decides. Closing the panel by
+  hand unlocks it.
+- **`shell.panel.following()` says the views are changing size because the panel followed the selection.** A view's
+  ResizeObserver then keeps still rather than keeping its middle in the middle, and the view moves the selection into
+  sight only if the panel now covers it. The flag is cleared two frames later, after the ResizeObserver has run.
+- **The code view has a copy button,** in `codeHtml`, so both tools have it: the lines shown, as the source has them,
+  joined with line feeds (the browser writes the system's line breaks). It's in a row of no height that sticks to the
+  top of what scrolls, and sticks to that row's right, so it stays in view either way; where a tool's code box scrolls
+  sideways on its own (pqdoc's), it stays at the top of the box. "Copied" shows for two seconds and is read out from a
+  live region (`#announcer`). Without the clipboard API, or if it's refused, the older copy command is tried; if that
+  fails too, the code is selected for Ctrl+C.
+- **The lock and copy icons are our own,** like the folder (see below).
+
 ### Explorer layouts (step D1b)
 
 - **A tool can give more than one layout of the same items** (`layouts`: `[{ name, label, title, nodes }]`), such as

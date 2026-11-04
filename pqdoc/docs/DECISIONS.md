@@ -183,6 +183,17 @@ Reading them is step B2 of the feedback plan.
   Anything else counts as a query; a parameter does too, since it isn't a function.
 - **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
 
+## Panel controls (1.8.0, step D1a of the feedback plan)
+
+- **The details panel follows the selection unless locked,** as vbadoc's source panel does, all in the shell (see
+  `shared/README.md` and vbadoc's decisions). Whether it's shown is no longer remembered, only the lock; the old
+  `pqdoc-details-hidden` setting is ignored.
+- **The graph keeps still when the panel opens or closes with the selection.** Before, it refitted itself to the new
+  size until the person moved it, so every click and every clear zoomed it. A query clicked where the panel opens is
+  centred. Resizing the panel by hand, or the window, still refits or keeps the middle as before (FR-HTML-12).
+- **The copy button copies the query as its file has it, apart from the last line break,** which the code view doesn't
+  show either (FR-SRC-4).
+
 ## Explorer layouts and nested groups (1.7.0, step D1b of the feedback plan)
 
 - **Nested groups, from the user's updated samples:** after a group's description comes a byte saying whether it's

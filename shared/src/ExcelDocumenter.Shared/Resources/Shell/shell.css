@@ -86,6 +86,8 @@ a:hover { text-decoration: underline; }
   border-bottom: 1px solid var(--border);
 }
 
+/* The explorer's switch, beside the title at the left end, as the side panel's is at the right end. */
+.topbar-start { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .title { margin: 0; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30ch; }
 
 .tabs { display: flex; gap: 4px; }
@@ -129,6 +131,11 @@ a:hover { text-decoration: underline; }
 .button:hover { border-color: var(--accent); }
 .button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 
+/* Our own icons: stroked in the text colour, so they follow the theme. */
+.icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.icon-button { padding: 7px; }
+.icon-button .icon { width: 18px; height: 18px; }
+
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Load folder and what it found. The file input is hidden; its label is the button. */
@@ -139,9 +146,9 @@ a:hover { text-decoration: underline; }
 .source-status.embedded #load-folder-label { display: none; }
 .warning { color: var(--warn); }
 
-/* The side panel and theme switches and the version, kept together at the right end of the bar. */
+/* The theme switch, the version and the side panel's switch, kept together at the right end of the bar. */
 .topbar-end { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-left: auto; }
-.side-panel-toggle[aria-pressed="true"] { border-color: var(--accent); }
+.side-panel-toggle[aria-pressed="true"], .explorer-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 /* The version links to the project on GitHub; following a link isn't loading anything, so the CSP needn't allow it. */
 .tool-version { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); white-space: nowrap; text-decoration: none; }
 .tool-version:hover { color: var(--text); text-decoration: underline; }
@@ -190,7 +197,7 @@ html[data-theme="light"] .theme-icon::before { content: "\2600"; } /* sun */
 .splitter:focus-visible { outline-offset: -2px; }
 body.resizing { cursor: col-resize; user-select: none; }
 
-/* Each panel's ×. The side panel's sits over its header; the explorer's sits beside its filter box. */
+/* Each panel's ×. The side panel's sits over its header, with its lock; the explorer's sits beside its filter box. */
 .panel-close {
   width: 26px;
   height: 26px;
@@ -203,7 +210,12 @@ body.resizing { cursor: col-resize; user-select: none; }
   cursor: pointer;
 }
 .panel-close:hover { color: var(--text); border-color: var(--border); background: var(--surface-2); }
-.side-panel-close { position: absolute; top: 6px; right: 8px; z-index: 1; }
+.side-panel-controls { position: absolute; top: 6px; right: 8px; z-index: 2; display: flex; gap: 2px; }
+.side-panel-lock { display: inline-flex; align-items: center; justify-content: center; }
+.side-panel-lock .icon { width: 15px; height: 15px; }
+.side-panel-lock .lock-shut, .side-panel-lock[aria-pressed="true"] .lock-open { display: none; }
+.side-panel-lock[aria-pressed="true"] .lock-shut { display: block; }
+.side-panel-lock[aria-pressed="true"] { color: var(--accent); }
 
 @media (max-width: 900px) {
   .layout {
@@ -219,7 +231,8 @@ body.resizing { cursor: col-resize; user-select: none; }
   .splitter::before { top: 3px; bottom: auto; left: 0; right: 0; width: auto; height: 1px; }
   .splitter:hover::before, .splitter.dragging::before { top: 2px; left: 0; width: auto; height: 3px; }
   body.resizing { cursor: row-resize; }
-  .title { max-width: 100%; flex-basis: 100%; }
+  .topbar-start { flex-basis: 100%; }
+  .title { max-width: none; }
 }
 
 /* ---- Segmented control: a few buttons as one, with role="radio" and aria-checked on the chosen one ---- */
@@ -238,7 +251,6 @@ body.resizing { cursor: col-resize; user-select: none; }
 
 /* ---- Explorer (shell.js): a tree of everything the page documents, with a filter ---- */
 
-.explorer-toggle[aria-pressed="true"] { border-color: var(--accent); }
 .explorer-header { display: flex; align-items: center; gap: 6px; padding: 8px 8px 6px 10px; }
 .explorer-header input {
   flex: 1;
@@ -289,15 +301,38 @@ body.resizing { cursor: col-resize; user-select: none; }
 
 /* ---- Side panel: the tool fills the header and the body ---- */
 
-.side-panel-header { padding: 12px 40px 12px 16px; border-bottom: 1px solid var(--border); }
+.side-panel-header { padding: 12px 72px 12px 16px; border-bottom: 1px solid var(--border); }
 .side-panel-header:empty { display: none; }
 .side-panel-body { flex: 1; min-height: 0; overflow: auto; }
 
 /* ---- Source view (shell.js): numbered, highlighted lines ---- */
 
-.source-message { margin: 16px 40px 16px 16px; color: var(--text-muted); }
+.source-message { margin: 16px 72px 16px 16px; color: var(--text-muted); }
 .source-message .button { margin-top: 8px; }
 
+.code-view { min-width: max-content; }
+.code-tools { position: sticky; top: 0; z-index: 1; display: flex; justify-content: flex-end; height: 0; }
+.copy-code {
+  position: sticky;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  margin: 6px 8px 0 0;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font: 12px var(--font-ui);
+  cursor: pointer;
+}
+.copy-code:hover { color: var(--text); border-color: var(--accent); }
+.copy-code .done-icon, .copy-code.copied .copy-icon { display: none; }
+.copy-code.copied .done-icon { display: block; }
+.copy-code.copied { color: var(--text); }
+.copy-label:empty { display: none; }
 .code { margin: 0; padding: 8px 0; font: 12.5px/1.5 var(--font-code); tab-size: 4; min-width: max-content; }
 .code .line { display: flex; white-space: pre; }
 .code .line.marked { background: var(--line-highlight); }

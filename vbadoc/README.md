@@ -124,7 +124,11 @@ These break anything that runs vbadoc from a script:
 The explorer on the left lists every module with its members. If your modules have Rubberduck's
 `'@Folder("Parent.Child")` comments, it shows them in those folders, or by kind with **Types** at its top; otherwise by
 kind. Its filter box narrows the list, and choosing an item selects it in the graph, the class diagram and the source
-panel. Hide it with **Explorer** in the top bar, or drag its edge to resize it.
+panel. Hide it with the button at the left end of the top bar, or drag its edge to resize it.
+
+The source panel opens when you select something and closes when you clear the selection. Lock it open with the
+padlock in its corner, or open and close it with `</>` at the right end of the top bar. The copy button over the code
+copies the lines shown.
 
 ### What it writes
 

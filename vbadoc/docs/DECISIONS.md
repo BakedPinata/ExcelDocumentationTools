@@ -449,6 +449,21 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Panel controls (0.12.0, step D1a of the feedback plan)
+
+- **The panels' buttons are icons at the ends of the top bar,** each on the side of the panel it opens; the shell's
+  (see `shared/README.md`). The source panel's is `</>` in both tools, though pqdoc's is the details panel, so the
+  same button does the same thing in each.
+- **The source panel follows the selection unless locked,** and closing it by hand unlocks it: a lock means "keep it
+  open", so closing it is the end of that. Whether it's shown is no longer remembered, only the lock; the old
+  `vbadoc-source-hidden` setting is ignored.
+- **The views keep still when the panel opens or closes with the selection,** rather than keeping their middle in the
+  middle, which moved the whole graph by half the panel's width on every click and every clear. The graph and class
+  diagram move the selection into sight only if the opening panel would cover it. Resizing the panel by hand, or the
+  window, still keeps the middle in the middle. Before this, the resize also interrupted the move into sight.
+- **Browser tests about the panel's size, or laid out beside it, open the page with it locked open** (an init script
+  that leaves a lock the test changes alone), as it always was before.
+
 ### Explorer layouts (0.11.0, step D1b of the feedback plan)
 
 - **Folders and Types are two layouts of the same tree,** chosen with the explorer's switch (the shell's), which is

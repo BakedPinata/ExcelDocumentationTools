@@ -107,8 +107,8 @@
     if (id !== null && !queriesById.has(id)) return false;
     if (id === selection) return true;
     selection = id;
+    shell.selectionChanged(selection); // first, so the panel is open when its details are drawn
     renderDetails();
-    shell.explorer.reveal(selection);
     emit("selection", selection);
     return true;
   }
@@ -272,6 +272,7 @@
     onThemeChange: shell.onThemeChange,
     activeView: shell.activeView,
     onViewChange: shell.onViewChange,
+    panelFollowing: shell.panel.following,
     matches: function () { return matches; },
     onSearchChange: function (fn) { listeners.search.push(fn); },
     clearSearch: clearSearch,
