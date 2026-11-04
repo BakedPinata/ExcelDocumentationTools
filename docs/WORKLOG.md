@@ -22,9 +22,9 @@ rather than repeating it.
   built on, since C2. See its README.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. The user's build, test and
   publish of A0 on the work machine is still to come. A0–A5, F1, B1–B4, C1 and C2 are pushed and reviewed. D1 is done.
-  The user's review of D1 added steps D1a to D1d, before D2, with three questions to settle (icons, vbadoc's summary
-  time, pqdoc's Focus; see the plan's "After D1's review"). **Next: D1a** (panel controls), once the user has reviewed
-  the plan update. D1b needs a sample workbook with nested query groups from the user.
+  The user's review of D1 added steps D1a to D1d, before D2, now settled (see the plan's "After D1's review").
+  **Next: D1b** (explorer layouts and nested query groups), first because the user's updated sample workbooks have
+  nested groups, which tests on them fail on until pqdoc reads them; then D1a, D1c and D1d.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -34,6 +34,14 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-04: D1's follow-ups settled
+
+- The user settled the plan's three questions: our own SVG icons; both pages show when the workbook was last saved,
+  never when the page was made, so pqdoc drops its generation time (FR-HTML-8 changes in D1c); and one Focus on click
+  switch for every view, on by default, with Ctrl+click doing the other and Esc clearing the selection everywhere.
+- The user added nested query groups to `Queries.xlsx` and `Queries.xlsb` (committed with D1b). They show the layout
+  D1 didn't know: a has-parent byte, then the parent's GUID, before the order. D1b moves ahead of D1a.
 
 ### 2026-11-04: D1 reviewed; follow-up steps added to the plan
 
