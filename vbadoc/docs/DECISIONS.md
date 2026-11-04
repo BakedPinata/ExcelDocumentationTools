@@ -157,7 +157,7 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   `Dim`/`Const`/`ReDim` lines, because their array bounds and values can reference other members. Locals are also
   listed separately with their types. Interpreting statements is stage 3's job.
 - **Both branches of `#If … #Else` are parsed.** A Declare in both branches appears twice (same name, different lines),
-  so stage 3 must give members ids that stay unique in that case.
+  so stage 3 must give members ids that stay unique in that case. (Replaced in A6: such a name is now one member.)
 - **VBA's own declaration rules are followed:**
   - in `Dim a, b As String`, only `b` is a String (`a` is untyped, i.e. Variant);
   - module-level `Dim` and `Const` are Private; procedures, Enums, Types and Declares default to Public;
@@ -448,6 +448,29 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
   the detail, the role is a badge, and an unreferenced member is in italics with a tooltip.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
+
+### Declarations repeated under `#If` (0.16.0, step A6 of the feedback plan)
+
+- **A name declared again under `#If` is one member.** VBA compiles one branch and won't accept a name declared twice,
+  so a later declaration of the same name and kind (and the same Get, Let or Set) is another version of the first when
+  either is under `#If`. The parser folds it in: a second procedure header before any of the body (early or late
+  binding, the user's case: before, the first header had no body and a missing End line, and the second got it all),
+  complete versions in different branches (their bodies are one body), versions in separate `#If` blocks with
+  complementary conditions, and variables, constants, Declares and Events. Every branch is still read: the page
+  documents every version, and the user chose this over working out which branch is active from the project's
+  conditional compilation arguments, which `Win64`, `VBA7` and `Mac` keep from always being decidable.
+- **The member spans its versions:** from the `#If` above the first (or its comment block) to the `#End If` after the
+  last, or to its `End` line, so the source panel shows them all. Another member between versions in separate blocks is
+  inside that span; that's rare, and accepted.
+- **`Type` and `Parameters` are the first version's;** `AlternativeTypes` and `AlternativeParameters` keep the others
+  that differ. The signature and the class diagram show the types joined (`As Scripting.Dictionary | Object`, a missing
+  type being Variant), and a parameter's types the same way when the versions' parameters line up by name.
+  Dependencies come from every version's types and parameters, and a reference through the member follows the first
+  of its types that's a project class or Type (`ProjectIndex.TypeFromNames`), so `m_Widget.Spin` resolves whichever
+  branch says `As Widget`. A variable is associated with a class in the class diagram if any version's type is one.
+- **Not folded:** Enums and Types declared twice (rare, and their values or fields would need merging), and a name
+  declared twice outside `#If`, which VBA wouldn't compile; those keep the `~2` id and share one answer on whether
+  they're referenced.
 
 ### Speed on large projects (0.15.0, step D1d of the feedback plan)
 

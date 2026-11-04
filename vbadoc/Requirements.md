@@ -43,6 +43,7 @@ A second spike (a sequence-diagram generator, since abandoned) proved that a lig
 - **Type-aware reference resolution:** resolve `obj.Member` using the declared types of locals, parameters, module variables and public globals, as well as `Me`, module-qualified names and `With` blocks.
 - **Late-bound references** (on `Object`, `Variant` or untyped variables) can't be resolved statically. Count and report them rather than guessing.
 - **Source line ranges** for every member, so the page can show member-level source (see Source panel).
+- **Conditional compilation:** every branch of `#If … #ElseIf … #Else … #End If` is read, so the page documents every version of the code. A name declared again with the same kind (and the same `Get`, `Let` or `Set`) when either declaration is under `#If`, such as a variable or function declared once for early binding and once for late binding, is one member: its source runs from the `#If` to the `#End If` (or its `End` line), its signature shows each version's type (`As Scripting.Dictionary | Object`), and the dependencies of every version count.
 
 ## Output folder and files
 

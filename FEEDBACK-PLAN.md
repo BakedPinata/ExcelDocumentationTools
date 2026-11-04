@@ -50,6 +50,7 @@ questions the draft raised.
 | D1e | `'@Folder` after a label in a header comment, such as `' Folder:<tabs>@Folder("Reports")` (added after D1a) | Claude | Done |
 | D1c | View controls: a Focus on click switch for every view, Ctrl+click for the other, Esc to deselect, Transitive into Settings, the class diagram's legend as the graph's, and the same summary in both pages (added after D1) | Claude | Done |
 | D1d | Speed: large projects stay smooth to pan and scroll, keeping every feature (added after D1; about 3 out of 10 after more use) | Claude, then you on a work machine | Done |
+| A6 | vbadoc: a name declared again under `#If` (for early or late binding, say) is one member, with every version's types and dependencies (added after D1d) | Claude | Done |
 | D2 | Favourites, replacing Home and the trail | Claude | |
 | D3 | Showing less, from the explorer: checkboxes that filter every view to chosen items and folders, Expand and Collapse all, hiding, and the Show menus (reshaped after D1c) | Claude | |
 | D4 | Widely used items and predeclared classes, marked and grouped in the explorer, with Hide all (split from D3 after D1c) | Claude | |
@@ -138,6 +139,7 @@ The notes behind this plan are kept out of the repository. This section is what 
 | Focus gets lost among the toolbar's buttons, Transitive is seldom used, and Ctrl+click could focus (after D1) | D1c |
 | A switch for focus on click, the same in every view; Esc to deselect (after D1's plan review) | D1c |
 | `@Folder` in a header comment block, after its label (after D1a) | D1e |
+| A variable or procedure declared in both branches of `#If … #Else`, for early or late binding, shows as two members (after D1d) | A6 |
 | The class diagram's legend should pick things out as the graph's does (after D1) | D1c |
 | vbadoc's page has no summary like pqdoc's (after D1) | D1c |
 | 70 modules with 320 module and 1,540 member dependencies are laggy to scroll and pan, about 5 out of 10 (after D1) | D1d |
@@ -728,6 +730,24 @@ Added after C1, at the user's request, to bring vbadoc into line with pqdoc. Don
 - Update vbadoc's requirements, decisions and README, including a note that a script that runs vbadoc again needs
   `--force`. The guidelines list both options among the shared ones.
 
+### Step A6: Declarations repeated under `#If`
+
+Added after D1d, from the user's report, and done before D2. The user chose this over working out which branch is
+active from the project's conditional compilation arguments, which can't always be decided (`Win64`, `VBA7` and `Mac`
+depend on the machine running the workbook) and would drop the other branch's dependencies.
+
+- VBA compiles one branch of `#If … #ElseIf … #Else … #End If` and won't accept a name declared twice, so a name
+  declared again with the same kind (and the same Get, Let or Set) is the same member when either declaration is under
+  `#If`. The parser folds the later declarations into the first: a second procedure header before the body, as in
+  `#If EarlyBinding Then` / `Function F() As Scripting.Dictionary` / `#Else` / `Function F() As Object` / `#End If`; two
+  complete versions in different branches; and variables, constants and Declares.
+- The member spans its whole `#If` block, so the source panel shows every version. It keeps every version's types and
+  parameter lists: its signature and class diagram line show `As Scripting.Dictionary | Object`, and dependencies from
+  every version count.
+- Enums and Types declared twice stay as they are (rare). A name declared twice outside `#If`, which VBA wouldn't
+  compile, keeps its `~2` id.
+- Unit tests for each form, from the user's example; vbadoc's requirements and decisions.
+
 ### Step D1: Explorer
 
 - Add the explorer to the shell, and fill it from each tool, as section 5 describes, including `'@Folder` grouping and
@@ -929,6 +949,7 @@ Approving this plan covers the changes below. Anything else still needs asking.
 | `vbadoc/docs/DECISIONS.md` | Home and trail decisions replaced; class diagram decisions replaced; new decisions for each step | A2, D1–G3 |
 | `docs/GUIDELINES.md` | Structure: `shared/` and what belongs there | C1 |
 | `vbadoc/Requirements.md`, `vbadoc/docs/DECISIONS.md`, `vbadoc/README.md`, `docs/GUIDELINES.md` | `--on-exists` and `--force`; asking before overwriting the page; exit code 4 | A5 |
+| `vbadoc/Requirements.md`, `vbadoc/docs/DECISIONS.md` | A name declared again under `#If` is one member, replacing "both branches are parsed" as separate members | A6 |
 | `docs/GUIDELINES.md` | HTML pages: the shell, the explorer, views files | C2, G2 |
 | `docs/GUIDELINES.md` | Dependencies: Mermaid removed | F1 |
 | Both `Requirements.md`s, `DECISIONS.md`s and `README.md`s | Documentation file names; vbadoc's `--output-name` | A4 |

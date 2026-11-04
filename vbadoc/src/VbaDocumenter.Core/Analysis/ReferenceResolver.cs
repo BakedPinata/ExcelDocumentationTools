@@ -217,14 +217,16 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
       // with arguments, which is recursion (e.g. Factorial(n - 1)).
       bool isOwnName = Same(name, procedure.Name) && procedure.Kind is MemberKind.Function or MemberKind.PropertyGet;
       bool isRecursiveCall = isOwnName && segment.HasArguments && procedure.Parameters.Count > 0;
-      if (isOwnName && !isRecursiveCall) return index.TypeFromName(procedure.Type, scope.Module);
+      if (isOwnName && !isRecursiveCall) return index.TypeFromNames(procedure.Types, scope.Module);
 
       if (!isOwnName)
       {
-        var local = procedure.Locals.FirstOrDefault(l => Same(l.Name, name));
-        if (local != null) return local.IsConstant ? ResolvedType.Unknown : index.TypeFromName(local.Type, scope.Module);
-        var parameter = procedure.Parameters.FirstOrDefault(p => Same(p.Name, name));
-        if (parameter != null) return index.TypeFromName(parameter.Type, scope.Module);
+        // A local or parameter declared again under #If has each version's type; the best is used.
+        var locals = procedure.Locals.Where(l => Same(l.Name, name)).ToList();
+        if (locals.Count > 0)
+          return locals[0].IsConstant ? ResolvedType.Unknown : index.TypeFromNames(locals.Select(l => l.Type).ToList(), scope.Module);
+        if (procedure.Parameters.Any(p => Same(p.Name, name)))
+          return index.TypeFromNames(procedure.ParameterTypes(name), scope.Module);
       }
     }
 
@@ -263,7 +265,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
     if (access != Access.Read) return ResolvedType.Unknown;
     bool hasValue = member.Kind is MemberKind.Variable or MemberKind.Function or MemberKind.PropertyGet
                     || (member.Kind == MemberKind.Declare && member.IsFunctionDeclare);
-    return hasValue ? index.TypeFromName(member.Type, index.OwnerOf(member)) : ResolvedType.Unknown;
+    return hasValue ? index.TypeFromNames(member.Types, index.OwnerOf(member)) : ResolvedType.Unknown;
   }
 
   /// <summary>The object a With block refers to: "With svc", "With Me.Target" or "With New Order".</summary>

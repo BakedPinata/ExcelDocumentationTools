@@ -41,19 +41,18 @@ public class ExtrasDependencyTests
   }
 
   [Fact]
-  public void Declares_repeated_under_If_get_distinct_ids()
+  public void A_declare_repeated_under_If_is_one_node()
   {
     var ids = Model.Members.Where(m => m.Member?.Name == "GetTickCount").Select(m => m.Id);
 
-    Assert.Equal(["Declarations.GetTickCount", "Declarations.GetTickCount~2"], ids);
+    Assert.Equal(["Declarations.GetTickCount"], ids);
   }
 
   [Fact]
-  public void Flags_unreferenced_members_but_not_entry_points_enum_values_or_repeated_declares()
+  public void Flags_unreferenced_members_but_not_entry_points_or_enum_values()
   {
-    // CountCalls is a macro and Total/BuildLabel may be worksheet functions. GetTickCount~2 is the #Else copy of
-    // a Declare that is used. The Enum counts as used because its values are. Settings' properties are
-    // genuinely unused in this fixture.
+    // CountCalls is a macro and Total/BuildLabel may be worksheet functions. The Enum counts as used because its values
+    // are. Settings' properties are genuinely unused in this fixture.
     Assert.Equal(
     [
         "Declarations.APP_VERSION", "Declarations.g_LastError", "Declarations.m_Rows", "Declarations.FillRows",

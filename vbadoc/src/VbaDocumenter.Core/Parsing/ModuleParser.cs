@@ -27,6 +27,12 @@ public static partial class ModuleParser
   private static partial Regex ProcedureStart();
   [GeneratedRegex(@"^End\s+(?<kind>Sub|Function|Property)$", Opts)]
   private static partial Regex ProcedureEnd();
+  [GeneratedRegex(@"^#If\b", Opts)]
+  private static partial Regex DirectiveIf();
+  [GeneratedRegex(@"^#Else(?:If)?\b", Opts)]
+  private static partial Regex DirectiveElse();
+  [GeneratedRegex(@"^#End\s*If\b", Opts)]
+  private static partial Regex DirectiveEndIf();
   // Rubberduck's folder annotation, with or without brackets: '@Folder("Parent.Child") or '@Folder "Parent.Child". It
   // can also follow a label ending in a colon, as in a header's ' Folder:<tabs>@Folder("Reports"), which Rubberduck
   // itself doesn't read; anything else before it, such as prose that mentions it, doesn't count.
@@ -131,7 +137,7 @@ public static partial class ModuleParser
       }
 
       var code = line.Code;
-      if (code.StartsWith('#')) return; // #If / #Else / #Const: conditional compilation. Both branches are parsed.
+      if (code.StartsWith('#')) { HandleDirective(code, line); return; }
 
       var attribute = AttributeStatement().Match(code);
       if (attribute.Success)
@@ -282,33 +288,48 @@ public static partial class ModuleParser
         StartLine = start,
       };
       Members.Add(_block);
+      Track(_block);
     }
+
+    static MemberKind ProcedureKind(Match m) => m.Groups["kind"].Value.ToLowerInvariant() switch
+    {
+      "sub" => MemberKind.Sub,
+      "function" => MemberKind.Function,
+      var k when k.EndsWith("get") => MemberKind.PropertyGet,
+      var k when k.EndsWith("let") => MemberKind.PropertyLet,
+      _ => MemberKind.PropertySet,
+    };
 
     void StartProcedure(Match m, LogicalLine line, int start)
     {
-      var kind = m.Groups["kind"].Value.ToLowerInvariant() switch
-      {
-        "sub" => MemberKind.Sub,
-        "function" => MemberKind.Function,
-        var k when k.EndsWith("get") => MemberKind.PropertyGet,
-        var k when k.EndsWith("let") => MemberKind.PropertyLet,
-        _ => MemberKind.PropertySet,
-      };
+      var kind = ProcedureKind(m);
       var signature = ParseSignature(m.Groups["rest"].Value, line);
+      var type = signature.ReturnType ?? TypeForSuffix(m.Groups["suffix"].Value);
       _sawProcedure = true;
+
+      // Another complete version of a procedure, in another branch of #If: its body adds to the first version's.
+      var earlier = EarlierVersion(m.Groups["name"].Value, kind);
+      if (earlier != null)
+      {
+        Fold(earlier, type, signature.Parameters, line.LastLine);
+        _procedure = earlier;
+        return;
+      }
+
       _procedure = new Member
       {
         Name = m.Groups["name"].Value,
         Kind = kind,
         Visibility = ParseVisibility(m.Groups["vis"].Value, Visibility.Public),
         IsStatic = m.Groups["static"].Success,
-        Type = signature.ReturnType ?? TypeForSuffix(m.Groups["suffix"].Value),
+        Type = type,
         IsArray = signature.ReturnsArray,
         Parameters = signature.Parameters,
         DeclarationLine = line.FirstLine,
         StartLine = start,
       };
       Members.Add(_procedure);
+      Track(_procedure);
     }
 
     // ---- Inside a procedure ----
@@ -329,8 +350,16 @@ public static partial class ModuleParser
         return;
       }
 
-      // A procedure can't contain another one, so this means the End line is missing.
-      if (ProcedureStart().IsMatch(code))
+      // A procedure can't contain another one, so another header means the End line is missing, unless it's another
+      // version of this procedure's header under #If.
+      var header = ProcedureStart().Match(code);
+      if (header.Success && IsAnotherHeader(proc, header))
+      {
+        var signature = ParseSignature(header.Groups["rest"].Value, line);
+        Fold(proc, signature.ReturnType ?? TypeForSuffix(header.Groups["suffix"].Value), signature.Parameters, line.LastLine);
+        return;
+      }
+      if (header.Success)
       {
         Warnings.Add($"Line {proc.DeclarationLine}: {KindText(proc.Kind)} {proc.Name} has no End line.");
         proc.EndLine = line.FirstLine - 1;
@@ -430,7 +459,90 @@ public static partial class ModuleParser
       _block = null;
     }
 
-    void Add(Member member) => Members.Add(member);
+    void Add(Member member)
+    {
+      var earlier = EarlierVersion(member.Name, member.Kind);
+      if (earlier != null)
+      {
+        Fold(earlier, member.Type, member.Parameters, member.EndLine);
+        return;
+      }
+      Members.Add(member);
+      Track(member);
+    }
+
+    // ---- Conditional compilation ----
+    //
+    // Every branch of #If … #ElseIf … #Else … #End If is read, so the page documents every version of the code. VBA
+    // compiles one branch and won't accept a name declared twice, so a name declared again with the same kind (and so
+    // the same Get, Let or Set), when either declaration is under #If, is the same member: the later declarations are
+    // folded into the first, which then spans from the #If above it to the #End If (or the End line) after the last.
+    // Enums and Types aren't folded. #Const lines are skipped.
+
+    sealed class IfBlock(int line)
+    {
+      public int Line { get; } = line;
+      public int Branch { get; set; }
+    }
+
+    readonly List<IfBlock> _ifs = [];                                     // the #If blocks open now, innermost last
+    readonly Dictionary<Member, (IfBlock Block, int Branch)> _under = []; // where each member under #If was declared
+    readonly List<(Member Member, IfBlock Block)> _toEndIf = [];          // folded members to stretch to a block's #End If
+
+    void HandleDirective(string code, LogicalLine line)
+    {
+      if (DirectiveIf().IsMatch(code))
+      {
+        _ifs.Add(new IfBlock(line.FirstLine));
+      }
+      else if (DirectiveElse().IsMatch(code))
+      {
+        if (_ifs.Count > 0) _ifs[^1].Branch++;
+      }
+      else if (DirectiveEndIf().IsMatch(code) && _ifs.Count > 0)
+      {
+        var block = _ifs[^1];
+        _ifs.RemoveAt(_ifs.Count - 1);
+        foreach (var entry in _toEndIf.Where(e => e.Block == block).ToList())
+        {
+          // A procedure still open ends at its End line, after this.
+          if (entry.Member != _procedure) entry.Member.EndLine = Math.Max(entry.Member.EndLine, line.LastLine);
+          _toEndIf.Remove(entry);
+        }
+      }
+    }
+
+    void Track(Member member)
+    {
+      if (_ifs.Count > 0) _under[member] = (_ifs[^1], _ifs[^1].Branch);
+    }
+
+    /// <summary>The earlier member a declaration is another version of, or null.</summary>
+    Member? EarlierVersion(string name, MemberKind kind)
+    {
+      if (kind is MemberKind.Enum or MemberKind.Type or MemberKind.EnumMember) return null;
+      return Members.FirstOrDefault(m => m.Kind == kind && m.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
+          && (_ifs.Count > 0 || _under.ContainsKey(m)));
+    }
+
+    /// <summary>Folds another version into an earlier member: its type and parameters, and its lines.</summary>
+    void Fold(Member earlier, string? type, IReadOnlyList<Parameter> parameters, int endLine)
+    {
+      earlier.AddVersion(type, parameters);
+      if (_under.TryGetValue(earlier, out var first)) earlier.StartNoLaterThan(first.Block.Line);
+      earlier.EndLine = Math.Max(earlier.EndLine, endLine);
+      if (_ifs.Count > 0) _toEndIf.Add((earlier, _ifs[^1]));
+    }
+
+    /// <summary>
+    /// Whether a procedure header inside an open procedure is another version of its header: the same name and kind, in
+    /// a later branch of the #If its header is in, before any of the body. Early and late binding are often written so.
+    /// </summary>
+    bool IsAnotherHeader(Member proc, Match header) =>
+        proc.Body.Count == 0
+        && header.Groups["name"].Value.Equals(proc.Name, StringComparison.OrdinalIgnoreCase)
+        && ProcedureKind(header) == proc.Kind
+        && _under.TryGetValue(proc, out var at) && _ifs.Contains(at.Block) && at.Block.Branch != at.Branch;
 
     // ---- Signatures ----
 

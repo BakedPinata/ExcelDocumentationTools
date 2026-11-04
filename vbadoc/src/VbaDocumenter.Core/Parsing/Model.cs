@@ -38,6 +38,9 @@ public sealed record Statement(string Text, int Line);
 
 /// <summary>
 /// Anything declared at module level: a procedure, variable, constant, Enum (and each of its values), Type, Event or Declare.
+/// A name declared again under <c>#If</c> is one member: VBA compiles one branch, so its declarations are versions of the
+/// same thing. <see cref="Type"/> and <see cref="Parameters"/> are the first version's; the others' are in
+/// <see cref="AlternativeTypes"/> and <see cref="AlternativeParameters"/>.
 /// </summary>
 public sealed class Member
 {
@@ -82,8 +85,13 @@ public sealed class Member
   /// <summary>First physical line of the declaration itself.</summary>
   public required int DeclarationLine { get; init; }
 
-  /// <summary>First line of the member's source: the comment block directly above it if there is one, otherwise the declaration.</summary>
-  public required int StartLine { get; init; }
+  /// <summary>
+  /// First line of the member's source: the comment block directly above it if there is one, otherwise the declaration;
+  /// for a member declared again under #If, the #If line, if that's earlier.
+  /// </summary>
+  public required int StartLine { get => _startLine; init => _startLine = value; }
+
+  int _startLine;
 
   /// <summary>Last line of the member's source: e.g. "End Sub", "End Enum", or the end of the declaration line.</summary>
   public int EndLine { get; internal set; }
@@ -94,10 +102,55 @@ public sealed class Member
   /// <summary>Procedures only: every statement between the header and the End line, with labels removed.</summary>
   public IReadOnlyList<Statement> Body => BodyList;
 
+  /// <summary>
+  /// The types of the member's other versions under #If that differ from <see cref="Type"/> and each other, in source
+  /// order; null is no type (Variant). Empty for a member declared once.
+  /// </summary>
+  public IReadOnlyList<string?> AlternativeTypes => AlternativeTypesList;
+
+  /// <summary>Every type the member is declared with: <see cref="Type"/>, then <see cref="AlternativeTypes"/>.</summary>
+  public IReadOnlyList<string?> Types => [Type, .. AlternativeTypesList];
+
+  /// <summary>
+  /// The parameter lists of the member's other versions under #If that differ from <see cref="Parameters"/> and each
+  /// other, in source order. Empty for a member declared once.
+  /// </summary>
+  public IReadOnlyList<IReadOnlyList<Parameter>> AlternativeParameters => AlternativeParametersList;
+
+  /// <summary>Every type a parameter is declared with across the member's versions, first version first.</summary>
+  public IReadOnlyList<string?> ParameterTypes(string name)
+  {
+    var types = new List<string?>();
+    foreach (var list in AlternativeParametersList.Prepend(Parameters))
+      foreach (var p in list)
+        if (p.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && !types.Any(t => SameType(t, p.Type))) types.Add(p.Type);
+    return types;
+  }
+
   // The parser fills these in as it reads the lines after the declaration.
   internal List<LocalVariable> LocalsList { get; } = [];
   internal List<Statement> BodyList { get; } = [];
   internal List<TypeField> FieldsList { get; } = [];
+  internal List<string?> AlternativeTypesList { get; } = [];
+  internal List<IReadOnlyList<Parameter>> AlternativeParametersList { get; } = [];
+
+  /// <summary>Adds another version of the member, declared under #If: its type and parameters, where they differ.</summary>
+  internal void AddVersion(string? type, IReadOnlyList<Parameter> parameters)
+  {
+    if (!Types.Any(t => SameType(t, type))) AlternativeTypesList.Add(type);
+    if (!SameParameters(Parameters, parameters) && !AlternativeParametersList.Any(l => SameParameters(l, parameters)))
+      AlternativeParametersList.Add(parameters);
+  }
+
+  /// <summary>Moves the start back, to take in an earlier line such as the #If above the first version.</summary>
+  internal void StartNoLaterThan(int line) => _startLine = Math.Min(_startLine, line);
+
+  static bool SameType(string? a, string? b) => string.Equals(a ?? "Variant", b ?? "Variant", StringComparison.OrdinalIgnoreCase);
+
+  static bool SameParameters(IReadOnlyList<Parameter> a, IReadOnlyList<Parameter> b) =>
+      a.Count == b.Count && a.Zip(b).All(pair => pair.First.Name.Equals(pair.Second.Name, StringComparison.OrdinalIgnoreCase)
+          && SameType(pair.First.Type, pair.Second.Type) && pair.First.IsArray == pair.Second.IsArray
+          && pair.First.DefaultValue == pair.Second.DefaultValue);
 
   public bool IsProcedure => Kind is MemberKind.Sub or MemberKind.Function
       or MemberKind.PropertyGet or MemberKind.PropertyLet or MemberKind.PropertySet;

@@ -92,7 +92,8 @@ public sealed class ProjectIndex
   public bool IsInterface(ModuleModel module) => _interfaces.Contains(module.Name);
 
   /// <summary>Member ids: "Module.Name", "Module.Name[Get]" for properties, "Module.Enum.Value" for enum values.
-  /// A name declared twice (e.g. a Declare in both branches of #If) gets "~2" on the second id.</summary>
+  /// A name declared twice gets "~2" on the second id. The parser folds a name declared again under #If into one
+  /// member, so this is left for Enums and Types declared twice, and code VBA wouldn't compile.</summary>
   void AssignIds(ModuleModel module)
   {
     var used = new HashSet<string>(Names);
@@ -161,6 +162,22 @@ public sealed class ProjectIndex
     if (FindTypeDeclaration(name, context, MemberKind.Type) is { } userType)
       return new ResolvedType(ResolvedTypeKind.UserType, Declaration: userType);
     return ResolvedType.Unknown;
+  }
+
+  /// <summary>
+  /// The best of several declared types, for a member declared again under #If: the first that's a project class or
+  /// Type, which references through it can follow; otherwise the first.
+  /// </summary>
+  public ResolvedType TypeFromNames(IReadOnlyList<string?> typeNames, ModuleModel context)
+  {
+    ResolvedType? first = null;
+    foreach (var typeName in typeNames)
+    {
+      var type = TypeFromName(typeName, context);
+      if (type.Kind is ResolvedTypeKind.Module or ResolvedTypeKind.UserType) return type;
+      first ??= type;
+    }
+    return first ?? ResolvedType.LateBound;
   }
 
   /// <summary>

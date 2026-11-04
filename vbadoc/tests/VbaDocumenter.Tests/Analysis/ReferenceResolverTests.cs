@@ -202,4 +202,47 @@ public class ReferenceResolverTests
 
     Assert.Equal(["Main.Label x2"], Targets(model, "Main.Test"));
   }
+
+  // ---- A name declared again under #If is one member (step A6) ----
+
+  [Fact]
+  public void Calls_through_a_variable_declared_again_under_If_follow_whichever_version_is_a_project_class()
+  {
+    var model = Analyse("""
+        Attribute VB_Name = "Main"
+        Option Explicit
+        #If LateBinding Then
+        Private m_Widget As Object
+        #Else
+        Private m_Widget As Widget
+        #End If
+        Public Sub Run()
+            m_Widget.Spin
+        End Sub
+        """);
+
+    Assert.Single(model.Members, m => m.Member?.Name == "m_Widget");
+    Assert.Contains("Widget.Spin x1", Targets(model, "Main.Run"));
+    Assert.Contains(model.MemberEdges, e => e.From == "Main.m_Widget" && e.To == "Widget");
+    Assert.Empty(model.LateBound);
+  }
+
+  [Fact]
+  public void Calls_through_a_parameter_declared_differently_in_each_version_follow_the_project_class()
+  {
+    var model = Analyse("""
+        Attribute VB_Name = "Main"
+        Option Explicit
+        #If LateBinding Then
+        Public Sub Use(ByVal w As Object)
+        #Else
+        Public Sub Use(ByVal w As Widget)
+        #End If
+            w.Spin
+        End Sub
+        """);
+
+    Assert.Contains("Widget.Spin x1", Targets(model, "Main.Use"));
+    Assert.Contains(model.MemberEdges, e => e.From == "Main.Use" && e.To == "Widget");
+  }
 }

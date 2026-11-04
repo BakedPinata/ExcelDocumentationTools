@@ -28,7 +28,8 @@ public static class ClassDiagram
   /// <summary>
   /// The line shown for each member of a module. Members without a line aren't shown: enum values (the Enum is),
   /// the second and third accessors of a property, which is shown once on its first accessor, and a declaration
-  /// repeated under #If/#Else that would give exactly the same line.
+  /// repeated that would give exactly the same line. (A name declared again under #If is already one member, with its
+  /// types joined: "-m_Dictionary : Scripting.Dictionary | Object".)
   /// </summary>
   public static Dictionary<Member, PageClassLine> Lines(ModuleModel module)
   {
@@ -68,7 +69,7 @@ public static class ClassDiagram
   {
     string v = Visibility(m);
     string parameters = MemberFormatter.Parameters(m);
-    string? returnType = TypeText(m.Type, m.IsArray);
+    string? returnType = TypeText(MemberFormatter.TypeText(m), m.IsArray);
     return m.Kind switch
     {
       MemberKind.Sub => new($"{v}{m.Name}", parameters),
@@ -76,8 +77,8 @@ public static class ClassDiagram
       MemberKind.Event => new($"+Event {m.Name}", parameters),
       MemberKind.Declare => new($"{v}Declare {(m.IsFunctionDeclare ? "Function" : "Sub")} {m.Name}", parameters, returnType),
       MemberKind.Variable => new($"{v}{(m.IsWithEvents ? "WithEvents " : "")}{m.Name}{(m.IsArray ? "()" : "")}" +
-                                 (m.Type == null ? "" : $" : {(m.IsAutoNew ? "New " : "")}{m.Type}")),
-      MemberKind.Constant => new($"{v}Const {m.Name}{(m.Type == null ? "" : $" : {m.Type}")}" +
+                                 (MemberFormatter.TypeText(m) is { } variableType ? $" : {(m.IsAutoNew ? "New " : "")}{variableType}" : "")),
+      MemberKind.Constant => new($"{v}Const {m.Name}{(MemberFormatter.TypeText(m) is { } constantType ? $" : {constantType}" : "")}" +
                                  (m.Value == null ? "" : $" = {Shorten(m.Value)}")),
       MemberKind.Enum => new($"{v}Enum {m.Name}"),
       MemberKind.Type => new($"{v}Type {m.Name}"),
@@ -92,7 +93,7 @@ public static class ClassDiagram
   {
     var get = accessors.FirstOrDefault(a => a.Kind == MemberKind.PropertyGet);
     var setter = accessors.FirstOrDefault(a => a.Kind != MemberKind.PropertyGet);
-    string? type = get != null ? TypeText(get.Type, get.IsArray) : setter?.Parameters.LastOrDefault()?.Type;
+    string? type = get != null ? TypeText(MemberFormatter.TypeText(get), get.IsArray) : setter?.Parameters.LastOrDefault()?.Type;
     string kinds = string.Join("/", new[] { MemberKind.PropertyGet, MemberKind.PropertyLet, MemberKind.PropertySet }
         .Where(k => accessors.Any(a => a.Kind == k))
         .Select(k => k.ToString()["Property".Length..]));
@@ -120,11 +121,16 @@ public static class ClassDiagram
     {
       foreach (var v in node.Module.Members.Where(m => m.Kind == MemberKind.Variable))
       {
-        if (v.Type is not { } type) continue;
-        var typeName = type[(type.LastIndexOf('.') + 1)..]; // "VBAProject.Order" names the same module as "Order"
-        if (!modulesByName.TryGetValue(typeName, out var target) || target.Id == node.Id) continue;
-        if (target.Module.Kind == VbaModuleKind.Standard) continue; // not a type you can hold
-        associations.Add(new PageClassEdge(node.Id, target.Id, "association", (v.IsWithEvents ? "WithEvents " : "") + v.Name));
+        // A variable declared again under #If holds whichever of its types the project class is, if any.
+        foreach (var type in v.Types)
+        {
+          if (type == null) continue;
+          var typeName = type[(type.LastIndexOf('.') + 1)..]; // "VBAProject.Order" names the same module as "Order"
+          if (!modulesByName.TryGetValue(typeName, out var target) || target.Id == node.Id) continue;
+          if (target.Module.Kind == VbaModuleKind.Standard) continue; // not a type you can hold
+          associations.Add(new PageClassEdge(node.Id, target.Id, "association", (v.IsWithEvents ? "WithEvents " : "") + v.Name));
+          break;
+        }
       }
     }
 

@@ -10,7 +10,7 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.15.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.16.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
@@ -27,8 +27,8 @@ rather than repeating it.
   for after D1b) is pushed. D1e (`'@Folder` after a label, asked for after D1a) and D1c (view controls and both pages'
   summary) are pushed. The user's review of D1c added the explorer's filter (checkboxes, apart from selecting) and
   Expand / Collapse all to D3, which moved widely used items to a new D4. D1d (speed) is pushed; the user found it a
-  little better on the production workbook, good enough for now. **Next:** the fix for declarations repeated under
-  `#If`, once the user has chosen how; then D2 (favourites).
+  little better on the production workbook, good enough for now. A6 (a name declared again under `#If` is one member)
+  is done, waiting for review. **Next: D2** (favourites).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -38,6 +38,19 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-04: Step A6, declarations repeated under `#If`
+
+- The user writes early and late binding as `#If EarlyBinding Then` / `As Scripting.Dictionary` / `#Else` /
+  `As Object`, and vbadoc showed each such variable and function twice; a function's first header even lost its body.
+  They chose to fold every version into one member (option 1) over evaluating the branches.
+- The parser tracks `#If` blocks and folds a name declared again with the same kind into the first declaration, which
+  spans every version and keeps their types and parameter lists (`Member.AlternativeTypes`, `AlternativeParameters`).
+  Dependencies and type lookups use every version; the signature and class diagram show `A | B`. Enums, Types and
+  repeats outside `#If` are left as before. vbadoc 0.16.0.
+- Tests: 7 parser tests from the user's example and other forms, 2 resolver tests and 1 class diagram test; two tests
+  of the sample's repeated Declare now expect one member. The private workbook has no such repeats; its counts are
+  unchanged.
 
 ### 2026-11-04: D1d reviewed
 

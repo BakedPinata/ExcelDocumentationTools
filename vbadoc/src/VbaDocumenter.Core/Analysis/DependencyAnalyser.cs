@@ -48,12 +48,13 @@ public static class DependencyAnalyser
 
     switch (member.Kind)
     {
+      // Every version's types count: a member declared again under #If is used as any of them.
       case MemberKind.Variable:
         // A WithEvents variable links its module to the class whose events it receives.
-        TypeReference(member.Type, member.IsWithEvents ? EdgeKind.Events : EdgeKind.Uses);
+        foreach (var type in member.Types) TypeReference(type, member.IsWithEvents ? EdgeKind.Events : EdgeKind.Uses);
         break;
       case MemberKind.Constant:
-        TypeReference(member.Type);
+        foreach (var type in member.Types) TypeReference(type);
         resolver.ResolveExpression(member.Value!, module, member);
         break;
       case MemberKind.EnumMember:
@@ -65,8 +66,8 @@ public static class DependencyAnalyser
       case MemberKind.Enum:
         break;
       default: // procedures, Event, Declare
-        TypeReference(member.Type);
-        foreach (var parameter in member.Parameters)
+        foreach (var type in member.Types) TypeReference(type);
+        foreach (var parameter in member.AlternativeParameters.Prepend(member.Parameters).SelectMany(list => list))
         {
           TypeReference(parameter.Type);
           if (parameter.DefaultValue != null) resolver.ResolveExpression(parameter.DefaultValue, module, member);
@@ -139,8 +140,8 @@ public static class DependencyAnalyser
   }
 
   /// <summary>
-  /// Whether anything refers to the member. Declarations repeated under #If / #Else share one answer, and an
-  /// Enum counts as used if any of its values is.
+  /// Whether anything refers to the member. Declarations repeated outside #If (which the parser doesn't fold, and VBA
+  /// wouldn't compile) share one answer, and an Enum counts as used if any of its values is.
   /// </summary>
   static bool IsReferenced(ModuleModel module, Member member, ProjectIndex index, HashSet<string> referenced)
   {

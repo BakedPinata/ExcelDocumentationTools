@@ -78,15 +78,17 @@ public class ModuleParserExtrasTests
   }
 
   [Fact]
-  public void Reads_declares_in_both_branches_of_an_If_directive()
+  public void Reads_a_declare_in_both_branches_of_an_If_directive_as_one_member_spanning_the_block()
   {
     var declares = Declarations.Members.Where(m => m.Kind == MemberKind.Declare).ToList();
 
-    Assert.Equal([("GetTickCount", 25), ("GetTickCount", 27), ("Sleep", 29)], declares.Select(d => (d.Name, d.DeclarationLine)));
+    Assert.Equal([("GetTickCount", 25), ("Sleep", 29)], declares.Select(d => (d.Name, d.DeclarationLine)));
+    Assert.Equal((24, 28), (declares[0].StartLine, declares[0].EndLine)); // #If VBA7 Then to #End If
+    Assert.Empty(declares[0].AlternativeTypes); // both versions return a Long
     Assert.True(declares[0].IsFunctionDeclare);
     Assert.Equal(("kernel32", (string?)null, "Long"), (declares[0].Library, declares[0].Alias, declares[0].Type));
 
-    var sleep = declares[2];
+    var sleep = declares[1];
     Assert.False(sleep.IsFunctionDeclare);
     Assert.Equal(("Sleep", Visibility.Public), (sleep.Alias, sleep.Visibility));
     Assert.Equal(new Parameter("dwMilliseconds", "Long", false, true, false, false, null), sleep.Parameters.Single());

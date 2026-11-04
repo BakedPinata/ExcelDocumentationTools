@@ -134,4 +134,22 @@ public class ClassDiagramTests
 
     Assert.DoesNotContain(ClassDiagram.Edges(model), e => e.Kind == "association");
   }
+
+  [Fact]
+  public void A_variable_declared_again_under_If_is_one_line_with_both_types_and_an_association_to_the_project_class()
+  {
+    var main = ModuleParser.Parse("Main", VbaModuleKind.Class, """
+        Attribute VB_Name = "Main"
+        #If LateBinding Then
+        Private m_Order As Object
+        #Else
+        Private m_Order As Order
+        #End If
+        """);
+    var order = ModuleParser.Parse("Order", VbaModuleKind.Class, "Attribute VB_Name = \"Order\"\r\nPublic Id As Long\r\n");
+    var model = DependencyAnalyser.Analyse(new ProjectModel { Name = "P", CodePage = 1252, Modules = [main, order] });
+
+    Assert.Equal(["-m_Order : Object | Order"], Lines(main));
+    Assert.Contains(ClassDiagram.Edges(model), e => e.From == "Main" && e.To == "Order" && e.Kind == "association" && e.Label == "m_Order");
+  }
 }
