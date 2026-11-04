@@ -52,7 +52,9 @@ questions the draft raised.
 | D1d | Speed: large projects stay smooth to pan and scroll, keeping every feature (added after D1; about 3 out of 10 after more use) | Claude, then you on a work machine | Done |
 | A6 | vbadoc: a name declared again under `#If` (for early or late binding, say) is one member, with every version's types and dependencies (added after D1d) | Claude | Done |
 | D2 | Favourites, replacing Home and the trail | Claude | Done |
-| D3 | Showing less, from the explorer: checkboxes that filter every view to chosen items and folders, Expand and Collapse all, hiding, and the Show menus (reshaped after D1c) | Claude | |
+| D3a | Showing less, part 1: Expand and Collapse all, and checkboxes that filter every view to chosen items and folders, remembered per workbook (D3 split after D2) | Claude | Done |
+| D3b | Showing less, part 2: hiding, the Hidden group, the panel note about hidden items, and Focus on favourites | Claude | |
+| D3c | Showing less, part 3: the Show menus move into the explorer, for every view | Claude | |
 | D4 | Widely used items and predeclared classes, marked and grouped in the explorer, with Hide all (split from D3 after D1c) | Claude | |
 | E1 | Uses / Used by: each item once, with links to the exact lines | Claude | |
 | E2 | Calls tab: the procedures an entry point calls, in order | Claude | |
@@ -143,9 +145,9 @@ The notes behind this plan are kept out of the repository. This section is what 
 | The class diagram's legend should pick things out as the graph's does (after D1) | D1c |
 | vbadoc's page has no summary like pqdoc's (after D1) | D1c |
 | 70 modules with 320 module and 1,540 member dependencies are laggy to scroll and pan, about 5 out of 10 (after D1) | D1d |
-| The Show menus belong in the explorer, for every view (after D1) | D3 |
-| Expand all and Collapse all in the explorer (after D1c) | D3 |
-| Filter the views to items and folders picked in the explorer, with checkboxes, apart from selecting, and clear ways to remove the filter (after D1c) | D3 |
+| The Show menus belong in the explorer, for every view (after D1) | D3c |
+| Expand all and Collapse all in the explorer (after D1c) | D3a |
+| Filter the views to items and folders picked in the explorer, with checkboxes, apart from selecting, and clear ways to remove the filter (after D1c) | D3a |
 | The lag is about 3 out of 10 after more use, on a project far larger than most; no feature should be lost for speed (after D1c) | D1d |
 | Uses / Used by lists an item twice; a count isn't useful; links to the exact place would be | E1 |
 | What I most want to know: the path execution takes | E2–E4 |
@@ -459,9 +461,8 @@ The user asked for these after using D1c; they come in D3, which they reshape.
   what's shown.
 - **The filter is never silent and is easy to remove:** a bar at the top of the explorer and a note in each view's
   toolbar say what's showing ("Filtered: 5 of 70 modules"), each with Clear; unticking an item takes it out; Esc clears
-  the selection but not the filter. *To settle in review:* whether the filter is remembered across reloads. The
-  recommendation is yes, per workbook, as favourites and hiding are, since a large project's working set is reused,
-  with the bar showing it as soon as the page opens.
+  the selection but not the filter. The filter is remembered per workbook, as favourites and hiding are, since a large
+  project's working set is reused, with the bar showing it as soon as the page opens (agreed with the user after D2).
 - **Filtering and hiding are two sides of one thing,** which items the views show: the filter keeps only what's ticked,
   and hiding leaves out what's hidden. So they come together in D3, with the Show menus, which also say what the views
   show, and the explorer becomes the one place for all three. Widely used items and predeclared classes, which only
@@ -812,18 +813,29 @@ Added after D1a, from the user's review, and done before D1c.
 ### Step D3: Showing less, from the explorer
 
 Reshaped after D1c's review: the filter and Expand / Collapse all join hiding and the Show menus, and widely used items
-moved to D4.
+moved to D4. Split into three parts after D2, each reviewed before the next, as D1's follow-ups were.
 
-- Add the shell's record of which items the views show, from the filter, hidden items and the Show menus' choices, and
-  have every view (graph, class diagram and, later, the Calls tab) draw only those.
-- Explorer: Expand all and Collapse all; a checkbox on each row for the filter (a folder ticks its contents); the filter
-  bar with Clear, and the note in each view's toolbar (section 5).
-- Hiding, the Hidden group, the panel note about hidden items, and Focus on favourites.
+#### D3a: Expand and Collapse all, and the filter
+
+- Expand all and Collapse all beside the explorer's filter box.
+- The shell's record of which items the views show, starting with the filter, and every view (graph, class diagram)
+  drawing only those, with focus on click and the selection working within them.
+- A checkbox on each row (a folder ticks its contents; a ticked module brings its members), the filter bar with
+  Clear, and the note in each view's toolbar; remembered per workbook (section 5).
+- Browser tests: ticking a folder filters every view to its items, and ticking items one at a time adds them; Clear and
+  unticking remove them; selecting doesn't filter and ticking doesn't select; the filter is remembered; Expand and
+  Collapse all.
+
+#### D3b: Hiding
+
+- Hiding, the Hidden group, the panel note about hidden items, and Focus on favourites, through the same record.
+- Browser tests: hiding an item removes it and its edges, persists across reloads, and comes back from the Hidden group.
+
+#### D3c: The Show menus in the explorer
+
 - Move the Show menus into the explorer (added after D1): one set of filters for every view and the tree, replacing
   the views' Show buttons.
-- Browser tests: ticking a folder filters every view to its items, and ticking items one at a time adds them; Clear and
-  unticking remove them; selecting doesn't filter and ticking doesn't select; hiding an item removes it and its edges,
-  persists across reloads, and comes back from the Hidden group; a filter set in the explorer applies to every view.
+- Browser tests: a filter set in the explorer applies to every view.
 
 ### Step D4: Widely used items and predeclared classes
 
@@ -955,7 +967,7 @@ Approving this plan covers the changes below. Anything else still needs asking.
 | Both `Requirements.md`s, `DECISIONS.md`s and `README.md`s | Documentation file names; vbadoc's `--output-name` | A4 |
 | Both `Requirements.md`s and `DECISIONS.md`s | Importing: what's chosen, dependencies, bundles, writing workbooks | H1–H4 |
 | Both `README.md`s | Usage and features | A3, B2–H4 |
-| Both `Requirements.md`s (pqdoc's FR-HTML-8 without the generation time, FR-HTML-11 and new ids), both `DECISIONS.md`s and `README.md`s, `docs/GUIDELINES.md` (HTML pages) | Panel controls, the side panel following the selection, the copy button, explorer layouts, nested query groups, focus on click and Esc, both pages' summary, speed, the Show menus in the explorer, the explorer's filter, Expand and Collapse all | D1a–D1e, D3, D4 |
+| Both `Requirements.md`s (pqdoc's FR-HTML-8 without the generation time, FR-HTML-11 and new ids), both `DECISIONS.md`s and `README.md`s, `docs/GUIDELINES.md` (HTML pages) | Panel controls, the side panel following the selection, the copy button, explorer layouts, nested query groups, focus on click and Esc, both pages' summary, speed, the Show menus in the explorer, the explorer's filter, Expand and Collapse all | D1a–D1e, D3a–D3c, D4 |
 
 ## 8. When the plan is finished
 

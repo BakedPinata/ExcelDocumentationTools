@@ -11,6 +11,8 @@
 //   vbadoc.theme() / onThemeChange(fn)  "light" or "dark"
 //   vbadoc.activeView() / onViewChange(fn)  "graph" or "classes"
 //   vbadoc.favourites() / isFavourite(id) / toggleFavourite(id) / onFavouritesChange(fn)  the favourite modules and members (the shell's)
+//   vbadoc.inFilter(id) / filterActive() / filterKey() / onFilterChange(fn)  whether the explorer's filter shows a module
+//                                     or member (a ticked module brings its members, a ticked member its module)
 (function () {
   "use strict";
 
@@ -113,6 +115,30 @@
     rememberInHistory(id);
     emit("selection", selection);
     return true;
+  }
+
+  // ---- The explorer's filter ----
+  //
+  // While anything is ticked in the explorer, the views show only that (the shell keeps the ticks). A ticked module
+  // brings all its members, and a ticked member its module: at module level the module stands for it.
+
+  var modulesWithTickedMembers = new Set();
+
+  function refreshFilter() {
+    modulesWithTickedMembers = new Set();
+    shell.filter.ids().forEach(function (id) {
+      var member = membersById.get(id);
+      if (member) modulesWithTickedMembers.add(member.module);
+    });
+  }
+
+  // First, so the views see the new filter when they hear of it.
+  shell.onFilterChange(refreshFilter);
+
+  function inFilter(id) {
+    if (!shell.filter.active() || shell.filter.has(id)) return true;
+    var member = membersById.get(id);
+    return member ? shell.filter.has(member.module) : modulesWithTickedMembers.has(id);
   }
 
   // ---- Back and Forward ----
@@ -461,11 +487,16 @@
     favourites: shell.favourites.list,
     isFavourite: shell.favourites.has,
     toggleFavourite: shell.favourites.toggle,
+    inFilter: inFilter,
+    filterActive: shell.filter.active,
+    filterKey: function () { return shell.filter.ids().slice().sort().join("|"); },
+    onFilterChange: shell.onFilterChange,
     onFavouritesChange: shell.onFavouritesChange
   };
 
-  // Favourites are per workbook. In the explorer's Favourites group a member shows its module, as it isn't under it.
-  shell.favourites.init({
+  // Favourites and the filter are per workbook. In the explorer's Favourites group a member shows its module, as it
+  // isn't under it. The filter counts the modules it shows.
+  shell.items.init({
     workbook: data.project.title,
     exists: function (id) { return modulesById.has(id) || membersById.has(id); },
     node: function (id) {
@@ -474,8 +505,13 @@
       var node = memberNode(member);
       node.label = member.module + "." + member.name;
       return node;
+    },
+    describeFilter: function (ids) {
+      var modules = new Set(ids.map(function (id) { var member = membersById.get(id); return member ? member.module : id; }));
+      return modules.size + " of " + data.modules.length + " module" + (data.modules.length === 1 ? "" : "s");
     }
   });
+  refreshFilter();
   shell.explorer.setLayouts(explorerLayouts(), select);
   shell.start();
   // The views read the selection when they first draw, so an address's selection is made before they do.

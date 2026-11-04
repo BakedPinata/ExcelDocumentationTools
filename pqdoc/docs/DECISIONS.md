@@ -183,6 +183,13 @@ Reading them is step B2 of the feedback plan.
   Anything else counts as a query; a parameter does too, since it isn't a function.
 - **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
 
+## The graph's filter, and Expand / Collapse all (1.11.0, step D3a of the feedback plan)
+
+- **The filter is the shell's** (FR-HTML-15), as vbadoc's is, remembered as `pqdoc-filter|<workbook or folder name>`.
+  A tick covers just its query. The graph leaves out what isn't ticked, as focus does, and of what's ticked, focus
+  keeps the focused query's chains; a focused query that isn't ticked isn't drawn, so the graph shows the filter as
+  it is. `window.pqdoc` has `inFilter(id)`, `filterActive()`, `filterKey()` and `onFilterChange(fn)`, as vbadoc's does.
+
 ## Favourites (1.10.0, step D2 of the feedback plan)
 
 - **Favourites are the shell's** (FR-HTML-14), as vbadoc's are: starred from an explorer row or the details panel's

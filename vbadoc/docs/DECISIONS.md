@@ -452,6 +452,22 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### The views' filter, and Expand / Collapse all (0.18.0, step D3a of the feedback plan)
+
+- **The filter is the shell's** (see `shared/README.md`), as favourites are, so pqdoc has it too, and it's remembered
+  per workbook as `vbadoc-filter|<workbook file name>` (agreed with the user after D2).
+- **What a tick covers is vbadoc's:** a module brings its members, and a member its module. So `vbadoc.inFilter(id)`
+  is true for a member whose module is ticked, and for a module with a ticked member. At member level the graph shows
+  the ticked members (and every member of a ticked module); at module level and in the class diagram, the module stands
+  for them. The filter's count is of modules, which is what both levels share.
+- **What's ticked is shown even when it's linked to nothing:** the filter overrides Show unconnected, since hiding
+  something just ticked would look like the filter had failed.
+- **Focus works within the filter:** a selection outside it isn't drawn, so the graph shows the filter as it is. The
+  graph keeps a layout per filter, as it does per level and Show choices; the class diagram lays a filtered diagram
+  out afresh and doesn't remember moves made in it, as when focused.
+- **`window.vbadoc`** has `inFilter(id)`, `filterActive()`, `filterKey()` and `onFilterChange(fn)`. Space in the
+  explorer ticks, so Enter alone chooses.
+
 ### Favourites (0.17.0, step D2 of the feedback plan)
 
 - **Favourites replace Home and the trail** (the plan's decision 4): the trail wasn't as useful as expected, and one

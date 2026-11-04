@@ -220,7 +220,7 @@
     function moduleShown(moduleId) { return !show.hiddenModuleKinds.has(moduleKindOf(vb.modulesById.get(moduleId))); }
     if (state.level === "modules") {
       data.modules.forEach(function (m) {
-        if (!moduleShown(m.id)) return;
+        if (!moduleShown(m.id) || !vb.inFilter(m.id)) return;
         var style = moduleStyle(m);
         nodes.push({
           id: m.id, module: m.id, label: m.id, group: style.group, shape: style.shape, hollow: !!style.hollow,
@@ -232,7 +232,7 @@
     } else {
       data.members.forEach(function (m) {
         var category = categoryOfKind[m.kind];
-        if (!moduleShown(m.module) || show.hiddenCategories.has(category.id)) return;
+        if (!moduleShown(m.module) || show.hiddenCategories.has(category.id) || !vb.inFilter(m.id)) return;
         if (show.references === "unreferenced" && !m.unreferenced) return;
         if (show.references === "referenced" && m.unreferenced) return;
         if (!show.privateMembers && m.visibility === "private") return;
@@ -245,7 +245,7 @@
       });
       // Each module also has a node for references to the module itself (e.g. "As Order", "Sheet1.Range").
       data.modules.forEach(function (m) {
-        if (!moduleShown(m.id)) return;
+        if (!moduleShown(m.id) || !vb.inFilter(m.id)) return;
         nodes.push({
           id: m.id, module: m.id, label: m.id, group: moduleStyle(m).group, shape: d3.symbolCircle, r: size * 7,
           title: moduleStyle(m).label + " (the module itself)", isModuleNode: true, minor: true
@@ -261,7 +261,7 @@
     edges.forEach(function (e) { if (e.from !== e.to) { connected.add(e.from); connected.add(e.to); } });
     nodes = nodes.filter(function (n) {
       if (n.isModuleNode) return connected.has(n.id); // only module nodes that are referenced
-      return show.unconnected || connected.has(n.id);
+      return show.unconnected || connected.has(n.id) || vb.filterActive(); // what's ticked is shown, linked or not
     });
     if (!show.unconnected) edges = edges.filter(function (e) { return connected.has(e.from); });
     return indexGraph(nodes, edges);
@@ -695,7 +695,7 @@
     var show = state.show;
     return state.level + "|" + JSON.stringify([
       Array.from(show.hiddenModuleKinds).sort(), Array.from(show.hiddenCategories).sort(), Array.from(show.hiddenEdgeKinds).sort(),
-      show.references, show.privateMembers, show.unconnected]);
+      show.references, show.privateMembers, show.unconnected, vb.filterKey()]);
   }
 
   function keepLayout() {
@@ -1487,8 +1487,11 @@
   // ---- Wiring to the rest of the page ----
 
   var started = false;
+  var needsDrawing = false; // the filter changed while the graph was hidden
+
   function drawIfVisible() {
     if (vb.activeView() !== "graph") return;
+    if (started && needsDrawing) { needsDrawing = false; render(); return; }
     if (started) { highlight(); return; } // catch up with a selection made in the other view
     started = true;
     render();
@@ -1505,6 +1508,9 @@
     if (state.focused !== focusing()) render(); else updateToolbar();
   });
   vb.onViewChange(drawIfVisible);
+  // The explorer's filter changes what's drawn.
+  vb.onFilterChange(function () { if (started && vb.activeView() === "graph") render(); else if (started) needsDrawing = true; });
+
   vb.onFavouritesChange(function () {
     if (!started) return;
     updateFavourites();

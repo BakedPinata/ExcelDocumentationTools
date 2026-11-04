@@ -315,26 +315,30 @@
     simulation.alpha(0.2).restart();
   });
 
-  // ---- Focus ----
+  // ---- Focus and the filter ----
   //
-  // When the selection is focused, only it and its upstream and downstream chains are shown (the rest are left out,
-  // not just faded), and the view fits them. Clearing the selection, or a selection that isn't focused, shows every
-  // query again. Focus is the page's Focus on click setting, shared with the other views' Focus buttons.
+  // While the explorer's filter is on, only the ticked queries are shown. When the selection is focused, only it and
+  // its upstream and downstream chains are shown, of those (the rest are left out, not just faded), and the view fits
+  // them. Clearing the selection, or a selection that isn't focused or is filtered out, shows them all again. Focus is
+  // the page's Focus on click setting, shared with the other views' Focus buttons.
 
-  var focusedOn = null; // the query the graph is focused on, or null when it shows them all
-  var shown = null;     // the ids shown while focused, or null for all
+  var shownKey = null; // what decided the last showing: the focused query and the filter
+  var shown = null;     // the ids shown while focused or filtered, or null for all
 
-  // Shows the focused query's chains, or everything. Returns whether that changed, in which case the view was fitted.
+  // Shows what the explorer's filter keeps, and of that, the focused query's chains. Returns whether that changed, in
+  // which case the view was fitted.
   function applyFocus(duration) {
     focusButton.setAttribute("aria-pressed", pq.focusOnClick() ? "true" : "false");
-    var wanted = pq.focused() ? pq.selection() : null;
-    if (wanted === focusedOn) return false;
-    focusedOn = wanted;
-    shown = null;
+    var wanted = pq.focused() && pq.inFilter(pq.selection()) ? pq.selection() : null; // a query filtered out isn't drawn
+    var key = (wanted === null ? "" : wanted) + "\u0000" + pq.filterKey();
+    if (key === shownKey) return false;
+    shownKey = key;
+    shown = pq.filterActive() ? new Set(nodes.filter(function (n) { return pq.inFilter(n.id); }).map(function (n) { return n.id; })) : null;
     if (wanted !== null) {
-      shown = new Set([wanted]);
-      pq.upstream(wanted).forEach(function (id) { shown.add(id); });
-      pq.downstream(wanted).forEach(function (id) { shown.add(id); });
+      var chains = new Set([wanted]);
+      pq.upstream(wanted).forEach(function (id) { chains.add(id); });
+      pq.downstream(wanted).forEach(function (id) { chains.add(id); });
+      shown = shown ? new Set(Array.from(chains).filter(function (id) { return shown.has(id); })) : chains;
     }
     node.classed("out-of-focus", function (n) { return shown !== null && !shown.has(n.id); });
     link.classed("out-of-focus", function (l) { return shown !== null && !(shown.has(l.source.id) && shown.has(l.target.id)); });
@@ -514,6 +518,7 @@
     var n = id !== null && pq.activeView() === "graph" ? nodes.find(function (q) { return q.id === id; }) : null;
     if (n && (!clickedInGraph || (pq.panelFollowing() && !inView(n)))) centreOn(n);
   });
+  pq.onFilterChange(function () { if (started && pq.activeView() === "graph") applyFocus(300); });
   pq.onFocusChange(function () {
     if (started && pq.activeView() === "graph") applyFocus(300);
     else focusButton.setAttribute("aria-pressed", pq.focusOnClick() ? "true" : "false");

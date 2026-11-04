@@ -10,11 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.17.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.18.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.10.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.11.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -28,7 +28,8 @@ rather than repeating it.
   summary) are pushed. The user's review of D1c added the explorer's filter (checkboxes, apart from selecting) and
   Expand / Collapse all to D3, which moved widely used items to a new D4. D1d (speed) is pushed; the user found it a
   little better on the production workbook, good enough for now. A6 (a name declared again under `#If` is one member)
-  is pushed. D2 (favourites) is done, waiting for review. **Next: D3** (showing less, from the explorer).
+  is pushed. D2 (favourites) is pushed. D3 is split into D3a (Expand / Collapse all and the views' filter), D3b
+  (hiding) and D3c (the Show menus in the explorer); D3a is done, waiting for review. **Next: D3b.**
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -38,6 +39,21 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-04: Step D3a, Expand / Collapse all and the views' filter
+
+- D3 split in three, each reviewed before the next. The user agreed the filter is remembered per workbook.
+- The shell's explorer has Expand all and Collapse all, and a checkbox on every row, apart from the name: while
+  anything is ticked, every view shows only that, with a bar in the explorer and a note in each view's toolbar, each
+  with Clear. Space ticks, Enter chooses; Esc clears the selection, not the filter. `favourites.init` became
+  `items.init`, which also says how to describe the filter.
+- vbadoc: a ticked module brings its members and a ticked member its module, in the graph (both levels) and the class
+  diagram; what's ticked is shown even when unconnected. pqdoc: the graph shows the ticked queries, and focus works
+  within them.
+- vbadoc's explorer requirements, pqdoc's FR-HTML-15, both decisions and READMEs, the shared README and the guidelines
+  follow. vbadoc 0.18.0, pqdoc 1.11.0.
+- Tests: 5 vbadoc and 4 pqdoc filter tests. Screenshots in both themes and at a narrow width. On the private workbook
+  the filter and Clear work in both views, with no errors.
 
 ### 2026-11-04: Step D2, favourites
 

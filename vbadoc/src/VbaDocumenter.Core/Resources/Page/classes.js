@@ -121,16 +121,21 @@
     return data.classEdges.filter(function (e) { return e.from !== e.to && (state.show.dependencies || e.kind !== "dependency"); });
   }
 
-  // All modules, or when focused the focused module and every module a shown relationship links it with.
+  // The modules the explorer's filter shows (all of them without one), or when focused the focused module and every
+  // module a shown relationship links it with, of those.
   function shownModules() {
-    if (!state.focusModule) return data.modules.map(function (m) { return m.id; });
+    var filtered = data.modules.filter(function (m) { return vb.inFilter(m.id); });
+    if (!state.focusModule) return filtered.map(function (m) { return m.id; });
     var ids = new Set([state.focusModule]);
     shownEdges().forEach(function (e) {
       if (e.from === state.focusModule) ids.add(e.to);
       if (e.to === state.focusModule) ids.add(e.from);
     });
-    return data.modules.filter(function (m) { return ids.has(m.id); }).map(function (m) { return m.id; });
+    return filtered.filter(function (m) { return ids.has(m.id); }).map(function (m) { return m.id; });
   }
+
+  // Where boxes were moved is only kept for the whole diagram: a focused or filtered one is laid out afresh.
+  function remembersMoves() { return !state.focusModule && !vb.filterActive(); }
 
   // A box's contents and size. Lines keep their member id, for clicks and highlighting.
   function buildBox(id) {
@@ -371,7 +376,7 @@
       return { from: e.from, to: e.to, kind: e.kind, label: e.label, source: byId.get(e.from), target: byId.get(e.to) };
     });
     layout(boxes, edges);
-    if (!state.focusModule) {
+    if (remembersMoves()) {
       var moved = loadJson(positionsKey()) || {};
       boxes.forEach(function (b) {
         var p = moved[b.id];
@@ -485,7 +490,7 @@
         b.moved = true;
         d3.select(this).attr("transform", "translate(" + b.x + "," + b.y + ")");
         drawEdges();
-        if (!state.focusModule) rememberPositions();
+        if (remembersMoves()) rememberPositions();
       });
   }
 
@@ -626,7 +631,7 @@
   focusButton.addEventListener("click", function () { vb.setFocusOnClick(!vb.focusOnClick()); });
 
   document.getElementById("classes-relayout").addEventListener("click", function () {
-    if (!state.focusModule) saveJson(positionsKey(), null);
+    if (remembersMoves()) saveJson(positionsKey(), null);
     state.resetView = true;
     render();
   });
@@ -730,6 +735,12 @@
   }
 
   vb.onFocusChange(function () { if (!refocusIfNeeded()) updateToolbar(); });
+
+  // A different filter is a different diagram.
+  vb.onFilterChange(function () {
+    state.resetView = true;
+    if (vb.activeView() === "classes") render(); else stale = true;
+  });
 
   vb.onSelectionChange(function () {
     if (refocusIfNeeded()) return;

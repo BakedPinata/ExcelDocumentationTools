@@ -116,15 +116,33 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
   fails too, the code is selected for Ctrl+C.
 - **The lock and copy icons are our own,** like the folder (see below).
 
+### The views' filter, and Expand / Collapse all (step D3a)
+
+- **Every row has a checkbox, apart from its name,** so ticking and selecting are two different things: a click on the
+  box ticks, a click on the name selects, and neither does the other. Space ticks from the keyboard, so Enter alone
+  chooses. Esc clears the selection, not the ticks.
+- **While anything is ticked the views show only that** (`shell.filter`: `active()`, `has(id)`, `ids()`, `clear()`,
+  and `onFilterChange`). The shell keeps the ticks, remembered per workbook as `<tool>-filter|<workbook>`, and the tool
+  says what a tick covers (a vbadoc module brings its members) and draws its views from that. Ticks on items no longer
+  in the workbook are kept but don't count.
+- **Ticking a folder or group ticks the items in it,** the first item on each branch. An item's tick covers what it
+  holds, so a module's members show ticked and can't be unticked on their own; a group with some ticks shows a dash.
+- **It's never silent:** a bar under the layouts and a note at the end of every view's toolbar say what's shown, in the
+  tool's words (`items.init`'s `describeFilter(ids)`, such as "5 of 70 modules"), each with Clear.
+- **Expand all opens every folder and group, not each item's children,** which on a large project would list every
+  member; Collapse all closes everything. Both are icon buttons beside the filter box, in our own SVG.
+- **`.link-button`** (the bar's Clear) moved into the shell's CSS from vbadoc's.
+
 ### Favourites (step D2)
 
 - **Favourites are the shell's** (`shell.favourites`), so both tools have them the same way: any number, starred from
   an explorer row or the side panel's header, listed in a Favourites group at the top of the explorer in every layout,
   in the order they were starred, and remembered per workbook as `<tool>-favourites|<workbook>`. A favourite that's no
   longer in the workbook is ignored, not forgotten, so it comes back if the item does.
-- **The tool says three things** in `favourites.init`: the workbook, whether an id is in it, and the explorer node for
-  one (without children; vbadoc names a member `Module.Member`, as it isn't under its module there). It draws the
-  side panel's star with `favourites.buttonHtml(id)`, and its views listen with `onFavouritesChange`.
+- **The tool says three things** in `items.init` (`favourites.init` before D3a): the workbook, whether an id is in it,
+  and the explorer node for one (without children; vbadoc names a member `Module.Member`, as it isn't under its module
+  there). Since D3a it also says how to describe the filter (below). It draws the side panel's star with
+  `favourites.buttonHtml(id)`, and its views listen with `onFavouritesChange`.
 - **Every star is a button with `data-favourite`,** which one handler toggles and keeps in step. A row's star doesn't
   select (the tree ignores clicks on it), shows on hover and stays once starred, and isn't in the tab order: the
   panel's star is the keyboard's way.

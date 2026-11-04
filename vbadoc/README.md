@@ -133,6 +133,11 @@ it's connected to, in every view, until you clear the selection with Esc or a cl
 The class diagram's legend picks out kinds of box and relationships, as the graph's does. The top bar sums up the
 project and says when the workbook was last saved.
 
+To see less, tick folders, modules or members in the explorer: while anything is ticked, the graph and the class
+diagram show only that, and a note in the explorer and each view's toolbar says so, with Clear. Ticking a module brings
+its members. Ticking doesn't select, so you can still click around inside what's shown. The buttons beside the filter
+box expand or collapse every folder.
+
 Star a module or member to make it a favourite, with the star on its row in the explorer or beside its name in the
 source panel. Favourites are listed at the top of the explorer and starred in the graph, and **★ Path** shows the
 shortest chain of dependencies between the selection and the nearest favourite.

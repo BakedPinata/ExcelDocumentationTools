@@ -38,9 +38,14 @@
 //   shell.focusOnClick() / setFocusOnClick(on)   the page's Focus on click setting, remembered as
 //                                      <tool>-focus-on-click and on unless turned off; setting it applies it to the
 //                                      current selection too
-//   shell.favourites.init({ workbook, exists(id), node(id) })   says whose favourites they are (remembered as
-//                                      <tool>-favourites|<workbook>), whether an id is still in the workbook (others
-//                                      are ignored), and the explorer node for one; call it before setLayouts
+//   shell.items.init({ workbook, exists(id), node(id), describeFilter(ids) })   the workbook (favourites and the
+//                                      filter are remembered per workbook, as <tool>-favourites|<workbook> and
+//                                      <tool>-filter|<workbook>), whether an id is still in it (others are ignored),
+//                                      the explorer node for one, and what the filter shows, such as "5 of 70 modules";
+//                                      call it before setLayouts
+//   shell.filter.active() / has(id) / ids() / clear() / onFilterChange(fn)   the explorer's filter: the items ticked,
+//                                      which the views show alone while any are. What a tick covers (a module's
+//                                      members, say) is the tool's to say, through has()
 //   shell.favourites.list() / has(id) / toggle(id) / onFavouritesChange(fn)   the favourites, in the order starred
 //   shell.favourites.buttonHtml(id)    a star that adds or removes the favourite, for the side panel's header; the
 //                                      explorer's rows have their own, and the shell keeps every star in step
@@ -87,7 +92,7 @@
       remove: function (name) { try { localStorage.removeItem(tool + "-" + name); } catch (e) { /* nothing stored */ } }
     };
 
-    var listeners = { theme: [], view: [], focus: [], favourites: [] };
+    var listeners = { theme: [], view: [], focus: [], favourites: [], filter: [] };
     function emit(name, value) {
       listeners[name].forEach(function (fn) {
         try { fn(value); } catch (e) { console.error(e); }
@@ -533,7 +538,7 @@
       if (event.key !== "Escape" || selected === null) return;
       if (document.querySelector("details.dropdown[open]")) return;
       var target = event.target;
-      if (target && target.matches && target.matches("input, textarea, select") && target.value) return;
+      if (target && target.matches && target.matches("input:not([type=checkbox]), textarea, select") && target.value) return;
       selectItem(null);
     }, true);
 
@@ -582,7 +587,8 @@
       row.className = "tree-row";
       if (node.title) row.title = node.title;
       row.style.setProperty("--depth", String(depth));
-      row.innerHTML = "<span class=\"tree-twisty\" aria-hidden=\"true\"></span>" + (node.folder ? FOLDER_ICON : "") +
+      row.innerHTML = "<input type=\"checkbox\" class=\"tree-check\" tabindex=\"-1\" aria-label=\"Show in the views\">" +
+        "<span class=\"tree-twisty\" aria-hidden=\"true\"></span>" + (node.folder ? FOLDER_ICON : "") +
         "<span class=\"tree-label\">" + escapeHtml(node.label) + "</span>" +
         (node.detail ? "<span class=\"tree-detail\">" + escapeHtml(node.detail) + "</span>" : "") +
         (node.badge ? "<span class=\"tree-badge\">" + escapeHtml(node.badge) + "</span>" : "") +
@@ -636,6 +642,7 @@
       if (first) first.tabIndex = 0;
       renderFavourites();
       applyFilter();
+      updateChecks();
       reveal(revealedId);
     }
 
@@ -647,20 +654,25 @@
 
     var STAR_ICON = "<svg class=\"icon star-icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\" focusable=\"false\">" +
       "<path d=\"M8 1.8l1.9 3.95 4.35.55-3.2 3 .8 4.3L8 11.5l-3.85 2.1.8-4.3-3.2-3 4.35-.55z\"/></svg>";
-    var favouriteSource = null; // from favourites.init
+    var favouriteSource = null; // from items.init
     var favourites = [];        // ids in the order starred, including any no longer in the workbook
     var favouritesItem = null;  // the Favourites group in the tree, or null when there are none
     var favouritesOpen = true;
 
     function favouritesKey() { return "favourites|" + favouriteSource.workbook; }
 
-    function initFavourites(source) {
-      favouriteSource = source;
-      favourites = [];
+    function loadIds(name) {
       try {
-        var stored = JSON.parse(settings.load(favouritesKey()) || "[]");
-        if (Array.isArray(stored)) favourites = stored.filter(function (id) { return typeof id === "string"; });
-      } catch (e) { favourites = []; }
+        var stored = JSON.parse(settings.load(name) || "[]");
+        return Array.isArray(stored) ? stored.filter(function (id) { return typeof id === "string"; }) : [];
+      } catch (e) { return []; }
+    }
+
+    function initItems(source) {
+      favouriteSource = source;
+      favourites = loadIds(favouritesKey());
+      ticked = new Set(loadIds(filterKey()));
+      updateFilter();
     }
 
     function favouriteList() {
@@ -687,9 +699,131 @@
       });
       renderFavourites();
       applyFilter();
+      updateChecks();
       reveal(revealedId, true);
       emit("favourites", favouriteList());
     }
+
+    // ---- The explorer's filter ----
+    //
+    // Ticking an item's box adds it to the filter, and while anything is ticked the views show only what's ticked; the
+    // tool says what a tick covers (has()). A box is apart from the name, which still selects, and from the selection:
+    // Esc clears the selection, not the filter. Ticking a folder or group ticks the items in it, and an item's own box
+    // ticks it with all it holds (a module's members), whose boxes then show ticked. Remembered per workbook; never
+    // silent, with a bar in the explorer and a note in every view's toolbar, each with Clear.
+
+    var ticked = new Set();     // ids ticked, including any no longer in the workbook
+    var filterBar = $("explorer-filter-bar");
+    var filterNotes = [];
+    document.querySelectorAll(".view-toolbar").forEach(function (toolbar) {
+      var note = document.createElement("span");
+      note.className = "toolbar-note view-filter-note";
+      note.hidden = true;
+      note.innerHTML = "<span></span> <button type=\"button\" class=\"link-button\" data-filter-clear>Clear</button>";
+      toolbar.appendChild(note);
+      filterNotes.push(note);
+    });
+
+    function filterKey() { return "filter|" + favouriteSource.workbook; }
+
+    function filterIds() {
+      return favouriteSource ? Array.from(ticked).filter(function (id) { return favouriteSource.exists(id); }) : [];
+    }
+
+    function filterActive() { return filterIds().length > 0; }
+
+    function setTicked(ids) {
+      ticked = new Set(ids);
+      if (favouriteSource) settings.save(filterKey(), JSON.stringify(Array.from(ticked)));
+      updateFilter();
+      emit("filter", filterIds());
+    }
+
+    function updateFilter() {
+      var active = filterActive();
+      var text = active && favouriteSource.describeFilter ? "Filtered: " + favouriteSource.describeFilter(filterIds()) : "Filtered";
+      filterBar.hidden = !active;
+      $("explorer-filter-text").textContent = text;
+      filterNotes.forEach(function (note) {
+        note.hidden = !active;
+        note.firstChild.textContent = text;
+      });
+      updateChecks();
+    }
+
+    // Items in the tree directly under a row: its child items, or for a group, the first item on each branch.
+    function topItems(li) {
+      var found = [];
+      var group = li.querySelector(":scope > ul");
+      if (!group) return found;
+      Array.prototype.forEach.call(group.children, function (child) {
+        if (child.dataset.id !== undefined) found.push(child);
+        else found = found.concat(topItems(child));
+      });
+      return found;
+    }
+
+    function itemsBelow(li) { return Array.prototype.slice.call(li.querySelectorAll("li[data-id]")); }
+
+    // Whether an item is ticked, itself or through an item holding it.
+    function isTicked(li) {
+      for (var at = li; at; at = parentItem(at)) if (at.dataset.id !== undefined && ticked.has(at.dataset.id)) return true;
+      return false;
+    }
+
+    function updateChecks() {
+      treeBox.querySelectorAll("li").forEach(function (li) {
+        var box = li.querySelector(":scope > .tree-row > .tree-check");
+        if (!box) return;
+        var isItem = li.dataset.id !== undefined;
+        var own = isItem && ticked.has(li.dataset.id);
+        var through = isItem && !own && isTicked(li);
+        var below = itemsBelow(li);
+        var tops = isItem ? [] : topItems(li);
+        var all = isItem ? own || through : tops.length > 0 && tops.every(isTicked);
+        box.checked = all;
+        box.disabled = through;
+        box.indeterminate = !all && below.some(function (item) { return ticked.has(item.dataset.id); });
+        box.title = through ? "Shown in the views with what holds it" : all ? "Shown in the views. Click to take it out of the filter"
+          : "Show only the ticked items in the views";
+      });
+    }
+
+    function toggleTick(li) {
+      var box = li.querySelector(":scope > .tree-row > .tree-check");
+      if (!box || box.disabled) return;
+      var next = new Set(ticked);
+      var under = itemsBelow(li).map(function (item) { return item.dataset.id; });
+      var tops = topItems(li);
+      if (li.dataset.id !== undefined) {
+        // An item ticked brings all it holds, so their own ticks aren't needed.
+        if (next.has(li.dataset.id)) next.delete(li.dataset.id);
+        else { next.add(li.dataset.id); under.forEach(function (id) { next.delete(id); }); }
+      } else if (tops.length > 0 && tops.every(isTicked)) {
+        // A group ticked throughout is unticked, with everything in it. (Not box.checked: a click has already changed it.)
+        under.forEach(function (id) { next.delete(id); });
+      } else {
+        under.forEach(function (id) { next.delete(id); });
+        tops.forEach(function (item) { next.add(item.dataset.id); });
+      }
+      setTicked(Array.from(next));
+    }
+
+    document.addEventListener("click", function (event) {
+      if (event.target.closest && event.target.closest("[data-filter-clear]")) setTicked([]);
+    });
+
+    // ---- Expand and Collapse all ----
+    //
+    // Expand all opens every folder and group, but not each item's own children (a module's members), which on a large
+    // project would list every member. Collapse all closes everything.
+
+    $("explorer-expand-all").addEventListener("click", function () {
+      treeBox.querySelectorAll("li.group").forEach(function (li) { setExpanded(li, true); });
+    });
+    $("explorer-collapse-all").addEventListener("click", function () {
+      treeBox.querySelectorAll("li[aria-expanded]").forEach(function (li) { setExpanded(li, false); });
+    });
 
     // The Favourites group: each favourite once, without what it holds. Left out when there are none; drawn again when
     // they change, keeping the group open or closed as it was.
@@ -779,6 +913,12 @@
     treeBox.addEventListener("click", function (event) {
       if (event.target.closest(".favourite-toggle")) return; // the star, which the favourites' own handler toggles
       var li = event.target.closest("li");
+      if (li && treeBox.contains(li) && event.target.closest(".tree-check")) {
+        toggleTick(li);
+        updateChecks(); // the browser has already changed the box; put it right
+        focusItem(li);  // the keyboard carries on from its row, not the box
+        return;
+      }
       if (!li || !treeBox.contains(li)) return;
       focusItem(li);
       if (event.target.closest(".tree-twisty") && hasChildren(li)) setExpanded(li, !isOpen(li));
@@ -805,8 +945,10 @@
       } else if (event.key === "ArrowLeft") {
         if (hasChildren(li) && isOpen(li) && !li.classList.contains("open-for-filter")) setExpanded(li, false);
         else if (parentItem(li)) focusItem(parentItem(li));
-      } else if (event.key === "Enter" || event.key === " ") {
+      } else if (event.key === "Enter") {
         choose(li, event.ctrlKey || event.metaKey);
+      } else if (event.key === " ") {
+        toggleTick(li);
       } else {
         handled = false;
       }
@@ -944,8 +1086,15 @@
       focusOnClick: function () { return focusOnClick; },
       setFocusOnClick: setFocusOnClick,
       explorer: { setLayouts: setLayouts },
+      items: { init: initItems },
+      filter: {
+        active: filterActive,
+        has: function (id) { return ticked.has(id); },
+        ids: filterIds,
+        clear: function () { setTicked([]); }
+      },
+      onFilterChange: function (fn) { listeners.filter.push(fn); },
       favourites: {
-        init: initFavourites,
         list: favouriteList,
         has: isFavourite,
         toggle: toggleFavourite,
