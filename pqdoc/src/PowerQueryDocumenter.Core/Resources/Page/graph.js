@@ -2,8 +2,8 @@
 //
 // Queries sit in columns by depth, so data flows left to right, and d3's force layout arranges them within those
 // columns. Clicking a query selects it through window.pqdoc, which shows its details; the graph then traces
-// everything upstream and downstream of it. Hovering does the same for a query's direct neighbours, and the search
-// box lights up the queries it matches.
+// everything upstream and downstream of it, and when the selection is focused (the page's focus on click) shows only
+// those. Hovering lights up a query's direct neighbours, and the search box lights up the queries it matches.
 //
 // The starting layout is computed in one go before anything is drawn, from fixed positions, so the same queries
 // always give the same first picture. After that the force simulation is kept: dragging a query pins it where it's
@@ -26,6 +26,7 @@
   var view = document.getElementById("view-graph");
   var toolbar = view.querySelector(".view-toolbar");
   var legend = document.getElementById("graph-legend");
+  var focusButton = document.getElementById("graph-focus");
   var tooltip = document.getElementById("graph-tooltip");
   var svg = d3.select("#graph-svg");
   var defs = svg.append("defs");
@@ -178,7 +179,8 @@
 
     node.attr("transform", function (n) { return "translate(" + n.x + "," + n.y + ")"; });
 
-    var extent = d3.extent(nodes, function (n) { return n.y; });
+    // The column guides span the queries shown, so a focused graph fits around them.
+    var extent = d3.extent(shown ? nodes.filter(function (n) { return shown.has(n.id); }) : nodes, function (n) { return n.y; });
     var top = (extent[0] || 0) - 60;
     var bottom = (extent[1] || 0) + 40;
     guide.select("line")
@@ -300,6 +302,39 @@
     simulation.alpha(0.2).restart();
   });
 
+  // ---- Focus ----
+  //
+  // When the selection is focused, only it and its upstream and downstream chains are shown (the rest are left out,
+  // not just faded), and the view fits them. Clearing the selection, or a selection that isn't focused, shows every
+  // query again. Focus is the page's Focus on click setting, shared with the other views' Focus buttons.
+
+  var focusedOn = null; // the query the graph is focused on, or null when it shows them all
+  var shown = null;     // the ids shown while focused, or null for all
+
+  // Shows the focused query's chains, or everything. Returns whether that changed, in which case the view was fitted.
+  function applyFocus(duration) {
+    focusButton.setAttribute("aria-pressed", pq.focusOnClick() ? "true" : "false");
+    var wanted = pq.focused() ? pq.selection() : null;
+    if (wanted === focusedOn) return false;
+    focusedOn = wanted;
+    shown = null;
+    if (wanted !== null) {
+      shown = new Set([wanted]);
+      pq.upstream(wanted).forEach(function (id) { shown.add(id); });
+      pq.downstream(wanted).forEach(function (id) { shown.add(id); });
+    }
+    node.classed("out-of-focus", function (n) { return shown !== null && !shown.has(n.id); });
+    link.classed("out-of-focus", function (l) { return shown !== null && !(shown.has(l.source.id) && shown.has(l.target.id)); });
+    guide.classed("out-of-focus", function (c) {
+      return shown !== null && !nodes.some(function (n) { return n.column === c && shown.has(n.id); });
+    });
+    updatePositions();
+    fit(duration);
+    return true;
+  }
+
+  focusButton.addEventListener("click", function () { pq.setFocusOnClick(!pq.focusOnClick()); });
+
   // ---- Highlighting ----
 
   var hoveredId = null;
@@ -360,17 +395,20 @@
   // the details panel or the keyboard) is centred, so it can be found.
   var clickedInGraph = false;
 
+  // Clicking the selected query clears the selection; with Ctrl (Cmd on a Mac) it does the other thing from focus on
+  // click instead, for that query whether it's selected or not.
   node.on("click", function (event, n) {
     event.stopPropagation();
     clickedInGraph = true;
-    pq.select(n.id === pq.selection() ? null : n.id);
+    if (event.ctrlKey || event.metaKey) pq.select(n.id, true);
+    else pq.select(n.id === pq.selection() ? null : n.id);
     clickedInGraph = false;
   });
 
   node.on("keydown", function (event, n) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      pq.select(n.id);
+      pq.select(n.id, event.ctrlKey || event.metaKey);
     }
   });
 
@@ -441,7 +479,7 @@
   var started = false;
   function drawIfVisible() {
     if (pq.activeView() !== "graph") return;
-    if (started) { highlight(); return; } // catch up with a selection made in another view
+    if (started) { highlight(); applyFocus(0); return; } // catch up with a selection made in another view
     started = true;
     if (view.clientWidth < 600 || view.clientHeight < 480) legend.open = false; // it would cover a small view
     simulation.tick(300);
@@ -449,17 +487,23 @@
     simulation.on("tick", updatePositions);
     updatePositions();
     highlight();
-    fit(0);
+    if (!applyFocus(0)) fit(0);
   }
 
   pq.onSelectionChange(function (id) {
     if (!started) return;
     hideTooltip();
     highlight();
-    // A hidden view has no size, and moving it then would give d3-zoom a NaN transform.
-    // A query clicked here is already in view, unless the details panel has just opened over it.
+    // Focusing fits the view to what it shows. Otherwise a query clicked here is already in view, unless the details
+    // panel has just opened over it. (A hidden view has no size, and moving it then would give d3-zoom a NaN
+    // transform.)
+    if (pq.activeView() === "graph" && applyFocus(300)) return;
     var n = id !== null && pq.activeView() === "graph" ? nodes.find(function (q) { return q.id === id; }) : null;
     if (n && (!clickedInGraph || (pq.panelFollowing() && !inView(n)))) centreOn(n);
+  });
+  pq.onFocusChange(function () {
+    if (started && pq.activeView() === "graph") applyFocus(300);
+    else focusButton.setAttribute("aria-pressed", pq.focusOnClick() ? "true" : "false");
   });
   pq.onSearchChange(function () { if (started) highlight(); });
   pq.onViewChange(drawIfVisible);

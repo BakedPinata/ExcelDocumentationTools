@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 using ExcelDocumenter.Shared;
@@ -62,6 +63,8 @@ public static class HtmlPageWriter
       Tabs = [new ShellTab("graph", "Dependency graph"), new ShellTab("classes", "Class diagram")],
       SearchHtml = EmbeddedResources.ReadText(Resources, "Page/search.html"),
       LoadFolderHint = "Choose the folder that holds this page's module files, to see their source",
+      Summary = Summary(model),
+      WorkbookSaved = project.Saved,
       PanelName = "Source",
       ExplorerLabel = "Modules and members",
       BeforeLayoutHtml = EmbeddedResources.ReadText(Resources, "Page/trail.html"),
@@ -77,6 +80,21 @@ public static class HtmlPageWriter
     var html = page.Render();
     return html.ReplaceLineEndings("\n");
   }
+
+  /// <summary>
+  /// The page's summary, as pqdoc's says its queries and dependencies: <c>12 modules, 85 members, 20 module and 110
+  /// member dependencies.</c>
+  /// </summary>
+  public static string Summary(DependencyModel model)
+  {
+    ArgumentNullException.ThrowIfNull(model);
+    var members = model.Members.Count(m => !m.IsModuleNode);
+    return $"{Plural(model.Modules.Count, "module", "modules")}, {Plural(members, "member", "members")}, " +
+        $"{model.ModuleEdges.Count.ToString(CultureInfo.InvariantCulture)} module and " +
+        $"{Plural(model.MemberEdges.Count, "member dependency", "member dependencies")}.";
+  }
+
+  static string Plural(int count, string one, string many) => count.ToString(CultureInfo.InvariantCulture) + " " + (count == 1 ? one : many);
 
   /// <summary>Writes the page if its content changed. Returns true if the file was written.</summary>
   public static bool Write(string outputFolder, string fileName, string html)

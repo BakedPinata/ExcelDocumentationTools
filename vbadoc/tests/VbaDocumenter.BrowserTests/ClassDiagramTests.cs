@@ -229,27 +229,27 @@ public class ClassDiagramTests(PageFixture fixture)
   }
 
   [Fact]
-  public async Task Focus_shows_the_selected_module_and_its_relations_and_follows_the_selection()
+  public async Task Focus_on_click_shows_the_selected_module_and_its_relations_and_follows_the_selection()
   {
     await using var opened = await OpenClasses(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
-    Assert.True(await page.IsDisabledAsync("#classes-focus"));
-    await opened.SelectAsync("OrderService.Process");
+    Assert.Equal("true", await page.GetAttributeAsync("#classes-focus", "aria-pressed"));
 
-    await page.ClickAsync("#classes-focus");
+    await opened.SelectAsync("OrderService.Process");
     await WaitUntilDrawn(page);
 
     // OrderService uses IOrderRepository (m_repo), Logger and Order; Main and ProgressReporter (m_svc) use it.
     Assert.Equal(new[] { "IOrderRepository", "Logger", "Main", "Order", "OrderService", "ProgressReporter" }, await ShownModules(page));
-    Assert.Equal("Show all", await page.InnerTextAsync("#classes-focus"));
 
     await opened.SelectAsync("Utils");
     await WaitUntilDrawn(page);
     Assert.Equal(new[] { "Logger", "Order", "Utils" }, await ShownModules(page)); // Utils uses Logger; Order uses Utils
 
-    await page.ClickAsync("#classes-focus");
+    await page.ClickAsync("#classes-focus"); // focus on click off, which unfocuses the selection too
     await WaitUntilDrawn(page);
     Assert.Equal(12, (await ShownModules(page)).Length);
+    Assert.Equal("false", await page.GetAttributeAsync("#classes-focus", "aria-pressed"));
+    Assert.Equal("Utils", await page.EvaluateAsync<string>("() => window.vbadoc.selection()"));
   }
 
   [Fact]
@@ -354,5 +354,47 @@ public class ClassDiagramTests(PageFixture fixture)
             return r.right > c.left && r.left < c.right && r.bottom > c.top && r.top < c.bottom;
         }");
     Assert.Empty(opened.Errors);
+  }
+
+  static Task<string[]> LitBoxes(IPage page) =>
+      page.Locator("#classes-svg g.class-box:not(.dim)").EvaluateAllAsync<string[]>("bs => bs.map(b => b.dataset.module).sort()");
+
+  [Fact]
+  public async Task Legend_items_light_up_what_they_stand_for_and_add_to_each_other()
+  {
+    await using var opened = await OpenClasses(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+
+    await page.ClickAsync("#classes-legend [data-legend='box:interface']");
+    Assert.Equal(["IOrderRepository"], await LitBoxes(page));
+    Assert.Equal("true", await page.GetAttributeAsync("#classes-legend [data-legend='box:interface']", "aria-pressed"));
+
+    // Implements adds its lines, and the boxes at their ends.
+    await page.ClickAsync("#classes-legend [data-legend='edge:realization']");
+    var implementers = await page.EvaluateAsync<string[]>(
+        "() => [...new Set(window.vbadoc.data.classEdges.filter(e => e.kind === 'realization').flatMap(e => [e.from, e.to]))].sort()");
+    Assert.Equal(implementers, await LitBoxes(page));
+    Assert.Equal(0, await Count(page, "#classes-svg path.class-edge.realization.dim"));
+    Assert.True(await Count(page, "#classes-svg path.class-edge.dependency.dim") > 0);
+
+    await page.ClickAsync("#classes-legend-clear");
+    Assert.Equal(0, await Count(page, "#classes-svg .dim"));
+    Assert.True(await page.IsHiddenAsync("#classes-legend-clear"));
+  }
+
+  [Fact]
+  public async Task The_background_or_Escape_turns_the_legend_off()
+  {
+    await using var opened = await OpenClasses(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    await page.ClickAsync("#classes-legend [data-legend='box:class']");
+    Assert.True(await Count(page, "#classes-svg .dim") > 0);
+
+    await ClickBackground(page);
+    Assert.Equal(0, await Count(page, "#classes-svg .dim"));
+
+    await page.ClickAsync("#classes-legend [data-legend='edge:association']");
+    await page.Keyboard.PressAsync("Escape");
+    Assert.Equal(0, await Count(page, "#classes-svg .dim"));
   }
 }

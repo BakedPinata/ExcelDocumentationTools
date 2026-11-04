@@ -183,6 +183,23 @@ Reading them is step B2 of the feedback plan.
   Anything else counts as a query; a parameter does too, since it isn't a function.
 - **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
 
+## View controls and the summary (1.9.0, step D1c of the feedback plan)
+
+- **The graph gains Focus, following the page's focus on click** (FR-HTML-13), as vbadoc's views do: a focused query
+  shows only it and its upstream and downstream chains, the rest left out (not faded), and the view fits them;
+  clearing the selection shows every query and fits them all. Clicking the selected query still clears the selection,
+  as before, so with focus on it's also the way back; a Ctrl+click selects without focusing, even the selected query.
+- **Esc is the shell's now,** for both tools; pqdoc's own Escape handler went.
+- **No generation time** (FR-HTML-8): the summary gives the counts and when the workbook was last saved, from
+  `docProps/core.xml` (`WorkbookFile.LastSaved`, shared with vbadoc), written in UTC and shown in the viewer's own time.
+  A folder of `.m` files has no saved time. The page's title has the counts alone. `ExportContext.GeneratedAt` became
+  `WorkbookSaved`, and the app's `TimeProvider` went, as nothing else needed a clock.
+- **Outputs that would be written unchanged aren't asked about** (FR-OVR-1): the text outputs (page, CSV, PlantUML
+  source) are made before the overwrite check, from the same queries and sources as before (a workbook's `.m` files
+  come from its queries in memory), and an existing file that already holds the same bytes counts as not there. The
+  check is still before anything is written, so refusing still changes nothing. Images from the PlantUML server are
+  only made when written, so they're always asked about.
+
 ## Panel controls (1.8.0, step D1a of the feedback plan)
 
 - **The details panel follows the selection unless locked,** as vbadoc's source panel does, all in the shell (see

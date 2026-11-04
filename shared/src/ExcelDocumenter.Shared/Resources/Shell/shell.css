@@ -134,6 +134,8 @@ a:hover { text-decoration: underline; }
 /* Our own icons: stroked in the text colour, so they follow the theme. */
 .icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .icon-button { padding: 7px; }
+/* A toggle in a view's toolbar, such as Focus on click, shows when it's on. */
+.view-toolbar .button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .icon-button .icon { width: 18px; height: 18px; }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -145,6 +147,13 @@ a:hover { text-decoration: underline; }
 #source-status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40ch; }
 .source-status.embedded #load-folder-label { display: none; }
 .warning { color: var(--warn); }
+
+/* What the page documents and when the workbook was saved. It wraps rather than being cut off, because the time is at
+   the end. */
+.summary { flex: 1 1 200px; min-width: 200px; margin: 0; font-size: 12px; line-height: 1.25; }
+@media (max-width: 900px) {
+  .summary { flex-basis: 100%; }
+}
 
 /* The theme switch, the version and the side panel's switch, kept together at the right end of the bar. */
 .topbar-end { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-left: auto; }

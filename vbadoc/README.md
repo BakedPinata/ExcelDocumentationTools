@@ -127,6 +127,12 @@ kind. The annotation can also follow a label in a header comment, such as `' Fol
 Rubberduck itself reads it only straight after the `'`. Its filter box narrows the list, and choosing an item selects it in the graph, the class diagram and the source
 panel. Hide it with the button at the left end of the top bar, or drag its edge to resize it.
 
+**Focus**, at the start of each view's toolbar, is on to begin with: selecting something then shows only it and what
+it's connected to, in every view, until you clear the selection with Esc or a click on the background. Ctrl+click
+(Cmd+click on a Mac) does the other thing for that click: with Focus on it just selects, and with Focus off it focuses.
+The class diagram's legend picks out kinds of box and relationships, as the graph's does. The top bar sums up the
+project and says when the workbook was last saved.
+
 The source panel opens when you select something and closes when you clear the selection. Lock it open with the
 padlock in its corner, or open and close it with `</>` at the right end of the top bar. The copy button over the code
 copies the lines shown.

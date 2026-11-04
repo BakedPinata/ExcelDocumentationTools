@@ -449,6 +449,32 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### View controls and the summary (0.14.0, step D1c of the feedback plan)
+
+- **Focus on click is the shell's, one setting for the page** (`vbadoc-focus-on-click`, on unless turned off), and the
+  Focus button at the start of each view's toolbar shows and changes it; it no longer reads Show all. The views ask
+  `vbadoc.focused()` when they draw: the graph draws only the selection's neighbourhood (Direct or Transitive, and the
+  direction), and the class diagram the selected module and its relations. Path from Home is found in the whole graph,
+  so while it's shown the graph isn't focused. Turning the setting on focuses on the current selection, so the button
+  still does what it did when something is selected.
+- **Ctrl+click (Cmd+click) does the other thing for that click,** in the graph, the class diagram, the explorer and the
+  source panel's links; `vbadoc.select(id, other)` passes it to the shell. In the graph a plain click on the selected
+  node focuses it again, so a Ctrl+click is undone by a click.
+- **Esc clears the selection in the shell,** in the capture phase, so an open menu, or a box with text in it, can take it
+  first. The graph's and the class diagram's own Escape handlers still clear the legend.
+- **Direct / Transitive moved into the graph's Settings** (`reach`, in `vbadoc-graph-settings`), as it's seldom changed.
+  A choice stored the old way (`vbadoc-graph-reach`) is kept.
+- **The class diagram's legend works as the graph's:** kinds of box and relationships are toggles; a kind lights its
+  boxes and the lines between them, a relationship its lines and the boxes at their ends; Clear, the background or
+  Escape turns them off. Not remembered, as in the graph.
+- **The summary in the top bar** gives modules, members (not counting the modules' own nodes), and module and member
+  dependencies, as the console does, and when the workbook was last saved (`WorkbookFile.LastSaved`, on
+  `VbaProject.Saved`): from `docProps/core.xml`'s `dcterms:modified` in a zip-based workbook, or the summary
+  information's last-saved time in an .xls. It's written in UTC, so the page stays deterministic, and the page shows
+  it in the viewer's own time.
+- **Tests not about focus open the page with it off** (an init script that leaves a changed setting alone), since a
+  selection would otherwise leave out most of the graph.
+
 ### `'@Folder` after a label (0.13.0, step D1e of the feedback plan)
 
 - **The annotation can follow a label ending in a colon,** as in a header comment block of labelled values tabbed to

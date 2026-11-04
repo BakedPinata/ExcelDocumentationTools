@@ -213,6 +213,12 @@ public sealed class OpenedPage(IBrowserContext context, IPage page, List<string>
   public List<string> NetworkRequests { get; } = networkRequests;
 
   /// <summary>
+  /// An init script that turns Focus on click off, as if it had been turned off before, for tests of what a selection
+  /// lights up in the whole graph. It runs on every load, so it leaves a setting the test has changed alone.
+  /// </summary>
+  public const string WithoutFocusOnClick = "if (localStorage.getItem('pqdoc-focus-on-click') === null) localStorage.setItem('pqdoc-focus-on-click', 'false');";
+
+  /// <summary>
   /// An init script that locks the details panel open, as if it had been locked before, for tests of its size, which
   /// was always open before it followed the selection. It runs on every load, so it leaves a lock the test has
   /// changed alone.

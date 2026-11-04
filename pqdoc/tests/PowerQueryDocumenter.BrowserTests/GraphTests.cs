@@ -294,7 +294,7 @@ public sealed class GraphTests(PageFixture fixture)
   [Fact]
   public async Task Enter_selects_the_first_match_by_name_and_centres_it()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage, initScript: OpenedPage.WithoutFocusOnClick);
     var page = opened.Page;
     await page.FillAsync("#search", "sales");
 

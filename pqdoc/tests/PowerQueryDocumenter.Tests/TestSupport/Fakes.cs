@@ -52,23 +52,3 @@ public sealed class FakeEnvironment : IAppEnvironment
   public string? GetEnvironmentVariable(string name) => variables.TryGetValue(name, out var value) ? value : null;
 }
 
-/// <summary>A clock fixed at one instant, in a UTC+08:00 local time zone.</summary>
-public sealed class FixedTimeProvider : TimeProvider
-{
-  private static readonly TimeZoneInfo Perth =
-    TimeZoneInfo.CreateCustomTimeZone("Test/UTC+8", TimeSpan.FromHours(8), "UTC+08:00", "UTC+08:00");
-
-  private readonly DateTimeOffset utcNow;
-
-  /// <param name="utcNow">The fixed UTC time. Defaults to 2026-10-02 02:03 UTC (10:03 local).</param>
-  public FixedTimeProvider(DateTimeOffset? utcNow = null)
-  {
-    this.utcNow = utcNow ?? new DateTimeOffset(2026, 10, 2, 2, 3, 0, TimeSpan.Zero);
-  }
-
-  /// <inheritdoc />
-  public override TimeZoneInfo LocalTimeZone => Perth;
-
-  /// <inheritdoc />
-  public override DateTimeOffset GetUtcNow() => utcNow;
-}

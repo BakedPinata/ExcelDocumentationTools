@@ -8,6 +8,17 @@ public class WorkbookReaderTests
 {
   // ---- Real workbooks saved by Excel (see Fixtures/Workbooks/README.md) ----
 
+  [Fact]
+  public void Knows_when_the_workbook_was_saved_from_its_own_document_properties()
+  {
+    Assert.Equal(new DateTimeOffset(2016, 4, 10, 10, 49, 37, TimeSpan.Zero), WorkbookReader.Read(Fixtures.Workbook("SimpleMacro.xlsm")).Saved);
+
+    // An older .xls keeps it in its summary information.
+    var legacy = WorkbookReader.Read(Fixtures.Workbook("SimpleMacro.xls")).Saved;
+    Assert.NotNull(legacy);
+    Assert.InRange(legacy.Value.Year, 1997, 2026);
+  }
+
   [Theory]
   [InlineData("SimpleMacro.xlsm")]
   [InlineData("SimpleMacro.xls")]

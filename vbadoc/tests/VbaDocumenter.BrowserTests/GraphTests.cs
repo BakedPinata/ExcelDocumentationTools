@@ -45,7 +45,7 @@ public class GraphTests(PageFixture fixture)
   [Fact]
   public async Task Clicking_a_node_selects_it_and_highlights_its_direct_neighbours()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutFocusOnClick);
     var page = opened.Page;
 
     await page.ClickAsync("#graph-svg g.node[data-id='Main']");
@@ -62,11 +62,12 @@ public class GraphTests(PageFixture fixture)
   [Fact]
   public async Task Transitive_highlights_the_whole_chain_in_each_direction()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutFocusOnClick);
     var page = opened.Page;
     await page.ClickAsync("#graph-svg g.node[data-id='Main']");
 
-    await page.ClickAsync("[data-reach='transitive']");
+    await page.ClickAsync("#graph-settings summary"); // Direct / Transitive is a setting now
+    await page.SelectOptionAsync("#graph-setting-reach", "transitive");
 
     // Main -> Order -> Utils downstream; ThisWorkbook -> AppInit -> Sheet1 -> Main upstream.
     Assert.Equal(0, await Count(page, "#graph-svg g.node.dim"));
@@ -77,7 +78,7 @@ public class GraphTests(PageFixture fixture)
   [Fact]
   public async Task Direction_highlights_only_dependencies_or_only_dependents()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutFocusOnClick);
     var page = opened.Page;
     await page.ClickAsync("#graph-svg g.node[data-id='Main']");
 
@@ -93,7 +94,8 @@ public class GraphTests(PageFixture fixture)
     Assert.Equal(1, await Count(page, "#graph-svg path.edge.highlighted"));
 
     // Transitive dependents: ThisWorkbook -> AppInit -> Sheet1 -> Main, and SheetOrderRepository -> Sheet1.
-    await page.ClickAsync("[data-reach='transitive']");
+    await page.ClickAsync("#graph-settings summary"); // Direct / Transitive is a setting now
+    await page.SelectOptionAsync("#graph-setting-reach", "transitive");
     Assert.Equal(new[] { "AppInit", "Sheet1", "SheetOrderRepository", "ThisWorkbook" }, await RelatedIds(page));
 
     await page.ClickAsync("[data-direction='all']");
@@ -103,7 +105,7 @@ public class GraphTests(PageFixture fixture)
   [Fact]
   public async Task Direction_applies_inside_a_module_for_a_member_but_not_for_a_selected_module()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutFocusOnClick);
     var page = opened.Page;
     await ShowMembers(page);
     await page.ClickAsync("[data-direction='dependents']");
@@ -350,7 +352,7 @@ public class GraphTests(PageFixture fixture)
     // A click used to wake the layout as soon as the button went down, so clicking inside a module's outline
     // pulled the modules together until the graph came to rest again. Without the explorer, so the nodes clicked are in
     // view at the starting zoom.
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutExplorer);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutFocusOnClick + OpenedPage.WithoutExplorer);
     var page = opened.Page;
     await ShowMembers(page);
     await WaitUntilStill(page);
@@ -706,21 +708,20 @@ public class GraphTests(PageFixture fixture)
   }
 
   [Fact]
-  public async Task Focus_shows_only_the_selection_and_its_neighbours_until_Show_all()
+  public async Task Focus_on_click_shows_only_the_selection_and_its_neighbours_until_it_is_cleared()
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
-    Assert.True(await page.IsDisabledAsync("#graph-focus"));
-    await page.ClickAsync("#graph-svg g.node[data-id='Utils']");
+    Assert.Equal("true", await page.GetAttributeAsync("#graph-focus", "aria-pressed"));
 
-    await page.ClickAsync("#graph-focus");
+    await page.ClickAsync("#graph-svg g.node[data-id='Utils']");
 
     // Utils uses Logger; Order uses Utils.
     Assert.Equal(new[] { "Logger", "Order", "Utils" },
         (await page.Locator("#graph-svg g.node").EvaluateAllAsync<string[]>("ns => ns.map(n => n.dataset.id)")).Order());
-    Assert.Equal("Show all", await page.InnerTextAsync("#graph-focus"));
 
-    await page.ClickAsync("#graph-focus");
+    await page.Keyboard.PressAsync("Escape");
+    Assert.Null(await page.EvaluateAsync<string?>("() => window.vbadoc.selection()"));
     Assert.Equal(12, await Count(page, "#graph-svg g.node"));
   }
 

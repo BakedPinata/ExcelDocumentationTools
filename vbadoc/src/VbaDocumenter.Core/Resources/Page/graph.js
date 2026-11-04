@@ -106,9 +106,8 @@
 
   var state = {
     level: loadSetting("vbadoc-graph-level", "modules") === "members" ? "members" : "modules",
-    reach: loadSetting("vbadoc-graph-reach", "direct") === "transitive" ? "transitive" : "direct",
     direction: loadDirection(), // "all", or only "dependencies" or "dependents" of the selection
-    focus: false,
+    focused: false,     // whether what's drawn is only the focused selection's neighbourhood
     path: false,        // showing the path from Home to the selection instead of the selection's neighbourhood
     show: loadShow(),
     legend: new Set()   // legend items clicked to highlight what they stand for (not remembered)
@@ -117,6 +116,7 @@
   // Everything the settings panel controls. `layout` marks settings that change the forces, so changing
   // them wakes the simulation up rather than just restyling.
   var DEFAULTS = {
+    reach: "direct",       // highlight (and focus on) the selection's direct neighbours, or the whole chain each way
     labels: "always",      // member names: "always", "zoom" (when zoomed in) or "selection"
     labelSize: 10.5,       // member names, px; module names are 1.5px bigger
     nodeSize: 1,
@@ -135,6 +135,9 @@
   };
 
   var CONTROLS = [
+    { section: "Highlight" },
+    { key: "reach", type: "select", label: "Around the selection", relight: true,
+      options: [["direct", "Direct neighbours"], ["transitive", "The whole chain each way"]] },
     { section: "Names" },
     { key: "labels", type: "select", label: "Member names",
       options: [["always", "Always"], ["zoom", "When zoomed in"], ["selection", "Selection and neighbours only"]] },
@@ -162,6 +165,9 @@
   function loadSettings() {
     var stored = {};
     try { stored = JSON.parse(loadSetting("vbadoc-graph-settings", "{}")) || {}; } catch (e) { stored = {}; }
+    // Direct / Transitive was a toolbar switch, stored on its own, before it moved into the settings.
+    if (stored.reach === undefined && loadSetting("vbadoc-graph-reach", null) === "transitive") stored.reach = "transitive";
+    if (stored.reach !== "direct" && stored.reach !== "transitive") delete stored.reach;
     var result = {};
     Object.keys(DEFAULTS).forEach(function (key) {
       result[key] = typeof stored[key] === typeof DEFAULTS[key] ? stored[key] : DEFAULTS[key];
@@ -681,15 +687,15 @@
     hideTooltip();
     var full = buildFullGraph();
     graph = full;
-    if (state.focus) {
+    state.focused = false;
+    if (focusing()) {
       var start = selectedIds(full);
-      if (start.length === 0) {
-        state.focus = false;
-      } else {
-        var reached = reach(full, start, state.reach === "transitive", state.direction);
+      if (start.length > 0) {
+        var reached = reach(full, start, settings.reach === "transitive", state.direction);
         graph = indexGraph(
           full.nodes.filter(function (n) { return reached.nodes.has(n.id); }),
           full.edges.filter(function (e) { return reached.edges.has(e); }));
+        state.focused = true;
       }
     }
 
@@ -708,7 +714,7 @@
       });
     drawn.hulls.attr("data-module", function (g) { return g[0]; });
     drawn.hulls.select("path.hull")
-      .on("click", function (event, g) { event.stopPropagation(); vb.select(g[0]); })
+      .on("click", function (event, g) { event.stopPropagation(); vb.select(g[0], event.ctrlKey || event.metaKey); })
       .call(dragBehaviour(function (g) { return g[1]; }));
     drawn.hulls.select("text.hull-label");
 
@@ -740,7 +746,7 @@
           (n.unreferenced ? " unreferenced" : "");
       })
       .attr("data-id", function (n) { return n.id; })
-      .on("click", function (event, n) { event.stopPropagation(); vb.select(n.id); })
+      .on("click", function (event, n) { event.stopPropagation(); vb.select(n.id, event.ctrlKey || event.metaKey); })
       .on("dblclick", function (event, n) { event.stopPropagation(); release([n]); })
       .on("mouseenter", function (event, n) { if (!dragging) showTooltip(event, n); })
       .on("mousemove", function (event) { moveTooltip(event); })
@@ -992,7 +998,7 @@
       isSelected = function (id) { return start.indexOf(id) >= 0; };
       isLit = function (id) { return pathNodes.has(id) || (isSelected(id) && (start.length === 1 || id === selection)); };
     } else {
-      var reached = start.length ? reach(graph, start, state.reach === "transitive", state.direction) : null;
+      var reached = start.length ? reach(graph, start, settings.reach === "transitive", state.direction) : null;
       var legend = legendHighlight(graph);
       active = !!reached || !!legend;
       litEdges = new Set(active ? graph.edges.filter(function (e) {
@@ -1188,12 +1194,8 @@
 
   function updateToolbar() {
     setChecked("[data-level]", "data-level", state.level);
-    setChecked("[data-reach]", "data-reach", state.reach);
     setChecked("[data-direction]", "data-direction", state.direction);
-    var hasSelection = !!graph && selectedIds(graph).length > 0;
-    focusButton.disabled = !hasSelection && !state.focus;
-    focusButton.textContent = state.focus ? "Show all" : "Focus";
-    focusButton.setAttribute("aria-pressed", state.focus ? "true" : "false");
+    focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false");
     var unavailable = graph ? pathUnavailable(graph) : "";
     pathButton.disabled = !!unavailable && !state.path;
     pathButton.title = unavailable || "Show the shortest chain of dependencies between Home and the selection";
@@ -1205,18 +1207,9 @@
     button.addEventListener("click", function () {
       if (state.level === button.getAttribute("data-level")) return;
       state.level = button.getAttribute("data-level");
-      state.focus = false;
       state.legend.clear(); // the legend's items differ between levels
       saveSetting("vbadoc-graph-level", state.level);
       render();
-    });
-  });
-
-  view.querySelectorAll("[data-reach]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      state.reach = button.getAttribute("data-reach");
-      saveSetting("vbadoc-graph-reach", state.reach);
-      if (state.focus) render(); else highlight();
     });
   });
 
@@ -1224,21 +1217,21 @@
     button.addEventListener("click", function () {
       state.direction = button.getAttribute("data-direction");
       saveSetting("vbadoc-graph-direction", state.direction);
-      if (state.focus) render(); else highlight();
+      if (state.focused) render(); else highlight();
     });
   });
 
-  focusButton.addEventListener("click", function () {
-    state.focus = !state.focus;
-    state.path = false;
-    render();
-  });
+  // Focus is the page's Focus on click setting, shared by every view; turning it on focuses on the selection now too.
+  focusButton.addEventListener("click", function () { vb.setFocusOnClick(!vb.focusOnClick()); });
 
-  // The path is found in the whole graph, so it leaves Focus, which shows only the selection's neighbourhood.
+  // Whether to draw only the selection's neighbourhood: when the selection is focused, unless the path is shown,
+  // which is found in the whole graph.
+  function focusing() { return vb.focused() && !state.path; }
+
   pathButton.addEventListener("click", function () {
     state.path = !state.path;
     if (state.path) state.legend.clear();
-    if (state.path && state.focus) { state.focus = false; render(); } else highlight();
+    if (state.focused !== focusing()) render(); else highlight();
   });
 
   document.getElementById("graph-fit").addEventListener("click", function () { fit(true); });
@@ -1379,6 +1372,10 @@
     settings[control.key] = value;
     saveSetting("vbadoc-graph-settings", JSON.stringify(settings));
     if (!graph) return;
+    if (control.relight) {
+      if (state.focused) render(); else highlight();
+      return;
+    }
     if (control.key === "nodeSize") {
       // Node sizes are set when nodes are made; resize the drawn ones in place, keeping their positions.
       var fresh = buildFullGraph();
@@ -1431,7 +1428,13 @@
 
   vb.onSelectionChange(function () {
     if (!started) return;
-    if (state.focus) render(); else highlight();
+    if (state.focused || focusing()) render(); else highlight();
+  });
+  // The Focus button shows the page's setting even before the graph is first drawn.
+  focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false");
+  vb.onFocusChange(function () {
+    if (!started) { focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false"); return; }
+    if (state.focused !== focusing()) render(); else updateToolbar();
   });
   vb.onViewChange(drawIfVisible);
   vb.onHomeChange(function () {

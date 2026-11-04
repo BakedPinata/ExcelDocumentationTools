@@ -44,4 +44,7 @@ public sealed class VbaProject
 
   /// <summary>Modules sorted by name (case-insensitive) so everything downstream is in a stable order.</summary>
   public required IReadOnlyList<VbaModule> Modules { get; init; }
+
+  /// <summary>When the workbook was last saved, from its own document properties, or null when it doesn't say.</summary>
+  public DateTimeOffset? Saved { get; init; }
 }

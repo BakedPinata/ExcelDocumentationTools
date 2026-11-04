@@ -27,9 +27,19 @@
 //                                      choice is remembered as <tool>-explorer-layout. nodes are { label, id, detail,
 //                                      badge, title, className, folder, children, expanded }; folder: true draws a
 //                                      folder before the label. Choosing a node with an id calls select(id)
-//   shell.selectionChanged(id)         call on every change of selection (null for none): the explorer marks the
-//                                      item, opening what holds it, and the side panel opens or closes with it
-//                                      unless it's locked open
+//   shell.selectionChanged(id, other)  call on every selection (null for none), even of what's already selected, before
+//                                      drawing it: the explorer marks the item, opening what holds it, and the side
+//                                      panel opens or closes with it unless it's locked open. other is true for a
+//                                      Ctrl+click (Cmd+click), which does the other thing from focus on click.
+//                                      Returns whether the selection changed; if it didn't, its focus may have
+//                                      (see onFocusChange)
+//   shell.focused() / onFocusChange(fn)   whether the views show only the selection and what it's connected to; fn is
+//                                      called when that changes without the selection changing
+//   shell.focusOnClick() / setFocusOnClick(on)   the page's Focus on click setting, remembered as
+//                                      <tool>-focus-on-click and on unless turned off; setting it applies it to the
+//                                      current selection too
+//   Esc clears the selection, through the select function given to explorer.setLayouts, unless an open menu or a box
+//   with text in it takes it first.
 //   shell.source.init(source)          says where the source text comes from (call it once, before start):
 //     mode         "embedded" (in the page), "folder" (Load folder) or "none" (there's no source to show)
 //     attribute    the attribute that holds each embedded source's id, such as "data-module"
@@ -71,7 +81,7 @@
       remove: function (name) { try { localStorage.removeItem(tool + "-" + name); } catch (e) { /* nothing stored */ } }
     };
 
-    var listeners = { theme: [], view: [] };
+    var listeners = { theme: [], view: [], focus: [] };
     function emit(name, value) {
       listeners[name].forEach(function (fn) {
         try { fn(value); } catch (e) { console.error(e); }
@@ -79,6 +89,16 @@
     }
 
     var data = JSON.parse($(tool + "-data").textContent);
+
+    // The workbook's saved time is written in UTC, so the page is the same wherever it's made; show it in the viewer's
+    // own time, keeping the UTC text if the browser can't.
+    var savedTime = $("workbook-saved");
+    if (savedTime) {
+      try {
+        var saved = new Date(savedTime.getAttribute("datetime"));
+        if (!isNaN(saved.getTime())) savedTime.textContent = saved.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+      } catch (e) { /* the UTC text stays */ }
+    }
 
     // ---- Theme ----
 
@@ -463,16 +483,53 @@
     // the frame after.
     var following = false;
 
-    function selectionChanged(id) {
-      selected = id === undefined ? null : id;
+    // ---- Focus on click ----
+    //
+    // One setting for the whole page: while it's on, selecting something focuses every view on it, showing only it and
+    // what it's connected to. A Ctrl+click (Cmd+click on a Mac) does the other thing for that one selection, so both
+    // are always a click away. The views ask focused() whenever they draw.
+
+    var focusOnClick = settings.load("focus-on-click") !== "false";
+    var focused = false;
+
+    function setFocusOnClick(on) {
+      focusOnClick = !!on;
+      settings.save("focus-on-click", focusOnClick ? "true" : "false");
+      focused = selected !== null && focusOnClick;
+      emit("focus", focused);
+    }
+
+    function selectionChanged(id, other) {
+      var next = id === undefined ? null : id;
+      var nextFocused = next !== null && focusOnClick !== !!other;
+      if (next === selected) {
+        if (nextFocused !== focused) {
+          focused = nextFocused;
+          emit("focus", focused);
+        }
+        return false;
+      }
+      selected = next;
+      focused = nextFocused;
       reveal(selected);
-      if (locked || sidePanel.isVisible() === (selected !== null)) return;
+      if (locked || sidePanel.isVisible() === (selected !== null)) return true;
       following = true;
       sidePanel.setVisible(selected !== null, false);
       window.requestAnimationFrame(function () {
         window.requestAnimationFrame(function () { following = false; });
       });
+      return true;
     }
+
+    // Esc clears the selection wherever it's pressed. An open menu takes it first, and so does a box with text in it,
+    // which empties instead; this runs in the capture phase, before their own handlers close or empty them.
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape" || selected === null) return;
+      if (document.querySelector("details.dropdown[open]")) return;
+      var target = event.target;
+      if (target && target.matches && target.matches("input, textarea, select") && target.value) return;
+      selectItem(null);
+    }, true);
 
     // Open by default on a wide screen, where there's room beside the views; on a narrow one it would push them down.
     resizablePanel({
@@ -612,8 +669,8 @@
       li.focus();
     }
 
-    function choose(li) {
-      if (li.dataset.id !== undefined) selectItem(li.dataset.id);
+    function choose(li, other) {
+      if (li.dataset.id !== undefined) selectItem(li.dataset.id, other);
       else setExpanded(li, !isOpen(li));
     }
 
@@ -622,7 +679,7 @@
       if (!li || !treeBox.contains(li)) return;
       focusItem(li);
       if (event.target.closest(".tree-twisty") && hasChildren(li)) setExpanded(li, !isOpen(li));
-      else choose(li);
+      else choose(li, event.ctrlKey || event.metaKey);
     });
 
     treeBox.addEventListener("keydown", function (event) {
@@ -646,7 +703,7 @@
         if (hasChildren(li) && isOpen(li) && !li.classList.contains("open-for-filter")) setExpanded(li, false);
         else if (parentItem(li)) focusItem(parentItem(li));
       } else if (event.key === "Enter" || event.key === " ") {
-        choose(li);
+        choose(li, event.ctrlKey || event.metaKey);
       } else {
         handled = false;
       }
@@ -765,6 +822,10 @@
         following: function () { return following; }
       },
       selectionChanged: selectionChanged,
+      focused: function () { return focused; },
+      onFocusChange: function (fn) { listeners.focus.push(fn); },
+      focusOnClick: function () { return focusOnClick; },
+      setFocusOnClick: setFocusOnClick,
       explorer: { setLayouts: setLayouts },
       source: {
         init: initSource,

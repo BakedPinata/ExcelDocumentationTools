@@ -1,19 +1,15 @@
   <section class="view" id="view-graph" role="tabpanel" aria-labelledby="tab-graph">
     <div class="view-toolbar" role="toolbar" aria-label="Graph options">
+      <button type="button" class="button" id="graph-focus" aria-pressed="true" title="Focus on click: selecting something shows only it and what it's connected to, in every view. Ctrl+click does the other.">Focus</button>
       <div class="segmented" role="radiogroup" aria-label="Level">
         <button type="button" role="radio" data-level="modules" aria-checked="true">Modules</button>
         <button type="button" role="radio" data-level="members" aria-checked="false">Members</button>
-      </div>
-      <div class="segmented" role="radiogroup" aria-label="Highlight">
-        <button type="button" role="radio" data-reach="direct" aria-checked="true" title="Highlight direct dependencies and dependents">Direct</button>
-        <button type="button" role="radio" data-reach="transitive" aria-checked="false" title="Highlight the whole chain in each direction">Transitive</button>
       </div>
       <div class="segmented" role="radiogroup" aria-label="Direction">
         <button type="button" role="radio" data-direction="all" aria-checked="true" title="Highlight dependencies and dependents">All</button>
         <button type="button" role="radio" data-direction="dependencies" aria-checked="false" title="Highlight only what the selection uses">Dependencies</button>
         <button type="button" role="radio" data-direction="dependents" aria-checked="false" title="Highlight only what uses the selection">Dependents</button>
       </div>
-      <button type="button" class="button" id="graph-focus" aria-pressed="false" disabled title="Show only the selection and what it's connected to">Focus</button>
       <button type="button" class="button" id="graph-path" aria-pressed="false" disabled aria-label="Path from Home" title="Show the shortest chain of dependencies between Home and the selection"><span class="star" aria-hidden="true">★</span> Path</button>
       <button type="button" class="button" id="graph-fit" title="Zoom to fit">Fit</button>
       <details class="graph-filters dropdown" id="graph-filters">
@@ -33,7 +29,7 @@
   </section>
   <section class="view" id="view-classes" role="tabpanel" aria-labelledby="tab-classes" hidden>
     <div class="view-toolbar" role="toolbar" aria-label="Class diagram options">
-      <button type="button" class="button" id="classes-focus" aria-pressed="false" disabled title="Show only the selected module and the modules related to it">Focus</button>
+      <button type="button" class="button" id="classes-focus" aria-pressed="true" title="Focus on click: selecting something shows only it and what it's connected to, in every view. Ctrl+click does the other.">Focus</button>
       <div class="segmented" role="group" aria-label="Zoom">
         <button type="button" id="classes-zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
         <button type="button" id="classes-zoom-in" title="Zoom in" aria-label="Zoom in">+</button>

@@ -90,4 +90,93 @@ public sealed class WorkbookFileTests : IDisposable
     Assert.StartsWith($"Can't read {path}: ", exception.Message, StringComparison.Ordinal);
     Assert.IsType<FileNotFoundException>(exception.InnerException);
   }
+
+  // ---- When the workbook was last saved ----
+
+  private static byte[] ZipWith(string name, string content)
+  {
+    var buffer = new MemoryStream();
+    using (var zip = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
+    {
+      using var writer = new StreamWriter(zip.CreateEntry(name).Open());
+      writer.Write(content);
+    }
+
+    return buffer.ToArray();
+  }
+
+  private const string CoreProperties =
+    "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><cp:coreProperties " +
+    "xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" xmlns:dcterms=\"http://purl.org/dc/terms/\" " +
+    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><dcterms:created xsi:type=\"dcterms:W3CDTF\">2026-01-02T03:04:05Z</dcterms:created>" +
+    "<dcterms:modified xsi:type=\"dcterms:W3CDTF\">{0}</dcterms:modified></cp:coreProperties>";
+
+  /// <summary>A compound file whose summary information holds a last-saved time, as an .xls file's does.</summary>
+  private static byte[] CompoundFileSavedAt(DateTimeOffset saved, ushort type = 0x40)
+  {
+    var set = new MemoryStream();
+    using (var writer = new BinaryWriter(set, System.Text.Encoding.UTF8, leaveOpen: true))
+    {
+      // The set: its size, two properties (the code page, then the last-saved time), and their values.
+      writer.Write(48);
+      writer.Write(2);
+      writer.Write(1);
+      writer.Write(24);
+      writer.Write(13);
+      writer.Write(32);
+      writer.Write((uint)2); // VT_I2 code page
+      writer.Write(1252);
+      writer.Write((uint)type);
+      writer.Write(saved.UtcDateTime.ToFileTimeUtc());
+    }
+
+    var stream = new MemoryStream();
+    using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+    {
+      writer.Write((ushort)0xFFFE);
+      writer.Write((ushort)0);
+      writer.Write(0x00020006);
+      writer.Write(new byte[16]);
+      writer.Write(1);
+      writer.Write(Guid.Parse("F29F85E0-4FF9-1068-AB91-08002B27B3D9").ToByteArray());
+      writer.Write(48);
+      writer.Write(set.ToArray());
+    }
+
+    var buffer = new MemoryStream();
+    using (var root = RootStorage.Create(buffer, OpenMcdf.Version.V3, StorageModeFlags.LeaveOpen))
+    {
+      using var summary = root.CreateStream((char)5 + "SummaryInformation");
+      summary.Write(stream.ToArray());
+    }
+
+    return buffer.ToArray();
+  }
+
+  [Fact]
+  public void A_zip_based_workbook_says_when_it_was_saved_in_its_core_properties()
+  {
+    var bytes = ZipWith("docProps/core.xml", string.Format(System.Globalization.CultureInfo.InvariantCulture, CoreProperties, "2026-11-04T01:57:36Z"));
+
+    Assert.Equal(new DateTimeOffset(2026, 11, 4, 1, 57, 36, TimeSpan.Zero), WorkbookFile.LastSaved(bytes));
+  }
+
+  [Fact]
+  public void An_older_xls_file_says_when_it_was_saved_in_its_summary_information()
+  {
+    var saved = new DateTimeOffset(2019, 5, 6, 7, 8, 9, TimeSpan.Zero);
+
+    Assert.Equal(saved, WorkbookFile.LastSaved(CompoundFileSavedAt(saved)));
+  }
+
+  [Fact]
+  public void Without_the_property_or_with_one_that_cannot_be_read_there_is_no_saved_time()
+  {
+    Assert.Null(WorkbookFile.LastSaved(Zip()));
+    Assert.Null(WorkbookFile.LastSaved(ZipWith("docProps/core.xml", "<not xml")));
+    Assert.Null(WorkbookFile.LastSaved(ZipWith("docProps/core.xml", string.Format(System.Globalization.CultureInfo.InvariantCulture, CoreProperties, "yesterday"))));
+    Assert.Null(WorkbookFile.LastSaved(CompoundFile("Workbook")));
+    Assert.Null(WorkbookFile.LastSaved(CompoundFileSavedAt(DateTimeOffset.UnixEpoch, type: 0x1F)));
+    Assert.Null(WorkbookFile.LastSaved([1, 2, 3]));
+  }
 }

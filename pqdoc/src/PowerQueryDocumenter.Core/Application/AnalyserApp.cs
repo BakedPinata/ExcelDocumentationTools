@@ -43,10 +43,11 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     ArgumentNullException.ThrowIfNull(options);
 
     IReadOnlyList<WorkbookQuery>? queries = null;
+    DateTimeOffset? saved = null;
     AnalysisResult? analysis;
     if (options.InputIsWorkbook)
     {
-      (analysis, queries) = AnalyseWorkbook(options.Input);
+      (analysis, queries, saved) = AnalyseWorkbook(options.Input);
     }
     else
     {
@@ -72,7 +73,16 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
       ?? ExporterRegistry.CreateDefault(services.HttpClient, options.PlantUmlServer, options.RenderTimeout);
 
     var planned = options.Formats.Select(f => new PlannedOutput(f, options.GetOutputPath(f))).ToArray();
-    var resolution = new OverwriteResolver(logger, services.Interaction).Resolve(planned, options.OnExists);
+
+    // The text outputs are made before asking, so one that would be written unchanged isn't asked about, as vbadoc's
+    // page isn't. Images come from the PlantUML server, so they're only made when they're written.
+    var sources = SourceFiles(queries, analysis);
+    var context = new ExportContext(options.Title, saved, sources, options.EmbedSource, Details(queries, sources));
+    var made = await MakeTextOutputsAsync(graph, context, registry, planned, cancellationToken).ConfigureAwait(false);
+    var resolution = new OverwriteResolver(logger, services.Interaction).Resolve(
+      planned,
+      options.OnExists,
+      path => File.Exists(path) && !(made.TryGetValue(path, out var bytes) && HasBytes(path, bytes)));
     if (resolution.Aborted)
     {
       return ExitCodes.OutputRefused;
@@ -107,8 +117,7 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
 
     if (resolution.ToWrite.Count > 0)
     {
-      var sources = SourceFiles(queries, analysis);
-      outcomes.AddRange(await WriteOutputsAsync(graph, options, registry, resolution.ToWrite, sources, Details(queries, sources), cancellationToken).ConfigureAwait(false));
+      outcomes.AddRange(await WriteOutputsAsync(graph, options, registry, resolution.ToWrite, context, made, cancellationToken).ConfigureAwait(false));
     }
 
     // Only once this run's outputs are safely written, so there's always a page.
@@ -184,27 +193,30 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
   }
 
   /// <summary>
-  /// Reads the queries straight from a workbook (FR-IN-2), and returns them with their analysis. Both are null after
-  /// logging why, if it can't.
+  /// Reads the queries straight from a workbook (FR-IN-2), and returns them with their analysis and when the workbook
+  /// was last saved. The first two are null after logging why, if it can't.
   /// </summary>
-  private (AnalysisResult? Analysis, IReadOnlyList<WorkbookQuery>? Queries) AnalyseWorkbook(string workbook)
+  private (AnalysisResult? Analysis, IReadOnlyList<WorkbookQuery>? Queries, DateTimeOffset? Saved) AnalyseWorkbook(string workbook)
   {
     logger.Information("Reading queries from {Workbook}", workbook);
     IReadOnlyList<WorkbookQuery> queries;
+    DateTimeOffset? saved;
     try
     {
-      queries = WorkbookReader.Read(workbook, logger);
+      var bytes = WorkbookFile.ReadAllBytes(workbook);
+      queries = WorkbookReader.Read(bytes, logger);
+      saved = WorkbookFile.LastSaved(bytes);
     }
     catch (ExtractionException ex)
     {
       logger.Error("{Message}", ex.Message);
       logger.Debug(ex, "Workbook failure detail");
-      return (null, null);
+      return (null, null, null);
     }
 
     logger.Information("  {Count} queries", queries.Count);
     var graph = new DependencyAnalyser(logger).Analyse(queries.Select(q => new QuerySource(q.Name, q.Expression)));
-    return (new AnalysisResult(graph, queries.Count, [], []), queries);
+    return (new AnalysisResult(graph, queries.Count, [], []), queries, saved);
   }
 
   /// <summary>Reads every .m file in a folder. Returns null after logging why, if it can't.</summary>
@@ -284,13 +296,59 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
         .ToList()
       : sources.Select(f => new QueryDetails(f.Query, FunctionDetector.IsFunction(f.Text), null)).ToList();
 
+  /// <summary>
+  /// The text outputs (the page, CSV and PlantUML source) as they'd be written, by path. One that can't be made is left
+  /// out, and fails again, with its reason, when it's written.
+  /// </summary>
+  private async Task<Dictionary<string, byte[]>> MakeTextOutputsAsync(
+    DependencyGraph graph,
+    ExportContext context,
+    ExporterRegistry registry,
+    IReadOnlyList<PlannedOutput> outputs,
+    CancellationToken cancellationToken)
+  {
+    var made = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+    foreach (var output in outputs.Where(o => !o.Format.IsRendered()))
+    {
+      try
+      {
+        using var memory = new MemoryStream();
+        await registry.Get(output.Format).ExportAsync(graph, context, memory, cancellationToken).ConfigureAwait(false);
+        made[output.Path] = memory.ToArray();
+      }
+      catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+      {
+        throw;
+      }
+      catch (Exception ex)
+      {
+        logger.Debug(ex, "Could not make {Format} before writing it", output.Format.CliName());
+      }
+    }
+
+    return made;
+  }
+
+  /// <summary>Whether the file at <paramref name="path"/> already holds exactly these bytes.</summary>
+  private static bool HasBytes(string path, byte[] bytes)
+  {
+    try
+    {
+      return File.ReadAllBytes(path).AsSpan().SequenceEqual(bytes);
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+    {
+      return false;
+    }
+  }
+
   private async Task<List<ExportOutcome>> WriteOutputsAsync(
     DependencyGraph graph,
     AnalyserOptions options,
     ExporterRegistry registry,
     IReadOnlyList<PlannedOutput> outputs,
-    IReadOnlyList<QueryFile> sources,
-    IReadOnlyList<QueryDetails> details,
+    ExportContext context,
+    IReadOnlyDictionary<string, byte[]> made,
     CancellationToken cancellationToken)
   {
     var outcomes = new List<ExportOutcome>();
@@ -310,8 +368,6 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
       return outcomes;
     }
 
-    var context = new ExportContext(options.Title, services.TimeProvider.GetLocalNow(), sources, options.EmbedSource, details);
-
     // Each export is isolated: one failing never stops the others (FR-ERR-2).
     foreach (var output in outputs)
     {
@@ -321,7 +377,12 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
         var exporter = registry.Get(output.Format);
         logger.Debug("Producing {Format} at {Path}", output.Format.CliName(), output.Path);
         await AtomicFileWriter
-          .WriteAsync(output.Path, (stream, token) => exporter.ExportAsync(graph, context, stream, token), cancellationToken)
+          .WriteAsync(
+            output.Path,
+            (stream, token) => made.TryGetValue(output.Path, out var bytes)
+              ? stream.WriteAsync(bytes, token).AsTask()
+              : exporter.ExportAsync(graph, context, stream, token),
+            cancellationToken)
           .ConfigureAwait(false);
         logger.Information("Wrote {Format} to {Path}", output.Format.CliName(), output.Path);
         outcomes.Add(new ExportOutcome(output.Format, output.Path, ExportStatus.Written));

@@ -77,6 +77,24 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
 - **The filter matches names only** and keeps what holds a match, opening it while filtering; clearing it puts back
   what was open.
 
+### View controls and the summary (step D1c)
+
+- **Focus on click is the shell's** (`shell.focusOnClick()` / `setFocusOnClick(on)`, remembered as
+  `<tool>-focus-on-click`, on unless turned off), so every view in both tools follows one setting. The shell keeps
+  whether the selection is focused (`shell.focused()`, `onFocusChange`): `selectionChanged(id, other)` focuses a new
+  selection when the setting is on, unless `other` (a Ctrl+click or Cmd+click) says to do the other thing. The tools
+  call it on every selection, even of what's already selected, and it returns whether the selection changed; if it
+  didn't, only the focus may have, and `onFocusChange` says so. The explorer passes Ctrl+click through.
+- **Esc clears the selection in the shell,** through the select function given to `explorer.setLayouts`. It listens in
+  the capture phase, so it can leave Esc to an open `details.dropdown` menu or a box with text in it, before their own
+  handlers close or empty them.
+- **The top bar's summary is a shell slot** (`ShellPage.Summary` and `WorkbookSaved`): the tool's counts, then
+  "Workbook saved" and a `<time>` written in UTC (so the page is the same wherever it's made), which `shell.js` shows in
+  the viewer's own time. `WorkbookFile.LastSaved(bytes)` reads it from the workbook's own document properties:
+  `dcterms:modified` in `docProps/core.xml`, or PIDSI_LASTSAVE_DTM in an .xls file's summary information ([MS-OLEPS]).
+  It fails safe, to null. The summary's style moved from pqdoc's stylesheet into `shell.css`, and so did a view
+  toolbar's pressed button.
+
 ### Panel controls (step D1a)
 
 - **The explorer's button is at the left end of the top bar, beside the title, and the side panel's at the right

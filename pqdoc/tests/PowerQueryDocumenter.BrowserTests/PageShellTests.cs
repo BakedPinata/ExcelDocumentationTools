@@ -30,19 +30,24 @@ public sealed partial class PageShellTests(PageFixture fixture)
   }
 
   [Fact]
-  public async Task The_top_bar_shows_the_name_counts_and_generation_time()
+  public async Task The_top_bar_shows_the_name_counts_and_when_the_workbook_was_saved_in_the_viewers_time()
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);
     var page = opened.Page;
 
     Assert.Equal("sales-model", await page.InnerTextAsync("#page-title"));
+    Assert.StartsWith(
+      "11 queries, 11 dependencies, 1 circular dependency. Workbook saved ",
+      await page.InnerTextAsync("#page-summary"),
+      StringComparison.Ordinal);
+    Assert.Equal("2026-10-02T02:03:00Z", await page.GetAttributeAsync("#workbook-saved", "datetime"));
     Assert.Equal(
-      "11 queries, 11 dependencies, 1 circular dependency. Generated 2026-10-02 10:03 (UTC+08:00).",
-      await page.InnerTextAsync("#page-summary"));
+      await page.EvaluateAsync<string>("() => new Date('2026-10-02T02:03:00Z').toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })"),
+      await page.InnerTextAsync("#workbook-saved"));
     Assert.Equal("true", await page.GetAttributeAsync("#tab-graph", "aria-selected"));
   }
 
-  // The generation time is at the end of the summary, so cutting it off would lose it.
+  // The saved time is at the end of the summary, so cutting it off would lose it.
   [Theory]
   [InlineData(1280)]
   [InlineData(1000)]

@@ -24,8 +24,8 @@ public static class WorkbookReader
     {
       switch (WorkbookFile.ContainerOf(fileBytes))
       {
-        case WorkbookContainer.Zip: return ReadZipBased(fileBytes);
-        case WorkbookContainer.CompoundFile: return ReadCompoundFile(fileBytes);
+        case WorkbookContainer.Zip: return WithSaved(ReadZipBased(fileBytes), fileBytes);
+        case WorkbookContainer.CompoundFile: return WithSaved(ReadCompoundFile(fileBytes), fileBytes);
       }
     }
     catch (Exception ex) when (ex is InvalidDataException or OpenMcdf.FileFormatException or EndOfStreamException)
@@ -34,6 +34,10 @@ public static class WorkbookReader
     }
     throw new ExtractionException("This is not an Excel workbook (it is neither a zip-based nor a compound file).");
   }
+
+  // The saved time is only for the page's summary, so reading it fails safe (WorkbookFile.LastSaved).
+  static VbaProject WithSaved(VbaProject project, byte[] fileBytes) =>
+      new() { Name = project.Name, CodePage = project.CodePage, Modules = project.Modules, Saved = WorkbookFile.LastSaved(fileBytes) };
 
   static VbaProject ReadZipBased(byte[] fileBytes)
   {

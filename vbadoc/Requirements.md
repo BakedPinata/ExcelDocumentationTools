@@ -54,7 +54,7 @@ A second spike (a sequence-diagram generator, since abandoned) proved that a lig
 - File extensions: `.bas` (standard module), `.cls` (class and document modules), `.frm` (forms, see below).
 - **Encoding and line endings:** write source files in the project's code page (as the VBA editor's own Export does), with CRLF line endings, so they can be imported back into the VBA editor unchanged. The HTML page must decode them with the same code page; record the code page in the page's data and use `TextDecoder`.
 - If no `.gitattributes` exists in the output folder, create one that stops git converting line endings or encoding on the source files. Never overwrite an existing one.
-- Output must be **deterministic** so git diffs only show real changes: stable sort orders, no timestamps or run-specific values in generated files.
+- Output must be **deterministic** so git diffs only show real changes: stable sort orders, no timestamps or run-specific values in generated files. The page may say when the workbook was last saved, from the workbook's own document properties, since that changes only when the workbook does.
 - Re-running the tool must update the folder to match the workbook, including removing files for modules that no longer exist. It must only delete files it generated; other files in the repo (README, `.gitattributes`, etc.) must be left alone.
 
 ## Forms
@@ -76,6 +76,10 @@ Forms (UserForms) are in scope, but no sample workbook with forms has been avail
 - The page has a **tab for each view**: Dependency graph and Class diagram.
 - If something is selected when switching tabs, it should stay selected in the other tab where it exists.
 - Both views must stay readable on large projects. Provide zoom and pan, and a way to focus on part of the project (see each view).
+- **Focus on click** is one setting for the whole page, the Focus button at the start of each view's toolbar, on by default and remembered. While it's on, selecting anything (in a view, the explorer, search or the source panel) shows only that and what it's connected to, in every view; clearing the selection shows everything again. Turning it on focuses on the current selection too.
+- **Ctrl+click** (Cmd+click on a Mac) does the other thing for that click: with focus on click on, it selects without focusing; with it off, it selects and focuses.
+- **Esc** clears the selection, and with it any focus, in every view. An open menu, or a box with text in it, takes Esc first.
+- The top bar sums up the project: its modules, members, and module and member dependencies, and when the workbook was last saved, from its own document properties (see Output), shown in the viewer's own time.
 
 ### Explorer
 
@@ -131,7 +135,7 @@ Shared by both views.
 **Interaction:**
 
 - Clicking a node highlights it together with the nodes it depends on and the nodes that depend on it, plus the edges between them. Everything else is greyed out. Clicking the background clears the selection.
-- A toggle switches highlighting between **direct** (one step in each direction) and **transitive** (the full chain in each direction). The default is direct.
+- A setting (in Settings, as it's seldom changed) switches highlighting between **direct** (one step in each direction) and **transitive** (the full chain in each direction). The default is direct. Focus shows the same neighbourhood.
 - A second toggle chooses which direction is highlighted: **all** (dependencies and dependents, the default), **dependencies only** or **dependents only**.
   - When a module is selected at member level, the edges between its own members always stay highlighted; the toggle only applies to edges leaving or entering the module.
   - When a single member is selected, the toggle applies to every edge, including edges to other members of the same module.
@@ -154,8 +158,9 @@ Shared by both views.
 - **Interaction:**
   - Clicking a box selects that module, and clicking a member line selects that member. Both show the source in the source panel.
   - Boxes can be dragged. Where they're dropped is remembered per workbook, until the user asks for the layout to be run again.
+  - The legend's entries pick things out as the graph's do: clicking a kind of box or a relationship lights up the boxes and lines that match and fades the rest. Entries add to each other, and Clear, the background or Esc turns them off.
 - **Large projects:**
-  - Provide a focus mode that shows only the selected module and the modules directly related to it, plus a way to show everything.
+  - Focus (the page's focus on click) shows only the selected module and the modules directly related to it; clearing the selection, or turning it off, shows everything.
   - Large diagrams must remain correctly drawn, with zoom and pan.
 - **Testing:** verify the drawn diagram in a headless browser.
 

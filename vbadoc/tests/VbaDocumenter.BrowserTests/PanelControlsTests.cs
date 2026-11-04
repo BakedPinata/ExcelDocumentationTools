@@ -156,7 +156,7 @@ public class PanelControlsTests(PageFixture fixture)
   [Fact]
   public async Task The_graph_keeps_still_when_the_panel_opens_or_closes_with_the_selection()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutFocusOnClick);
     var page = opened.Page;
     await WaitUntilStillAsync(page);
     // A node the panel won't cover: the panel takes 42% of the width, and its splitter 7 pixels.

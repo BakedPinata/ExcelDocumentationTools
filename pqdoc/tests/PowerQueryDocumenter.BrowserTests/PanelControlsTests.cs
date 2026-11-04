@@ -83,7 +83,7 @@ public sealed class PanelControlsTests(PageFixture fixture)
   [Fact]
   public async Task FR_HTML_12_the_graph_keeps_still_when_the_panel_opens_or_closes_with_the_selection()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage, initScript: OpenedPage.WithoutFocusOnClick);
     var page = opened.Page;
     await SettleAsync(page);
     var before = await page.EvaluateAsync<string>(Transform);

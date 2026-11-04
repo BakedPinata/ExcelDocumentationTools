@@ -55,7 +55,6 @@ public sealed class HtmlExporter : IExporter
     ArgumentNullException.ThrowIfNull(graph);
     ArgumentNullException.ThrowIfNull(context);
 
-    var generated = FormatTimestamp(context.GeneratedAt);
     var counts = $"{Plural(graph.Nodes.Count, "query", "queries")}, {Plural(graph.Edges.Count, "dependency", "dependencies")}";
     var cycles = graph.Cycles.Count == 0
       ? string.Empty
@@ -70,13 +69,13 @@ public sealed class HtmlExporter : IExporter
     {
       Tool = "pqdoc",
       Version = Version,
-      PageTitle = $"{context.Title}: {counts}, generated {generated}",
+      PageTitle = $"{context.Title}: {counts}",
       Title = context.Title,
       Tabs = [new ShellTab("graph", "Dependency graph")],
       SearchHtml = Search.Value,
       LoadFolderHint = "Choose the folder that holds this page's .m files, to see each query's source",
-      // Wraps rather than being cut off in the top bar, because the generation time is at the end.
-      TopBarHtml = "  <p class=\"summary muted\" id=\"page-summary\">" + PageBuilder.Escape($"{counts}{cycles}. Generated {generated}.") + "</p>",
+      Summary = $"{counts}{cycles}.",
+      WorkbookSaved = context.WorkbookSaved,
       PanelName = "Details",
       ExplorerLabel = "Queries",
       ViewsHtml = PageBuilder.Fill(Views.Value, views),
@@ -130,7 +129,6 @@ public sealed class HtmlExporter : IExporter
     var groups = GroupDocuments(details.Values.Select(d => d.Group), out var groupIndex);
     var document = new GraphDocument(
       context.Title,
-      FormatTimestamp(context.GeneratedAt),
       sourceMode,
       graph.Nodes.Select(n => new QueryDocument(
         n.Name, RoleName(n.Role), n.IsInCycle, n.UpstreamCount, n.DownstreamCount,
@@ -200,11 +198,6 @@ public sealed class HtmlExporter : IExporter
     return html.ToString();
   }
 
-  /// <summary>Formats the generation time, for example "2026-10-02 10:03 (UTC+08:00)".</summary>
-  public static string FormatTimestamp(DateTimeOffset value) =>
-    value.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)
-    + " (UTC" + value.ToString("zzz", CultureInfo.InvariantCulture) + ")";
-
   private static string RoleName(QueryRole role) => role switch
   {
     QueryRole.Root => "root",
@@ -219,7 +212,6 @@ public sealed class HtmlExporter : IExporter
   /// <param name="SourceMode">"embedded" (the page holds the text), "folder" (Load folder) or "none".</param>
   private sealed record GraphDocument(
     string Title,
-    string Generated,
     string SourceMode,
     IReadOnlyList<QueryDocument> Queries,
     IReadOnlyList<EdgeDocument> Edges,

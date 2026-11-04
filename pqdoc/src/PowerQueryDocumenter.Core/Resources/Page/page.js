@@ -1,9 +1,13 @@
 // page.js: pqdoc's part of the page: its data, the selection, what the details panel shows, and search. The frame
 // around it (theme, tabs, side panel, Load folder, source text) is the shell's (shell.js in the shared library). The
 // views (the dependency graph) talk to it through window.pqdoc:
-//   pqdoc.select(id)                 select a query (id = query name), or null
+//   pqdoc.select(id, other)          select a query (id = query name), or null; other is true for a Ctrl+click,
+//                                    which does the other thing from focus on click
 //   pqdoc.selection()                the selected id, or null
 //   pqdoc.onSelectionChange(fn)      fn(id) after the selection changes
+//   pqdoc.focused() / onFocusChange(fn)  whether the views show only the selection and what it's connected to; fn
+//                                    when that changes and the selection doesn't
+//   pqdoc.focusOnClick() / setFocusOnClick(on)  the page's Focus on click setting (the graph's Focus button)
 //   pqdoc.theme() / onThemeChange(fn)  "light" or "dark"
 //   pqdoc.activeView() / onViewChange(fn)  "graph"
 //   pqdoc.matches() / onSearchChange(fn)  the ids the search box matches (a Set), or null when it's empty
@@ -102,12 +106,12 @@
   var panelBody = shell.panel.body;
   shell.panel.element.setAttribute("aria-live", "polite"); // the details are short, so read them out
 
-  function select(id) {
+  function select(id, other) {
     id = id || null;
     if (id !== null && !queriesById.has(id)) return false;
-    if (id === selection) return true;
+    // First, so the panel is open when its details are drawn. The same selection may change its focus.
+    if (!shell.selectionChanged(id, other)) return true;
     selection = id;
-    shell.selectionChanged(selection); // first, so the panel is open when its details are drawn
     renderDetails();
     emit("selection", selection);
     return true;
@@ -162,7 +166,7 @@
     var link = event.target.closest("[data-select]");
     if (!link) return;
     event.preventDefault();
-    select(link.getAttribute("data-select"));
+    select(link.getAttribute("data-select"), event.ctrlKey || event.metaKey);
   });
 
   // ---- Explorer ----
@@ -249,14 +253,12 @@
     if (event.key === "Escape") clearSearch();
   });
 
-  // / jumps to the search box from anywhere, and Escape clears the selection unless it's emptying the box.
+  // / jumps to the search box from anywhere. (Escape clears the selection, in the shell.)
   document.addEventListener("keydown", function (event) {
     if (document.activeElement === searchBox) return;
     if (event.key === "/") {
       event.preventDefault();
       searchBox.focus();
-    } else if (event.key === "Escape") {
-      select(null);
     }
   });
 
@@ -273,6 +275,10 @@
     activeView: shell.activeView,
     onViewChange: shell.onViewChange,
     panelFollowing: shell.panel.following,
+    focused: shell.focused,
+    onFocusChange: shell.onFocusChange,
+    focusOnClick: shell.focusOnClick,
+    setFocusOnClick: shell.setFocusOnClick,
     matches: function () { return matches; },
     onSearchChange: function (fn) { listeners.search.push(fn); },
     clearSearch: clearSearch,

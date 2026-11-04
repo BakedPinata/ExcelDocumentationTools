@@ -93,7 +93,6 @@ html[data-theme="light"] {
 
 .view-toolbar .button { background: var(--surface); padding: 5px 10px; }
 .view-toolbar .button:disabled { opacity: 0.5; cursor: default; }
-.view-toolbar .button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .toolbar-note { padding: 4px 8px; font-size: 12px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .toolbar-note[hidden] { display: none; }
 
@@ -252,6 +251,8 @@ html[data-theme="light"] {
 #classes-arrow-association path { fill: none; stroke: var(--text-muted); stroke-width: 1.25px; }
 #classes-arrow-dependency path { fill: none; stroke: var(--edge-uses); stroke-width: 1.25px; }
 /* A halo in the background colour keeps labels readable where they cross lines. */
+/* The legend's highlight fades what it doesn't pick out, as in the graph. */
+.classes-svg .dim { opacity: 0.15; }
 .class-edge-label { fill: var(--text-muted); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
 #classes-legend ul { grid-template-columns: 1fr; }
 

@@ -12,7 +12,8 @@
 // with no relationships are set out in a grid underneath.
 //
 // Boxes can then be dragged. Where they're dropped is remembered per workbook and Show… choice, until
-// "Re-run layout". In focus mode the smaller diagram is laid out afresh and moves aren't remembered.
+// "Re-run layout". When the selection is focused (the page's focus on click), the smaller diagram is laid out afresh
+// and moves aren't remembered.
 (function () {
   "use strict";
 
@@ -38,10 +39,10 @@
   ];
 
   var state = {
-    focus: false,
-    focusModule: null,  // the module the focused diagram was drawn around
+    focusModule: null,  // the module the focused diagram is drawn around, or null when it shows every module
     resetView: true,    // the next drawing starts from the starting view rather than keeping the current one
-    show: {}
+    show: {},
+    legend: new Set()   // legend items clicked to light up what they stand for (not remembered)
   };
   OPTIONS.forEach(function (o) { state.show[o.key] = loadSetting("vbadoc-classes-" + o.key, true); });
 
@@ -120,9 +121,9 @@
     return data.classEdges.filter(function (e) { return e.from !== e.to && (state.show.dependencies || e.kind !== "dependency"); });
   }
 
-  // All modules, or in focus mode the focused module and every module a shown relationship links it with.
+  // All modules, or when focused the focused module and every module a shown relationship links it with.
   function shownModules() {
-    if (!state.focus || !state.focusModule) return data.modules.map(function (m) { return m.id; });
+    if (!state.focusModule) return data.modules.map(function (m) { return m.id; });
     var ids = new Set([state.focusModule]);
     shownEdges().forEach(function (e) {
       if (e.from === state.focusModule) ids.add(e.to);
@@ -358,15 +359,19 @@
   var drawn = null; // { boxes, byId, edges } on screen
   var stale = true; // the diagram needs drawing next time the view is shown
 
+  // The module to focus on: the selected one, when the selection is focused.
+  function wantedFocus() { return vb.focused() ? selectedModule() : null; }
+
   function render() {
     stale = false;
+    state.focusModule = wantedFocus();
     var boxes = shownModules().map(buildBox);
     var byId = new Map(boxes.map(function (b) { return [b.id, b]; }));
     var edges = shownEdges().filter(function (e) { return byId.has(e.from) && byId.has(e.to); }).map(function (e) {
       return { from: e.from, to: e.to, kind: e.kind, label: e.label, source: byId.get(e.from), target: byId.get(e.to) };
     });
     layout(boxes, edges);
-    if (!state.focus) {
+    if (!state.focusModule) {
       var moved = loadJson(positionsKey()) || {};
       boxes.forEach(function (b) {
         var p = moved[b.id];
@@ -440,6 +445,7 @@
       .attr("x", function (e) { return e.middle[0]; })
       .attr("y", function (e) { return e.middle[1] + 4; })
       .text(function (e) { return e.label; });
+    applyLegend(); // the lines were just redrawn
   }
 
   // ---- Dragging ----
@@ -479,7 +485,7 @@
         b.moved = true;
         d3.select(this).attr("transform", "translate(" + b.x + "," + b.y + ")");
         drawEdges();
-        if (!state.focus) rememberPositions();
+        if (!state.focusModule) rememberPositions();
       });
   }
 
@@ -552,6 +558,7 @@
     var moduleId = selectedModule();
     boxLayer.selectAll("g.class-box").classed("selected", function (b) { return b.id === moduleId; });
     boxLayer.selectAll("g.class-line").classed("selected-line", function () { return isSameMember(this.getAttribute("data-member"), selection); });
+    applyLegend();
     updateToolbar();
   }
 
@@ -583,32 +590,43 @@
     var line = event.target.closest("g.class-line");
     var box = event.target.closest("g.class-box");
     clickedHere = true;
-    if (line) vb.select(line.getAttribute("data-member"));
-    else if (box) vb.select(box.getAttribute("data-module"));
-    else if (event.target === svg.node()) vb.select(null);
+    var other = event.ctrlKey || event.metaKey;
+    if (line) vb.select(line.getAttribute("data-member"), other);
+    else if (box) vb.select(box.getAttribute("data-module"), other);
+    else if (event.target === svg.node()) clearHighlights();
     clickedHere = false;
   });
+
+  // Clicking the background, or Escape, clears the legend's highlight and the selection, as in the graph.
+  function clearHighlights() {
+    state.legend.clear();
+    vb.select(null);
+    highlight();
+  }
+
+  // Escape also closes the drop-downs (see page.js), so it only clears when none of them is open, and not while typing
+  // in a field. This runs in the capture phase, before page.js closes them.
+  document.addEventListener("keydown", function (event) {
+    if (event.key !== "Escape" || vb.activeView() !== "classes" || !drawn) return;
+    if (document.querySelector("details.dropdown[open]")) return;
+    if (event.target.closest && event.target.closest("input, select, textarea")) return;
+    clearHighlights();
+  }, true);
 
   // ---- Toolbar ----
 
   function updateToolbar() {
-    focusButton.disabled = !selectedModule() && !state.focus;
-    focusButton.textContent = state.focus ? "Show all" : "Focus";
-    focusButton.setAttribute("aria-pressed", state.focus ? "true" : "false");
+    focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false");
     filterMenu.querySelectorAll("input[data-option]").forEach(function (input) {
       input.checked = state.show[input.getAttribute("data-option")];
     });
   }
 
-  focusButton.addEventListener("click", function () {
-    state.focus = !state.focus;
-    state.focusModule = state.focus ? selectedModule() : null;
-    state.resetView = true; // a different diagram: start from its starting view
-    render();
-  });
+  // Focus is the page's Focus on click setting, shared by every view; turning it on focuses on the selection now too.
+  focusButton.addEventListener("click", function () { vb.setFocusOnClick(!vb.focusOnClick()); });
 
   document.getElementById("classes-relayout").addEventListener("click", function () {
-    if (!state.focus) saveJson(positionsKey(), null);
+    if (!state.focusModule) saveJson(positionsKey(), null);
     state.resetView = true;
     render();
   });
@@ -624,18 +642,75 @@
   });
 
   // ---- Legend ----
+  //
+  // As in the graph, each entry is a toggle that lights up what it stands for and fades the rest: a kind of box lights
+  // those boxes and the lines between them, and a relationship lights those lines and the boxes at their ends. Entries
+  // add to each other, and Clear, the background or Escape turns them off.
+
+  var BOX_KINDS = [
+    ["module", "Standard module"], ["class", "Class"], ["interface", "Interface"], ["form", "UserForm"], ["document", "Document module"]
+  ];
+  var RELATIONSHIPS = [["realization", "Implements"], ["association", "Holds in a variable (labelled)"], ["dependency", "Uses"]];
+
+  function boxIcon(kind) {
+    return "<svg width=\"18\" height=\"14\" viewBox=\"0 0 18 14\" aria-hidden=\"true\"><g class=\"class-box kind-" + kind + "\">" +
+      "<rect class=\"box-outline\" x=\"1\" y=\"1\" width=\"16\" height=\"12\" rx=\"2\"></rect></g></svg>";
+  }
 
   function arrow(kind) {
     return "<svg width=\"36\" height=\"12\" viewBox=\"0 -6 36 12\" aria-hidden=\"true\">" +
       "<path class=\"class-edge " + kind + "\" d=\"M1,0 L28,0\" marker-end=\"url(#classes-arrow-" + kind + ")\"></path></svg>";
   }
 
-  document.getElementById("classes-legend-body").innerHTML =
-    "<ul>" +
-    "<li>" + arrow("realization") + "<span>Implements</span></li>" +
-    "<li>" + arrow("association") + "<span>Holds in a variable (labelled)</span></li>" +
-    "<li>" + arrow("dependency") + "<span>Uses</span></li>" +
-    "</ul><p class=\"muted\" style=\"margin:4px 0 0\">+ public, − private, ~ friend. Click a box or a line to see its source; drag a box to move it.</p>";
+  function legendItem(icon, text, key) {
+    return "<li><button type=\"button\" class=\"legend-item\" data-legend=\"" + key + "\" aria-pressed=\"false\">" +
+      icon + "<span>" + text + "</span></button></li>";
+  }
+
+  var legendBody = document.getElementById("classes-legend-body");
+  legendBody.innerHTML =
+    "<p class=\"legend-hint muted\">Click an item to highlight it." +
+    " <button type=\"button\" class=\"link-button\" id=\"classes-legend-clear\" hidden>Clear</button></p>" +
+    "<h3>Boxes</h3><ul>" + BOX_KINDS.map(function (k) { return legendItem(boxIcon(k[0]), k[1], "box:" + k[0]); }).join("") + "</ul>" +
+    "<h3>Relationships</h3><ul>" + RELATIONSHIPS.map(function (r) { return legendItem(arrow(r[0]), r[1], "edge:" + r[0]); }).join("") + "</ul>" +
+    "<p class=\"muted\" style=\"margin:4px 0 0\">+ public, − private, ~ friend. Click a box or a line to see its source; drag a box to move it.</p>";
+
+  // What the clicked entries light up, or null when none is clicked.
+  function legendLit() {
+    if (state.legend.size === 0 || !drawn) return null;
+    var kinds = new Set();
+    var relationships = new Set();
+    state.legend.forEach(function (key) {
+      if (key.indexOf("box:") === 0) kinds.add(key.slice(4)); else relationships.add(key.slice(5));
+    });
+    var boxes = new Set(drawn.boxes.filter(function (b) { return kinds.has(b.kind); }).map(function (b) { return b.id; }));
+    var edges = new Set(drawn.edges.filter(function (e) {
+      return relationships.has(e.kind) || (boxes.has(e.from) && boxes.has(e.to));
+    }));
+    edges.forEach(function (e) { boxes.add(e.from); boxes.add(e.to); });
+    return { boxes: boxes, edges: edges };
+  }
+
+  function applyLegend() {
+    if (!drawn) return;
+    var lit = legendLit();
+    boxLayer.selectAll("g.class-box").classed("dim", function (b) { return lit !== null && !lit.boxes.has(b.id); });
+    edgeLayer.selectAll("path.class-edge").classed("dim", function (e) { return lit !== null && !lit.edges.has(e); });
+    labelLayer.selectAll("text.class-edge-label").classed("dim", function (e) { return lit !== null && !lit.edges.has(e); });
+    legendBody.querySelectorAll("[data-legend]").forEach(function (button) {
+      button.setAttribute("aria-pressed", state.legend.has(button.getAttribute("data-legend")) ? "true" : "false");
+    });
+    document.getElementById("classes-legend-clear").hidden = state.legend.size === 0;
+  }
+
+  legendBody.addEventListener("click", function (event) {
+    if (event.target.closest("#classes-legend-clear")) { state.legend.clear(); applyLegend(); return; }
+    var button = event.target.closest("[data-legend]");
+    if (!button) return;
+    var key = button.getAttribute("data-legend");
+    if (state.legend.has(key)) state.legend.delete(key); else state.legend.add(key);
+    applyLegend();
+  });
 
   // ---- Wiring to the rest of the page ----
 
@@ -646,14 +721,18 @@
 
   vb.onViewChange(drawIfNeeded);
 
+  // A different module to focus on, or none, is a different diagram: it starts from its starting view.
+  function refocusIfNeeded() {
+    if (wantedFocus() === state.focusModule) return false;
+    state.resetView = true;
+    if (vb.activeView() === "classes") render(); else stale = true;
+    return true;
+  }
+
+  vb.onFocusChange(function () { if (!refocusIfNeeded()) updateToolbar(); });
+
   vb.onSelectionChange(function () {
-    // In focus mode the diagram follows the selection to another module.
-    if (state.focus && selectedModule() && selectedModule() !== state.focusModule) {
-      state.focusModule = selectedModule();
-      state.resetView = true;
-      if (vb.activeView() === "classes") render(); else stale = true;
-      return;
-    }
+    if (refocusIfNeeded()) return;
     highlight();
     // A box clicked here is already in view, unless the side panel has just opened over it.
     if ((!clickedHere || vb.panelFollowing()) && vb.activeView() === "classes") bringSelectionIntoView(true);

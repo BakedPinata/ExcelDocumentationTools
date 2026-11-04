@@ -18,7 +18,6 @@ internal static class DefaultServices
       HttpClient = httpClient,
       Interaction = new ConsoleUserInteraction(),
       Environment = environment,
-      TimeProvider = TimeProvider.System,
       Output = Console.Out,
       Error = Console.Error,
       CreateLogger = verbosity =>

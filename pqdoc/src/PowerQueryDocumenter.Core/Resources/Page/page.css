@@ -31,12 +31,6 @@ html[data-theme="light"] {
 .search { flex-basis: 160px; }
 .search input::placeholder { color: var(--text-muted); }
 
-/* Wraps rather than being cut off, because the generation time is at the end. */
-.summary { flex: 1 1 200px; min-width: 200px; margin: 0; font-size: 12px; line-height: 1.25; }
-
-@media (max-width: 900px) {
-  .summary { flex-basis: 100%; }
-}
 
 /* ---- Details panel ---- */
 
@@ -120,6 +114,8 @@ html[data-theme="light"] {
 .graph-art .arrow-downstream { fill: var(--role-leaf); }
 
 .graph-art .dim { opacity: 0.12; }
+/* Focus leaves out what isn't in the focused query's chains, rather than fading it. */
+#graph-svg .out-of-focus { display: none; }
 .graph-art .node, .graph-art .edge { transition: opacity 120ms; }
 
 .view-legend {

@@ -55,6 +55,16 @@ public sealed class WorkbookReaderTests
     Assert.Equal(Sample, WorkbookReader.Read(Fixtures.Workbook("Queries.xlsb")));
   }
 
+  [Theory]
+  [InlineData("Queries.xlsx", 36)]
+  [InlineData("Queries.xlsb", 46)]
+  public void The_samples_say_when_they_were_saved(string workbook, int second)
+  {
+    var saved = WorkbookFile.LastSaved(File.ReadAllBytes(Fixtures.Workbook(workbook)));
+
+    Assert.Equal(new DateTimeOffset(2026, 11, 4, 1, 57, second, TimeSpan.Zero), saved);
+  }
+
   [Fact]
   public void The_sample_gives_the_dependencies_worked_out_by_hand()
   {

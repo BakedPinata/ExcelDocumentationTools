@@ -121,7 +121,7 @@ public class NavigationTests(PageFixture fixture)
   [Fact]
   public async Task Path_from_Home_highlights_the_shortest_chain_in_either_direction()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutFocusOnClick);
     var page = opened.Page;
     Assert.True(await page.IsDisabledAsync("#graph-path")); // no Home yet
     await SetHome(opened, "Main");
@@ -154,7 +154,7 @@ public class NavigationTests(PageFixture fixture)
   [Fact]
   public async Task Path_from_Home_says_when_nothing_links_them_and_works_at_member_level()
   {
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutFocusOnClick);
     var page = opened.Page;
     await SetHome(opened, "Main");
     await opened.SelectAsync("Utils");

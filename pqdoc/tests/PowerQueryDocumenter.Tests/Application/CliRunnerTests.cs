@@ -109,6 +109,27 @@ public sealed class CliRunnerTests : IDisposable
   }
 
   [Fact]
+  public async Task Outputs_that_would_be_written_unchanged_are_not_asked_about()
+  {
+    using (var first = App())
+    {
+      Assert.Equal(ExitCodes.Success, await first.RunAsync(Queries, "-f", "csv,html,puml"));
+    }
+
+    var page = QueryFile("queries-powerquery.html");
+    var before = await File.ReadAllBytesAsync(page, TestContext.Current.CancellationToken);
+    using var app = App(); // not interactive, so an output that would change would be refused
+
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(Queries, "-f", "csv,html,puml"));
+    Assert.Equal(before, await File.ReadAllBytesAsync(page, TestContext.Current.CancellationToken));
+
+    // A change to a query changes the page, which is asked about again.
+    await File.AppendAllTextAsync(QueryFile("Orders.m"), "\r\n// changed", TestContext.Current.CancellationToken);
+    using var again = App();
+    Assert.Equal(ExitCodes.OutputRefused, await again.RunAsync(Queries, "-f", "html"));
+  }
+
+  [Fact]
   public async Task AC5_rendering_without_a_server_fails_with_exit_code_2_naming_all_three_routes()
   {
     using var app = App();

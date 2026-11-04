@@ -129,6 +129,11 @@ of generated pages, because changing one changes every page.
 - **The explorer** is the shell's left panel: each tool fills its tree with what the page documents, in one or more
   layouts (such as folders and kinds), and the shell does the rest (the switch between layouts, filter, keyboard,
   following the selection, hiding and resizing).
+- **Focus on click, Ctrl+click and Esc work the same in every view of both tools:** one Focus on click setting for the
+  page, on by default; Ctrl+click (Cmd+click) does the other thing for a click; Esc clears the selection, after an open
+  menu or a box with text in it. A new view follows `focused()` from the shell.
+- **A page never says when it was made,** so the same workbook gives the same page and git diffs show only real
+  changes. The top bar's summary says when the workbook was last saved instead, from its own document properties.
 - **The side panel follows the selection** unless locked open: it opens when something is selected and closes when
   the selection is cleared, and the views keep still while it does. The panels' buttons are icons at the ends of the
   top bar, each on its panel's side.

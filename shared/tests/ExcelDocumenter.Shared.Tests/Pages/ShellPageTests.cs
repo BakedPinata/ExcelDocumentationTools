@@ -109,4 +109,23 @@ public sealed class ShellPageTests
   {
     Assert.Throws<ArgumentException>(() => Page(p => p with { Tool = tool }).Render());
   }
+
+  [Fact]
+  public void The_summary_says_when_the_workbook_was_saved_in_UTC()
+  {
+    var html = Page(p => p with { Summary = "3 things & more.", WorkbookSaved = new DateTimeOffset(2026, 11, 4, 11, 57, 36, TimeSpan.FromHours(10)) }).Render();
+
+    Assert.Contains(
+      "<p class=\"summary muted\" id=\"page-summary\">3 things &amp; more. Workbook saved <time id=\"workbook-saved\" " +
+      "datetime=\"2026-11-04T01:57:36Z\" title=\"2026-11-04T01:57:36Z\">2026-11-04 01:57 UTC</time>.</p>",
+      html,
+      StringComparison.Ordinal);
+  }
+
+  [Fact]
+  public void Without_a_summary_or_a_saved_time_there_is_no_summary()
+  {
+    Assert.DoesNotContain("page-summary", Page().Render(), StringComparison.Ordinal);
+    Assert.Contains(">2 things.</p>", Page(p => p with { Summary = "2 things." }).Render(), StringComparison.Ordinal);
+  }
 }

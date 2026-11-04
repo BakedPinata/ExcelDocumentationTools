@@ -86,13 +86,32 @@ public sealed class HtmlExporterTests
   }
 
   [Fact]
-  public void The_title_and_heading_show_the_name_counts_and_generation_time()
+  public void FR_HTML_8_the_title_heading_and_summary_show_the_name_counts_and_when_the_workbook_was_saved()
   {
     var html = Render(Fixtures.Graph(["A>B", "B>A", "B>C"]));
 
-    Assert.Contains("<title>sales-model: 3 queries, 3 dependencies, generated 2026-10-02 10:03 (UTC+08:00)</title>", html);
+    Assert.Contains("<title>sales-model: 3 queries, 3 dependencies</title>", html);
     Assert.Contains(">sales-model</h1>", html);
-    Assert.Contains(">3 queries, 3 dependencies, 1 circular dependency. Generated 2026-10-02 10:03 (UTC+08:00).</p>", html);
+    // In UTC, so the page is the same wherever it's made; the page shows it in the viewer's own time.
+    Assert.Contains(
+      ">3 queries, 3 dependencies, 1 circular dependency. Workbook saved <time id=\"workbook-saved\" datetime=\"2026-10-02T02:03:00Z\" " +
+      "title=\"2026-10-02T02:03:00Z\">2026-10-02 02:03 UTC</time>.</p>",
+      html);
+  }
+
+  [Fact]
+  public void FR_HTML_8_without_a_saved_time_the_summary_has_the_counts_alone()
+  {
+    var html = Render(Fixtures.Graph(["A>B"]), Context with { WorkbookSaved = null });
+
+    Assert.Contains(">2 queries, 1 dependency.</p>", html);
+    Assert.DoesNotContain("Workbook saved", html);
+  }
+
+  [Fact]
+  public void FR_HTML_8_the_same_graph_always_gives_the_same_page()
+  {
+    Assert.Equal(Render(Fixtures.Graph(["A>B", "B>C"])), Render(Fixtures.Graph(["A>B", "B>C"])));
   }
 
   [Fact]

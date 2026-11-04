@@ -60,7 +60,6 @@ public sealed class TestApp : IDisposable
       HttpClient = httpClient,
       Interaction = Interaction,
       Environment = Environment,
-      TimeProvider = new FixedTimeProvider(),
       Output = Output,
       Error = Error,
       CreateLogger = verbosity => Log.CreateLogger(LoggingSetup.MinimumLevel(verbosity)),

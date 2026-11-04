@@ -24,6 +24,29 @@ public class HtmlPageWriterTests
     return JsonDocument.Parse(json).RootElement;
   }
 
+  [Fact]
+  public void Says_what_the_project_holds_and_when_the_workbook_was_saved()
+  {
+    var read = WorkbookReader.Read(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules()));
+    var project = new VbaProject { Name = read.Name, CodePage = read.CodePage, Modules = read.Modules, Saved = new DateTimeOffset(2026, 11, 4, 1, 57, 36, TimeSpan.Zero) };
+    var model = DependencyAnalyser.Analyse(ProjectParser.Parse(project));
+
+    var html = HtmlPageWriter.Build(model, project, "SampleVba.xlsm", false);
+
+    var summary = HtmlPageWriter.Summary(model);
+    Assert.Matches(@"^12 modules, \d+ members, \d+ module and \d+ member dependencies\.$", summary);
+    Assert.Contains($">{summary} Workbook saved <time id=\"workbook-saved\" datetime=\"2026-11-04T01:57:36Z\"", html);
+  }
+
+  [Fact]
+  public void Without_a_saved_time_the_summary_has_the_counts_alone()
+  {
+    var html = Build(false);
+
+    Assert.Contains("id=\"page-summary\">12 modules, ", html);
+    Assert.DoesNotContain("Workbook saved", html);
+  }
+
   [Theory]
   [InlineData(true)]
   [InlineData(false)]

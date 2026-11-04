@@ -21,9 +21,6 @@ public sealed class AppServices
   /// <summary>Environment variables and current directory.</summary>
   public required IAppEnvironment Environment { get; init; }
 
-  /// <summary>Clock used for the generation timestamp.</summary>
-  public required TimeProvider TimeProvider { get; init; }
-
   /// <summary>Creates the logger once the requested verbosity is known.</summary>
   public required Func<LogVerbosity, ILogger> CreateLogger { get; init; }
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -43,6 +44,18 @@ public sealed partial record ShellPage
 
   /// <summary>The tooltip on Load folder, as text.</summary>
   public required string LoadFolderHint { get; init; }
+
+  /// <summary>
+  /// What the page documents, in a sentence for the top bar, as text: its counts, such as <c>14 queries, 8
+  /// dependencies.</c> Empty for none.
+  /// </summary>
+  public string Summary { get; init; } = string.Empty;
+
+  /// <summary>
+  /// When the workbook was last saved, from its own document properties, shown after <see cref="Summary"/>; null when
+  /// not known. Never when the page was made, so the same workbook always gives the same page.
+  /// </summary>
+  public DateTimeOffset? WorkbookSaved { get; init; }
 
   /// <summary>Anything more for the top bar, before its switches, as HTML.</summary>
   public string TopBarHtml { get; init; } = string.Empty;
@@ -100,6 +113,7 @@ public sealed partial record ShellPage
       ["TABS"] = TabsHtml(Tabs),
       ["SEARCH"] = SearchHtml.TrimEnd(),
       ["LOAD_FOLDER_HINT"] = PageBuilder.Escape(LoadFolderHint),
+      ["SUMMARY"] = SummaryHtml(Summary, WorkbookSaved),
       ["TOP_BAR"] = TopBarHtml.TrimEnd(),
       ["PANEL_NAME"] = PageBuilder.Escape(PanelName),
       ["PANEL_LABEL"] = PageBuilder.Escape(PanelName.ToLowerInvariant()),
@@ -112,6 +126,30 @@ public sealed partial record ShellPage
     };
 
     return PageBuilder.Fill(Template.Value, values);
+  }
+
+  /// <summary>
+  /// The summary in the top bar. The saved time is written in UTC, so the page is the same wherever it's made, and the
+  /// shell's script shows it in the viewer's own time.
+  /// </summary>
+  private static string SummaryHtml(string summary, DateTimeOffset? saved)
+  {
+    if (summary.Length == 0 && saved is null)
+    {
+      return string.Empty;
+    }
+
+    var html = new StringBuilder("  <p class=\"summary muted\" id=\"page-summary\">").Append(PageBuilder.Escape(summary));
+    if (saved is { } when)
+    {
+      var utc = when.ToUniversalTime();
+      var iso = utc.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+      html.Append(summary.Length > 0 ? " " : string.Empty)
+        .Append("Workbook saved <time id=\"workbook-saved\" datetime=\"").Append(iso).Append("\" title=\"").Append(iso).Append("\">")
+        .Append(utc.ToString("yyyy-MM-dd HH:mm 'UTC'", CultureInfo.InvariantCulture)).Append("</time>.");
+    }
+
+    return html.Append("</p>").ToString();
   }
 
   private static string TabsHtml(IReadOnlyList<ShellTab> tabs)

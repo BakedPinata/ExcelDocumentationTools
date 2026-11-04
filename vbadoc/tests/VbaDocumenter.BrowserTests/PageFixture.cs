@@ -194,6 +194,12 @@ public sealed class OpenedPage(IBrowserContext context, IPage page, List<string>
   /// views laid out beside it, which was always open before it followed the selection. It runs on every load, so it
   /// leaves a lock the test has changed alone.
   /// </summary>
+  /// <summary>
+  /// An init script that turns Focus on click off, as if it had been turned off before, for tests of what a selection
+  /// lights up in the whole graph. It runs on every load, so it leaves a setting the test has changed alone.
+  /// </summary>
+  public const string WithoutFocusOnClick = "if (localStorage.getItem('vbadoc-focus-on-click') === null) localStorage.setItem('vbadoc-focus-on-click', 'false');";
+
   public const string WithPanelLocked = "if (localStorage.getItem('vbadoc-source-locked') === null) localStorage.setItem('vbadoc-source-locked', 'true');";
 
   public static async Task<OpenedPage> OpenAsync(PageFixture fixture, string folder, ColorScheme colourScheme = ColorScheme.Dark,

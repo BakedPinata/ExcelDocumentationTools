@@ -8,13 +8,15 @@ namespace PowerQueryDocumenter.Core.Export;
 /// <summary>Information shared by every exporter during a run.</summary>
 /// <param name="Title">What the outputs document, used in their titles: the workbook's file name or the folder's name,
 /// as vbadoc titles its page with the workbook's file name.</param>
-/// <param name="GeneratedAt">When the run started (used in the HTML heading).</param>
+/// <param name="WorkbookSaved">When the workbook was last saved, from its document properties, for the page's summary;
+/// null for a folder of .m files or a workbook without the property. Never when the page was made, so the same input
+/// always gives the same outputs.</param>
 /// <param name="Sources">The queries' .m files, for the page's source view, or null when there are none.</param>
 /// <param name="EmbedSource">Whether the page holds the files' text (<c>--embed-source</c>) or loads them from a folder.</param>
 /// <param name="Details">Each query's kind and group, for the page's explorer, or null when not known.</param>
 public sealed record ExportContext(
   string Title,
-  DateTimeOffset GeneratedAt,
+  DateTimeOffset? WorkbookSaved,
   IReadOnlyList<QueryFile>? Sources = null,
   bool EmbedSource = false,
   IReadOnlyList<QueryDetails>? Details = null);

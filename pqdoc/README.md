@@ -121,12 +121,17 @@ left to right by depth (how many queries feed them). You can:
 - hover a query to see its name and counts and highlight its direct neighbours;
 - click a query to trace everything upstream (blue) and downstream (aqua) of it, with a details
   panel listing what it uses and what uses it, and its M code (see below); click the background or
-  press Esc to clear;
+  press Esc to clear. With **Focus** on (as it is to begin with) only those queries stay shown; Ctrl+click
+  (Cmd+click on a Mac) does the other thing for that click;
 - search by name (press `/` to jump to the search box, Enter to select the first match);
 - resize or hide the explorer and the details panel, with the buttons at the two ends of the top bar; the details
   panel opens when you select a query and closes when you clear it, unless you lock it open with its padlock;
 - copy a query's M code with the button over it;
 - reset the view.
+
+The top bar says how many queries and dependencies there are and, for a workbook, when it was last saved; it never
+says when the page was made, so running pqdoc again on an unchanged workbook gives the same page, and pqdoc doesn't
+ask before overwriting it.
 
 It follows the system light or dark theme until you choose one with the switch in the top bar,
 which it then remembers. The top bar also shows which build of pqdoc made the page, as

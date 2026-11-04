@@ -10,11 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.13.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.14.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.8.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.9.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -24,8 +24,8 @@ rather than repeating it.
   publish of A0 on the work machine is still to come. A0–A5, F1, B1–B4, C1 and C2 are pushed and reviewed. D1 is done.
   The user's review of D1 added steps D1a to D1d, before D2, now settled (see the plan's "After D1's review"). D1b is
   pushed; the user's check of the workbook with 20 groups is still to come. D1a (with the copy button the user asked
-  for after D1b) is pushed. D1e (`'@Folder` after a label, asked for after D1a) is done. **Next: D1c** (view controls
-  and both pages' summary), then D1d.
+  for after D1b) is pushed. D1e (`'@Folder` after a label, asked for after D1a) and D1c (view controls and both pages'
+  summary) are done, waiting for review. **Next: D1d** (speed on large projects), then D2.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -35,6 +35,23 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-04: Step D1c, view controls and both pages' summary
+
+- Focus on click is one shell setting for the page, on by default and remembered per tool, shown by a Focus button at
+  the start of every view's toolbar (vbadoc's graph and class diagram, and pqdoc's graph, which gains Focus: a query
+  and its chains, fitted). Ctrl+click (Cmd+click) does the other thing for a click, in the views, the explorer and the
+  side panel's links. Esc clears the selection in the shell, after an open menu or a box with text in it.
+- vbadoc's Direct / Transitive moved into the graph's Settings (an earlier choice is kept). The class diagram's legend
+  picks out kinds of box and relationships as the graph's does.
+- Both pages' top bar has a summary, a shell slot: the counts and when the workbook was last saved
+  (`WorkbookFile.LastSaved`, from `docProps/core.xml` or an .xls file's summary information), written in UTC and shown
+  in the viewer's time. pqdoc dropped its generation time (FR-HTML-8), so it doesn't ask before overwriting a text
+  output it would write unchanged (FR-OVR-1); its `TimeProvider` went.
+- Requirements (vbadoc's views; pqdoc's FR-HTML-8, FR-HTML-13, FR-OVR-1), both decisions and READMEs, the shared README
+  and the guidelines follow. vbadoc 0.14.0, pqdoc 1.9.0.
+- Tests: 9 vbadoc and 5 pqdoc focus browser tests, 2 class diagram legend tests, 5 shared, 5 pqdoc and 3 vbadoc unit
+  tests; tests not about focus open the page with it off. Screenshots in both themes, wide and narrow.
 
 ### 2026-11-04: Step D1e, `'@Folder` after a label
 

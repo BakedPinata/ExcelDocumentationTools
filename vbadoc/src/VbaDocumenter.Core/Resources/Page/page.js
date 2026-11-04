@@ -1,9 +1,13 @@
 // page.js: vbadoc's part of the page: its data, the selection, what the source panel shows, Home and the trail, Back
 // and Forward, and search. The frame around it (theme, tabs, side panel, Load folder, source text) is the shell's
 // (shell.js in the shared library). The views (dependency graph, class diagram) talk to it through window.vbadoc:
-//   vbadoc.select(id)                 select a module (id = module name) or member (id = "Module.Name"), or null
+//   vbadoc.select(id, other)          select a module (id = module name) or member (id = "Module.Name"), or null;
+//                                     other is true for a Ctrl+click, which does the other thing from focus on click
 //   vbadoc.selection()                the selected id, or null
 //   vbadoc.onSelectionChange(fn)      fn(id) after the selection changes
+//   vbadoc.focused() / onFocusChange(fn)  whether the views show only the selection and what it's connected to; fn
+//                                     when that changes and the selection doesn't
+//   vbadoc.focusOnClick() / setFocusOnClick(on)  the page's Focus on click setting (the views' Focus buttons)
 //   vbadoc.theme() / onThemeChange(fn)  "light" or "dark"
 //   vbadoc.activeView() / onViewChange(fn)  "graph" or "classes"
 //   vbadoc.home() / setHome(id) / onHomeChange(fn)  the Home module or member (where the trail starts), or null
@@ -98,14 +102,14 @@
   var panelHeader = shell.panel.header;
   var panelBody = shell.panel.body;
 
-  function select(id) {
+  function select(id, other) {
     id = id || null;
     if (id !== null && !modulesById.has(id) && !membersById.has(id)) return false;
-    if (id === selection) return true;
+    // First, so the panel is open when its source is drawn and scrolled. The same selection may change its focus.
+    if (!shell.selectionChanged(id, other)) return true;
     selection = id;
     showWholeModule = false;
     if (id !== null) addStep(id);
-    shell.selectionChanged(selection); // first, so the panel is open when its source is drawn and scrolled
     renderSource();
     renderTrail();
     rememberInHistory(id);
@@ -333,7 +337,7 @@
       settings.save("dependencies-open", dependenciesOpen ? "true" : "false");
     });
     panelHeader.querySelectorAll("[data-select]").forEach(function (link) {
-      link.addEventListener("click", function (e) { e.preventDefault(); select(link.getAttribute("data-select")); });
+      link.addEventListener("click", function (e) { e.preventDefault(); select(link.getAttribute("data-select"), e.ctrlKey || e.metaKey); });
     });
   }
 
@@ -534,6 +538,10 @@
     activeView: shell.activeView,
     onViewChange: shell.onViewChange,
     panelFollowing: shell.panel.following,
+    focused: shell.focused,
+    onFocusChange: shell.onFocusChange,
+    focusOnClick: shell.focusOnClick,
+    setFocusOnClick: shell.setFocusOnClick,
     home: function () { return home; },
     setHome: setHome,
     onHomeChange: function (fn) { listeners.home.push(fn); }
