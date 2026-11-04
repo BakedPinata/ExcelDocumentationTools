@@ -46,7 +46,7 @@ questions the draft raised.
 | A5 | vbadoc asks before overwriting its page, with `--on-exists` and `--force` as pqdoc has them (added after C1) | Claude | Done |
 | D1 | Explorer: a tree of everything in the workbook, beside the view | Claude | Done |
 | D1b | Explorer layouts: folders or kinds, with folders drawn as folders; pqdoc reads nested query groups (added after D1; first, because the samples now have nested groups) | You in Excel, then Claude | Done |
-| D1a | Panel controls: the toggles as icons at the two ends of the top bar; the side panel follows the selection unless locked (added after D1) | Claude | |
+| D1a | Panel controls: the toggles as icons at the two ends of the top bar; the side panel follows the selection unless locked; a button to copy the source (added after D1 and D1b) | Claude | |
 | D1c | View controls: a Focus on click switch for every view, Ctrl+click for the other, Esc to deselect, Transitive into Settings, the class diagram's legend as the graph's, and the same summary in both pages (added after D1) | Claude | |
 | D1d | Speed: large projects stay smooth to pan and scroll (added after D1) | Claude, then you on a work machine | |
 | D2 | Favourites, replacing Home and the trail | Claude | |
@@ -130,6 +130,7 @@ The notes behind this plan are kept out of the repository. This section is what 
 | Too much on screen; some items are used almost everywhere (logging, settings, predeclared classes, Power Query functions) | D3 |
 | The panel toggles are far off at the top right, and the explorer's is on the wrong side of the screen (after D1) | D1a |
 | The source panel should close when clicking off a node, with a lock to keep it open (after D1) | D1a |
+| A button in the source to copy it to the clipboard (after D1b) | D1a |
 | Switch the explorer between folders and kinds, with folders looking different (after D1) | D1b |
 | A workbook with 140 queries in 20 groups, up to about 4 deep, showed no groups (after D1) | D1b |
 | Focus gets lost among the toolbar's buttons, Transitive is seldom used, and Ctrl+click could focus (after D1) | D1c |
@@ -382,6 +383,10 @@ The user tried D1 on real workbooks; these follow from what they asked for.
 - **The side panel follows the selection unless locked:** it opens when something is selected and closes when the
   selection is cleared, so clicking off a node gives the view the room. A lock in its header keeps it open, remembered
   per tool. The toggle still opens and closes it by hand.
+- **The source view has a copy button** (added after D1b's review), in the shell, so both pages have it: an icon at the
+  top right of the code that stays in view while it scrolls, and copies the lines shown (a member's, or the whole
+  module or query) as plain text, without line numbers. It says Copied for a moment. If the browser won't let the page
+  write to the clipboard, it selects the code instead, for Ctrl+C.
 - **The explorer has two layouts, folders or kinds,** chosen with a switch at its top and remembered per tool: in
   vbadoc, `'@Folder` folders or standard modules, classes, interfaces, forms and document modules; in pqdoc, Excel's
   query groups or queries and functions. Folders are the default when there are any. Folders and groups have a folder
@@ -699,6 +704,7 @@ Added after D1, from the user's review, as are D1b to D1d.
   tooltips and `aria-label`s (section 5), without their text.
 - The side panel opens on a selection and closes when it's cleared, unless locked. Add the lock to its header, remembered
   per tool. A page opened with nothing selected starts with the panel closed, unless locked.
+- The copy button in the source view (section 5), with vbadoc's Source panel requirements and pqdoc's FR-SRC ids.
 - Update the browser tests that open, close or measure the panel, and add ones for following the selection and the
   lock. Screenshots in both themes.
 
@@ -865,7 +871,7 @@ Approving this plan covers the changes below. Anything else still needs asking.
 | Both `Requirements.md`s, `DECISIONS.md`s and `README.md`s | Documentation file names; vbadoc's `--output-name` | A4 |
 | Both `Requirements.md`s and `DECISIONS.md`s | Importing: what's chosen, dependencies, bundles, writing workbooks | H1–H4 |
 | Both `README.md`s | Usage and features | A3, B2–H4 |
-| Both `Requirements.md`s (pqdoc's FR-HTML-8 without the generation time, FR-HTML-11 and new ids), both `DECISIONS.md`s and `README.md`s, `docs/GUIDELINES.md` (HTML pages) | Panel controls, the side panel following the selection, explorer layouts, nested query groups, focus on click and Esc, both pages' summary, speed, the Show menus in the explorer | D1a–D1d, D3 |
+| Both `Requirements.md`s (pqdoc's FR-HTML-8 without the generation time, FR-HTML-11 and new ids), both `DECISIONS.md`s and `README.md`s, `docs/GUIDELINES.md` (HTML pages) | Panel controls, the side panel following the selection, the copy button, explorer layouts, nested query groups, focus on click and Esc, both pages' summary, speed, the Show menus in the explorer | D1a–D1d, D3 |
 
 ## 8. When the plan is finished
 
