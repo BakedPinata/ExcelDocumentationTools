@@ -32,27 +32,22 @@
     try { if (value) localStorage.setItem(key, JSON.stringify(value)); else localStorage.removeItem(key); } catch (e) { /* not remembered */ }
   }
 
-  var OPTIONS = [
-    { key: "members", label: "Members" },
-    { key: "private", label: "Private members" },
-    { key: "dependencies", label: "Dependencies (other uses)" }
-  ];
-
   var state = {
     focusIds: null,     // the modules focus shows, or null when it shows every module
     focusKey: null,     // what decided focusIds
     resetView: true,    // the next drawing starts from the starting view rather than keeping the current one
-    show: {},
+    members: loadSetting("vbadoc-classes-members", true), // whether boxes list their members
     legend: new Set()   // legend items clicked to light up what they stand for (not remembered)
   };
-  OPTIONS.forEach(function (o) { state.show[o.key] = loadSetting("vbadoc-classes-" + o.key, true); });
 
-  // Moved boxes, per workbook (every page opened from disk shares one localStorage) and per Show… choice, since
-  // those change the boxes' sizes and so the layout.
+  // Moved boxes, per workbook (every page opened from disk shares one localStorage), per Members switch and per set
+  // of Show… choices, since those change the boxes and their sizes, and so the layout.
   function positionsKey() {
-    return "vbadoc-classes-positions|" + data.project.title + "|" +
-      OPTIONS.map(function (o) { return o.key.charAt(0) + (state.show[o.key] ? 1 : 0); }).join("");
+    return "vbadoc-classes-positions|" + data.project.title + "|m" + (state.members ? 1 : 0) + "|" + vb.choicesKey();
   }
+
+  // Which Show… choice each relationship follows.
+  var RELATIONSHIP_CHOICES = { realization: "line:implements", association: "line:holds", dependency: "line:uses" };
 
   // ---- Sizes (px). Text is measured in the font it's drawn in, so boxes fit their lines. ----
 
@@ -100,7 +95,7 @@
   var boxLayer = viewport.select("g.boxes");
   var labelLayer = viewport.select("g.edge-labels");
   var focusButton = document.getElementById("classes-focus");
-  var filterMenu = document.getElementById("classes-filter-menu");
+  var membersButton = document.getElementById("classes-members");
 
   var membersByModule = new Map();
   data.members.forEach(function (m) {
@@ -119,14 +114,23 @@
   // ---- What's shown ----
 
   function shownEdges() {
-    return data.classEdges.filter(function (e) { return e.from !== e.to && (state.show.dependencies || e.kind !== "dependency"); });
+    return data.classEdges.filter(function (e) { return e.from !== e.to && vb.choice(RELATIONSHIP_CHOICES[e.kind]); });
   }
 
-  // The modules the views show (in the explorer's filter and not hidden), and of those, when focused, the ones focus
-  // shows.
+  // The modules the views show (kept by the Show… choices, in the explorer's filter and not hidden), and of those, when
+  // focused, the ones focus shows. Without Items with no connections, a box with no relationship to another is left
+  // out, unless it's ticked.
   function shownModules() {
-    return data.modules.filter(function (m) { return vb.shows(m.id) && (!state.focusIds || state.focusIds.has(m.id)); })
-      .map(function (m) { return m.id; });
+    var ids = data.modules.filter(function (m) {
+      return vb.kept(m.id) && vb.shows(m.id) && (!state.focusIds || state.focusIds.has(m.id));
+    }).map(function (m) { return m.id; });
+    if (vb.choice("unconnected") || vb.filterActive()) return ids;
+    var shown = new Set(ids);
+    var connected = new Set();
+    shownEdges().forEach(function (e) {
+      if (shown.has(e.from) && shown.has(e.to)) { connected.add(e.from); connected.add(e.to); }
+    });
+    return ids.filter(function (id) { return connected.has(id); });
   }
 
   // What focus shows: the focused selection's module and every module a shown relationship links it with, and with
@@ -154,9 +158,9 @@
   // A box's contents and size. Lines keep their member id, for clicks and highlighting.
   function buildBox(id) {
     var module = vb.modulesById.get(id);
-    var lines = !state.show.members ? [] : (membersByModule.get(id) || []).filter(function (m) {
-      return state.show["private"] || m.class.text.charAt(0) !== "-";
-    }).filter(function (m) { return !vb.isHidden(m.id); }).map(function (m) { return { member: m.id, text: lineText(m.class), method: m.class.parameters != null }; });
+    var lines = !state.members ? [] : (membersByModule.get(id) || []).filter(function (m) {
+      return vb.kept(m.id) && !vb.isHidden(m.id);
+    }).map(function (m) { return { member: m.id, text: lineText(m.class), method: m.class.parameters != null }; });
     var box = {
       id: id,
       index: moduleIndex.get(id),
@@ -169,7 +173,7 @@
     lines.forEach(function (l) { widest = Math.max(widest, textWidth(l.text, FONT_SIZE)); });
     box.width = Math.ceil(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, widest + 2 * PAD_X)));
     function compartment(list) { return list.length ? 2 * PAD_Y + list.length * LINE_HEIGHT : EMPTY_COMPARTMENT; }
-    box.height = HEADER_HEIGHT + (state.show.members ? compartment(box.attributes) + compartment(box.methods) : 0);
+    box.height = HEADER_HEIGHT + (state.members ? compartment(box.attributes) + compartment(box.methods) : 0);
     return box;
   }
 
@@ -425,7 +429,7 @@
     header.append("text").attr("class", "box-name").attr("x", b.width / 2).attr("y", PAD_Y + LINE_HEIGHT * 1.75)
       .attr("text-anchor", "middle").attr("font-size", NAME_SIZE).text(name);
     if (name !== b.id) header.append("title").text(b.id);
-    if (!state.show.members) return;
+    if (!state.members) return;
 
     var y = HEADER_HEIGHT;
     [b.attributes, b.methods].forEach(function (list) {
@@ -634,9 +638,7 @@
 
   function updateToolbar() {
     focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false");
-    filterMenu.querySelectorAll("input[data-option]").forEach(function (input) {
-      input.checked = state.show[input.getAttribute("data-option")];
-    });
+    membersButton.setAttribute("aria-pressed", state.members ? "true" : "false");
   }
 
   // Focus is the page's Focus on click setting, shared by every view; turning it on focuses on the selection now too.
@@ -648,13 +650,10 @@
     render();
   });
 
-  filterMenu.innerHTML = OPTIONS.map(function (o) {
-    return "<label><input type=\"checkbox\" data-option=\"" + o.key + "\"> " + o.label + "</label>";
-  }).join("");
-  filterMenu.addEventListener("change", function (event) {
-    var key = event.target.getAttribute("data-option");
-    state.show[key] = event.target.checked;
-    saveSetting("vbadoc-classes-" + key, event.target.checked);
+  membersButton.addEventListener("click", function () {
+    state.members = !state.members;
+    saveSetting("vbadoc-classes-members", state.members);
+    updateToolbar();
     render();
   });
 
@@ -748,11 +747,13 @@
 
   vb.onFocusChange(function () { if (!refocusIfNeeded()) updateToolbar(); });
 
-  // A different filter, or different items hidden, is a different diagram.
-  vb.onShownChange(function () {
+  // A different filter, different items hidden or different Show… choices make a different diagram.
+  function redrawForShown() {
     state.resetView = true;
     if (vb.activeView() === "classes") render(); else stale = true;
-  });
+  }
+  vb.onShownChange(redrawForShown);
+  vb.onChoicesChange(redrawForShown);
 
   vb.onSelectionChange(function () {
     if (refocusIfNeeded()) return;

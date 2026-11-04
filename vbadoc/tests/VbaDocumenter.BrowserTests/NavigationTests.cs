@@ -153,8 +153,8 @@ public class NavigationTests(PageFixture fixture)
     var page = opened.Page;
     await Favourite(opened, "Main");
     await opened.SelectAsync("Utils");
-    await page.ClickAsync("#graph-filters summary");
-    await page.UncheckAsync("input[data-edge-kind='uses']");
+    await page.ClickAsync("#explorer-show summary");
+    await page.UncheckAsync("#explorer-show [data-choice='line:uses']");
     await page.Keyboard.PressAsync("Escape");
 
     await page.ClickAsync("#graph-path");
@@ -162,8 +162,8 @@ public class NavigationTests(PageFixture fixture)
         await page.InnerTextAsync("#graph-path-note"));
     Assert.Equal(["Main", "Utils"], (await DrawnIds(page, "#graph-svg g.node:not(.dim)")).Order());
 
-    await page.ClickAsync("#graph-filters summary");
-    await page.ClickAsync("#graph-show-everything");
+    await page.ClickAsync("#explorer-show summary");
+    await page.ClickAsync("#explorer-show [data-show-reset]");
     await page.Keyboard.PressAsync("Escape");
     await page.ClickAsync("[data-level='members']");
     await page.WaitForFunctionAsync("() => window.vbadocGraph.level() === 'members'");

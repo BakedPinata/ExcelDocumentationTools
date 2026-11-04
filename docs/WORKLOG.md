@@ -10,11 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.19.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.20.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.12.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.13.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -29,7 +29,8 @@ rather than repeating it.
   Expand / Collapse all to D3, which moved widely used items to a new D4. D1d (speed) is pushed; the user found it a
   little better on the production workbook, good enough for now. A6 (a name declared again under `#If` is one member)
   is pushed. D2 (favourites) is pushed. D3 is split into D3a (Expand / Collapse all and the views' filter), D3b
-  (hiding) and D3c (the Show menus in the explorer); D3a is pushed, and D3b is done, waiting for review. **Next: D3c.**
+  (hiding) and D3c (the Show menus in the explorer); D3a and D3b are pushed, and D3c is done, waiting for review.
+  **Next: D4** (widely used items and predeclared classes).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -39,6 +40,20 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-05: Step D3c, the Show… menu in the explorer
+
+- One Show… menu, the shell's, in the explorer, chooses what kinds of thing the tree and every view show, replacing
+  vbadoc's graph and class diagram menus; pqdoc gains one (queries, functions, queries with no connections). The tree
+  drops what's left out. The button and a note in every view's toolbar count the choices, with Show everything.
+- vbadoc's graph and class diagram choices merge, each applying wherever it means something; the class diagram's
+  Members option is a toolbar switch. Choices remembered by the old menus are ignored.
+- Drop-downs closing on a press outside or Esc moved from vbadoc into the shell.
+- vbadoc's explorer and class diagram requirements, pqdoc's FR-HTML-17, both decisions and READMEs, the shared README
+  and the guidelines follow. vbadoc 0.20.0, pqdoc 1.13.0.
+- Tests: vbadoc's 9 tests of the old menus moved to the explorer's (the two-column test became one that the menu fits
+  the window); 3 vbadoc and 2 pqdoc Show… tests. Screenshots in both themes and at a narrow width. On the private
+  workbook every module kind turned off leaves the tree and graph as expected, with no errors.
 
 ### 2026-11-04: Step D3b, hiding and Focus on favourites
 

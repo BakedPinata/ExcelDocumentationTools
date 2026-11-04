@@ -11,7 +11,8 @@
 //   pqdoc.favourites() / isFavourite(id) / toggleFavourite(id) / onFavouritesChange(fn)  the favourite queries (the shell's)
 //   pqdoc.inFilter(id) / filterActive() / filterKey() / onFilterChange(fn)  whether the explorer's filter shows a query
 //   pqdoc.hidden() / isHidden(id) / toggleHidden(id)   the queries hidden from the graph
-//   pqdoc.shows(id) / shownKey() / onShownChange(fn)   whether the graph shows a query: in the filter and not hidden
+//   pqdoc.shows(id) / shownKey() / onShownChange(fn)   whether the graph shows a query: kept by the Show… choices, in
+//                                     the filter and not hidden. The key changes with any of them
 //   pqdoc.focusFavourites() / setFocusFavourites(on)   whether the graph shows only the favourites and what they use
 //                                     (with the focused selection's); changes come through onFocusChange
 //   pqdoc.theme() / onThemeChange(fn)  "light" or "dark"
@@ -145,17 +146,40 @@
     }).join("") + "</ul>";
   }
 
+  // ---- Show… choices ----
+  //
+  // In the explorer, for the tree and the graph: queries and functions, and queries with no connections (the graph's).
+
+  shell.choices.init({
+    sections: [
+      { title: "Queries", choices: [{ id: "kind:query", label: "Queries" }, { id: "kind:function", label: "Functions" }] },
+      { title: "Other", choices: [{ id: "unconnected", label: "Queries with no connections" }] }
+    ]
+  });
+
+  function kept(id) {
+    var query = queriesById.get(id);
+    return !!query && shell.choices.on(query.kind === "function" ? "kind:function" : "kind:query");
+  }
+
   // ---- What the graph shows ----
   //
-  // What's in the filter and not hidden.
+  // What the Show… choices keep, in the filter and not hidden. A ticked query is shown even with no connections.
 
-  function shows(id) { return (!shell.filter.active() || shell.filter.has(id)) && !shell.hidden.has(id); }
+  function shows(id) {
+    var query = queriesById.get(id);
+    if (!query || !kept(id) || shell.hidden.has(id)) return false;
+    if (shell.filter.active()) return shell.filter.has(id);
+    return query.role !== "isolated" || shell.choices.on("unconnected");
+  }
 
   function shownKey() {
-    return shell.filter.ids().slice().sort().join("|") + "\u0000" + shell.hidden.list().slice().sort().join("|");
+    return shell.filter.ids().slice().sort().join("|") + "\u0000" + shell.hidden.list().slice().sort().join("|") +
+      "\u0000" + shell.choices.key();
   }
 
   shell.onFilterChange(function () { emit("shown"); });
+  shell.onChoicesChange(function () { emit("shown"); });
   shell.onHiddenChange(function () {
     if (selection !== null) renderDetails();
     emit("shown");
@@ -340,6 +364,7 @@
 
   shell.items.init({
     workbook: data.title,
+    kept: kept,
     exists: function (id) { return queriesById.has(id); },
     node: function (id) { return queryNode(queriesById.get(id), true); },
     describeFilter: function (ids) { return ids.length + " of " + countText(data.queries.length); }

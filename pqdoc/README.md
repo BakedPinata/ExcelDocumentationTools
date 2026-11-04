@@ -130,6 +130,8 @@ left to right by depth (how many queries feed them). You can:
 - star queries as favourites, from the explorer or the details panel, to list them at the top of the explorer;
 - tick queries or groups in the explorer to show only those in the graph (Clear in the note it shows puts them all
   back), and expand or collapse every group at once;
+- choose with **Show…** in the explorer whether the explorer and the graph show queries, functions, and queries with
+  no connections;
 - hide queries from the graph with the eye beside their star, and show them again from the Hidden group at the bottom
   of the explorer; **Focus** on the Favourites group shows only the favourites and what they use;
 - reset the view.

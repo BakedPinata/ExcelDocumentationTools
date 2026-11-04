@@ -133,6 +133,11 @@ it's connected to, in every view, until you clear the selection with Esc or a cl
 The class diagram's legend picks out kinds of box and relationships, as the graph's does. The top bar sums up the
 project and says when the workbook was last saved.
 
+**Show…** in the explorer chooses what kinds of thing the explorer and both views show: kinds of module and member,
+private members, unreferenced or referenced members, kinds of line, and items with no connections. A note in each view's
+toolbar says when choices leave things out, with Show everything. In the class diagram, **Members** lists each module's
+members in its box or leaves the boxes to their names.
+
 To see less, tick folders, modules or members in the explorer: while anything is ticked, the graph and the class
 diagram show only that, and a note in the explorer and each view's toolbar says so, with Clear. Ticking a module brings
 its members. Ticking doesn't select, so you can still click around inside what's shown. The buttons beside the filter

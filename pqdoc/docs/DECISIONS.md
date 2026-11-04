@@ -183,6 +183,13 @@ Reading them is step B2 of the feedback plan.
   Anything else counts as a query; a parameter does too, since it isn't a function.
 - **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
 
+## The Show… menu (1.13.0, step D3c of the feedback plan)
+
+- **pqdoc gains the shell's Show… menu** (FR-HTML-17), which it didn't have before: queries and functions (for the tree
+  and the graph) and queries with no connections (the graph's isolated queries). A ticked query is shown even with no
+  connections, as in vbadoc. `pqdoc.shows(id)` takes the choices in, so the graph needed no change of its own beyond
+  leaving nothing faded when everything's shown. Remembered as `pqdoc-show`.
+
 ## Hiding and Focus on favourites (1.12.0, step D3b of the feedback plan)
 
 - **Hiding is the shell's** (FR-HTML-16), as vbadoc's is, remembered as `pqdoc-hidden|<workbook or folder name>`. A

@@ -12,10 +12,6 @@
       </div>
       <button type="button" class="button" id="graph-path" aria-pressed="false" disabled aria-label="Path from the nearest favourite" title="Show the shortest chain of dependencies between the nearest favourite and the selection"><span class="star" aria-hidden="true">★</span> Path</button>
       <button type="button" class="button" id="graph-fit" title="Zoom to fit">Fit</button>
-      <details class="graph-filters dropdown" id="graph-filters">
-        <summary class="button">Show…</summary>
-        <div class="menu show-menu" id="graph-filter-menu"></div>
-      </details>
       <details class="graph-filters graph-settings dropdown" id="graph-settings">
         <summary class="button" title="How the graph looks and behaves">Settings</summary>
         <div class="menu settings-menu" id="graph-settings-menu"></div>
@@ -36,10 +32,7 @@
       </div>
       <button type="button" class="button" id="classes-fit" title="Zoom to fit">Fit</button>
       <button type="button" class="button" id="classes-relayout" title="Forget where boxes were moved, and lay the diagram out again">Re-run layout</button>
-      <details class="graph-filters dropdown" id="classes-filters">
-        <summary class="button">Show…</summary>
-        <div class="menu" id="classes-filter-menu"></div>
-      </details>
+      <button type="button" class="button" id="classes-members" aria-pressed="true" title="List each module's members in its box">Members</button>
     </div>
     <svg class="classes-svg" id="classes-svg" aria-label="Class diagram">
       <defs>

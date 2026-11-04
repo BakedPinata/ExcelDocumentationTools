@@ -55,6 +55,15 @@
 //   shell.hidden.list() / has(id) / toggle(id) / clear() / onHiddenChange(fn)   the items hidden from every view, in
 //                                      the order hidden. What else goes with one (a module's members) is the tool's
 //                                      to say
+//   shell.choices.init({ sections })   the Show… menu in the explorer: what kinds of thing the tree and every view
+//                                      show, remembered per tool as <tool>-show. sections are { title, choices: [{ id,
+//                                      label }] } of check boxes, ticked (shown) unless turned off, or { title, radio:
+//                                      name, choices: [{ value, label }] }, the first the default. Call it before
+//                                      setLayouts; items.init's kept(id) then says whether the choices keep an item in
+//                                      the tree
+//   shell.choices.on(id) / value(name) / count() / key() / reset() / onChoicesChange(fn)   a box's state, a radio's
+//                                      value, how many choices differ from the defaults, a string that changes with
+//                                      them, and putting them all back
 //   shell.hidden.buttonHtml(id)        a button that hides or shows the item, for the side panel's header, kept in step
 //                                      with the explorer's
 //   shell.hidden.noteHtml(id, hiddenNear)   the side panel's note when the item is hidden, or hiddenNear (a count of
@@ -102,7 +111,7 @@
       remove: function (name) { try { localStorage.removeItem(tool + "-" + name); } catch (e) { /* nothing stored */ } }
     };
 
-    var listeners = { theme: [], view: [], focus: [], favourites: [], filter: [], hidden: [] };
+    var listeners = { theme: [], view: [], focus: [], favourites: [], filter: [], hidden: [], choices: [] };
     function emit(name, value) {
       listeners[name].forEach(function (fn) {
         try { fn(value); } catch (e) { console.error(e); }
@@ -552,6 +561,16 @@
       selectItem(null);
     }, true);
 
+    // Drop-down menus (<details class="dropdown">), in the explorer and the views' toolbars, close when you press
+    // anywhere outside them, including starting to pan or drag a view, or press Escape. Opening one therefore closes any
+    // other.
+    document.addEventListener("pointerdown", function (event) {
+      document.querySelectorAll("details.dropdown[open]").forEach(function (d) { if (!d.contains(event.target)) d.open = false; });
+    }, true);
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") document.querySelectorAll("details.dropdown[open]").forEach(function (d) { d.open = false; });
+    });
+
     // Open by default on a wide screen, where there's room beside the views; on a narrow one it would push them down.
     var explorerPanel = resizablePanel({
       element: "explorer", splitter: "explorer-splitter", toggle: "explorer-toggle", close: "explorer-close",
@@ -654,6 +673,7 @@
       renderFavourites();
       renderHidden();
       markHidden();
+      markLeftOut();
       applyFilter();
       updateChecks();
       reveal(revealedId);
@@ -858,12 +878,155 @@
       return parts.length === 0 ? "" : "<p class=\"hidden-note\" role=\"note\">" + parts.join(" ") + "</p>";
     }
 
+    // ---- The Show… menu ----
+    //
+    // What kinds of thing the tree and every view show, chosen in one place: the tool gives the sections and says
+    // whether the choices keep an item (items.init's kept). Remembered per tool, not per workbook, as the views' own
+    // Show… menus were. Never silent: the button counts the choices in effect, and so does a note in every view's
+    // toolbar, with Show everything.
+
+    var showBox = $("explorer-show");
+    var showMenu = $("explorer-show-menu");
+    var showSummary = showBox.querySelector("summary");
+    var choiceSections = [];
+    var choicesOff = new Set();   // check boxes turned off
+    var radioValues = {};         // radio group -> value, when not the default
+
+    function radioDefault(name) {
+      var section = choiceSections.filter(function (s) { return s.radio === name; })[0];
+      return section ? section.choices[0].value : null;
+    }
+
+    function choiceOn(id) { return !choicesOff.has(id); }
+
+    function choiceValue(name) { return radioValues[name] !== undefined ? radioValues[name] : radioDefault(name); }
+
+    function choicesCount() { return choicesOff.size + Object.keys(radioValues).length; }
+
+    function choicesKey() {
+      return Array.from(choicesOff).sort().join("|") + "\u0000" +
+        Object.keys(radioValues).sort().map(function (name) { return name + "=" + radioValues[name]; }).join("|");
+    }
+
+    function initChoices(options) {
+      choiceSections = options.sections;
+      var ids = [];
+      var radios = {};
+      choiceSections.forEach(function (s) {
+        if (s.radio) radios[s.radio] = s.choices.map(function (c) { return c.value; });
+        else s.choices.forEach(function (c) { ids.push(c.id); });
+      });
+      var stored = {};
+      try { stored = JSON.parse(settings.load("show") || "{}") || {}; } catch (e) { stored = {}; }
+      choicesOff = new Set((Array.isArray(stored.off) ? stored.off : []).filter(function (id) { return ids.indexOf(id) >= 0; }));
+      radioValues = {};
+      Object.keys(radios).forEach(function (name) {
+        var value = stored.radios && stored.radios[name];
+        if (radios[name].indexOf(value) > 0) radioValues[name] = value;
+      });
+      showMenu.innerHTML = "<div class=\"show-sections\">" + choiceSections.map(function (s) {
+        return "<section><h3>" + escapeHtml(s.title) + "</h3>" + s.choices.map(function (c) {
+          return s.radio
+            ? "<label><input type=\"radio\" name=\"show-" + escapeHtml(s.radio) + "\" data-radio=\"" + escapeHtml(s.radio) + "\" value=\"" + escapeHtml(c.value) + "\"> " + escapeHtml(c.label) + "</label>"
+            : "<label><input type=\"checkbox\" data-choice=\"" + escapeHtml(c.id) + "\"> " + escapeHtml(c.label) + "</label>";
+        }).join("") + "</section>";
+      }).join("") + "</div>" +
+        "<div class=\"actions\"><button type=\"button\" class=\"button\" data-show-reset>Show everything</button></div>";
+      showBox.hidden = false;
+      updateChoices();
+    }
+
+    function saveChoices() {
+      settings.save("show", JSON.stringify({ off: Array.from(choicesOff), radios: radioValues }));
+      updateChoices();
+      markLeftOut();
+      applyFilter();
+      emit("choices");
+    }
+
+    function updateChoices() {
+      showMenu.querySelectorAll("[data-choice]").forEach(function (box) { box.checked = choiceOn(box.getAttribute("data-choice")); });
+      showMenu.querySelectorAll("[data-radio]").forEach(function (radio) { radio.checked = radio.value === choiceValue(radio.getAttribute("data-radio")); });
+      var count = choicesCount();
+      showSummary.textContent = count > 0 ? "Show… (" + count + ")" : "Show…";
+      showSummary.title = count > 0
+        ? count + " of the Show… choices leave things out of the explorer and the views"
+        : "What to show, in the explorer and every view";
+      showBox.classList.toggle("active", count > 0);
+      showNotes.forEach(function (note) {
+        note.hidden = count === 0;
+        note.firstChild.textContent = "Show… (" + count + ")";
+      });
+    }
+
+    showMenu.addEventListener("change", function (event) {
+      var input = event.target;
+      if (input.hasAttribute("data-choice")) {
+        if (input.checked) choicesOff.delete(input.getAttribute("data-choice")); else choicesOff.add(input.getAttribute("data-choice"));
+      } else if (input.hasAttribute("data-radio")) {
+        var name = input.getAttribute("data-radio");
+        if (input.value === radioDefault(name)) delete radioValues[name]; else radioValues[name] = input.value;
+      } else {
+        return;
+      }
+      saveChoices();
+    });
+
+    function resetChoices() {
+      choicesOff = new Set();
+      radioValues = {};
+      saveChoices();
+    }
+
+    // The menu gets the room below it, and moves left if it would run off the window. Opening it here, rather than on
+    // the "toggle" event, which comes a frame late, lets it measure before it's drawn.
+    function openShowMenuHere() {
+      showBox.open = true;
+      showMenu.style.maxHeight = "";
+      showMenu.style.left = "";
+      var box = showMenu.getBoundingClientRect();
+      showMenu.style.maxHeight = Math.max(120, window.innerHeight - box.top - 12) + "px";
+      var over = box.right - (window.innerWidth - 12);
+      if (over > 0) showMenu.style.left = -Math.min(over, Math.max(0, box.left - 12)) + "px";
+    }
+
+    showSummary.addEventListener("click", function (event) {
+      if (showBox.open) return;
+      event.preventDefault();
+      openShowMenuHere();
+    });
+
+    // Opens the menu from a toolbar's note, opening the explorer first if it's closed.
+    function openShowMenu() {
+      explorerPanel.setVisible(true, false);
+      openShowMenuHere();
+      var first = showMenu.querySelector("input");
+      if (first) first.focus();
+    }
+
+    // Marks the layout's items the choices leave out, and the folders and groups left with nothing to show. The
+    // Favourites and Hidden groups are the user's own lists, so they keep everything.
+    function markLeftOut() {
+      var kept = favouriteSource && favouriteSource.kept;
+      function mark(li) {
+        if (li === favouritesItem || li === hiddenItem) return true;
+        var group = li.querySelector(":scope > ul");
+        var anyShown = false;
+        if (group) Array.prototype.forEach.call(group.children, function (child) { if (mark(child)) anyShown = true; });
+        var shown = li.dataset.id !== undefined ? !kept || kept(li.dataset.id) : !group || anyShown;
+        li.classList.toggle("left-out", !shown);
+        return shown;
+      }
+      Array.prototype.forEach.call(treeBox.children, mark);
+    }
+
     // ---- Notes in every view's toolbar ----
     //
     // What limits what the views show, each with its way out: Focus on favourites, the filter (below) and hiding.
 
     var favouritesNotes = [];
     var hiddenNotes = [];
+    var showNotes = [];
     document.querySelectorAll(".view-toolbar").forEach(function (toolbar) {
       var favouritesNote = document.createElement("span");
       favouritesNote.className = "toolbar-note view-favourites-note";
@@ -891,6 +1054,8 @@
       else if (event.target.closest("[data-show-hidden]")) showHiddenGroup();
       else if (event.target.closest("[data-focus-favourites]")) setFocusFavourites(!focusFavouritesOn);
       else if (event.target.closest("[data-focus-favourites-off]")) setFocusFavourites(false);
+      else if (event.target.closest("[data-show-reset]")) resetChoices();
+      else if (event.target.closest("[data-show-open]")) openShowMenu();
     });
 
     // Takes a group drawn by the shell (Favourites, Hidden) out of the tree, with its items.
@@ -931,6 +1096,13 @@
       hiddenNote.innerHTML = "<button type=\"button\" class=\"link-button\" data-show-hidden title=\"List them in the explorer, to show them again\"></button>";
       toolbar.appendChild(hiddenNote);
       hiddenNotes.push(hiddenNote);
+      var showNote = document.createElement("span");
+      showNote.className = "toolbar-note view-show-note";
+      showNote.hidden = true;
+      showNote.innerHTML = "<button type=\"button\" class=\"link-button\" data-show-open title=\"Change them in the explorer's Show… menu\"></button> " +
+        "<button type=\"button\" class=\"link-button\" data-show-reset>Show everything</button>";
+      toolbar.appendChild(showNote);
+      showNotes.push(showNote);
     });
 
     function filterKey() { return "filter|" + favouriteSource.workbook; }
@@ -1094,9 +1266,9 @@
     // What's showing: items not filtered out whose ancestors are all open, in order.
     function visibleItems() {
       return Array.prototype.filter.call(treeBox.querySelectorAll("li"), function (li) {
-        if (li.hidden) return false;
+        if (li.hidden || li.classList.contains("left-out")) return false;
         for (var at = parentItem(li); at; at = parentItem(at)) {
-          if (at.hidden || !isOpen(at)) return false;
+          if (at.hidden || at.classList.contains("left-out") || !isOpen(at)) return false;
         }
         return true;
       });
@@ -1186,7 +1358,7 @@
         li.hidden = !matches && !childMatches;
         li.classList.toggle("match", matches);
         li.classList.toggle("open-for-filter", childMatches);
-        if (matches && li.dataset.id !== undefined) shown++;
+        if (matches && li.dataset.id !== undefined && !li.classList.contains("left-out")) shown++;
         return matches || childMatches;
       }
       Array.prototype.forEach.call(treeBox.children, filter);
@@ -1317,6 +1489,15 @@
         noteHtml: noteHtml
       },
       onHiddenChange: function (fn) { listeners.hidden.push(fn); },
+      choices: {
+        init: initChoices,
+        on: choiceOn,
+        value: choiceValue,
+        count: choicesCount,
+        key: choicesKey,
+        reset: resetChoices
+      },
+      onChoicesChange: function (fn) { listeners.choices.push(fn); },
       source: {
         init: initSource,
         has: function (id) { return sources.has(id); },

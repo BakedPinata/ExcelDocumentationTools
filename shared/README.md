@@ -116,6 +116,24 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
   fails too, the code is selected for Ctrl+C.
 - **The lock and copy icons are our own,** like the folder (see below).
 
+### The Show… menu (step D3c)
+
+- **One Show… menu in the explorer** (`shell.choices`: `init({ sections })`, `on(id)`, `value(name)`, `count()`,
+  `key()`, `reset()`, and `onChoicesChange`) chooses what kinds of thing the tree and every view show, in place of the
+  views' own menus. The tool gives sections of check boxes (ticked, so shown, unless turned off) or radios (the first
+  the default), and says through `items.init`'s `kept(id)` whether the choices keep an item in the tree; its views apply
+  the choices as they mean something to them. Remembered per tool as `<tool>-show`.
+- **The tree drops what's left out,** and folders and groups left with nothing; the Favourites and Hidden groups keep
+  everything, being the user's own lists. Left-out rows don't count as matches for the filter box or as rows for the
+  keyboard.
+- **Never silent:** the button counts the choices in effect ("Show… (2)"), outlined in the accent colour, and so does a
+  note at the end of every view's toolbar, whose count opens the menu (and the explorer, if it's closed) and whose Show
+  everything puts the choices back.
+- **The menu fits the window:** it's opened by the shell so it can measure first, takes the room below it, and moves
+  left if it would run off; its sections flow into two columns where there's room, and long labels wrap.
+- **Drop-downs are the shell's:** every `<details class="dropdown">` closes on a press outside it or on Esc, which
+  closes the menu before it clears the selection.
+
 ### Hiding and Focus on favourites (step D3b)
 
 - **Hiding is the shell's** (`shell.hidden`: `list()`, `has(id)`, `toggle(id)`, `clear()`, `onHiddenChange`), remembered
@@ -132,7 +150,8 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
   `<tool>-focus-favourites`, turned on and off by the Focus button on the Favourites group's row. While it's on and
   there are favourites, the views show them and what they use, as well as the focused selection's own, and each
   toolbar says so, with Show all. Changes, including to the favourites while it's on, come through `onFocusChange`.
-- **The toolbar notes** are the shell's, in the order Focus on favourites, the filter, hidden items.
+- **The toolbar notes** are the shell's, in the order Focus on favourites, the filter, hidden items, and (since D3c)
+  the Show… choices.
 - **A row short of room shortens its detail before its name,** since the buttons at its end take some of it.
 
 ### The views' filter, and Expand / Collapse all (step D3a)

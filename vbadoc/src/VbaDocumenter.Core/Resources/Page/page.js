@@ -17,6 +17,12 @@
 //                                     members with it)
 //   vbadoc.shows(id) / shownKey() / onShownChange(fn)   whether the views show a module or member: in the filter and
 //                                     not hidden. The key changes with either
+//   vbadoc.memberCategories            [{ id, label, kinds }]: the kinds of member the Show… menu chooses between
+//   vbadoc.kept(id)                    whether the Show… choices keep a module or member (its module's kind, its own
+//                                     kind, private members, references); the views apply the rest themselves
+//   vbadoc.choice(id) / choiceValue(name) / choicesKey() / choicesCount() / onChoicesChange(fn)   the explorer's Show…
+//                                     choices: "line:uses", "line:implements", "line:events" and "line:holds" for
+//                                     lines, and "unconnected" for items with no connections
 //   vbadoc.focusFavourites() / setFocusFavourites(on)   whether the views show only the favourites and what they use
 //                                     (with the focused selection's); changes come through onFocusChange
 (function () {
@@ -145,6 +151,65 @@
     if (!shell.filter.active() || shell.filter.has(id)) return true;
     var member = membersById.get(id);
     return member ? shell.filter.has(member.module) : modulesWithTickedMembers.has(id);
+  }
+
+  // ---- Show… choices ----
+  //
+  // One set, in the explorer, for the tree and every view. A choice applies wherever it means something: member kinds,
+  // private members and references to the tree, the graph at member level and the class diagram's boxes; Events lines
+  // to the graph and Holds in a variable to the class diagram.
+
+  var MODULE_KINDS = [
+    ["standard", "Standard modules"], ["class", "Classes"], ["interface", "Interfaces"], ["form", "UserForms"],
+    ["document", "Document modules"]
+  ];
+
+  var MEMBER_CATEGORIES = [
+    { id: "procedure", label: "Procedures", kinds: ["sub", "function"] },
+    { id: "property", label: "Properties", kinds: ["propertyGet", "propertyLet", "propertySet"] },
+    { id: "data", label: "Variables and constants", kinds: ["variable", "constant"] },
+    { id: "type", label: "Enums and types", kinds: ["enum", "type"] },
+    { id: "enumValue", label: "Enum values", kinds: ["enumMember"] },
+    { id: "event", label: "Events", kinds: ["event"] },
+    { id: "declare", label: "Declares", kinds: ["declare"] }
+  ];
+  var categoryOfKind = {};
+  MEMBER_CATEGORIES.forEach(function (c) { c.kinds.forEach(function (k) { categoryOfKind[k] = c.id; }); });
+
+  shell.choices.init({
+    sections: [
+      { title: "Modules", choices: MODULE_KINDS.map(function (k) { return { id: "module:" + k[0], label: k[1] }; }) },
+      {
+        title: "Members",
+        choices: MEMBER_CATEGORIES.map(function (c) { return { id: "member:" + c.id, label: c.label }; })
+          .concat([{ id: "private", label: "Private members" }])
+      },
+      {
+        title: "References", radio: "references",
+        choices: [{ value: "all", label: "All members" }, { value: "unreferenced", label: "Unreferenced only" }, { value: "referenced", label: "Referenced only" }]
+      },
+      {
+        title: "Lines",
+        choices: [
+          { id: "line:uses", label: "Uses" }, { id: "line:implements", label: "Implements" },
+          { id: "line:events", label: "Events (graph)" }, { id: "line:holds", label: "Holds in a variable (class diagram)" }
+        ]
+      },
+      { title: "Other", choices: [{ id: "unconnected", label: "Items with no connections" }] }
+    ]
+  });
+
+  function moduleKindOf(module) { return module.isInterface ? "interface" : module.kind; }
+
+  function kept(id) {
+    var member = membersById.get(id);
+    var module = modulesById.get(member ? member.module : id);
+    if (!module || !shell.choices.on("module:" + moduleKindOf(module))) return false;
+    if (!member) return true;
+    if (!shell.choices.on("member:" + categoryOfKind[member.kind])) return false;
+    if (member.visibility === "private" && !shell.choices.on("private")) return false;
+    var references = shell.choices.value("references");
+    return references === "all" || (references === "unreferenced") === !!member.unreferenced;
   }
 
   // ---- What the views show ----
@@ -501,18 +566,6 @@
   searchBox.addEventListener("input", function () { searchFor(searchBox.value, false); }); // picking from the list
   searchBox.addEventListener("keydown", function (e) { if (e.key === "Enter") searchFor(searchBox.value, true); });
 
-  // ---- Drop-down menus ----
-
-  // The toolbars' drop-downs (<details class="dropdown">) close when you press anywhere outside them, including
-  // starting to pan or drag a view, or press Escape. Opening one therefore closes any other.
-  var dropDowns = document.querySelectorAll("details.dropdown");
-  document.addEventListener("pointerdown", function (event) {
-    dropDowns.forEach(function (d) { if (d.open && !d.contains(event.target)) d.open = false; });
-  }, true);
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") dropDowns.forEach(function (d) { d.open = false; });
-  });
-
   // ---- Start ----
 
   window.vbadoc = {
@@ -546,6 +599,13 @@
     onShownChange: function (fn) { listeners.shown.push(fn); },
     focusFavourites: shell.focusFavourites,
     setFocusFavourites: shell.setFocusFavourites,
+    memberCategories: MEMBER_CATEGORIES,
+    kept: kept,
+    choice: shell.choices.on,
+    choiceValue: shell.choices.value,
+    choicesKey: shell.choices.key,
+    choicesCount: shell.choices.count,
+    onChoicesChange: shell.onChoicesChange,
     onFavouritesChange: shell.onFavouritesChange
   };
 
@@ -553,6 +613,7 @@
   // isn't under it. The filter counts the modules it shows.
   shell.items.init({
     workbook: data.project.title,
+    kept: kept,
     exists: function (id) { return modulesById.has(id) || membersById.has(id); },
     node: function (id) {
       var member = membersById.get(id);

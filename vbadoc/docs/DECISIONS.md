@@ -355,6 +355,9 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
 
 ### Legend highlighting and Show… (stage 5b)
 
+The Show… menu moved into the explorer in D3c, for every view and the tree, and closing drop-downs moved into the
+shell; see The Show… menu in the explorer above. The legend is as below.
+
 - **Legend entries are toggle buttons.** Clicking one greys out everything it doesn't stand for, like a selection
   does, without selecting anything:
   - a node entry (module kind, member kind, "The module itself", Unreferenced, module colour) lights the nodes it
@@ -451,6 +454,30 @@ Favourites below. Back and Forward stay as they are.
   the detail, the role is a badge, and an unreferenced member is in italics with a tooltip.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
+
+### The Show… menu in the explorer (0.20.0, step D3c of the feedback plan)
+
+- **One Show… menu, the shell's, in the explorer,** for the tree, the graph and the class diagram (the plan's "one set
+  of filters"), replacing the graph's and the class diagram's own; see `shared/README.md`. vbadoc gives the sections
+  and says, through `vbadoc.kept(id)`, whether the choices keep a module or member: its module's kind, its kind of
+  member, private members and references. The views apply the rest: kinds of line and items with no connections.
+- **A choice applies wherever it means something,** so the graph's and the class diagram's choices merge: member kinds
+  and references now reach the class diagram's boxes and the tree, module kinds the class diagram and the tree, and
+  items with no connections the class diagram (a box with no relationship drawn). Lines are Uses (the graph's uses and
+  the class diagram's dependencies), Implements (both), Events (the graph's) and Holds in a variable (the class
+  diagram's associations), each saying where it applies when that's one view. The menu no longer hides member choices
+  at module level, since they apply to the tree and the class diagram there too.
+- **What's ticked stays,** as in D3a: the views' filter overrides Items with no connections in both views.
+- **The class diagram's Members option is a switch in its toolbar,** since it's how boxes are drawn rather than what's
+  shown; it keeps its remembered setting (`vbadoc-classes-members`). Moved boxes are now remembered per Members switch
+  and set of Show… choices, so boxes moved before are laid out afresh once.
+- **Choices remembered before, by the graph (`vbadoc-graph-show`) and the class diagram (`vbadoc-classes-private`,
+  `-dependencies`), are ignored,** the plan's simple answer, as for Home in D2; the new set is `vbadoc-show`.
+- **The menu fits the window:** it takes the room below it and moves left if it would run off, in place of the graph
+  menu's two columns that stacked; its sections flow into two columns where there's room.
+- **Drop-downs are the shell's:** pressing outside one or Esc closes it, in the explorer and the views, as vbadoc's did.
+- **`window.vbadoc`** has `memberCategories`, `kept(id)`, `choice(id)`, `choiceValue(name)`, `choicesKey()`,
+  `choicesCount()` and `onChoicesChange(fn)`.
 
 ### Hiding and Focus on favourites (0.19.0, step D3b of the feedback plan)
 

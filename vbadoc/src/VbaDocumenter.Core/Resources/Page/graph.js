@@ -26,15 +26,12 @@
     document: { group: "host", shape: d3.symbolTriangle, label: "Document module" }
   };
 
-  var MEMBER_CATEGORIES = [
-    { id: "procedure", label: "Procedures", kinds: ["sub", "function"], shape: d3.symbolCircle },
-    { id: "property", label: "Properties", kinds: ["propertyGet", "propertyLet", "propertySet"], shape: d3.symbolDiamond },
-    { id: "data", label: "Variables and constants", kinds: ["variable", "constant"], shape: d3.symbolSquare },
-    { id: "type", label: "Enums and types", kinds: ["enum", "type"], shape: d3.symbolTriangle },
-    { id: "enumValue", label: "Enum values", kinds: ["enumMember"], shape: d3.symbolTriangle },
-    { id: "event", label: "Events", kinds: ["event"], shape: d3.symbolStar },
-    { id: "declare", label: "Declares", kinds: ["declare"], shape: d3.symbolCross }
-  ];
+  // The kinds of member are the page's (they're Show… choices too); the graph gives each a shape.
+  var CATEGORY_SHAPES = {
+    procedure: d3.symbolCircle, property: d3.symbolDiamond, data: d3.symbolSquare, type: d3.symbolTriangle,
+    enumValue: d3.symbolTriangle, event: d3.symbolStar, declare: d3.symbolCross
+  };
+  var MEMBER_CATEGORIES = vb.memberCategories.map(function (c) { return Object.assign({ shape: CATEGORY_SHAPES[c.id] }, c); });
 
   var EDGE_KINDS = [
     { id: "uses", label: "Uses" },
@@ -58,47 +55,6 @@
   function loadSetting(key, fallback) { try { return localStorage.getItem(key) || fallback; } catch (e) { return fallback; } }
   function saveSetting(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* not remembered */ } }
 
-  // What the Show… menu leaves out. Kept as Sets here and remembered per browser as arrays.
-  var MODULE_KIND_IDS = Object.keys(MODULE_STYLES);
-  var REFERENCE_FILTERS = ["all", "unreferenced", "referenced"];
-
-  function defaultShow() {
-    return {
-      hiddenModuleKinds: new Set(),   // module level and member level
-      hiddenCategories: new Set(),    // member level
-      hiddenEdgeKinds: new Set(),
-      references: "all",              // member level: "all", "unreferenced" or "referenced"
-      privateMembers: true,           // member level
-      unconnected: true               // nodes with no edge to anything else
-    };
-  }
-
-  function loadShow() {
-    var show = defaultShow();
-    var stored;
-    try { stored = JSON.parse(loadSetting("vbadoc-graph-show", "{}")) || {}; } catch (e) { stored = {}; }
-    function known(list, ids) { return new Set((Array.isArray(list) ? list : []).filter(function (id) { return ids.indexOf(id) >= 0; })); }
-    show.hiddenModuleKinds = known(stored.hiddenModuleKinds, MODULE_KIND_IDS);
-    show.hiddenCategories = known(stored.hiddenCategories, MEMBER_CATEGORIES.map(function (c) { return c.id; }));
-    show.hiddenEdgeKinds = known(stored.hiddenEdgeKinds, EDGE_KINDS.map(function (k) { return k.id; }));
-    if (REFERENCE_FILTERS.indexOf(stored.references) >= 0) show.references = stored.references;
-    if (typeof stored.privateMembers === "boolean") show.privateMembers = stored.privateMembers;
-    if (typeof stored.unconnected === "boolean") show.unconnected = stored.unconnected;
-    return show;
-  }
-
-  function saveShow() {
-    var show = state.show;
-    saveSetting("vbadoc-graph-show", JSON.stringify({
-      hiddenModuleKinds: Array.from(show.hiddenModuleKinds),
-      hiddenCategories: Array.from(show.hiddenCategories),
-      hiddenEdgeKinds: Array.from(show.hiddenEdgeKinds),
-      references: show.references,
-      privateMembers: show.privateMembers,
-      unconnected: show.unconnected
-    }));
-  }
-
   function loadDirection() {
     var direction = loadSetting("vbadoc-graph-direction", "all");
     return direction === "dependencies" || direction === "dependents" ? direction : "all";
@@ -109,7 +65,6 @@
     direction: loadDirection(), // "all", or only "dependencies" or "dependents" of the selection
     focused: false,     // whether what's drawn is only the focused selection's neighbourhood
     path: false,        // showing the path from the nearest favourite instead of the selection's neighbourhood
-    show: loadShow(),
     legend: new Set()   // legend items clicked to highlight what they stand for (not remembered)
   };
 
@@ -189,7 +144,6 @@
   var focusButton = document.getElementById("graph-focus");
   var pathButton = document.getElementById("graph-path");
   var pathNote = document.getElementById("graph-path-note");
-  var filtersBox = document.getElementById("graph-filters");
 
   EDGE_KINDS.forEach(function (kind) {
     defs.append("marker")
@@ -216,11 +170,10 @@
     var nodes = [];
     var edges;
     var size = settings.nodeSize;
-    var show = state.show;
-    function moduleShown(moduleId) { return !show.hiddenModuleKinds.has(moduleKindOf(vb.modulesById.get(moduleId))); }
+    var unconnected = vb.choice("unconnected");
     if (state.level === "modules") {
       data.modules.forEach(function (m) {
-        if (!moduleShown(m.id) || !vb.shows(m.id)) return;
+        if (!vb.kept(m.id) || !vb.shows(m.id)) return;
         var style = moduleStyle(m);
         nodes.push({
           id: m.id, module: m.id, label: m.id, group: style.group, shape: style.shape, hollow: !!style.hollow,
@@ -232,10 +185,7 @@
     } else {
       data.members.forEach(function (m) {
         var category = categoryOfKind[m.kind];
-        if (!moduleShown(m.module) || show.hiddenCategories.has(category.id) || !vb.shows(m.id)) return;
-        if (show.references === "unreferenced" && !m.unreferenced) return;
-        if (show.references === "referenced" && m.unreferenced) return;
-        if (!show.privateMembers && m.visibility === "private") return;
+        if (!vb.kept(m.id) || !vb.shows(m.id)) return;
         var module = vb.modulesById.get(m.module);
         nodes.push({
           id: m.id, module: m.module, label: m.name, group: moduleStyle(module).group, shape: category.shape,
@@ -245,7 +195,7 @@
       });
       // Each module also has a node for references to the module itself (e.g. "As Order", "Sheet1.Range").
       data.modules.forEach(function (m) {
-        if (!moduleShown(m.id) || !vb.shows(m.id)) return;
+        if (!vb.kept(m.id) || !vb.shows(m.id)) return;
         nodes.push({
           id: m.id, module: m.id, label: m.id, group: moduleStyle(m).group, shape: d3.symbolCircle, r: size * 7,
           title: moduleStyle(m).label + " (the module itself)", isModuleNode: true, minor: true
@@ -255,15 +205,15 @@
     }
 
     var ids = new Set(nodes.map(function (n) { return n.id; }));
-    edges = edges.filter(function (e) { return ids.has(e.from) && ids.has(e.to) && !show.hiddenEdgeKinds.has(e.kind); });
+    edges = edges.filter(function (e) { return ids.has(e.from) && ids.has(e.to) && vb.choice("line:" + e.kind); });
     // A self-loop (recursion) doesn't connect a node to anything else, so it doesn't count here.
     var connected = new Set();
     edges.forEach(function (e) { if (e.from !== e.to) { connected.add(e.from); connected.add(e.to); } });
     nodes = nodes.filter(function (n) {
       if (n.isModuleNode) return connected.has(n.id); // only module nodes that are referenced
-      return show.unconnected || connected.has(n.id) || vb.filterActive(); // what's ticked is shown, linked or not
+      return unconnected || connected.has(n.id) || vb.filterActive(); // what's ticked is shown, linked or not
     });
-    if (!show.unconnected) edges = edges.filter(function (e) { return connected.has(e.from); });
+    if (!unconnected) edges = edges.filter(function (e) { return connected.has(e.from); });
     return indexGraph(nodes, edges);
   }
 
@@ -691,12 +641,7 @@
   // set of Show… choices has its own. Re-run layout and Reset to defaults start afresh.
   var keptLayouts = new Map();
 
-  function layoutKey() {
-    var show = state.show;
-    return state.level + "|" + JSON.stringify([
-      Array.from(show.hiddenModuleKinds).sort(), Array.from(show.hiddenCategories).sort(), Array.from(show.hiddenEdgeKinds).sort(),
-      show.references, show.privateMembers, show.unconnected, vb.shownKey()]);
-  }
+  function layoutKey() { return state.level + "\u0000" + vb.choicesKey() + "\u0000" + vb.shownKey(); }
 
   function keepLayout() {
     if (!graph || !graph.layoutKey) return;
@@ -1014,10 +959,10 @@
   function pathUnavailable(graph) {
     if (vb.favourites().length === 0) return "Star a favourite first: the ☆ in the explorer or the source panel";
     if (!vb.selection()) return "Select something to find the path to it from the nearest favourite";
-    if (selectedIds(graph).length === 0) return "The selection is hidden by the Show… choices";
+    if (selectedIds(graph).length === 0) return "The selection isn't in the graph as drawn";
     if (favouriteIds(graph).length === 0) {
       var anyShown = vb.favourites().some(function (id) { return idsAtLevel(graph, id).length > 0; });
-      return anyShown ? "The selection is the only favourite, at this level" : "The favourites are hidden by the Show… choices";
+      return anyShown ? "The selection is the only favourite, at this level" : "No favourite is in the graph as drawn";
     }
     return null;
   }
@@ -1042,7 +987,7 @@
   function describePath(path) {
     if (!path) {
       return "No chain of dependencies links a favourite and the selection" +
-        (activeShowCount() > 0 ? " with the current Show… choices" : "") + ".";
+        (vb.choicesCount() > 0 ? " with the current Show… choices" : "") + ".";
     }
     var steps = path.edges.length;
     var how = steps === 1 ? "directly" : "through " + (steps - 1) + " other node" + (steps === 2 ? "" : "s");
@@ -1276,7 +1221,6 @@
     pathButton.disabled = !!unavailable && !state.path;
     pathButton.title = unavailable || "Show the shortest chain of dependencies between the nearest favourite and the selection";
     pathButton.setAttribute("aria-pressed", state.path ? "true" : "false");
-    updateShowMenu();
   }
 
   view.querySelectorAll("[data-level]").forEach(function (button) {
@@ -1318,99 +1262,6 @@
   });
 
   document.getElementById("graph-fit").addEventListener("click", function () { fit(true); });
-
-  // ---- Show… menu ----
-  //
-  // What to leave out of the graph (unlike the legend, which only greys things out). Ticked means shown.
-  // Sections marked data-show-level apply to one level only and are hidden at the other. The choices are remembered
-  // per browser, so the button counts how many are in effect, as a reminder that something is left out.
-
-  var filterMenu = document.getElementById("graph-filter-menu");
-  var filterSummary = filtersBox.querySelector("summary");
-
-  function checkbox(attribute, value, label) {
-    return "<label><input type=\"checkbox\" " + attribute + "=\"" + value + "\"> " + label + "</label>";
-  }
-
-  // Two columns, so the menu fits without scrolling at member level; the second is hidden at module level.
-  filterMenu.innerHTML = "<div class=\"show-columns\"><div>" +
-      "<h3>Modules</h3>" + MODULE_KIND_IDS.map(function (k) { return checkbox("data-module-kind", k, MODULE_STYLES[k].label); }).join("") +
-      "<h3>Edges</h3>" + EDGE_KINDS.map(function (k) { return checkbox("data-edge-kind", k.id, k.label); }).join("") +
-      "<h3>Other</h3><label><input type=\"checkbox\" id=\"graph-show-unconnected\"> Nodes with no connections</label>" +
-    "</div><div data-show-level=\"members\">" +
-      "<h3>Members</h3>" + MEMBER_CATEGORIES.map(function (c) { return checkbox("data-category", c.id, c.label); }).join("") +
-      "<label><input type=\"checkbox\" id=\"graph-show-private\"> Private members</label>" +
-      "<h3>References</h3>" +
-      [["all", "All members"], ["unreferenced", "Unreferenced only"], ["referenced", "Referenced only"]].map(function (r) {
-        return "<label><input type=\"radio\" name=\"graph-references\" value=\"" + r[0] + "\"> " + r[1] + "</label>";
-      }).join("") +
-    "</div></div>" +
-    "<div class=\"actions\"><button type=\"button\" class=\"button\" id=\"graph-show-everything\">Show everything</button></div>";
-
-  // How many of the Show… choices leave something out at the current level.
-  function activeShowCount() {
-    var show = state.show;
-    var count = show.hiddenModuleKinds.size + show.hiddenEdgeKinds.size + (show.unconnected ? 0 : 1);
-    if (state.level === "members") {
-      count += show.hiddenCategories.size + (show.privateMembers ? 0 : 1) + (show.references === "all" ? 0 : 1);
-    }
-    return count;
-  }
-
-  function updateShowMenu() {
-    var show = state.show;
-    filterMenu.querySelectorAll("[data-show-level]").forEach(function (section) {
-      section.hidden = section.getAttribute("data-show-level") !== state.level;
-    });
-    filterMenu.querySelectorAll("[data-module-kind]").forEach(function (box) { box.checked = !show.hiddenModuleKinds.has(box.getAttribute("data-module-kind")); });
-    filterMenu.querySelectorAll("[data-category]").forEach(function (box) { box.checked = !show.hiddenCategories.has(box.getAttribute("data-category")); });
-    filterMenu.querySelectorAll("[data-edge-kind]").forEach(function (box) { box.checked = !show.hiddenEdgeKinds.has(box.getAttribute("data-edge-kind")); });
-    filterMenu.querySelectorAll("input[name='graph-references']").forEach(function (radio) { radio.checked = radio.value === show.references; });
-    document.getElementById("graph-show-private").checked = show.privateMembers;
-    document.getElementById("graph-show-unconnected").checked = show.unconnected;
-    var count = activeShowCount();
-    filterSummary.textContent = count > 0 ? "Show… (" + count + ")" : "Show…";
-    filterSummary.title = count > 0 ? count + " of the Show… choices leave things out of the graph" : "What to show in the graph";
-    filtersBox.classList.toggle("active", count > 0);
-  }
-
-  function toggle(set, value, shown) { if (shown) set.delete(value); else set.add(value); }
-
-  filterMenu.addEventListener("change", function (event) {
-    var input = event.target;
-    var show = state.show;
-    if (input.hasAttribute("data-module-kind")) toggle(show.hiddenModuleKinds, input.getAttribute("data-module-kind"), input.checked);
-    else if (input.hasAttribute("data-category")) toggle(show.hiddenCategories, input.getAttribute("data-category"), input.checked);
-    else if (input.hasAttribute("data-edge-kind")) toggle(show.hiddenEdgeKinds, input.getAttribute("data-edge-kind"), input.checked);
-    else if (input.name === "graph-references") show.references = input.value;
-    else if (input.id === "graph-show-private") show.privateMembers = input.checked;
-    else if (input.id === "graph-show-unconnected") show.unconnected = input.checked;
-    else return;
-    saveShow();
-    render();
-  });
-
-  // The columns stack when they'd run past the edge of the view (e.g. with the source panel open), and if even
-  // that is too wide the menu moves left, though never past the view's left edge. This opens the menu itself so
-  // it can measure before anything is drawn; the "toggle" event would come a frame late.
-  filterSummary.addEventListener("click", function (event) {
-    if (filtersBox.open) return;
-    event.preventDefault();
-    filtersBox.open = true;
-    filterMenu.classList.remove("stacked");
-    filterMenu.style.left = "";
-    var edges = view.getBoundingClientRect();
-    function overflow() { return filterMenu.getBoundingClientRect().right - (edges.right - 8); }
-    if (overflow() > 0) filterMenu.classList.add("stacked");
-    var room = filtersBox.getBoundingClientRect().left - (edges.left + 8);
-    if (overflow() > 0) filterMenu.style.left = -Math.min(overflow(), Math.max(0, room)) + "px";
-  });
-
-  document.getElementById("graph-show-everything").addEventListener("click", function () {
-    state.show = defaultShow();
-    saveShow();
-    render();
-  });
 
   // ---- Settings panel ----
   //
@@ -1526,8 +1377,10 @@
     if (focusKey() !== state.focusKey) render(); else updateToolbar();
   });
   vb.onViewChange(drawIfVisible);
-  // The explorer's filter and hiding change what's drawn.
-  vb.onShownChange(function () { if (started && vb.activeView() === "graph") render(); else if (started) needsDrawing = true; });
+  // The explorer's filter, hiding and Show… choices change what's drawn.
+  function redrawForShown() { if (started && vb.activeView() === "graph") render(); else if (started) needsDrawing = true; }
+  vb.onShownChange(redrawForShown);
+  vb.onChoicesChange(redrawForShown);
 
   vb.onFavouritesChange(function () {
     if (!started) return;

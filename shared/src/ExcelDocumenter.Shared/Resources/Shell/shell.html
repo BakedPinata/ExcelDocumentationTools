@@ -69,7 +69,13 @@
       <button type="button" class="panel-close explorer-tool" id="explorer-collapse-all" title="Collapse all" aria-label="Collapse all"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 2.5 8 6l3.5-3.5M4.5 13.5 8 10l3.5 3.5"/></svg></button>
       <button type="button" class="panel-close" id="explorer-close" title="Hide the explorer" aria-label="Hide the explorer">&times;</button>
     </div>
-    <div class="segmented explorer-layouts" id="explorer-layouts" role="radiogroup" aria-label="Arrange by" hidden></div>
+    <div class="explorer-options">
+      <div class="segmented explorer-layouts" id="explorer-layouts" role="radiogroup" aria-label="Arrange by" hidden></div>
+      <details class="dropdown explorer-show" id="explorer-show" hidden>
+        <summary class="button" title="What to show, in the explorer and every view">Show…</summary>
+        <div class="menu" id="explorer-show-menu"></div>
+      </details>
+    </div>
     <div class="explorer-filter-bar" id="explorer-filter-bar" role="status" hidden><span id="explorer-filter-text"></span> <button type="button" class="link-button" data-filter-clear>Clear</button></div>
     <ul class="tree" id="explorer-tree" role="tree" aria-label="{{EXPLORER_LABEL}}"></ul>
     <p class="explorer-empty muted" id="explorer-empty" hidden>Nothing matches.</p>

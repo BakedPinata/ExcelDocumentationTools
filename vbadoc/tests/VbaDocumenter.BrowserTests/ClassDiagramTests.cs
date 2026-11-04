@@ -253,20 +253,22 @@ public class ClassDiagramTests(PageFixture fixture)
   }
 
   [Fact]
-  public async Task Show_options_hide_members_private_members_or_dependencies_and_are_remembered()
+  public async Task Show_choices_and_the_Members_switch_hide_private_members_uses_or_members_and_are_remembered()
   {
     await using var opened = await OpenClasses(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
-    await page.ClickAsync("#classes-filters summary");
+    await page.ClickAsync("#explorer-show summary");
 
-    await page.UncheckAsync("input[data-option='private']");
+    await page.UncheckAsync("#explorer-show [data-choice='private']");
     Assert.Equal(0, await Count(page, Line("Order.m_Id")));
     Assert.Equal(1, await Count(page, Line("Order.Describe")));
 
-    await page.UncheckAsync("input[data-option='dependencies']");
+    await page.UncheckAsync("#explorer-show [data-choice='line:uses']");
     Assert.Equal(4, await Count(page, Edges)); // realisations and associations
+    await page.Keyboard.PressAsync("Escape");
 
-    await page.UncheckAsync("input[data-option='members']");
+    await page.ClickAsync("#classes-members");
+    Assert.Equal("false", await page.GetAttributeAsync("#classes-members", "aria-pressed"));
     Assert.Equal(0, await Count(page, "#classes-svg g.class-line"));
 
     await page.ReloadAsync();

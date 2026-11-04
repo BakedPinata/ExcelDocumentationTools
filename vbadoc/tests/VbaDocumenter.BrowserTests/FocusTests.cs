@@ -101,10 +101,10 @@ public class FocusTests(PageFixture fixture)
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
     await page.ClickAsync(Node("Utils"));
-    await page.ClickAsync("#graph-filters summary");
+    await page.ClickAsync("#explorer-show summary");
 
     await page.Keyboard.PressAsync("Escape");
-    Assert.False(await page.EvaluateAsync<bool>("() => document.getElementById('graph-filters').open"));
+    Assert.False(await page.EvaluateAsync<bool>("() => document.getElementById('explorer-show').open"));
     Assert.Equal("Utils", await Selection(page));
 
     await page.Keyboard.PressAsync("Escape");

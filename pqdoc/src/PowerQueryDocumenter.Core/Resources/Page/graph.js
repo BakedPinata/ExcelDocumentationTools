@@ -334,9 +334,8 @@
     var key = [wanted === null ? "" : wanted, favourites.join("|"), pq.shownKey()].join("\u0000");
     if (key === showingKey) return false;
     showingKey = key;
-    shown = pq.filterActive() || pq.hidden().length > 0
-      ? new Set(nodes.filter(function (n) { return pq.shows(n.id); }).map(function (n) { return n.id; }))
-      : null;
+    shown = new Set(nodes.filter(function (n) { return pq.shows(n.id); }).map(function (n) { return n.id; }));
+    if (shown.size === nodes.length) shown = null;
     if (wanted !== null || favourites.length > 0) {
       // The focused query's chains both ways, and with Focus on favourites, the favourites and what they use.
       var chains = new Set();

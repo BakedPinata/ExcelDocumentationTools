@@ -274,13 +274,13 @@ public class GraphTests(PageFixture fixture)
     var page = opened.Page;
     await ShowMembers(page);
     var settingsOpen = "() => document.getElementById('graph-settings').open";
-    var filtersOpen = "() => document.getElementById('graph-filters').open";
+    var filtersOpen = "() => document.getElementById('explorer-show').open";
 
     await OpenSettings(page);
     await page.ClickAsync("#graph-setting-curvedEdges"); // using a control inside keeps it open
     Assert.True(await page.EvaluateAsync<bool>(settingsOpen));
 
-    await page.ClickAsync("#graph-filters summary"); // opening the other one closes it
+    await page.ClickAsync("#explorer-show summary"); // opening another one closes it
     Assert.False(await page.EvaluateAsync<bool>(settingsOpen));
     Assert.True(await page.EvaluateAsync<bool>(filtersOpen));
 
@@ -512,24 +512,24 @@ public class GraphTests(PageFixture fixture)
     await ShowMembers(page);
     var before = await Count(page, "#graph-svg g.node");
 
-    await page.ClickAsync("#graph-filters summary");
-    await page.UncheckAsync("input[data-category='data']");
+    await page.ClickAsync("#explorer-show summary");
+    await page.UncheckAsync("#explorer-show [data-choice='member:data']");
 
     Assert.Equal(0, await Count(page, "#graph-svg g.node[data-id='Order.m_Id']"));
     Assert.True(await Count(page, "#graph-svg g.node") < before);
-    Assert.Equal("Show… (1)", await page.InnerTextAsync("#graph-filters summary"));
+    Assert.Equal("Show… (1)", await page.InnerTextAsync("#explorer-show summary"));
 
-    await page.CheckAsync("input[data-category='data']");
-    await page.CheckAsync("input[name='graph-references'][value='unreferenced']");
+    await page.CheckAsync("#explorer-show [data-choice='member:data']");
+    await page.CheckAsync("#explorer-show [data-radio='references'][value='unreferenced']");
     Assert.Equal(new[] { "Utils.UnusedHelper" }, await DrawnIds(page));
 
-    await page.CheckAsync("input[name='graph-references'][value='referenced']");
+    await page.CheckAsync("#explorer-show [data-radio='references'][value='referenced']");
     var referenced = await DrawnIds(page);
     Assert.DoesNotContain("Utils.UnusedHelper", referenced);
     Assert.Contains("AppInit.LoadSettings", referenced);
 
-    await page.CheckAsync("input[name='graph-references'][value='all']");
-    await page.UncheckAsync("#graph-show-private");
+    await page.CheckAsync("#explorer-show [data-radio='references'][value='all']");
+    await page.UncheckAsync("#explorer-show [data-choice='private']");
     var publicOnly = await DrawnIds(page);
     Assert.DoesNotContain("AppInit.LoadSettings", publicOnly); // Private Sub
     Assert.DoesNotContain("Order.m_Id", publicOnly);           // module-level Private variable
@@ -542,22 +542,21 @@ public class GraphTests(PageFixture fixture)
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
-    await page.ClickAsync("#graph-filters summary");
-    Assert.True(await page.IsHiddenAsync("#graph-show-private")); // member-level choices are hidden at module level
+    await page.ClickAsync("#explorer-show summary");
 
-    await page.UncheckAsync("input[data-module-kind='document']");
+    await page.UncheckAsync("#explorer-show [data-choice='module:document']");
     var modules = await DrawnIds(page);
     Assert.DoesNotContain("ThisWorkbook", modules);
     Assert.DoesNotContain("Sheet1", modules);
     Assert.Contains("Main", modules);
 
-    await page.CheckAsync("input[data-module-kind='document']");
-    await page.UncheckAsync("input[data-edge-kind='uses']");
+    await page.CheckAsync("#explorer-show [data-choice='module:document']");
+    await page.UncheckAsync("#explorer-show [data-choice='line:uses']");
     Assert.Equal(0, await Count(page, "#graph-svg path.edge.uses"));
     Assert.Equal(2, await Count(page, "#graph-svg path.edge.implements"));
     Assert.Equal(12, await Count(page, "#graph-svg g.node")); // unconnected nodes are still shown...
 
-    await page.UncheckAsync("#graph-show-unconnected");    // ...until this is unticked
+    await page.UncheckAsync("#explorer-show [data-choice='unconnected']"); // ...until this is unticked
     Assert.Equal(new[] { "CsvOrderRepository", "IOrderRepository", "OrderService", "ProgressReporter", "SheetOrderRepository" },
         (await DrawnIds(page)).Order());
 
@@ -572,48 +571,41 @@ public class GraphTests(PageFixture fixture)
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
-    await page.ClickAsync("#graph-filters summary");
-    await page.UncheckAsync("input[data-module-kind='document']");
-    await page.UncheckAsync("input[data-edge-kind='events']");
+    await page.ClickAsync("#explorer-show summary");
+    await page.UncheckAsync("#explorer-show [data-choice='module:document']");
+    await page.UncheckAsync("#explorer-show [data-choice='line:events']");
 
     await page.ReloadAsync();
     await page.WaitForFunctionAsync("() => !!window.vbadocGraph");
 
-    Assert.Equal("Show… (2)", await page.InnerTextAsync("#graph-filters summary"));
+    Assert.Equal("Show… (2)", await page.InnerTextAsync("#explorer-show summary"));
     Assert.Equal(10, await Count(page, "#graph-svg g.node"));
     Assert.Equal(0, await Count(page, "#graph-svg path.edge.events"));
 
-    await page.ClickAsync("#graph-filters summary");
-    Assert.False(await page.IsCheckedAsync("input[data-module-kind='document']"));
-    await page.ClickAsync("#graph-show-everything");
-    Assert.Equal("Show…", await page.InnerTextAsync("#graph-filters summary"));
+    await page.ClickAsync("#explorer-show summary");
+    Assert.False(await page.IsCheckedAsync("#explorer-show [data-choice='module:document']"));
+    await page.ClickAsync("#explorer-show [data-show-reset]");
+    Assert.Equal("Show…", await page.InnerTextAsync("#explorer-show summary"));
     Assert.Equal(12, await Count(page, "#graph-svg g.node"));
-    Assert.True(await page.IsCheckedAsync("input[data-module-kind='document']"));
+    Assert.True(await page.IsCheckedAsync("#explorer-show [data-choice='module:document']"));
   }
 
   [Fact]
-  public async Task The_Show_menu_uses_two_columns_at_member_level_unless_they_would_not_fit()
+  public async Task The_Show_menu_fits_in_the_window_beside_the_explorer_and_on_a_narrow_screen()
   {
-    // The widest source panel leaves the graph too narrow for two columns. (With the explorer open as well, there's no
-    // room even for one, so it's closed here.)
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded,
-        initScript: OpenedPage.WithoutExplorer + OpenedPage.WithPanelLocked + "localStorage.setItem('vbadoc-source-size', '0.7');");
-    var page = opened.Page;
-    await ShowMembers(page);
-    const string stacked = "() => document.getElementById('graph-filter-menu').classList.contains('stacked')";
-    const string withinView = @"() => document.getElementById('graph-filter-menu').getBoundingClientRect().right
-            <= document.getElementById('view-graph').getBoundingClientRect().right";
+    const string fits = @"() => {
+      const r = document.getElementById('explorer-show-menu').getBoundingClientRect();
+      return r.left >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight;
+    }";
+    await using var wide = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    await wide.Page.ClickAsync("#explorer-show summary");
+    Assert.True(await wide.Page.EvaluateAsync<bool>(fits));
+    Assert.True(await wide.Page.IsVisibleAsync("#explorer-show [data-choice='private']"));
 
-    await page.ClickAsync("#graph-filters summary");
-    Assert.True(await page.EvaluateAsync<bool>(stacked));
-    Assert.True(await page.EvaluateAsync<bool>(withinView));
-
-    await page.Keyboard.PressAsync("Escape");
-    await page.ClickAsync("#side-panel-toggle");
-    await page.ClickAsync("#graph-filters summary");
-    Assert.False(await page.EvaluateAsync<bool>(stacked));
-    Assert.True(await page.EvaluateAsync<bool>(withinView));
-    Assert.True(await page.IsVisibleAsync("#graph-show-private"));
+    await using var narrow = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, width: 400, height: 760);
+    await narrow.Page.ClickAsync("#explorer-toggle");
+    await narrow.Page.ClickAsync("#explorer-show summary");
+    Assert.True(await narrow.Page.EvaluateAsync<bool>(fits));
   }
 
   [Fact]
@@ -718,7 +710,7 @@ public class GraphTests(PageFixture fixture)
 
     await page.ClickAsync("#graph-svg g.node[data-id='Main']");
     await page.ClickAsync("#graph-legend [data-legend='edge:uses']");
-    await page.ClickAsync("#graph-filters summary");
+    await page.ClickAsync("#explorer-show summary");
     await page.Keyboard.PressAsync("Escape"); // closes the menu only
     Assert.Equal("Main", await Selection(page));
 
