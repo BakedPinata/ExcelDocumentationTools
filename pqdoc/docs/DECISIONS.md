@@ -183,6 +183,16 @@ Reading them is step B2 of the feedback plan.
   Anything else counts as a query; a parameter does too, since it isn't a function.
 - **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
 
+## Hiding and Focus on favourites (1.12.0, step D3b of the feedback plan)
+
+- **Hiding is the shell's** (FR-HTML-16), as vbadoc's is, remembered as `pqdoc-hidden|<workbook or folder name>`. A
+  hidden query is left out of the graph as a filtered one is, and hiding wins over a tick. `pqdoc.shows(id)` is the one
+  record of what the graph shows.
+- **Focus on favourites** shows the favourites and their whole upstream chains (what they use), as focus on a query
+  shows its whole chains, together with the focused query's. It's remembered as `pqdoc-focus-favourites`.
+- **`window.pqdoc`** has `hidden()`, `isHidden(id)`, `toggleHidden(id)`, `shows(id)`, `shownKey()`, `onShownChange(fn)`,
+  `focusFavourites()` and `setFocusFavourites(on)`, as vbadoc's does.
+
 ## The graph's filter, and Expand / Collapse all (1.11.0, step D3a of the feedback plan)
 
 - **The filter is the shell's** (FR-HTML-15), as vbadoc's is, remembered as `pqdoc-filter|<workbook or folder name>`.

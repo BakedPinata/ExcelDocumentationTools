@@ -38,17 +38,27 @@
 //   shell.focusOnClick() / setFocusOnClick(on)   the page's Focus on click setting, remembered as
 //                                      <tool>-focus-on-click and on unless turned off; setting it applies it to the
 //                                      current selection too
-//   shell.items.init({ workbook, exists(id), node(id), describeFilter(ids) })   the workbook (favourites and the
-//                                      filter are remembered per workbook, as <tool>-favourites|<workbook> and
-//                                      <tool>-filter|<workbook>), whether an id is still in it (others are ignored),
-//                                      the explorer node for one, and what the filter shows, such as "5 of 70 modules";
-//                                      call it before setLayouts
+//   shell.items.init({ workbook, exists(id), node(id), describeFilter(ids) })   the workbook (favourites, the filter
+//                                      and hidden items are remembered per workbook, as <tool>-favourites|<workbook>,
+//                                      <tool>-filter|<workbook> and <tool>-hidden|<workbook>), whether an id is still
+//                                      in it (others are ignored), the explorer node for one, and what the filter
+//                                      shows, such as "5 of 70 modules"; call it before setLayouts
 //   shell.filter.active() / has(id) / ids() / clear() / onFilterChange(fn)   the explorer's filter: the items ticked,
 //                                      which the views show alone while any are. What a tick covers (a module's
 //                                      members, say) is the tool's to say, through has()
 //   shell.favourites.list() / has(id) / toggle(id) / onFavouritesChange(fn)   the favourites, in the order starred
 //   shell.favourites.buttonHtml(id)    a star that adds or removes the favourite, for the side panel's header; the
 //                                      explorer's rows have their own, and the shell keeps every star in step
+//   shell.focusFavourites() / setFocusFavourites(on)   whether the views show only the favourites and what they use
+//                                      (with the focused selection's, if any), remembered as <tool>-focus-favourites;
+//                                      false while there are no favourites. Changes are told through onFocusChange
+//   shell.hidden.list() / has(id) / toggle(id) / clear() / onHiddenChange(fn)   the items hidden from every view, in
+//                                      the order hidden. What else goes with one (a module's members) is the tool's
+//                                      to say
+//   shell.hidden.buttonHtml(id)        a button that hides or shows the item, for the side panel's header, kept in step
+//                                      with the explorer's
+//   shell.hidden.noteHtml(id, hiddenNear)   the side panel's note when the item is hidden, or hiddenNear (a count of
+//                                      the items it uses or is used by that are hidden) isn't 0; "" otherwise
 //   Esc clears the selection, through the select function given to explorer.setLayouts, unless an open menu or a box
 //   with text in it takes it first.
 //   shell.source.init(source)          says where the source text comes from (call it once, before start):
@@ -92,7 +102,7 @@
       remove: function (name) { try { localStorage.removeItem(tool + "-" + name); } catch (e) { /* nothing stored */ } }
     };
 
-    var listeners = { theme: [], view: [], focus: [], favourites: [], filter: [] };
+    var listeners = { theme: [], view: [], focus: [], favourites: [], filter: [], hidden: [] };
     function emit(name, value) {
       listeners[name].forEach(function (fn) {
         try { fn(value); } catch (e) { console.error(e); }
@@ -543,7 +553,7 @@
     }, true);
 
     // Open by default on a wide screen, where there's room beside the views; on a narrow one it would push them down.
-    resizablePanel({
+    var explorerPanel = resizablePanel({
       element: "explorer", splitter: "explorer-splitter", toggle: "explorer-toggle", close: "explorer-close",
       end: false, sizeVariable: "--explorer-size", setting: "explorer", hiddenClass: "explorer-hidden",
       min: 0.1, max: 0.4, visibleByDefault: function () { return !stacked.matches; }
@@ -592,7 +602,7 @@
         "<span class=\"tree-label\">" + escapeHtml(node.label) + "</span>" +
         (node.detail ? "<span class=\"tree-detail\">" + escapeHtml(node.detail) + "</span>" : "") +
         (node.badge ? "<span class=\"tree-badge\">" + escapeHtml(node.badge) + "</span>" : "") +
-        (isItem ? starHtml(node.id, "tree-star") : "");
+        (isItem ? hideHtml(node.id, "tree-hide") + starHtml(node.id, "tree-star") : "");
       li.appendChild(row);
 
       if (isItem) {
@@ -637,10 +647,13 @@
       selectedItems = [];
       treeBox.innerHTML = "";
       favouritesItem = null;
+      hiddenItem = null;
       layout.nodes.forEach(function (node) { treeBox.appendChild(treeNode(node, 0)); });
       var first = treeBox.querySelector("li");
       if (first) first.tabIndex = 0;
       renderFavourites();
+      renderHidden();
+      markHidden();
       applyFilter();
       updateChecks();
       reveal(revealedId);
@@ -672,7 +685,9 @@
       favouriteSource = source;
       favourites = loadIds(favouritesKey());
       ticked = new Set(loadIds(filterKey()));
+      hiddenIds = loadIds(hiddenKey());
       updateFilter();
+      updateNotes();
     }
 
     function favouriteList() {
@@ -698,10 +713,198 @@
         button.title = on ? "Remove from favourites" : "Add to favourites";
       });
       renderFavourites();
+      markHidden();
       applyFilter();
       updateChecks();
+      updateNotes();
       reveal(revealedId, true);
       emit("favourites", favouriteList());
+      if (focusFavouritesOn) emit("focus", focused); // the favourites the views focus on changed
+    }
+
+    // ---- Focus on favourites ----
+    //
+    // A page-wide setting, turned on and off from the Favourites group's row: while it's on and there are favourites,
+    // every view shows only them and what they use, as well as the focused selection and what it's connected to.
+
+    var focusFavouritesOn = settings.load("focus-favourites") === "true";
+
+    function focusFavourites() { return focusFavouritesOn && favouriteList().length > 0; }
+
+    function setFocusFavourites(on) {
+      focusFavouritesOn = !!on;
+      settings.save("focus-favourites", focusFavouritesOn ? "true" : "false");
+      document.querySelectorAll("[data-focus-favourites]").forEach(function (button) {
+        button.setAttribute("aria-pressed", focusFavouritesOn ? "true" : "false");
+      });
+      updateNotes();
+      emit("focus", focused);
+    }
+
+    // ---- Hiding ----
+    //
+    // Hiding takes an item out of every view; the tool says what goes with it (a module's members). Hidden with the
+    // button on an explorer row or in the side panel's header, remembered per workbook, and never silent: a hidden
+    // item stays in the layout, marked, and is listed in a Hidden group at the foot of the explorer, to bring back one
+    // at a time or all at once; every view's toolbar counts them; and the side panel says when the selection is hidden
+    // or what it's linked to is. Every hide button has data-hide="<id>", which the shell keeps in step.
+
+    // Drawn for this page: an eye, struck through.
+    var HIDE_ICON = "<svg class=\"icon hide-icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\" focusable=\"false\">" +
+      "<path d=\"M1.75 8S4 4.25 8 4.25 14.25 8 14.25 8 12 11.75 8 11.75 1.75 8 1.75 8z\"/><circle cx=\"8\" cy=\"8\" r=\"1.75\"/>" +
+      "<path d=\"M2.75 13.25l10.5-10.5\"/></svg>";
+    var hiddenIds = [];     // in the order hidden, including any no longer in the workbook
+    var hiddenItem = null;  // the Hidden group in the tree, or null when nothing is hidden
+    var hiddenOpen = false;
+
+    function hiddenKey() { return "hidden|" + favouriteSource.workbook; }
+
+    function hiddenList() {
+      return favouriteSource ? hiddenIds.filter(function (id) { return favouriteSource.exists(id); }) : [];
+    }
+
+    function isHidden(id) { return hiddenList().indexOf(id) >= 0; }
+
+    function hideTitle(on) { return on ? "Show it again in the views" : "Hide it from the views"; }
+
+    function hideHtml(id, className) {
+      var on = isHidden(id);
+      return "<button type=\"button\" class=\"hide-toggle " + className + "\" data-hide=\"" + escapeHtml(id) + "\"" +
+        (className === "tree-hide" ? " tabindex=\"-1\"" : "") + " aria-pressed=\"" + on + "\" aria-label=\"Hidden\" title=\"" +
+        hideTitle(on) + "\">" + HIDE_ICON + "</button>";
+    }
+
+    function setHidden(ids) {
+      hiddenIds = ids;
+      if (favouriteSource) settings.save(hiddenKey(), JSON.stringify(hiddenIds));
+      document.querySelectorAll("[data-hide]").forEach(function (button) {
+        var on = isHidden(button.getAttribute("data-hide"));
+        button.setAttribute("aria-pressed", on ? "true" : "false");
+        button.title = hideTitle(on);
+      });
+      renderHidden();
+      markHidden();
+      applyFilter();
+      updateChecks();
+      updateNotes();
+      reveal(revealedId, true);
+      emit("hidden", hiddenList());
+    }
+
+    function toggleHidden(id) {
+      var next = hiddenIds.filter(function (other) { return other !== id; });
+      if (next.length === hiddenIds.length) next.push(id);
+      setHidden(next);
+    }
+
+    // Marks the layout's hidden items, and what they hold.
+    function markHidden() {
+      var hidden = new Set(hiddenList());
+      treeBox.querySelectorAll("li[data-id]").forEach(function (li) {
+        var on = false;
+        if (!hiddenItem || !hiddenItem.contains(li)) {
+          for (var at = li; at && !on; at = parentItem(at)) on = at.dataset.id !== undefined && hidden.has(at.dataset.id);
+        }
+        li.classList.toggle("hidden-from-views", on);
+      });
+    }
+
+    // The Hidden group: each hidden item once, at the foot of the tree, closed to begin with. Its rows have no
+    // checkboxes, since what's hidden isn't shown whatever's ticked, and their hide buttons bring them back.
+    function renderHidden() {
+      if (hiddenItem) {
+        hiddenOpen = hiddenItem.getAttribute("aria-expanded") === "true";
+        removeGroup(hiddenItem);
+        hiddenItem = null;
+      }
+      var ids = hiddenList();
+      if (ids.length === 0 || !favouriteSource) return;
+      hiddenItem = treeNode({
+        label: "Hidden",
+        detail: String(ids.length),
+        title: "Hidden from the views",
+        className: "hidden-items",
+        expanded: hiddenOpen,
+        children: ids.map(function (id) {
+          var node = Object.assign({}, favouriteSource.node(id), { id: id });
+          delete node.children;
+          return node;
+        })
+      }, 0);
+      hiddenItem.querySelectorAll(".tree-check").forEach(function (box) { box.remove(); });
+      hiddenItem.querySelector(":scope > .tree-row").insertAdjacentHTML("beforeend",
+        "<button type=\"button\" class=\"link-button tree-action\" data-unhide-all tabindex=\"-1\" title=\"Show every hidden item in the views again\">Show all</button>");
+      treeBox.appendChild(hiddenItem);
+    }
+
+    // Opens the explorer at the Hidden group, from a toolbar's count.
+    function showHiddenGroup() {
+      if (!hiddenItem) return;
+      explorerPanel.setVisible(true, false);
+      setExpanded(hiddenItem, true);
+      focusItem(hiddenItem);
+      hiddenItem.scrollIntoView({ block: "nearest" });
+    }
+
+    function noteHtml(id, hiddenNear) {
+      var parts = [];
+      if (isHidden(id)) {
+        parts.push("Hidden from the views. <button type=\"button\" class=\"link-button\" data-hide=\"" + escapeHtml(id) + "\">Show it</button>");
+      }
+      if (hiddenNear > 0) {
+        parts.push(hiddenNear + (hiddenNear === 1 ? " item it's linked to is" : " items it's linked to are") + " hidden from the views" +
+          (hiddenList().length > 0 ? " (<button type=\"button\" class=\"link-button\" data-show-hidden>list</button>)" : "") + ".");
+      }
+      return parts.length === 0 ? "" : "<p class=\"hidden-note\" role=\"note\">" + parts.join(" ") + "</p>";
+    }
+
+    // ---- Notes in every view's toolbar ----
+    //
+    // What limits what the views show, each with its way out: Focus on favourites, the filter (below) and hiding.
+
+    var favouritesNotes = [];
+    var hiddenNotes = [];
+    document.querySelectorAll(".view-toolbar").forEach(function (toolbar) {
+      var favouritesNote = document.createElement("span");
+      favouritesNote.className = "toolbar-note view-favourites-note";
+      favouritesNote.hidden = true;
+      favouritesNote.innerHTML = "<span>Favourites and what they use</span> <button type=\"button\" class=\"link-button\" data-focus-favourites-off>Show all</button>";
+      toolbar.appendChild(favouritesNote);
+      favouritesNotes.push(favouritesNote);
+    });
+
+    function updateNotes() {
+      var count = hiddenList().length;
+      hiddenNotes.forEach(function (note) {
+        note.hidden = count === 0;
+        note.firstChild.textContent = count + " hidden";
+      });
+      favouritesNotes.forEach(function (note) { note.hidden = !focusFavourites(); });
+    }
+
+    // One handler for every hide button, the Hidden group's Show all, the notes' links and the Favourites group's Focus.
+    document.addEventListener("click", function (event) {
+      if (!event.target.closest) return;
+      var hide = event.target.closest("[data-hide]");
+      if (hide) { event.preventDefault(); toggleHidden(hide.getAttribute("data-hide")); return; }
+      if (event.target.closest("[data-unhide-all]")) setHidden([]);
+      else if (event.target.closest("[data-show-hidden]")) showHiddenGroup();
+      else if (event.target.closest("[data-focus-favourites]")) setFocusFavourites(!focusFavouritesOn);
+      else if (event.target.closest("[data-focus-favourites-off]")) setFocusFavourites(false);
+    });
+
+    // Takes a group drawn by the shell (Favourites, Hidden) out of the tree, with its items.
+    function removeGroup(group) {
+      group.querySelectorAll("li[data-id]").forEach(function (li) {
+        var list = itemsById.get(li.dataset.id) || [];
+        list.splice(list.indexOf(li), 1);
+        if (list.length === 0) itemsById.delete(li.dataset.id);
+        var selectedAt = selectedItems.indexOf(li);
+        if (selectedAt >= 0) selectedItems.splice(selectedAt, 1);
+      });
+      var hadFocusStop = group.querySelector("li[tabindex=\"0\"]") || group.tabIndex === 0;
+      group.remove();
+      if (hadFocusStop && treeBox.querySelector("li")) treeBox.querySelector("li").tabIndex = 0;
     }
 
     // ---- The explorer's filter ----
@@ -722,6 +925,12 @@
       note.innerHTML = "<span></span> <button type=\"button\" class=\"link-button\" data-filter-clear>Clear</button>";
       toolbar.appendChild(note);
       filterNotes.push(note);
+      var hiddenNote = document.createElement("span");
+      hiddenNote.className = "toolbar-note view-hidden-note";
+      hiddenNote.hidden = true;
+      hiddenNote.innerHTML = "<button type=\"button\" class=\"link-button\" data-show-hidden title=\"List them in the explorer, to show them again\"></button>";
+      toolbar.appendChild(hiddenNote);
+      hiddenNotes.push(hiddenNote);
     });
 
     function filterKey() { return "filter|" + favouriteSource.workbook; }
@@ -830,17 +1039,8 @@
     function renderFavourites() {
       if (favouritesItem) {
         favouritesOpen = favouritesItem.getAttribute("aria-expanded") !== "false";
-        favouritesItem.querySelectorAll("li[data-id]").forEach(function (li) {
-          var list = itemsById.get(li.dataset.id) || [];
-          list.splice(list.indexOf(li), 1);
-          if (list.length === 0) itemsById.delete(li.dataset.id);
-          var selectedAt = selectedItems.indexOf(li);
-          if (selectedAt >= 0) selectedItems.splice(selectedAt, 1);
-        });
-        var hadFocusStop = favouritesItem.querySelector("li[tabindex=\"0\"]") || favouritesItem.tabIndex === 0;
-        favouritesItem.remove();
+        removeGroup(favouritesItem);
         favouritesItem = null;
-        if (hadFocusStop && treeBox.querySelector("li")) treeBox.querySelector("li").tabIndex = 0;
       }
       var ids = favouriteList();
       if (ids.length === 0 || !favouriteSource) return;
@@ -855,6 +1055,9 @@
           return node;
         })
       }, 0);
+      favouritesItem.querySelector(":scope > .tree-row").insertAdjacentHTML("beforeend",
+        "<button type=\"button\" class=\"tree-action focus-favourites\" data-focus-favourites aria-pressed=\"" + focusFavouritesOn +
+        "\" title=\"Focus on favourites: show only them and what they use, in every view\">Focus</button>");
       treeBox.insertBefore(favouritesItem, treeBox.firstChild);
     }
 
@@ -911,7 +1114,7 @@
     }
 
     treeBox.addEventListener("click", function (event) {
-      if (event.target.closest(".favourite-toggle")) return; // the star, which the favourites' own handler toggles
+      if (event.target.closest(".favourite-toggle, .hide-toggle, .tree-action")) return; // buttons with handlers of their own
       var li = event.target.closest("li");
       if (li && treeBox.contains(li) && event.target.closest(".tree-check")) {
         toggleTick(li);
@@ -1013,7 +1216,9 @@
       selectedItems = revealedId === null ? [] : (itemsById.get(revealedId) || []).slice();
       if (selectedItems.length === 0) return;
       selectedItems.forEach(function (li) { li.setAttribute("aria-selected", "true"); });
-      var main = selectedItems.filter(function (li) { return !favouritesItem || !favouritesItem.contains(li); })[0] || selectedItems[0];
+      var main = selectedItems.filter(function (li) {
+        return (!favouritesItem || !favouritesItem.contains(li)) && (!hiddenItem || !hiddenItem.contains(li));
+      })[0] || selectedItems[0];
       if (quiet) return;
       for (var at = parentItem(main); at; at = parentItem(at)) setExpanded(at, true);
       treeBox.querySelectorAll("li[tabindex=\"0\"]").forEach(function (other) { other.tabIndex = -1; });
@@ -1101,6 +1306,17 @@
         buttonHtml: function (id) { return starHtml(id, "panel-star"); }
       },
       onFavouritesChange: function (fn) { listeners.favourites.push(fn); },
+      focusFavourites: focusFavourites,
+      setFocusFavourites: setFocusFavourites,
+      hidden: {
+        list: hiddenList,
+        has: isHidden,
+        toggle: toggleHidden,
+        clear: function () { setHidden([]); },
+        buttonHtml: function (id) { return hideHtml(id, "panel-hide"); },
+        noteHtml: noteHtml
+      },
+      onHiddenChange: function (fn) { listeners.hidden.push(fn); },
       source: {
         init: initSource,
         has: function (id) { return sources.has(id); },

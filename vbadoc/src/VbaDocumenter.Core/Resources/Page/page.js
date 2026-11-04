@@ -13,6 +13,12 @@
 //   vbadoc.favourites() / isFavourite(id) / toggleFavourite(id) / onFavouritesChange(fn)  the favourite modules and members (the shell's)
 //   vbadoc.inFilter(id) / filterActive() / filterKey() / onFilterChange(fn)  whether the explorer's filter shows a module
 //                                     or member (a ticked module brings its members, a ticked member its module)
+//   vbadoc.hidden() / isHidden(id) / toggleHidden(id)   the items hidden from the views (a hidden module takes its
+//                                     members with it)
+//   vbadoc.shows(id) / shownKey() / onShownChange(fn)   whether the views show a module or member: in the filter and
+//                                     not hidden. The key changes with either
+//   vbadoc.focusFavourites() / setFocusFavourites(on)   whether the views show only the favourites and what they use
+//                                     (with the focused selection's); changes come through onFocusChange
 (function () {
   "use strict";
 
@@ -65,7 +71,7 @@
   var escapeHtml = shell.escapeHtml;
   var settings = shell.settings;
 
-  var listeners = { selection: [] };
+  var listeners = { selection: [], shown: [] };
   function emit(name, value) {
     listeners[name].forEach(function (fn) {
       try { fn(value); } catch (e) { console.error(e); }
@@ -141,6 +147,42 @@
     return member ? shell.filter.has(member.module) : modulesWithTickedMembers.has(id);
   }
 
+  // ---- What the views show ----
+  //
+  // What's in the filter and not hidden. A hidden module takes its members with it; a hidden member goes alone.
+
+  var hiddenNow = new Set();
+
+  function isHidden(id) {
+    if (hiddenNow.has(id)) return true;
+    var member = membersById.get(id);
+    return !!member && hiddenNow.has(member.module);
+  }
+
+  function shows(id) { return inFilter(id) && !isHidden(id); }
+
+  function shownKey() {
+    return shell.filter.ids().slice().sort().join("|") + "\u0000" + shell.hidden.list().slice().sort().join("|");
+  }
+
+  shell.onFilterChange(function () { emit("shown"); });
+  shell.onHiddenChange(function () {
+    hiddenNow = new Set(shell.hidden.list());
+    if (selection !== null) renderHeader(modulesById.get(membersById.has(selection) ? membersById.get(selection).module : selection), membersById.get(selection) || null);
+    emit("shown");
+  });
+
+  // How many of the items the selection is linked to, either way, are hidden.
+  function hiddenNear(id, index) {
+    var near = new Set();
+    (index.uses.get(id) || []).forEach(function (e) { near.add(e.to); });
+    (index.usedBy.get(id) || []).forEach(function (e) { near.add(e.from); });
+    near.delete(id);
+    var count = 0;
+    near.forEach(function (other) { if (isHidden(other)) count++; });
+    return count;
+  }
+
   // ---- Back and Forward ----
   //
   // Each selection is added to the browser's history as the page address's #fragment (e.g. Sales-vba.html#Order.Save),
@@ -214,8 +256,9 @@
         ? " <span class=\"edge-tag " + e.kind + "\" title=\"" + EDGE_TITLES[e.kind][direction] + "\">" + EDGE_TAGS[e.kind][direction] + "</span>"
         : "";
       var count = e.count > 1 ? " <span class=\"muted\" title=\"Number of references\">×" + e.count + "</span>" : "";
+      var hidden = isHidden(entry.id) ? " <span class=\"hidden-tag\" title=\"Hidden from the views\">hidden</span>" : "";
       return "<li><a href=\"#\" data-select=\"" + escapeHtml(entry.id) + "\">" + escapeHtml(entry.text.name) + "</a>" +
-        " <span class=\"muted\">" + escapeHtml(entry.text.detail) + "</span>" + tag + count + "</li>";
+        " <span class=\"muted\">" + escapeHtml(entry.text.detail) + "</span>" + tag + count + hidden + "</li>";
     }).join("") + "</ul>";
   }
 
@@ -239,7 +282,7 @@
   function renderHeader(module, member) {
     var html;
     if (member) {
-      html = "<h2>" + escapeHtml(member.name) + shell.favourites.buttonHtml(member.id) + "<span class=\"kind\">" + escapeHtml(KIND_LABELS[member.kind] || member.kind) +
+      html = "<h2>" + escapeHtml(member.name) + shell.favourites.buttonHtml(member.id) + shell.hidden.buttonHtml(member.id) + "<span class=\"kind\">" + escapeHtml(KIND_LABELS[member.kind] || member.kind) +
         " in <a href=\"#\" data-select=\"" + escapeHtml(module.id) + "\">" + escapeHtml(module.id) + "</a></span></h2>" +
         "<p class=\"signature\">" + escapeHtml(member.signature) + "</p>";
       var badges = [];
@@ -264,10 +307,14 @@
           (showWholeModule ? "Show this member only" : "Show in the whole module") + "</button></div>";
       }
     } else {
-      html = "<h2>" + escapeHtml(module.id) + shell.favourites.buttonHtml(module.id) + "<span class=\"kind\">" + escapeHtml(moduleKindLabel(module)) + "</span></h2>" +
+      html = "<h2>" + escapeHtml(module.id) + shell.favourites.buttonHtml(module.id) + shell.hidden.buttonHtml(module.id) + "<span class=\"kind\">" + escapeHtml(moduleKindLabel(module)) + "</span></h2>" +
         "<p class=\"signature\">" + escapeHtml(module.file) + " · " + module.lines + " lines</p>";
     }
-    html += dependenciesHtml(member ? member.id : module.id, member ? memberEdges : moduleEdges, member ? module.id : null);
+    var shownId = member ? member.id : module.id;
+    var index = member ? memberEdges : moduleEdges;
+    // A member hidden with its module says so as the module would.
+    html += shell.hidden.noteHtml(member && !shell.hidden.has(member.id) && isHidden(member.id) ? module.id : shownId, hiddenNear(shownId, index));
+    html += dependenciesHtml(shownId, index, member ? module.id : null);
     panelHeader.innerHTML = html;
 
     var toggle = $("toggle-context");
@@ -491,6 +538,14 @@
     filterActive: shell.filter.active,
     filterKey: function () { return shell.filter.ids().slice().sort().join("|"); },
     onFilterChange: shell.onFilterChange,
+    hidden: shell.hidden.list,
+    isHidden: isHidden,
+    toggleHidden: shell.hidden.toggle,
+    shows: shows,
+    shownKey: shownKey,
+    onShownChange: function (fn) { listeners.shown.push(fn); },
+    focusFavourites: shell.focusFavourites,
+    setFocusFavourites: shell.setFocusFavourites,
     onFavouritesChange: shell.onFavouritesChange
   };
 
@@ -512,6 +567,7 @@
     }
   });
   refreshFilter();
+  hiddenNow = new Set(shell.hidden.list());
   shell.explorer.setLayouts(explorerLayouts(), select);
   shell.start();
   // The views read the selection when they first draw, so an address's selection is made before they do.

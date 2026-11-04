@@ -10,6 +10,10 @@
 //   pqdoc.focusOnClick() / setFocusOnClick(on)  the page's Focus on click setting (the graph's Focus button)
 //   pqdoc.favourites() / isFavourite(id) / toggleFavourite(id) / onFavouritesChange(fn)  the favourite queries (the shell's)
 //   pqdoc.inFilter(id) / filterActive() / filterKey() / onFilterChange(fn)  whether the explorer's filter shows a query
+//   pqdoc.hidden() / isHidden(id) / toggleHidden(id)   the queries hidden from the graph
+//   pqdoc.shows(id) / shownKey() / onShownChange(fn)   whether the graph shows a query: in the filter and not hidden
+//   pqdoc.focusFavourites() / setFocusFavourites(on)   whether the graph shows only the favourites and what they use
+//                                     (with the focused selection's); changes come through onFocusChange
 //   pqdoc.theme() / onThemeChange(fn)  "light" or "dark"
 //   pqdoc.activeView() / onViewChange(fn)  "graph"
 //   pqdoc.matches() / onSearchChange(fn)  the ids the search box matches (a Set), or null when it's empty
@@ -53,7 +57,7 @@
 
   var escapeHtml = shell.escapeHtml;
 
-  var listeners = { selection: [], search: [] };
+  var listeners = { selection: [], search: [], shown: [] };
   function emit(name, value) {
     listeners[name].forEach(function (fn) {
       try { fn(value); } catch (e) { console.error(e); }
@@ -136,8 +140,34 @@
   function queryList(ids) {
     if (ids.length === 0) return "<p class=\"muted none\">None</p>";
     return "<ul>" + ids.slice().sort(byName).map(function (id) {
-      return "<li><a href=\"#\" data-select=\"" + escapeHtml(id) + "\">" + escapeHtml(id) + "</a></li>";
+      return "<li><a href=\"#\" data-select=\"" + escapeHtml(id) + "\">" + escapeHtml(id) + "</a>" +
+        (shell.hidden.has(id) ? " <span class=\"hidden-tag\" title=\"Hidden from the graph\">hidden</span>" : "") + "</li>";
     }).join("") + "</ul>";
+  }
+
+  // ---- What the graph shows ----
+  //
+  // What's in the filter and not hidden.
+
+  function shows(id) { return (!shell.filter.active() || shell.filter.has(id)) && !shell.hidden.has(id); }
+
+  function shownKey() {
+    return shell.filter.ids().slice().sort().join("|") + "\u0000" + shell.hidden.list().slice().sort().join("|");
+  }
+
+  shell.onFilterChange(function () { emit("shown"); });
+  shell.onHiddenChange(function () {
+    if (selection !== null) renderDetails();
+    emit("shown");
+  });
+
+  // How many of the queries the selection uses or is used by are hidden.
+  function hiddenNear(id) {
+    var near = new Set(uses.get(id).concat(usedBy.get(id)));
+    near.delete(id);
+    var count = 0;
+    near.forEach(function (other) { if (shell.hidden.has(other)) count++; });
+    return count;
   }
 
   function renderDetails() {
@@ -150,8 +180,9 @@
     var query = queriesById.get(selection);
     var upstream = chain(selection, uses).size;
     var downstream = chain(selection, usedBy).size;
-    panelHeader.innerHTML = "<h2>" + escapeHtml(query.id) + shell.favourites.buttonHtml(query.id) + "</h2><p class=\"muted\" id=\"details-role\">" + ROLE_TEXT[query.role] +
-      (query.inCycle ? " Part of a circular dependency." : "") + "</p>";
+    panelHeader.innerHTML = "<h2>" + escapeHtml(query.id) + shell.favourites.buttonHtml(query.id) + shell.hidden.buttonHtml(query.id) +
+      "</h2><p class=\"muted\" id=\"details-role\">" + ROLE_TEXT[query.role] +
+      (query.inCycle ? " Part of a circular dependency." : "") + "</p>" + shell.hidden.noteHtml(query.id, hiddenNear(query.id));
     panelBody.innerHTML =
       "<h3><span class=\"swatch upstream\" aria-hidden=\"true\"></span>Uses (" + uses.get(selection).length + ")</h3>" +
       "<div id=\"details-uses\">" + queryList(uses.get(selection)) + "</div>" +
@@ -284,6 +315,14 @@
     filterActive: shell.filter.active,
     filterKey: function () { return shell.filter.ids().slice().sort().join("|"); },
     onFilterChange: shell.onFilterChange,
+    hidden: shell.hidden.list,
+    isHidden: shell.hidden.has,
+    toggleHidden: shell.hidden.toggle,
+    shows: shows,
+    shownKey: shownKey,
+    onShownChange: function (fn) { listeners.shown.push(fn); },
+    focusFavourites: shell.focusFavourites,
+    setFocusFavourites: shell.setFocusFavourites,
     onFavouritesChange: shell.onFavouritesChange,
     focused: shell.focused,
     onFocusChange: shell.onFocusChange,

@@ -128,8 +128,8 @@ of generated pages, because changing one changes every page.
   style. The shell's interface is written at the top of `shell.js`.
 - **The explorer** is the shell's left panel: each tool fills its tree with what the page documents, in one or more
   layouts (such as folders and kinds), and the shell does the rest (the switch between layouts, filter, keyboard,
-  following the selection, hiding and resizing, Expand / Collapse all, favourites, listed at its top, and the views'
-  filter, ticked on its rows).
+  following the selection, hiding and resizing, Expand / Collapse all, favourites, listed at its top, the views'
+  filter, ticked on its rows, and hidden items, listed at its foot).
 - **Focus on click, Ctrl+click and Esc work the same in every view of both tools:** one Focus on click setting for the
   page, on by default; Ctrl+click (Cmd+click) does the other thing for a click; Esc clears the selection, after an open
   menu or a box with text in it. A new view follows `focused()` from the shell.

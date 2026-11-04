@@ -452,6 +452,27 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Hiding and Focus on favourites (0.19.0, step D3b of the feedback plan)
+
+- **Hiding is the shell's,** as favourites and the filter are, remembered per workbook as `vbadoc-hidden|<workbook file
+  name>`. vbadoc says what goes with an item: a hidden module takes its members (in the graph at member level, and
+  their rows are struck through under it), and a hidden member goes alone, leaving its module and its module's box,
+  which no longer lists it.
+- **What the views show is one record,** `vbadoc.shows(id)`: in the filter and not hidden, so hiding wins over a tick.
+  The graph and class diagram draw from it and redraw on `onShownChange`; the graph keeps a layout per filter and
+  hidden set, as per level.
+- **The panel's note** says when the selection is hidden (with Show it, which for a member hidden with its module
+  shows the module) or how many of the items it's linked to, either way, are; those are tagged "hidden" in its
+  dependencies. The count is of items, not edges.
+- **Focus on favourites** (the plan's "Focus can take the favourites as well as the selection") is a page-wide setting,
+  `vbadoc-focus-favourites`, turned on from the Favourites group's row, not per workbook, as Focus on click isn't. It
+  adds to the focused selection rather than replacing it: the graph shows what the selection's focus shows and the
+  favourites with what they use, as far as the reach setting goes; the class diagram, the favourites' modules and the
+  modules they use. The graph is drawn again only when what decides it changes, so clicking around inside it keeps
+  the layout.
+- **`window.vbadoc`** has `hidden()`, `isHidden(id)`, `toggleHidden(id)`, `shows(id)`, `shownKey()`,
+  `onShownChange(fn)`, `focusFavourites()` and `setFocusFavourites(on)`.
+
 ### The views' filter, and Expand / Collapse all (0.18.0, step D3a of the feedback plan)
 
 - **The filter is the shell's** (see `shared/README.md`), as favourites are, so pqdoc has it too, and it's remembered

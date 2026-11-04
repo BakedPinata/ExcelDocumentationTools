@@ -220,7 +220,7 @@
     function moduleShown(moduleId) { return !show.hiddenModuleKinds.has(moduleKindOf(vb.modulesById.get(moduleId))); }
     if (state.level === "modules") {
       data.modules.forEach(function (m) {
-        if (!moduleShown(m.id) || !vb.inFilter(m.id)) return;
+        if (!moduleShown(m.id) || !vb.shows(m.id)) return;
         var style = moduleStyle(m);
         nodes.push({
           id: m.id, module: m.id, label: m.id, group: style.group, shape: style.shape, hollow: !!style.hollow,
@@ -232,7 +232,7 @@
     } else {
       data.members.forEach(function (m) {
         var category = categoryOfKind[m.kind];
-        if (!moduleShown(m.module) || show.hiddenCategories.has(category.id) || !vb.inFilter(m.id)) return;
+        if (!moduleShown(m.module) || show.hiddenCategories.has(category.id) || !vb.shows(m.id)) return;
         if (show.references === "unreferenced" && !m.unreferenced) return;
         if (show.references === "referenced" && m.unreferenced) return;
         if (!show.privateMembers && m.visibility === "private") return;
@@ -245,7 +245,7 @@
       });
       // Each module also has a node for references to the module itself (e.g. "As Order", "Sheet1.Range").
       data.modules.forEach(function (m) {
-        if (!moduleShown(m.id) || !vb.inFilter(m.id)) return;
+        if (!moduleShown(m.id) || !vb.shows(m.id)) return;
         nodes.push({
           id: m.id, module: m.id, label: m.id, group: moduleStyle(m).group, shape: d3.symbolCircle, r: size * 7,
           title: moduleStyle(m).label + " (the module itself)", isModuleNode: true, minor: true
@@ -695,7 +695,7 @@
     var show = state.show;
     return state.level + "|" + JSON.stringify([
       Array.from(show.hiddenModuleKinds).sort(), Array.from(show.hiddenCategories).sort(), Array.from(show.hiddenEdgeKinds).sort(),
-      show.references, show.privateMembers, show.unconnected, vb.filterKey()]);
+      show.references, show.privateMembers, show.unconnected, vb.shownKey()]);
   }
 
   function keepLayout() {
@@ -727,13 +727,24 @@
     var full = buildFullGraph();
     graph = full;
     state.focused = false;
+    state.focusKey = focusKey();
     if (focusing()) {
-      var start = selectedIds(full);
-      if (start.length > 0) {
-        var reached = reach(full, start, settings.reach === "transitive", state.direction);
+      // The focused selection and what it's connected to, and with Focus on favourites, the favourites and what they use.
+      var transitive = settings.reach === "transitive";
+      var start = vb.focused() ? selectedIds(full) : [];
+      var favourites = [];
+      if (vb.focusFavourites()) {
+        vb.favourites().forEach(function (id) {
+          idsAtLevel(full, id).forEach(function (nodeId) { if (favourites.indexOf(nodeId) < 0) favourites.push(nodeId); });
+        });
+      }
+      var reached = [];
+      if (start.length > 0) reached.push(reach(full, start, transitive, state.direction));
+      if (favourites.length > 0) reached.push(reach(full, favourites, transitive, "dependencies"));
+      if (reached.length > 0) {
         graph = indexGraph(
-          full.nodes.filter(function (n) { return reached.nodes.has(n.id); }),
-          full.edges.filter(function (e) { return reached.edges.has(e); }));
+          full.nodes.filter(function (n) { return reached.some(function (r) { return r.nodes.has(n.id); }); }),
+          full.edges.filter(function (e) { return reached.some(function (r) { return r.edges.has(e); }); }));
         state.focused = true;
       }
     }
@@ -1282,7 +1293,7 @@
     button.addEventListener("click", function () {
       state.direction = button.getAttribute("data-direction");
       saveSetting("vbadoc-graph-direction", state.direction);
-      if (state.focused) render(); else highlight();
+      if (focusKey() !== state.focusKey) render(); else highlight();
     });
   });
 
@@ -1291,12 +1302,19 @@
 
   // Whether to draw only the selection's neighbourhood: when the selection is focused, unless the path is shown,
   // which is found in the whole graph.
-  function focusing() { return vb.focused() && !state.path; }
+  function focusing() { return (vb.focused() || vb.focusFavourites()) && !state.path; }
+
+  // What decides the focused graph, so it's drawn again only when that changes.
+  function focusKey() {
+    if (!focusing()) return "";
+    return [vb.focused() ? vb.selection() + "\u0001" + state.direction : "", vb.focusFavourites() ? vb.favourites().join("|") : "",
+      settings.reach].join("\u0000");
+  }
 
   pathButton.addEventListener("click", function () {
     state.path = !state.path;
     if (state.path) state.legend.clear();
-    if (state.focused !== focusing()) render(); else highlight();
+    if (focusKey() !== state.focusKey) render(); else highlight();
   });
 
   document.getElementById("graph-fit").addEventListener("click", function () { fit(true); });
@@ -1438,7 +1456,7 @@
     saveSetting("vbadoc-graph-settings", JSON.stringify(settings));
     if (!graph) return;
     if (control.relight) {
-      if (state.focused) render(); else highlight();
+      if (focusKey() !== state.focusKey) render(); else highlight();
       return;
     }
     // Layouts kept for other graphs were made with the old setting (the one drawn moves to the new one, and is kept
@@ -1499,17 +1517,17 @@
 
   vb.onSelectionChange(function () {
     if (!started) return;
-    if (state.focused || focusing()) render(); else highlight();
+    if (focusKey() !== state.focusKey) render(); else highlight();
   });
   // The Focus button shows the page's setting even before the graph is first drawn.
   focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false");
   vb.onFocusChange(function () {
     if (!started) { focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false"); return; }
-    if (state.focused !== focusing()) render(); else updateToolbar();
+    if (focusKey() !== state.focusKey) render(); else updateToolbar();
   });
   vb.onViewChange(drawIfVisible);
-  // The explorer's filter changes what's drawn.
-  vb.onFilterChange(function () { if (started && vb.activeView() === "graph") render(); else if (started) needsDrawing = true; });
+  // The explorer's filter and hiding change what's drawn.
+  vb.onShownChange(function () { if (started && vb.activeView() === "graph") render(); else if (started) needsDrawing = true; });
 
   vb.onFavouritesChange(function () {
     if (!started) return;

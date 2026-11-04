@@ -311,9 +311,10 @@ body.resizing { cursor: col-resize; user-select: none; }
 .tree li[aria-expanded="false"] > .tree-row .tree-twisty::before { content: "\25B8"; } /* right-pointing small triangle */
 .tree.filtering li.open-for-filter > .tree-row .tree-twisty::before { content: "\25BE"; }
 .tree-icon { flex: none; align-self: center; width: 14px; height: 14px; color: var(--text-muted); }
-.tree-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* When the row is short of room, the detail (such as a module's kind) gives way before the name. */
+.tree-label { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .tree li.group > .tree-row .tree-label { font-weight: 600; }
-.tree-detail { flex: none; color: var(--text-muted); font-size: 12px; }
+.tree-detail { flex: 0 1000 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); font-size: 12px; }
 .tree-badge { flex: none; padding: 0 6px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-muted); font-size: 11px; }
 .tree li.unreferenced > .tree-row .tree-label { font-style: italic; color: var(--text-muted); }
 .tree li.match > .tree-row .tree-label { font-weight: 600; }
@@ -325,11 +326,33 @@ body.resizing { cursor: col-resize; user-select: none; }
 .favourite-toggle[aria-pressed="true"] { color: var(--warn); }
 .favourite-toggle[aria-pressed="true"] .icon { fill: currentColor; }
 .favourite-toggle .icon { width: 14px; height: 14px; }
-.tree-star { flex: none; align-self: center; margin-left: auto; visibility: hidden; }
+.tree-star { flex: none; align-self: center; visibility: hidden; }
 .tree-row:hover .tree-star, .tree li:focus-visible > .tree-row .tree-star, .tree-star[aria-pressed="true"] { visibility: visible; }
 .panel-star { margin-left: 4px; vertical-align: -2px; }
 .panel-star .icon { width: 15px; height: 15px; }
 .tree li.favourites > .tree-row .tree-label { color: var(--warn); }
+
+/* Hiding: a struck-through eye beside each item's star, shown on hover and always once it's hidden, and in the side
+   panel's header; hidden items are struck through where they are, and listed in the Hidden group at the foot. */
+.hide-toggle { display: inline-flex; align-items: center; padding: 1px 3px; border: 0; border-radius: var(--radius); background: none; color: var(--text-muted); cursor: pointer; }
+.hide-toggle:hover { color: var(--text); background: var(--surface-2); }
+.hide-toggle[aria-pressed="true"] { color: var(--text); }
+.hide-toggle .icon { width: 14px; height: 14px; }
+.tree-hide { flex: none; align-self: center; margin-left: auto; visibility: hidden; }
+.tree-row:hover .tree-hide, .tree li:focus-visible > .tree-row .tree-hide, .tree-hide[aria-pressed="true"] { visibility: visible; }
+.panel-hide { margin-left: 2px; vertical-align: -2px; }
+.panel-hide .icon { width: 15px; height: 15px; }
+.tree li.hidden-from-views > .tree-row .tree-label { color: var(--text-muted); text-decoration: line-through; }
+.tree li.hidden-items > .tree-row .tree-label { color: var(--text-muted); }
+.tree li.hidden-items li > .tree-row .tree-label { text-decoration: none; }
+.tree-action { flex: none; align-self: center; margin-left: auto; font-size: 12px; }
+button.tree-action:not(.link-button) { padding: 0 8px; border: 1px solid var(--border); border-radius: 999px; background: none; color: var(--text-muted); cursor: pointer; }
+button.tree-action[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.hidden-tag { padding: 0 5px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-muted); font-size: 11px; }
+.hidden-note { margin: 6px 0; padding: 4px 8px; border-left: 3px solid var(--text-muted); color: var(--text-muted); font-size: 13px; }
+.view-hidden-note, .view-favourites-note { padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); font-size: 12px; }
+.view-favourites-note { border-color: var(--warn); }
+.view-hidden-note[hidden], .view-favourites-note[hidden] { display: none; }
 
 /* ---- Side panel: the tool fills the header and the body ---- */
 

@@ -322,22 +322,33 @@
   // them. Clearing the selection, or a selection that isn't focused or is filtered out, shows them all again. Focus is
   // the page's Focus on click setting, shared with the other views' Focus buttons.
 
-  var shownKey = null; // what decided the last showing: the focused query and the filter
-  var shown = null;     // the ids shown while focused or filtered, or null for all
+  var showingKey = null; // what decided the last showing: focus, the filter and what's hidden
+  var shown = null;       // the ids shown while focused, filtered or with queries hidden, or null for all
 
   // Shows what the explorer's filter keeps, and of that, the focused query's chains. Returns whether that changed, in
   // which case the view was fitted.
   function applyFocus(duration) {
     focusButton.setAttribute("aria-pressed", pq.focusOnClick() ? "true" : "false");
-    var wanted = pq.focused() && pq.inFilter(pq.selection()) ? pq.selection() : null; // a query filtered out isn't drawn
-    var key = (wanted === null ? "" : wanted) + "\u0000" + pq.filterKey();
-    if (key === shownKey) return false;
-    shownKey = key;
-    shown = pq.filterActive() ? new Set(nodes.filter(function (n) { return pq.inFilter(n.id); }).map(function (n) { return n.id; })) : null;
-    if (wanted !== null) {
-      var chains = new Set([wanted]);
-      pq.upstream(wanted).forEach(function (id) { chains.add(id); });
-      pq.downstream(wanted).forEach(function (id) { chains.add(id); });
+    var wanted = pq.focused() && pq.shows(pq.selection()) ? pq.selection() : null; // a query not shown isn't focused on
+    var favourites = pq.focusFavourites() ? pq.favourites() : [];
+    var key = [wanted === null ? "" : wanted, favourites.join("|"), pq.shownKey()].join("\u0000");
+    if (key === showingKey) return false;
+    showingKey = key;
+    shown = pq.filterActive() || pq.hidden().length > 0
+      ? new Set(nodes.filter(function (n) { return pq.shows(n.id); }).map(function (n) { return n.id; }))
+      : null;
+    if (wanted !== null || favourites.length > 0) {
+      // The focused query's chains both ways, and with Focus on favourites, the favourites and what they use.
+      var chains = new Set();
+      if (wanted !== null) {
+        chains.add(wanted);
+        pq.upstream(wanted).forEach(function (id) { chains.add(id); });
+        pq.downstream(wanted).forEach(function (id) { chains.add(id); });
+      }
+      favourites.forEach(function (favourite) {
+        chains.add(favourite);
+        pq.upstream(favourite).forEach(function (id) { chains.add(id); });
+      });
       shown = shown ? new Set(Array.from(chains).filter(function (id) { return shown.has(id); })) : chains;
     }
     node.classed("out-of-focus", function (n) { return shown !== null && !shown.has(n.id); });
@@ -518,7 +529,7 @@
     var n = id !== null && pq.activeView() === "graph" ? nodes.find(function (q) { return q.id === id; }) : null;
     if (n && (!clickedInGraph || (pq.panelFollowing() && !inView(n)))) centreOn(n);
   });
-  pq.onFilterChange(function () { if (started && pq.activeView() === "graph") applyFocus(300); });
+  pq.onShownChange(function () { if (started && pq.activeView() === "graph") applyFocus(300); });
   pq.onFocusChange(function () {
     if (started && pq.activeView() === "graph") applyFocus(300);
     else focusButton.setAttribute("aria-pressed", pq.focusOnClick() ? "true" : "false");

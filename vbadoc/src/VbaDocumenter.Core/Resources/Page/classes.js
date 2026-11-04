@@ -39,7 +39,8 @@
   ];
 
   var state = {
-    focusModule: null,  // the module the focused diagram is drawn around, or null when it shows every module
+    focusIds: null,     // the modules focus shows, or null when it shows every module
+    focusKey: null,     // what decided focusIds
     resetView: true,    // the next drawing starts from the starting view rather than keeping the current one
     show: {},
     legend: new Set()   // legend items clicked to light up what they stand for (not remembered)
@@ -121,28 +122,41 @@
     return data.classEdges.filter(function (e) { return e.from !== e.to && (state.show.dependencies || e.kind !== "dependency"); });
   }
 
-  // The modules the explorer's filter shows (all of them without one), or when focused the focused module and every
-  // module a shown relationship links it with, of those.
+  // The modules the views show (in the explorer's filter and not hidden), and of those, when focused, the ones focus
+  // shows.
   function shownModules() {
-    var filtered = data.modules.filter(function (m) { return vb.inFilter(m.id); });
-    if (!state.focusModule) return filtered.map(function (m) { return m.id; });
-    var ids = new Set([state.focusModule]);
-    shownEdges().forEach(function (e) {
-      if (e.from === state.focusModule) ids.add(e.to);
-      if (e.to === state.focusModule) ids.add(e.from);
-    });
-    return filtered.filter(function (m) { return ids.has(m.id); }).map(function (m) { return m.id; });
+    return data.modules.filter(function (m) { return vb.shows(m.id) && (!state.focusIds || state.focusIds.has(m.id)); })
+      .map(function (m) { return m.id; });
   }
 
+  // What focus shows: the focused selection's module and every module a shown relationship links it with, and with
+  // Focus on favourites, the favourites' modules and the modules they use. null when nothing is focused.
+  function focusModules() {
+    var selected = vb.focused() ? selectedModule() : null;
+    var favourites = vb.focusFavourites()
+      ? new Set(vb.favourites().map(function (id) { var member = vb.membersById.get(id); return member ? member.module : id; }))
+      : new Set();
+    if (!selected && favourites.size === 0) return null;
+    var ids = new Set(favourites);
+    if (selected) ids.add(selected);
+    shownEdges().forEach(function (e) {
+      if (e.from === selected || favourites.has(e.from)) ids.add(e.to);
+      if (e.to === selected) ids.add(e.from);
+    });
+    return ids;
+  }
+
+  function keyOf(ids) { return ids ? Array.from(ids).sort().join("|") : null; }
+
   // Where boxes were moved is only kept for the whole diagram: a focused or filtered one is laid out afresh.
-  function remembersMoves() { return !state.focusModule && !vb.filterActive(); }
+  function remembersMoves() { return !state.focusIds && !vb.filterActive(); }
 
   // A box's contents and size. Lines keep their member id, for clicks and highlighting.
   function buildBox(id) {
     var module = vb.modulesById.get(id);
     var lines = !state.show.members ? [] : (membersByModule.get(id) || []).filter(function (m) {
       return state.show["private"] || m.class.text.charAt(0) !== "-";
-    }).map(function (m) { return { member: m.id, text: lineText(m.class), method: m.class.parameters != null }; });
+    }).filter(function (m) { return !vb.isHidden(m.id); }).map(function (m) { return { member: m.id, text: lineText(m.class), method: m.class.parameters != null }; });
     var box = {
       id: id,
       index: moduleIndex.get(id),
@@ -364,12 +378,10 @@
   var drawn = null; // { boxes, byId, edges } on screen
   var stale = true; // the diagram needs drawing next time the view is shown
 
-  // The module to focus on: the selected one, when the selection is focused.
-  function wantedFocus() { return vb.focused() ? selectedModule() : null; }
-
   function render() {
     stale = false;
-    state.focusModule = wantedFocus();
+    state.focusIds = focusModules();
+    state.focusKey = keyOf(state.focusIds);
     var boxes = shownModules().map(buildBox);
     var byId = new Map(boxes.map(function (b) { return [b.id, b]; }));
     var edges = shownEdges().filter(function (e) { return byId.has(e.from) && byId.has(e.to); }).map(function (e) {
@@ -728,7 +740,7 @@
 
   // A different module to focus on, or none, is a different diagram: it starts from its starting view.
   function refocusIfNeeded() {
-    if (wantedFocus() === state.focusModule) return false;
+    if (keyOf(focusModules()) === state.focusKey) return false;
     state.resetView = true;
     if (vb.activeView() === "classes") render(); else stale = true;
     return true;
@@ -736,8 +748,8 @@
 
   vb.onFocusChange(function () { if (!refocusIfNeeded()) updateToolbar(); });
 
-  // A different filter is a different diagram.
-  vb.onFilterChange(function () {
+  // A different filter, or different items hidden, is a different diagram.
+  vb.onShownChange(function () {
     state.resetView = true;
     if (vb.activeView() === "classes") render(); else stale = true;
   });

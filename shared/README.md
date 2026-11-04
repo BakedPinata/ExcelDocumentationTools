@@ -116,6 +116,25 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
   fails too, the code is selected for Ctrl+C.
 - **The lock and copy icons are our own,** like the folder (see below).
 
+### Hiding and Focus on favourites (step D3b)
+
+- **Hiding is the shell's** (`shell.hidden`: `list()`, `has(id)`, `toggle(id)`, `clear()`, `onHiddenChange`), remembered
+  per workbook as `<tool>-hidden|<workbook>`; the tool says what else goes with an item (a vbadoc module's members) and
+  combines it with the filter into what its views show.
+- **Every hide button has `data-hide`,** kept in step as the stars are: one beside each row's star, shown on hover and
+  staying once pressed, and one for the side panel's header from `hidden.buttonHtml(id)`. The row's doesn't select.
+- **Never silent:** a hidden item stays in the layout, struck through with what it holds, and is listed in a Hidden
+  group at the foot of the tree, closed to begin with, whose rows have no checkboxes and whose Show all brings them
+  all back. Each view's toolbar counts hidden items, and the count opens the explorer at that group. The tool puts
+  `hidden.noteHtml(id, hiddenNear)` in its side panel, which says when the item is hidden (with Show it) or how many of
+  the items it's linked to are.
+- **Focus on favourites** (`focusFavourites()`, `setFocusFavourites(on)`) is a page-wide setting, remembered as
+  `<tool>-focus-favourites`, turned on and off by the Focus button on the Favourites group's row. While it's on and
+  there are favourites, the views show them and what they use, as well as the focused selection's own, and each
+  toolbar says so, with Show all. Changes, including to the favourites while it's on, come through `onFocusChange`.
+- **The toolbar notes** are the shell's, in the order Focus on favourites, the filter, hidden items.
+- **A row short of room shortens its detail before its name,** since the buttons at its end take some of it.
+
 ### The views' filter, and Expand / Collapse all (step D3a)
 
 - **Every row has a checkbox, apart from its name,** so ticking and selecting are two different things: a click on the

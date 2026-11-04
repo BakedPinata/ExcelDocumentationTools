@@ -140,7 +140,12 @@ box expand or collapse every folder.
 
 Star a module or member to make it a favourite, with the star on its row in the explorer or beside its name in the
 source panel. Favourites are listed at the top of the explorer and starred in the graph, and **★ Path** shows the
-shortest chain of dependencies between the selection and the nearest favourite.
+shortest chain of dependencies between the selection and the nearest favourite. **Focus** on the Favourites group shows
+only the favourites and what they use, in every view.
+
+To take something out of every view, hide it with the struck-through eye beside its star. It stays in the explorer,
+struck through, and is listed in the Hidden group at the bottom, where you can show it again. Each view's toolbar counts
+what's hidden, and the source panel says when what you've selected uses something hidden.
 
 The source panel opens when you select something and closes when you clear the selection. Lock it open with the
 padlock in its corner, or open and close it with `</>` at the right end of the top bar. The copy button over the code
