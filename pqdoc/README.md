@@ -127,6 +127,7 @@ left to right by depth (how many queries feed them). You can:
 - resize or hide the explorer and the details panel, with the buttons at the two ends of the top bar; the details
   panel opens when you select a query and closes when you clear it, unless you lock it open with its padlock;
 - copy a query's M code with the button over it;
+- star queries as favourites, from the explorer or the details panel, to list them at the top of the explorer;
 - reset the view.
 
 The top bar says how many queries and dependencies there are and, for a workbook, when it was last saved; it never

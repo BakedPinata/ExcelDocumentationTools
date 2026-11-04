@@ -38,6 +38,12 @@
 //   shell.focusOnClick() / setFocusOnClick(on)   the page's Focus on click setting, remembered as
 //                                      <tool>-focus-on-click and on unless turned off; setting it applies it to the
 //                                      current selection too
+//   shell.favourites.init({ workbook, exists(id), node(id) })   says whose favourites they are (remembered as
+//                                      <tool>-favourites|<workbook>), whether an id is still in the workbook (others
+//                                      are ignored), and the explorer node for one; call it before setLayouts
+//   shell.favourites.list() / has(id) / toggle(id) / onFavouritesChange(fn)   the favourites, in the order starred
+//   shell.favourites.buttonHtml(id)    a star that adds or removes the favourite, for the side panel's header; the
+//                                      explorer's rows have their own, and the shell keeps every star in step
 //   Esc clears the selection, through the select function given to explorer.setLayouts, unless an open menu or a box
 //   with text in it takes it first.
 //   shell.source.init(source)          says where the source text comes from (call it once, before start):
@@ -81,7 +87,7 @@
       remove: function (name) { try { localStorage.removeItem(tool + "-" + name); } catch (e) { /* nothing stored */ } }
     };
 
-    var listeners = { theme: [], view: [], focus: [] };
+    var listeners = { theme: [], view: [], focus: [], favourites: [] };
     function emit(name, value) {
       listeners[name].forEach(function (fn) {
         try { fn(value); } catch (e) { console.error(e); }
@@ -550,10 +556,10 @@
     var filterBox = $("explorer-filter");
     var emptyNote = $("explorer-empty");
     var layoutSwitch = $("explorer-layouts");
-    var itemsById = new Map();
+    var itemsById = new Map();    // id -> the items showing it: in the layout, and in Favourites
     var labels = new WeakMap();   // item -> its label in lower case, for the filter
     var selectItem = function () { };
-    var selectedItem = null;
+    var selectedItems = [];
     var revealedId = null;        // what's selected, so a new layout can show it too
     var layouts = [];
     var activeLayout = null;
@@ -579,13 +585,15 @@
       row.innerHTML = "<span class=\"tree-twisty\" aria-hidden=\"true\"></span>" + (node.folder ? FOLDER_ICON : "") +
         "<span class=\"tree-label\">" + escapeHtml(node.label) + "</span>" +
         (node.detail ? "<span class=\"tree-detail\">" + escapeHtml(node.detail) + "</span>" : "") +
-        (node.badge ? "<span class=\"tree-badge\">" + escapeHtml(node.badge) + "</span>" : "");
+        (node.badge ? "<span class=\"tree-badge\">" + escapeHtml(node.badge) + "</span>" : "") +
+        (isItem ? starHtml(node.id, "tree-star") : "");
       li.appendChild(row);
 
       if (isItem) {
         li.dataset.id = node.id;
         li.setAttribute("aria-selected", "false");
-        itemsById.set(node.id, li);
+        if (!itemsById.has(node.id)) itemsById.set(node.id, []);
+        itemsById.get(node.id).push(li);
       }
 
       if (node.children && node.children.length > 0) {
@@ -620,14 +628,108 @@
         b.setAttribute("aria-checked", b.dataset.layout === activeLayout ? "true" : "false");
       });
       itemsById.clear();
-      selectedItem = null;
+      selectedItems = [];
       treeBox.innerHTML = "";
+      favouritesItem = null;
       layout.nodes.forEach(function (node) { treeBox.appendChild(treeNode(node, 0)); });
       var first = treeBox.querySelector("li");
       if (first) first.tabIndex = 0;
+      renderFavourites();
       applyFilter();
       reveal(revealedId);
     }
+
+    // ---- Favourites ----
+    //
+    // Any number, starred from the explorer or the side panel's header, remembered per workbook in the browser, and
+    // listed at the top of the explorer in every layout, in the order they were starred. A favourite that's no longer
+    // in the workbook is ignored. Every star is a button with data-favourite="<id>", which the shell keeps in step.
+
+    var STAR_ICON = "<svg class=\"icon star-icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\" focusable=\"false\">" +
+      "<path d=\"M8 1.8l1.9 3.95 4.35.55-3.2 3 .8 4.3L8 11.5l-3.85 2.1.8-4.3-3.2-3 4.35-.55z\"/></svg>";
+    var favouriteSource = null; // from favourites.init
+    var favourites = [];        // ids in the order starred, including any no longer in the workbook
+    var favouritesItem = null;  // the Favourites group in the tree, or null when there are none
+    var favouritesOpen = true;
+
+    function favouritesKey() { return "favourites|" + favouriteSource.workbook; }
+
+    function initFavourites(source) {
+      favouriteSource = source;
+      favourites = [];
+      try {
+        var stored = JSON.parse(settings.load(favouritesKey()) || "[]");
+        if (Array.isArray(stored)) favourites = stored.filter(function (id) { return typeof id === "string"; });
+      } catch (e) { favourites = []; }
+    }
+
+    function favouriteList() {
+      return favouriteSource ? favourites.filter(function (id) { return favouriteSource.exists(id); }) : [];
+    }
+
+    function isFavourite(id) { return favouriteList().indexOf(id) >= 0; }
+
+    function starHtml(id, className) {
+      var on = isFavourite(id);
+      return "<button type=\"button\" class=\"favourite-toggle " + className + "\" data-favourite=\"" + escapeHtml(id) + "\"" +
+        (className === "tree-star" ? " tabindex=\"-1\"" : "") + " aria-pressed=\"" + on + "\" aria-label=\"Favourite\" title=\"" +
+        (on ? "Remove from favourites" : "Add to favourites") + "\">" + STAR_ICON + "</button>";
+    }
+
+    function toggleFavourite(id) {
+      var at = favourites.indexOf(id);
+      if (at >= 0) favourites.splice(at, 1); else favourites.push(id);
+      if (favouriteSource) settings.save(favouritesKey(), JSON.stringify(favourites));
+      document.querySelectorAll("[data-favourite]").forEach(function (button) {
+        var on = isFavourite(button.getAttribute("data-favourite"));
+        button.setAttribute("aria-pressed", on ? "true" : "false");
+        button.title = on ? "Remove from favourites" : "Add to favourites";
+      });
+      renderFavourites();
+      applyFilter();
+      reveal(revealedId, true);
+      emit("favourites", favouriteList());
+    }
+
+    // The Favourites group: each favourite once, without what it holds. Left out when there are none; drawn again when
+    // they change, keeping the group open or closed as it was.
+    function renderFavourites() {
+      if (favouritesItem) {
+        favouritesOpen = favouritesItem.getAttribute("aria-expanded") !== "false";
+        favouritesItem.querySelectorAll("li[data-id]").forEach(function (li) {
+          var list = itemsById.get(li.dataset.id) || [];
+          list.splice(list.indexOf(li), 1);
+          if (list.length === 0) itemsById.delete(li.dataset.id);
+          var selectedAt = selectedItems.indexOf(li);
+          if (selectedAt >= 0) selectedItems.splice(selectedAt, 1);
+        });
+        var hadFocusStop = favouritesItem.querySelector("li[tabindex=\"0\"]") || favouritesItem.tabIndex === 0;
+        favouritesItem.remove();
+        favouritesItem = null;
+        if (hadFocusStop && treeBox.querySelector("li")) treeBox.querySelector("li").tabIndex = 0;
+      }
+      var ids = favouriteList();
+      if (ids.length === 0 || !favouriteSource) return;
+      favouritesItem = treeNode({
+        label: "Favourites",
+        detail: String(ids.length),
+        className: "favourites",
+        expanded: favouritesOpen,
+        children: ids.map(function (id) {
+          var node = Object.assign({}, favouriteSource.node(id), { id: id });
+          delete node.children;
+          return node;
+        })
+      }, 0);
+      treeBox.insertBefore(favouritesItem, treeBox.firstChild);
+    }
+
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest && event.target.closest("[data-favourite]");
+      if (!button) return;
+      event.preventDefault();
+      toggleFavourite(button.getAttribute("data-favourite"));
+    });
 
     layoutSwitch.addEventListener("click", function (event) {
       var button = event.target.closest("button[data-layout]");
@@ -675,6 +777,7 @@
     }
 
     treeBox.addEventListener("click", function (event) {
+      if (event.target.closest(".favourite-toggle")) return; // the star, which the favourites' own handler toggles
       var li = event.target.closest("li");
       if (!li || !treeBox.contains(li)) return;
       focusItem(li);
@@ -759,17 +862,31 @@
     });
 
     // Marks the selected item, opening what holds it and scrolling it into view, without taking the focus.
-    function reveal(id) {
+    // An item can show in Favourites as well as in the layout: both are marked, the one in the layout is opened up to,
+    // and the tree only scrolls if neither is in view, so choosing a favourite leaves the tree where it is. quiet: only
+    // mark them, for when the tree is drawn again.
+    function reveal(id, quiet) {
       revealedId = id === undefined ? null : id;
-      if (selectedItem) selectedItem.setAttribute("aria-selected", "false");
-      selectedItem = revealedId === null ? null : itemsById.get(revealedId) || null;
-      if (!selectedItem) return;
-      selectedItem.setAttribute("aria-selected", "true");
-      for (var at = parentItem(selectedItem); at; at = parentItem(at)) setExpanded(at, true);
+      selectedItems.forEach(function (li) { li.setAttribute("aria-selected", "false"); });
+      selectedItems = revealedId === null ? [] : (itemsById.get(revealedId) || []).slice();
+      if (selectedItems.length === 0) return;
+      selectedItems.forEach(function (li) { li.setAttribute("aria-selected", "true"); });
+      var main = selectedItems.filter(function (li) { return !favouritesItem || !favouritesItem.contains(li); })[0] || selectedItems[0];
+      if (quiet) return;
+      for (var at = parentItem(main); at; at = parentItem(at)) setExpanded(at, true);
       treeBox.querySelectorAll("li[tabindex=\"0\"]").forEach(function (other) { other.tabIndex = -1; });
-      selectedItem.tabIndex = 0;
-      var row = selectedItem.querySelector(".tree-row");
+      main.tabIndex = 0;
+      if (selectedItems.some(rowInView)) return;
+      var row = main.querySelector(".tree-row");
       if (row && row.offsetParent !== null) row.scrollIntoView({ block: "nearest" });
+    }
+
+    function rowInView(li) {
+      var row = li.querySelector(".tree-row");
+      if (!row || row.offsetParent === null) return false;
+      var box = row.getBoundingClientRect();
+      var view = treeBox.getBoundingClientRect();
+      return box.bottom > view.top && box.top < view.bottom;
     }
 
     // ---- Tabs ----
@@ -827,6 +944,14 @@
       focusOnClick: function () { return focusOnClick; },
       setFocusOnClick: setFocusOnClick,
       explorer: { setLayouts: setLayouts },
+      favourites: {
+        init: initFavourites,
+        list: favouriteList,
+        has: isFavourite,
+        toggle: toggleFavourite,
+        buttonHtml: function (id) { return starHtml(id, "panel-star"); }
+      },
+      onFavouritesChange: function (fn) { listeners.favourites.push(fn); },
       source: {
         init: initSource,
         has: function (id) { return sources.has(id); },

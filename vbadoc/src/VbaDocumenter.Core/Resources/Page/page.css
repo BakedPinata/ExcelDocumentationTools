@@ -31,28 +31,11 @@ html[data-theme="light"] {
   --hull-stroke: rgba(11, 11, 11, 0.14);
 }
 
-/* ---- Trail: the route walked from Home, under the top bar ---- */
-
-.trail { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 2px 8px 2px 12px; background: var(--surface); border-bottom: 1px solid var(--border); font-size: 12.5px; }
-.trail[hidden] { display: none; }
-.trail-steps { display: flex; flex-wrap: wrap; align-items: center; flex: 1; min-width: 0; margin: 0; padding: 0; list-style: none; }
-.trail-steps li { display: flex; align-items: center; min-width: 0; }
-.trail-steps li + li::before { content: "\203A"; padding: 0 2px; color: var(--text-muted); } /* single right-pointing angle quotation mark */
-.trail-step, .trail-more, .trail-clear { max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 2px 6px; font: inherit; color: var(--accent); background: none; border: 1px solid transparent; border-radius: var(--radius); cursor: pointer; }
-.trail-step:hover, .trail-more:hover, .trail-clear:hover { background: var(--surface-2); }
-.trail-step[aria-current="step"] { color: var(--text); font-weight: 600; }
-.trail-step.home span { color: var(--warn); }
-.trail-clear { flex: none; color: var(--text-muted); font-size: 16px; line-height: 1; }
-.trail-clear[hidden] { display: none; }
-
 .placeholder { margin: 24px; color: var(--text-muted); }
 
 /* ---- Source panel ---- */
 
 .side-panel-header h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; word-break: break-word; }
-.home-toggle { margin-left: 4px; padding: 0 3px; font: inherit; font-size: 15px; line-height: 1; color: var(--text-muted); background: none; border: 1px solid transparent; border-radius: var(--radius); cursor: pointer; vertical-align: 1px; }
-.home-toggle:hover { color: var(--warn); background: var(--surface-2); }
-.home-toggle[aria-pressed="true"] { color: var(--warn); }
 #graph-path .star { color: var(--warn); }
 .side-panel-header .kind { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--text-muted); }
 .side-panel-header .signature { margin: 0 0 6px; font-family: var(--font-code); font-size: 12.5px; color: var(--text-muted); word-break: break-word; }
@@ -154,9 +137,9 @@ html[data-theme="light"] {
 .graph-art .node.pinned .shape { stroke: var(--accent); stroke-width: 2.5px; stroke-dasharray: none; }
 .graph-art .node.selected .shape { stroke: var(--text); stroke-width: 2.5px; stroke-dasharray: none; }
 
-.graph-art .home-star { display: none; fill: var(--warn); stroke: var(--bg); stroke-width: 1px; pointer-events: none; }
-.graph-art .node.home .home-star { display: inline; }
-.graph-art .hull-group.home .hull-label { fill: var(--warn); }
+.graph-art .favourite-star { display: none; fill: var(--warn); stroke: var(--bg); stroke-width: 1px; pointer-events: none; }
+.graph-art .node.favourite .favourite-star { display: inline; }
+.graph-art .hull-group.favourite .hull-label { fill: var(--warn); }
 .graph-art .label { fill: var(--text); font: calc(var(--graph-label-size, 10.5px) + 1.5px) var(--font-ui); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; } /* clickable: names are what people aim for */
 .graph-art .label.minor { font-size: var(--graph-label-size, 10.5px); fill: var(--text-muted); display: none; }
 .graph-art.all-labels .label.minor,

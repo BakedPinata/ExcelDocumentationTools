@@ -133,6 +133,10 @@ it's connected to, in every view, until you clear the selection with Esc or a cl
 The class diagram's legend picks out kinds of box and relationships, as the graph's does. The top bar sums up the
 project and says when the workbook was last saved.
 
+Star a module or member to make it a favourite, with the star on its row in the explorer or beside its name in the
+source panel. Favourites are listed at the top of the explorer and starred in the graph, and **★ Path** shows the
+shortest chain of dependencies between the selection and the nearest favourite.
+
 The source panel opens when you select something and closes when you clear the selection. Lock it open with the
 padlock in its corner, or open and close it with `</>` at the right end of the top bar. The copy button over the code
 copies the lines shown.

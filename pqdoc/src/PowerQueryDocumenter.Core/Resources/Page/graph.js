@@ -137,6 +137,19 @@
     }
     if (n.role === "root") g.append("circle").attr("class", "core").attr("r", 3);
   });
+  // A favourite has a star above its top left, as in vbadoc's graph.
+  node.append("path").attr("class", "favourite-star")
+    .attr("d", d3.symbol(d3.symbolStar, 70)())
+    .attr("transform", "translate(" + -(RADIUS + 3) + "," + -(RADIUS + 3) + ")");
+
+  function updateFavourites() {
+    var favourites = new Set(pq.favourites());
+    node.classed("favourite", function (n) { return favourites.has(n.id); });
+  }
+
+  updateFavourites();
+  pq.onFavouritesChange(updateFavourites);
+
   // Edges leave a query to the right, so its name sits close enough for the name's outline to meet the mark.
   // Otherwise each edge shows in the gap, and reads as a dash in front of the name.
   node.append("text")

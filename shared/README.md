@@ -116,6 +116,23 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
   fails too, the code is selected for Ctrl+C.
 - **The lock and copy icons are our own,** like the folder (see below).
 
+### Favourites (step D2)
+
+- **Favourites are the shell's** (`shell.favourites`), so both tools have them the same way: any number, starred from
+  an explorer row or the side panel's header, listed in a Favourites group at the top of the explorer in every layout,
+  in the order they were starred, and remembered per workbook as `<tool>-favourites|<workbook>`. A favourite that's no
+  longer in the workbook is ignored, not forgotten, so it comes back if the item does.
+- **The tool says three things** in `favourites.init`: the workbook, whether an id is in it, and the explorer node for
+  one (without children; vbadoc names a member `Module.Member`, as it isn't under its module there). It draws the
+  side panel's star with `favourites.buttonHtml(id)`, and its views listen with `onFavouritesChange`.
+- **Every star is a button with `data-favourite`,** which one handler toggles and keeps in step. A row's star doesn't
+  select (the tree ignores clicks on it), shows on hover and stays once starred, and isn't in the tab order: the
+  panel's star is the keyboard's way.
+- **An item can show twice,** in Favourites and in the layout. Both are marked when selected; the one in the layout is
+  opened up to; and the tree scrolls only if neither is in view, so choosing a favourite leaves the tree where it is.
+  The Favourites group is drawn again when favourites change, keeping it open or closed as it was.
+- **The star is our own SVG,** drawn for the page like the other icons.
+
 ### Explorer layouts (step D1b)
 
 - **A tool can give more than one layout of the same items** (`layouts`: `[{ name, label, title, nodes }]`), such as

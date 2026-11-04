@@ -108,7 +108,7 @@
     level: loadSetting("vbadoc-graph-level", "modules") === "members" ? "members" : "modules",
     direction: loadDirection(), // "all", or only "dependencies" or "dependents" of the selection
     focused: false,     // whether what's drawn is only the focused selection's neighbourhood
-    path: false,        // showing the path from Home to the selection instead of the selection's neighbourhood
+    path: false,        // showing the path from the nearest favourite instead of the selection's neighbourhood
     show: loadShow(),
     legend: new Set()   // legend items clicked to highlight what they stand for (not remembered)
   };
@@ -283,7 +283,7 @@
     return { nodes: nodes, edges: edges, byId: byId, outgoing: outgoing, incoming: incoming };
   }
 
-  // The node ids that stand for a module or member (the selection, or Home) at this level. At module level a
+  // The node ids that stand for a module or member (the selection, or a favourite) at this level. At module level a
   // member stands for its module; at member level a module stands for all of its members.
   function idsAtLevel(graph, id) {
     if (!id) return [];
@@ -778,7 +778,7 @@
         g.append("circle").attr("class", "hit");
         g.append("path").attr("class", "shape");
         g.append("text").attr("class", "label");
-        g.append("path").attr("class", "home-star");
+        g.append("path").attr("class", "favourite-star");
         return g;
       });
     drawn.nodes
@@ -795,7 +795,7 @@
       .call(dragBehaviour(function (n) { return [n]; }));
     drawn.nodes.select("circle.hit").attr("r", function (n) { return n.r + 6; });
     drawn.nodes.select("path.shape").attr("d", function (n) { return d3.symbol(n.shape, Math.PI * n.r * n.r)(); });
-    drawn.nodes.select("path.home-star")
+    drawn.nodes.select("path.favourite-star")
       .attr("d", d3.symbol(d3.symbolStar, 70)())
       .attr("transform", function (n) { return "translate(" + -(n.r + 3) + "," + -(n.r + 3) + ")"; });
     drawn.nodes.select("text.label")
@@ -809,23 +809,28 @@
     message.hidden = graph.nodes.length > 0;
     message.textContent = graph.nodes.length > 0 ? "" : "Nothing to show with the current filters.";
     renderLegend();
-    updateHome();
+    updateFavourites();
     updateToolbar();
     fit(false);
     highlight();
   }
 
-  // Stars Home: its node (at module level, the module holding a Home member) and, at member level, the name of
-  // a Home module's outline, since the module's own node is only drawn when something refers to the module.
-  function updateHome() {
+  // Stars the favourites: their nodes (at module level, the module holding a favourite member) and, at member level,
+  // the name of a favourite module's outline, since the module's own node is only drawn when something refers to it.
+  function updateFavourites() {
     if (!graph || !drawn.nodes) return;
-    var homeIds = new Set(idsAtLevel(graph, vb.home()));
-    var homeModule = state.level === "members" && vb.modulesById.has(vb.home()) ? vb.home() : null;
-    drawn.nodes.classed("home", function (n) {
-      return homeIds.has(n.id) && (state.level === "modules" || !!n.isModuleNode === !!homeModule);
+    var starred = new Set();
+    var modules = new Set();
+    vb.favourites().forEach(function (id) {
+      var isModule = state.level === "members" && vb.modulesById.has(id);
+      if (isModule) modules.add(id);
+      idsAtLevel(graph, id).forEach(function (nodeId) {
+        if (!isModule || graph.byId.get(nodeId).isModuleNode) starred.add(nodeId);
+      });
     });
-    drawn.hulls.classed("home", function (g) { return g[0] === homeModule; })
-      .select("text.hull-label").text(function (g) { return (g[0] === homeModule ? "★ " : "") + g[0]; });
+    drawn.nodes.classed("favourite", function (n) { return starred.has(n.id); });
+    drawn.hulls.classed("favourite", function (g) { return modules.has(g[0]); })
+      .select("text.hull-label").text(function (g) { return (modules.has(g[0]) ? "★ " : "") + g[0]; });
   }
 
   // Moves everything to the nodes' current positions: after the starting layout and on every tick.
@@ -949,12 +954,12 @@
     return { nodes: nodes, edges: edges };
   }
 
-  // ---- Path from Home ----
+  // ---- Path from the nearest favourite ----
   //
-  // The shortest chain of edges from Home to the selection (Home depends on it) or from the selection to Home
-  // (it depends on Home), whichever is shorter (Home to the selection on a tie), in the graph as drawn, so Show…
-  // choices count. Edges are followed in their own direction only: a chain that changes direction halfway says
-  // nothing about either end.
+  // The shortest chain of edges from a favourite to the selection (the favourite depends on it) or from the selection
+  // to a favourite (it depends on the favourite), whichever is shorter (from a favourite on a tie), in the graph as
+  // drawn, so Show… choices count. Searching from every favourite at once finds the nearest. Edges are followed in
+  // their own direction only: a chain that changes direction halfway says nothing about either end.
 
   function shortestPath(graph, fromIds, toIds) {
     var targets = new Set(toIds);
@@ -984,36 +989,55 @@
     return null;
   }
 
+  // The favourites' nodes at this level, other than the selection's.
+  function favouriteIds(graph) {
+    var start = selectedIds(graph);
+    var ids = [];
+    vb.favourites().forEach(function (id) {
+      idsAtLevel(graph, id).forEach(function (nodeId) { if (start.indexOf(nodeId) < 0 && ids.indexOf(nodeId) < 0) ids.push(nodeId); });
+    });
+    return ids;
+  }
+
   // Why the path can't be shown right now, or null if it can.
   function pathUnavailable(graph) {
-    if (!vb.home()) return "Choose a Home first: the ☆ in the source panel";
-    if (!vb.selection()) return "Select something to find the path to it from Home";
-    var homeIds = idsAtLevel(graph, vb.home());
-    var start = selectedIds(graph);
-    if (homeIds.length === 0 || start.length === 0) return "Home or the selection is hidden by the Show… choices";
-    if (homeIds.some(function (id) { return start.indexOf(id) >= 0; })) return "Home is the selection, at this level";
+    if (vb.favourites().length === 0) return "Star a favourite first: the ☆ in the explorer or the source panel";
+    if (!vb.selection()) return "Select something to find the path to it from the nearest favourite";
+    if (selectedIds(graph).length === 0) return "The selection is hidden by the Show… choices";
+    if (favouriteIds(graph).length === 0) {
+      var anyShown = vb.favourites().some(function (id) { return idsAtLevel(graph, id).length > 0; });
+      return anyShown ? "The selection is the only favourite, at this level" : "The favourites are hidden by the Show… choices";
+    }
     return null;
   }
 
   function findPath(graph) {
-    var homeIds = idsAtLevel(graph, vb.home());
+    var favourites = favouriteIds(graph);
     var start = selectedIds(graph);
-    var down = shortestPath(graph, homeIds, start);
-    var up = shortestPath(graph, start, homeIds);
-    if (down) down.homeUsesSelection = true;
-    if (up) up.homeUsesSelection = false;
+    var down = shortestPath(graph, favourites, start);
+    var up = shortestPath(graph, start, favourites);
+    if (down) down.favouriteUsesSelection = true;
+    if (up) up.favouriteUsesSelection = false;
     if (down && up) return up.edges.length < down.edges.length ? up : down;
     return down || up;
   }
 
+  // A node's name as the graph shows it: Module.Member at member level.
+  function nodeName(id) {
+    var n = graph.byId.get(id);
+    return state.level === "members" && !n.isModuleNode ? n.module + "." + n.label : n.label;
+  }
+
   function describePath(path) {
     if (!path) {
-      return "No chain of dependencies links Home and the selection" +
+      return "No chain of dependencies links a favourite and the selection" +
         (activeShowCount() > 0 ? " with the current Show… choices" : "") + ".";
     }
     var steps = path.edges.length;
     var how = steps === 1 ? "directly" : "through " + (steps - 1) + " other node" + (steps === 2 ? "" : "s");
-    return (path.homeUsesSelection ? "Home uses the selection " : "The selection uses Home ") + how + ".";
+    return path.favouriteUsesSelection
+      ? "The favourite " + nodeName(path.nodes[0]) + " uses the selection " + how + "."
+      : "The selection uses the favourite " + nodeName(path.nodes[path.nodes.length - 1]) + " " + how + ".";
   }
 
   // Highlights the selection's neighbourhood and whatever the legend items light up. With both, each narrows
@@ -1021,7 +1045,7 @@
   // The selected node always stays lit, so it's clear what the highlight is around. A module selected at member
   // level selects all of its members; then the legend narrows those too, and the module's outline stays lit.
   //
-  // With Path from Home on, the path replaces all that: only Home, the selection and the chain between them stay lit.
+  // With the path on, it replaces all that: only the favourite, the selection and the chain between them stay lit.
   function highlight() {
     if (!graph) return;
     var start = selectedIds(graph);
@@ -1031,9 +1055,9 @@
     var active, litEdges, isSelected, isLit;
 
     if (state.path) {
-      // Without a path, Home stays lit so it's clear what was looked for. With one, only the path does: a Home
-      // module at member level stands for all its members, but the path starts or ends at just one of them.
-      var pathNodes = new Set(path ? path.nodes : idsAtLevel(graph, vb.home()));
+      // Without a path, the favourites stay lit so it's clear what was looked for. With one, only the path does: a
+      // favourite module at member level stands for all its members, but the path starts or ends at just one of them.
+      var pathNodes = new Set(path ? path.nodes : favouriteIds(graph));
       active = true;
       litEdges = new Set(path ? path.edges : []);
       isSelected = function (id) { return start.indexOf(id) >= 0; };
@@ -1239,7 +1263,7 @@
     focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false");
     var unavailable = graph ? pathUnavailable(graph) : "";
     pathButton.disabled = !!unavailable && !state.path;
-    pathButton.title = unavailable || "Show the shortest chain of dependencies between Home and the selection";
+    pathButton.title = unavailable || "Show the shortest chain of dependencies between the nearest favourite and the selection";
     pathButton.setAttribute("aria-pressed", state.path ? "true" : "false");
     updateShowMenu();
   }
@@ -1481,9 +1505,9 @@
     if (state.focused !== focusing()) render(); else updateToolbar();
   });
   vb.onViewChange(drawIfVisible);
-  vb.onHomeChange(function () {
+  vb.onFavouritesChange(function () {
     if (!started) return;
-    updateHome();
+    updateFavourites();
     highlight();
   });
   // Colours are CSS variables, so a theme change needs no redraw.

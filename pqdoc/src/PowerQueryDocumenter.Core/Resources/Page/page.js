@@ -8,6 +8,7 @@
 //   pqdoc.focused() / onFocusChange(fn)  whether the views show only the selection and what it's connected to; fn
 //                                    when that changes and the selection doesn't
 //   pqdoc.focusOnClick() / setFocusOnClick(on)  the page's Focus on click setting (the graph's Focus button)
+//   pqdoc.favourites() / isFavourite(id) / toggleFavourite(id) / onFavouritesChange(fn)  the favourite queries (the shell's)
 //   pqdoc.theme() / onThemeChange(fn)  "light" or "dark"
 //   pqdoc.activeView() / onViewChange(fn)  "graph"
 //   pqdoc.matches() / onSearchChange(fn)  the ids the search box matches (a Set), or null when it's empty
@@ -148,7 +149,7 @@
     var query = queriesById.get(selection);
     var upstream = chain(selection, uses).size;
     var downstream = chain(selection, usedBy).size;
-    panelHeader.innerHTML = "<h2>" + escapeHtml(query.id) + "</h2><p class=\"muted\" id=\"details-role\">" + ROLE_TEXT[query.role] +
+    panelHeader.innerHTML = "<h2>" + escapeHtml(query.id) + shell.favourites.buttonHtml(query.id) + "</h2><p class=\"muted\" id=\"details-role\">" + ROLE_TEXT[query.role] +
       (query.inCycle ? " Part of a circular dependency." : "") + "</p>";
     panelBody.innerHTML =
       "<h3><span class=\"swatch upstream\" aria-hidden=\"true\"></span>Uses (" + uses.get(selection).length + ")</h3>" +
@@ -275,6 +276,10 @@
     activeView: shell.activeView,
     onViewChange: shell.onViewChange,
     panelFollowing: shell.panel.following,
+    favourites: shell.favourites.list,
+    isFavourite: shell.favourites.has,
+    toggleFavourite: shell.favourites.toggle,
+    onFavouritesChange: shell.onFavouritesChange,
     focused: shell.focused,
     onFocusChange: shell.onFocusChange,
     focusOnClick: shell.focusOnClick,
@@ -289,6 +294,11 @@
     countText: countText
   };
 
+  shell.favourites.init({
+    workbook: data.title,
+    exists: function (id) { return queriesById.has(id); },
+    node: function (id) { return queryNode(queriesById.get(id), true); }
+  });
   shell.explorer.setLayouts(explorerLayouts(), select);
   shell.start();
   renderDetails();

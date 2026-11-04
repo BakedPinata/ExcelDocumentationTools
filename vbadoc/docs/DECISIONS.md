@@ -400,6 +400,9 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
 
 ### Home, trail, Path from Home, Back/Forward (stage 5d)
 
+Home and the trail were replaced by favourites in D2, and Path from Home became Path from the nearest favourite; see
+Favourites below. Back and Forward stay as they are.
+
 - **Home** is one module or member per workbook, set or cleared with the ☆/★ button beside the name in the source
   panel. It's remembered per browser under `vbadoc-home|<workbook file name>`, because every page opened from disk
   shares one localStorage. A remembered Home that no longer exists in the workbook is ignored. The graph stars it:
@@ -448,6 +451,22 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
   the detail, the role is a badge, and an unreferenced member is in italics with a tooltip.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
+
+### Favourites (0.17.0, step D2 of the feedback plan)
+
+- **Favourites replace Home and the trail** (the plan's decision 4): the trail wasn't as useful as expected, and one
+  Home was too few. They're the shell's, so pqdoc has them too (see `shared/README.md`): any number, starred from an
+  explorer row or beside the name in the source panel, listed at the top of the explorer, remembered per workbook as
+  `vbadoc-favourites|<workbook file name>`. A Home remembered before (`vbadoc-home|…`) is ignored rather than turned into
+  a favourite, the plan's simple answer.
+- **The graph stars every favourite** as it starred Home: its node, the module holding a favourite member at module
+  level, and a favourite module's outline name at member level.
+- **Path from the nearest favourite** searches from every favourite at once, so the first it reaches is the nearest,
+  in either direction, and the note names it ("The favourite Main uses the selection through 1 other node"). The
+  selection doesn't count as its own favourite. Without favourites, or with only the selection, the button is disabled
+  with the reason in its tooltip.
+- **`window.vbadoc`** has `favourites()`, `isFavourite(id)`, `toggleFavourite(id)` and `onFavouritesChange(fn)` in place
+  of `home()`, `setHome(id)` and `onHomeChange(fn)`. `trail.html` and its styles went.
 
 ### Declarations repeated under `#If` (0.16.0, step A6 of the feedback plan)
 

@@ -12,7 +12,6 @@
   <ItemGroup>
     <!-- Explicit LogicalName so resource names are the same on Windows and Linux. d3 comes from the shared library. -->
     <EmbeddedResource Include="Resources\Page\search.html" LogicalName="Page/search.html" />
-    <EmbeddedResource Include="Resources\Page\trail.html" LogicalName="Page/trail.html" />
     <EmbeddedResource Include="Resources\Page\views.html" LogicalName="Page/views.html" />
     <EmbeddedResource Include="Resources\Page\page.css" LogicalName="Page/page.css" />
     <EmbeddedResource Include="Resources\Page\page.js" LogicalName="Page/page.js" />

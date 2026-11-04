@@ -308,6 +308,19 @@ body.resizing { cursor: col-resize; user-select: none; }
 .tree li.unreferenced > .tree-row .tree-label { font-style: italic; color: var(--text-muted); }
 .tree li.match > .tree-row .tree-label { font-weight: 600; }
 
+/* Favourites: a star on each item's row, shown on hover and always once it's a favourite, and in the side panel's
+   header; the Favourites group at the top of the explorer. */
+.favourite-toggle { display: inline-flex; align-items: center; padding: 1px 3px; border: 0; border-radius: var(--radius); background: none; color: var(--text-muted); cursor: pointer; }
+.favourite-toggle:hover { color: var(--warn); background: var(--surface-2); }
+.favourite-toggle[aria-pressed="true"] { color: var(--warn); }
+.favourite-toggle[aria-pressed="true"] .icon { fill: currentColor; }
+.favourite-toggle .icon { width: 14px; height: 14px; }
+.tree-star { flex: none; align-self: center; margin-left: auto; visibility: hidden; }
+.tree-row:hover .tree-star, .tree li:focus-visible > .tree-row .tree-star, .tree-star[aria-pressed="true"] { visibility: visible; }
+.panel-star { margin-left: 4px; vertical-align: -2px; }
+.panel-star .icon { width: 15px; height: 15px; }
+.tree li.favourites > .tree-row .tree-label { color: var(--warn); }
+
 /* ---- Side panel: the tool fills the header and the body ---- */
 
 .side-panel-header { padding: 12px 72px 12px 16px; border-bottom: 1px solid var(--border); }

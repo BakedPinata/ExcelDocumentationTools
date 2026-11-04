@@ -17,7 +17,7 @@ public sealed record PlannedPage(string Path) : IPlannedOutput
 
 /// <summary>
 /// Builds the single, self-contained documentation page on the shell pqdoc's page shares (<see cref="ShellPage"/>):
-/// vbadoc's views, search box and trail from Resources/Page, with the styles, scripts, data and (optionally) source
+/// vbadoc's views and search box from Resources/Page, with the styles, scripts, data and (optionally) source
 /// written inline. Nothing in the page refers to another file or URL.
 /// </summary>
 public static class HtmlPageWriter
@@ -67,7 +67,6 @@ public static class HtmlPageWriter
       WorkbookSaved = project.Saved,
       PanelName = "Source",
       ExplorerLabel = "Modules and members",
-      BeforeLayoutHtml = EmbeddedResources.ReadText(Resources, "Page/trail.html"),
       ViewsHtml = EmbeddedResources.ReadText(Resources, "Page/views.html"),
       FaviconSvg = EmbeddedResources.ReadText(Resources, "Page/favicon.svg"),
       Stylesheet = EmbeddedResources.ReadText(Resources, "Page/page.css"),

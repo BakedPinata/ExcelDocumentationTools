@@ -88,6 +88,7 @@ Forms (UserForms) are in scope, but no sample workbook with forms has been avail
 - A panel on the left lists every module, with its members under it in source order (an Enum's values under the Enum). Each member shows its kind, its role when it has one (such as Macro), and whether it's unreferenced.
 - When any module has a `'@Folder("Parent.Child")` comment in its declarations (the Rubberduck convention; `'@Folder "Parent.Child"` also counts, and so does the annotation straight after a label ending in a colon, as in a header's `' Folder:<tabs>@Folder("Reports")`), modules are shown in those folders by default, nested at the dots and drawn as folders, with modules that have none in a No folder group. A switch shows them by kind instead, and the choice is remembered. Without folders they're shown by kind: standard modules, classes, interfaces, forms and document modules.
 - A filter box narrows the tree to the names containing its text, with what holds them. Search stays for jumping straight to a name.
+- **Favourites:** any number of modules and members, starred with the star on an explorer row (which doesn't select it) or beside the name in the source panel, are listed at the top of the explorer in every layout, in the order they were starred, and starred in the graph. They're remembered per workbook in the browser; one that's no longer in the workbook is ignored.
 - Choosing an item selects it in every view, and the explorer follows selections made elsewhere. It works from the keyboard as a tree: the arrows move and open or close, and Enter chooses.
 - It can be hidden and resized, and both are remembered. It's open by default on a wide screen and closed on a narrow one, where it opens above the views. Its button is at the left end of the top bar, beside the title, as the source panel's is at the right end; both are icons, with their names in a tooltip.
 
@@ -142,6 +143,7 @@ Shared by both views.
   - When a module is selected at member level, the edges between its own members always stay highlighted; the toggle only applies to edges leaving or entering the module.
   - When a single member is selected, the toggle applies to every edge, including edges to other members of the same module.
 - Clicking a node shows its source in the source panel. At module level that is the whole module; at member level it is just that member.
+- **Path from the nearest favourite** highlights the shortest chain of dependencies between a favourite and the selection, in either direction, in the graph as drawn, and says which favourite and how far.
 
 ### Class diagram view
 

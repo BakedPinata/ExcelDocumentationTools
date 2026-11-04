@@ -183,6 +183,12 @@ Reading them is step B2 of the feedback plan.
   Anything else counts as a query; a parameter does too, since it isn't a function.
 - **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
 
+## Favourites (1.10.0, step D2 of the feedback plan)
+
+- **Favourites are the shell's** (FR-HTML-14), as vbadoc's are: starred from an explorer row or the details panel's
+  header, listed at the top of the explorer, remembered as `pqdoc-favourites|<workbook or folder name>`. The graph gives
+  a favourite a star at its top left, as vbadoc's does.
+
 ## Speed (1.9.1, step D1d of the feedback plan)
 
 - **The tooltip is hidden by visibility, not display,** as vbadoc's is now: taking it out of the layout and back made

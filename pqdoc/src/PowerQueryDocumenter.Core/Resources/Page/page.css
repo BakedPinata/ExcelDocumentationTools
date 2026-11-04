@@ -114,6 +114,8 @@ html[data-theme="light"] {
 .graph-art .arrow-downstream { fill: var(--role-leaf); }
 
 .graph-art .dim { opacity: 0.12; }
+.graph-art .favourite-star { display: none; fill: var(--warn); stroke: var(--bg); stroke-width: 1px; pointer-events: none; }
+.graph-art .node.favourite .favourite-star { display: inline; }
 /* Focus leaves out what isn't in the focused query's chains, rather than fading it. */
 #graph-svg .out-of-focus { display: none; }
 .graph-art .node, .graph-art .edge { transition: opacity 120ms; }
