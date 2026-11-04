@@ -2,8 +2,8 @@ using Microsoft.Playwright;
 
 namespace VbaDocumenter.BrowserTests;
 
-/// <summary>The explorer: modules grouped by '@Folder or by kind, members under them, the filter, the keyboard, and
-/// keeping in step with the views.</summary>
+/// <summary>The explorer: modules grouped by '@Folder or by kind, chosen with a switch, members under them, the filter,
+/// the keyboard, and keeping in step with the views.</summary>
 [Collection("Browser")]
 public class ExplorerTests(PageFixture fixture)
 {
@@ -28,6 +28,8 @@ public class ExplorerTests(PageFixture fixture)
         await Texts(page, ChildLabels(Group("Classes"))));
     Assert.Equal(["IOrderRepository"], await Texts(page, ChildLabels(Group("Interfaces"))));
     Assert.Equal("5", await page.Locator(Group("Classes") + " > .tree-row .tree-detail").TextContentAsync());
+    Assert.False(await page.IsVisibleAsync("#explorer-layouts"));
+    Assert.Equal(0, await page.Locator("#explorer-tree svg.tree-icon").CountAsync());
     Assert.Empty(opened.Errors);
   }
 
@@ -43,6 +45,43 @@ public class ExplorerTests(PageFixture fixture)
     Assert.Equal("Interface", await page.Locator(Item("IOrderRepository") + " > .tree-row .tree-detail").TextContentAsync());
     Assert.Equal(["Logger", "ProgressReporter", "Sheet1", "ThisWorkbook", "Utils"], await Texts(page, ChildLabels(Group("No folder"))));
     Assert.Equal("5", await page.Locator(Group("Orders") + " > .tree-row .tree-detail").TextContentAsync());
+  }
+
+  [Fact]
+  public async Task Folders_are_drawn_as_folders_and_No_folder_is_not_one()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.FolderedEmbedded);
+    var page = opened.Page;
+
+    Assert.Equal(1, await page.Locator(Group("Orders") + " > .tree-row svg.tree-icon").CountAsync());
+    Assert.Equal(1, await page.Locator(Group("Model") + " > .tree-row svg.tree-icon").CountAsync());
+    Assert.Equal(0, await page.Locator(Group("No folder") + " > .tree-row svg.tree-icon").CountAsync());
+    Assert.Equal(0, await page.Locator("#explorer-tree li.item svg.tree-icon").CountAsync());
+  }
+
+  [Fact]
+  public async Task The_switch_shows_modules_by_kind_instead_keeping_the_selection_and_is_remembered()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.FolderedEmbedded);
+    var page = opened.Page;
+    Assert.True(await page.IsVisibleAsync("#explorer-layouts"));
+    Assert.Equal(["Folders", "Types"], await Texts(page, "#explorer-layouts button"));
+    Assert.Equal("true", await page.GetAttributeAsync("#explorer-layouts [data-layout='folders']", "aria-checked"));
+    await opened.SelectAsync("Order.Describe");
+
+    await page.ClickAsync("#explorer-layouts [data-layout='types']");
+
+    Assert.Equal(["Standard modules", "Classes", "Interfaces", "Document modules"], await Texts(page, TopLevel));
+    Assert.Equal("true", await page.GetAttributeAsync("#explorer-layouts [data-layout='types']", "aria-checked"));
+    Assert.Equal("true", await page.GetAttributeAsync(Item("Order.Describe"), "aria-selected"));
+    Assert.True(await page.IsVisibleAsync(Item("Order.Describe") + " > .tree-row"));
+    Assert.Equal("Order.Describe", await page.EvaluateAsync<string>("() => window.vbadoc.selection()"));
+
+    await page.ReloadAsync();
+    Assert.Equal(["Standard modules", "Classes", "Interfaces", "Document modules"], await Texts(page, TopLevel));
+
+    await page.ClickAsync("#explorer-layouts [data-layout='folders']");
+    Assert.Equal(["Orders", "Startup", "No folder"], await Texts(page, TopLevel));
   }
 
   [Fact]

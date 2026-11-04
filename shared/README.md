@@ -68,14 +68,27 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
 
 ### The explorer (step D1)
 
-- **The shell draws the tree; each tool says what's in it** (`shell.explorer.setTree(nodes, select)`), as plain nodes
-  with a label, an id when choosable, a detail, a badge and children. The shell owns expanding, the filter, the
-  keyboard (the ARIA tree pattern) and following the selection (`reveal`).
+- **The shell draws the tree; each tool says what's in it** (`shell.explorer.setLayouts(layouts, select)` since
+  D1b), as plain nodes with a label, an id when choosable, a detail, a badge and children. The shell owns expanding,
+  the filter, the keyboard (the ARIA tree pattern) and following the selection (`reveal`).
 - **Both panels resize the same way:** the side panel's code became `resizablePanel`, which the explorer uses too, on
   the other side. Each panel's size is its share of the layout, remembered per tool (`<tool>-explorer-size` and
   `-hidden`), and the explorer is open by default only on a wide screen.
 - **The filter matches names only** and keeps what holds a match, opening it while filtering; clearing it puts back
   what was open.
+
+### Explorer layouts (step D1b)
+
+- **A tool can give more than one layout of the same items** (`layouts`: `[{ name, label, title, nodes }]`), such as
+  folders and kinds. With more than one, a switch above the tree chooses, remembered per tool as
+  `<tool>-explorer-layout`; the first is the default. Changing layout keeps the filter and the selection.
+- **A node with `folder: true` is drawn with a folder icon,** so the folder layout looks different from the kind
+  layout at a glance. The icon is our own inline SVG, not from an icon set, whose free licences (such as Font Awesome's
+  CC BY 4.0) aren't among the guidelines' and ask for attribution in every page (agreed with the user).
+- **A node's tooltip is on its row,** not the whole item, so a group's (such as a query group's description) doesn't
+  show over the rows inside it.
+- **The segmented control moved into `shell.css`** from vbadoc's stylesheet, since the switch uses it; vbadoc's
+  toolbars look the same.
 
 ### Asking before overwriting (step A5)
 

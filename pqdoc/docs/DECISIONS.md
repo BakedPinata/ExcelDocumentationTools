@@ -81,7 +81,8 @@ Reading them is step B2 of the feedback plan.
   holds a count, then for each group an int32, a GUID, its name and description as length-prefixed strings, and 5
   more bytes (apparently a flag and its order). A query in a group has a `QueryGroupID` entry with that GUID. The
   layout was worked out from these samples, so reading it fails safe: a list that doesn't parse means no groups, not an
-  error. Nested groups weren't tested.
+  error. Nested groups weren't tested. (D1b found the flag says whether a parent group's GUID follows; see Explorer
+  layouts and nested groups.)
 - **Other metadata** is per query, at item path `Section1/<name>`: `ResultType` (`Function` for a function; a parameter
   is marked in its M with `meta [IsParameterQuery = true]`), and where it loads: `FillObjectType` (`Table` or
   `ConnectionOnly`), `FillToDataModelEnabled`, `AddedToDataModel` and `FillTarget` (the table's name). Values carry a
@@ -175,12 +176,33 @@ Reading them is step B2 of the feedback plan.
   a count, then per group an int32 (0 in both samples), the GUID, the name and description as .NET length-prefixed
   UTF-8 strings, a byte and the group's order as an int32. A list that doesn't parse to exactly its length, or
   metadata that isn't readable XML, means no groups and no result types, never a failed run. Nested groups still
-  aren't known, so each group is listed at the top level.
+  aren't known, so each group is listed at the top level. (D1b replaced this; see below.)
 - **Ungrouped queries go under Other queries,** as Excel's Queries pane shows them, after the groups in Excel's order.
 - **For a folder, functions are found in the code** (`Analysis/FunctionDetector`): a function literal, `each`, or a
   `let` whose result is one of its own steps defined as a function, which is what Excel's Create Function writes.
   Anything else counts as a query; a parameter does too, since it isn't a function.
 - **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
+
+## Explorer layouts and nested groups (1.7.0, step D1b of the feedback plan)
+
+- **Nested groups, from the user's updated samples:** after a group's description comes a byte saying whether it's
+  inside another group (0 or 1), then, when it is, that group's GUID, then its order among the groups beside it, from
+  0. The samples list each group after the group it's in, but the reader doesn't rely on that. D1 read the flag and
+  the order as five fixed bytes, so a single nested group made the whole list fail to parse, which is why a
+  production workbook showed no groups. A flag other than 0 or 1, or bytes left over, still means no groups. A parent
+  that isn't in the list, or one that would make a loop, leaves the group at the top level rather than losing it.
+- **When the groups can't be read, the run warns** ("Could not read the workbook's query groups …"), where D1 was
+  silent: the page is still right, but the user would otherwise wonder where the groups went. An empty Metadata
+  section has nothing to read, so it gives no warning.
+- **A group with no queries under it isn't shown** (the samples' Empty Folder), as the explorer would have nothing to
+  list in it. A group holds its groups first, in Excel's order, then its queries by name, and counts every query under
+  it. Its description is its tooltip.
+- **The page data's `groups` became a list of `{ name, parent, description }`,** each group before the groups inside
+  it. A query's `group` and a group's `parent` are places in that list rather than names, so two groups with the same
+  name in different places stay apart.
+- **Two layouts, Groups and Types** (queries and functions), chosen with the explorer's switch (the shell's), which is
+  remembered as `pqdoc-explorer-layout`. Groups come first when the workbook has any; otherwise there's no switch.
+  Groups are drawn as folders; Other queries isn't one, so it isn't.
 
 ## Output
 

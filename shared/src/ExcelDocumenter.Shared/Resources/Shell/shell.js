@@ -19,8 +19,11 @@
 //   shell.activeView() / showView(name, focus) / onViewChange(fn)   tab #tab-<name> shows view #view-<name>
 //   shell.start()                      shows the remembered tab, or the first; call it once the tool is ready
 //   shell.panel.element / header / body   the side panel, for the tool to fill
-//   shell.explorer.setTree(nodes, select)   fills the explorer: nodes are { label, id, detail, badge, title,
-//                                      className, children, expanded }, and choosing one with an id calls select(id)
+//   shell.explorer.setLayouts(layouts, select)   fills the explorer: layouts are [{ name, label, title, nodes }], the
+//                                      first the default. With more than one, a switch above the tree chooses, and the
+//                                      choice is remembered as <tool>-explorer-layout. nodes are { label, id, detail,
+//                                      badge, title, className, folder, children, expanded }; folder: true draws a
+//                                      folder before the label. Choosing a node with an id calls select(id)
 //   shell.explorer.reveal(id)          marks the selected item, opening what holds it; null for none
 //   shell.source.init(source)          says where the source text comes from (call it once, before start):
 //     mode         "embedded" (in the page), "folder" (Load folder) or "none" (there's no source to show)
@@ -348,18 +351,27 @@
 
     // ---- Explorer tree ----
     //
-    // The tool gives the tree as nodes: { label, id, detail, badge, title, className, children, expanded }. A node with
-    // an id is something the page documents, and choosing it calls the tool's select; one without is a group. Groups
-    // start open and other nodes with children start closed. It's a tree in the ARIA sense: one item is in the tab
-    // order, the arrow keys move through what's showing, and Enter chooses.
+    // The tool gives the tree as nodes: { label, id, detail, badge, title, className, folder, children, expanded }. A
+    // node with an id is something the page documents, and choosing it calls the tool's select; one without is a
+    // group, drawn as a folder when it is one. Groups start open and other nodes with children start closed. It's a
+    // tree in the ARIA sense: one item is in the tab order, the arrow keys move through what's showing, and Enter
+    // chooses. The tool can give more than one layout of the same items, such as folders and kinds.
 
     var treeBox = $("explorer-tree");
     var filterBox = $("explorer-filter");
     var emptyNote = $("explorer-empty");
+    var layoutSwitch = $("explorer-layouts");
     var itemsById = new Map();
     var labels = new WeakMap();   // item -> its label in lower case, for the filter
     var selectItem = function () { };
     var selectedItem = null;
+    var revealedId = null;        // what's selected, so a new layout can show it too
+    var layouts = [];
+    var activeLayout = null;
+
+    // Drawn for this page rather than taken from an icon set, whose licences ask for attribution (see shared/README.md).
+    var FOLDER_ICON = "<svg class=\"tree-icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\" focusable=\"false\">" +
+      "<path d=\"M1.75 3.25h4.1l1.5 1.6h6.9v7.9H1.75z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linejoin=\"round\"/></svg>";
 
     function treeNode(node, depth) {
       var li = document.createElement("li");
@@ -367,14 +379,16 @@
       li.setAttribute("role", "treeitem");
       li.setAttribute("aria-level", String(depth + 1));
       li.tabIndex = -1;
-      li.className = (isItem ? "item" : "group") + (node.className ? " " + node.className : "");
-      if (node.title) li.title = node.title;
+      li.className = (isItem ? "item" : "group") + (node.folder ? " folder" : "") + (node.className ? " " + node.className : "");
       labels.set(li, String(node.label).toLowerCase());
 
+      // The tooltip is the row's, so it doesn't show over the rows inside a group.
       var row = document.createElement("div");
       row.className = "tree-row";
+      if (node.title) row.title = node.title;
       row.style.setProperty("--depth", String(depth));
-      row.innerHTML = "<span class=\"tree-twisty\" aria-hidden=\"true\"></span><span class=\"tree-label\">" + escapeHtml(node.label) + "</span>" +
+      row.innerHTML = "<span class=\"tree-twisty\" aria-hidden=\"true\"></span>" + (node.folder ? FOLDER_ICON : "") +
+        "<span class=\"tree-label\">" + escapeHtml(node.label) + "</span>" +
         (node.detail ? "<span class=\"tree-detail\">" + escapeHtml(node.detail) + "</span>" : "") +
         (node.badge ? "<span class=\"tree-badge\">" + escapeHtml(node.badge) + "</span>" : "");
       li.appendChild(row);
@@ -397,16 +411,42 @@
       return li;
     }
 
-    function setTree(nodes, select) {
+    function setLayouts(given, select) {
+      layouts = given;
       selectItem = select;
+      var stored = settings.load("explorer-layout");
+      activeLayout = layouts.some(function (l) { return l.name === stored; }) ? stored : layouts[0].name;
+      layoutSwitch.innerHTML = layouts.map(function (l) {
+        return "<button type=\"button\" role=\"radio\" data-layout=\"" + escapeHtml(l.name) + "\"" +
+          (l.title ? " title=\"" + escapeHtml(l.title) + "\"" : "") + ">" + escapeHtml(l.label) + "</button>";
+      }).join("");
+      layoutSwitch.hidden = layouts.length < 2;
+      showLayout();
+    }
+
+    // Draws the chosen layout, keeping the filter and what's selected.
+    function showLayout() {
+      var layout = layouts.filter(function (l) { return l.name === activeLayout; })[0];
+      layoutSwitch.querySelectorAll("button").forEach(function (b) {
+        b.setAttribute("aria-checked", b.dataset.layout === activeLayout ? "true" : "false");
+      });
       itemsById.clear();
       selectedItem = null;
       treeBox.innerHTML = "";
-      nodes.forEach(function (node) { treeBox.appendChild(treeNode(node, 0)); });
+      layout.nodes.forEach(function (node) { treeBox.appendChild(treeNode(node, 0)); });
       var first = treeBox.querySelector("li");
       if (first) first.tabIndex = 0;
       applyFilter();
+      reveal(revealedId);
     }
+
+    layoutSwitch.addEventListener("click", function (event) {
+      var button = event.target.closest("button[data-layout]");
+      if (!button || button.dataset.layout === activeLayout) return;
+      activeLayout = button.dataset.layout;
+      settings.save("explorer-layout", activeLayout);
+      showLayout();
+    });
 
     function hasChildren(li) { return li.hasAttribute("aria-expanded"); }
 
@@ -531,8 +571,9 @@
 
     // Marks the selected item, opening what holds it and scrolling it into view, without taking the focus.
     function reveal(id) {
+      revealedId = id === undefined ? null : id;
       if (selectedItem) selectedItem.setAttribute("aria-selected", "false");
-      selectedItem = id === null || id === undefined ? null : itemsById.get(id) || null;
+      selectedItem = revealedId === null ? null : itemsById.get(revealedId) || null;
       if (!selectedItem) return;
       selectedItem.setAttribute("aria-selected", "true");
       for (var at = parentItem(selectedItem); at; at = parentItem(at)) setExpanded(at, true);
@@ -588,7 +629,7 @@
       onViewChange: function (fn) { listeners.view.push(fn); },
       start: start,
       panel: { element: panel, header: $("side-panel-header"), body: $("side-panel-body") },
-      explorer: { setTree: setTree, reveal: reveal },
+      explorer: { setLayouts: setLayouts, reveal: reveal },
       source: {
         init: initSource,
         has: function (id) { return sources.has(id); },

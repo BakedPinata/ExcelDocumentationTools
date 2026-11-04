@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using ExcelDocumenter.Shared.Workbooks;
+using Serilog;
 
 namespace PowerQueryDocumenter.Core.Extraction;
 
@@ -38,18 +39,23 @@ public static partial class WorkbookReader
   private static readonly string[] SectionNames = ["Package Parts", "Permissions", "Metadata", "Permission Bindings"];
 
   /// <summary>Reads the queries of the workbook at <paramref name="workbookPath"/>.</summary>
+  /// <param name="workbookPath">The workbook.</param>
+  /// <param name="logger">Where to warn about metadata that can't be read, such as the query groups; null for nowhere.</param>
   /// <exception cref="ExtractionException">The file can't be read, or holds no readable queries.</exception>
-  public static IReadOnlyList<WorkbookQuery> Read(string workbookPath) => Read(WorkbookFile.ReadAllBytes(workbookPath));
+  public static IReadOnlyList<WorkbookQuery> Read(string workbookPath, ILogger? logger = null) =>
+    Read(WorkbookFile.ReadAllBytes(workbookPath), logger);
 
   /// <summary>Reads the queries of a workbook held in memory.</summary>
+  /// <param name="fileBytes">The workbook's bytes.</param>
+  /// <param name="logger">Where to warn about metadata that can't be read, such as the query groups; null for nowhere.</param>
   /// <exception cref="ExtractionException">The bytes aren't a workbook, or hold no readable queries.</exception>
-  public static IReadOnlyList<WorkbookQuery> Read(byte[] fileBytes)
+  public static IReadOnlyList<WorkbookQuery> Read(byte[] fileBytes, ILogger? logger = null)
   {
     ArgumentNullException.ThrowIfNull(fileBytes);
     var container = WorkbookFile.ContainerOf(fileBytes);
     if (container == WorkbookContainer.Zip)
     {
-      return ReadZipBased(fileBytes);
+      return ReadZipBased(fileBytes, logger);
     }
 
     // An encrypted workbook (password, IRM or sensitivity label) wraps the whole package in a compound file, which is
@@ -64,7 +70,7 @@ public static partial class WorkbookReader
     throw new ExtractionException("This is not an Excel workbook: it isn't a zip-based file such as .xlsx, .xlsm or .xlsb.");
   }
 
-  private static IReadOnlyList<WorkbookQuery> ReadZipBased(byte[] fileBytes)
+  private static IReadOnlyList<WorkbookQuery> ReadZipBased(byte[] fileBytes, ILogger? logger)
   {
     string base64;
     try
@@ -96,7 +102,7 @@ public static partial class WorkbookReader
     }
 
     // Groups and result types come from the Metadata section, which fails safe: without it they're simply missing.
-    var metadata = QueryMetadata.Read(sections[2]);
+    var metadata = QueryMetadata.Read(sections[2], logger);
     return queries
       .Select(q => metadata.TryGetValue(q.Name, out var entry) ? q with { Group = entry.Group, ResultType = entry.ResultType } : q)
       .ToArray();

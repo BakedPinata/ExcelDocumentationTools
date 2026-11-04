@@ -91,17 +91,6 @@ html[data-theme="light"] {
 }
 .view-toolbar > * { pointer-events: auto; }
 
-.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
-.segmented button {
-  padding: 5px 10px;
-  border: 0;
-  background: none;
-  color: var(--text-muted);
-  font: inherit;
-  cursor: pointer;
-}
-.segmented button + button { border-left: 1px solid var(--border); }
-.segmented button[aria-checked="true"] { background: var(--surface-2); color: var(--text); font-weight: 600; }
 .view-toolbar .button { background: var(--surface); padding: 5px 10px; }
 .view-toolbar .button:disabled { opacity: 0.5; cursor: default; }
 .view-toolbar .button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }

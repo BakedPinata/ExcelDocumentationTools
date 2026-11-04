@@ -377,8 +377,9 @@
 
   // ---- Explorer ----
   //
-  // Modules grouped by their '@Folder("Parent.Child") comments if any module has one (the Rubberduck convention),
-  // otherwise by kind. Each module lists its members in source order, with an Enum's values under it.
+  // Two layouts: modules in the folders their '@Folder("Parent.Child") comments give (the Rubberduck convention), and
+  // modules by kind. Folders come first when any module has one; without any, there's only the kinds. Each module lists
+  // its members in source order, with an Enum's values under it.
 
   var KIND_GROUPS = [
     ["standard", "Standard modules"], ["class", "Classes"], ["interface", "Interfaces"], ["form", "Forms"],
@@ -417,7 +418,7 @@
     return { id: module.id, label: module.id, detail: showKind ? moduleKindLabel(module) : "", title: module.file, children: children };
   }
 
-  function explorerTree() {
+  function explorerLayouts() {
     var membersOf = new Map();
     data.members.forEach(function (m) {
       if (!membersOf.has(m.module)) membersOf.set(m.module, []);
@@ -425,14 +426,19 @@
     });
     var modules = data.modules.slice().sort(function (a, b) { return byLowerName(a.id, b.id); });
 
-    if (!modules.some(function (m) { return m.folder; })) {
-      return KIND_GROUPS.map(function (group) {
+    var types = {
+      name: "types", label: "Types", title: "Modules by kind",
+      nodes: KIND_GROUPS.map(function (group) {
         var inGroup = modules.filter(function (m) { return (m.isInterface ? "interface" : m.kind) === group[0]; });
         return { label: group[1], detail: String(inGroup.length), children: inGroup.map(function (m) { return moduleNode(m, false, membersOf); }) };
-      }).filter(function (group) { return group.children.length > 0; });
-    }
+      }).filter(function (group) { return group.children.length > 0; })
+    };
+    if (!modules.some(function (m) { return m.folder; })) return [types];
+    return [{ name: "folders", label: "Folders", title: "Modules in their '@Folder folders", nodes: folderTree(modules, membersOf) }, types];
+  }
 
-    // Folders nest at the dots. A module with no folder goes in a "No folder" group at the end.
+  // Folders nest at the dots. A module with no folder goes in a "No folder" group at the end.
+  function folderTree(modules, membersOf) {
     var root = { folders: new Map(), modules: [] };
     var loose = [];
     modules.forEach(function (m) {
@@ -457,6 +463,7 @@
         var child = folder.folders.get(name);
         return {
           label: name,
+          folder: true,
           detail: String(count(child)),
           children: folderNodes(child).concat(child.modules.map(function (m) { return moduleNode(m, true, membersOf); }))
         };
@@ -531,7 +538,7 @@
     onHomeChange: function (fn) { listeners.home.push(fn); }
   };
 
-  shell.explorer.setTree(explorerTree(), select);
+  shell.explorer.setLayouts(explorerLayouts(), select);
   shell.start();
   // The views read the selection when they first draw, so an address's selection is made before they do.
   if (idFromAddress() !== null) followAddress();

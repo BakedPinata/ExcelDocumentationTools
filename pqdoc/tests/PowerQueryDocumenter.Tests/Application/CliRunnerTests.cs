@@ -413,6 +413,23 @@ public sealed class CliRunnerTests : IDisposable
   }
 
   [Fact]
+  public async Task Query_groups_that_cannot_be_read_give_a_warning_and_the_run_carries_on()
+  {
+    var workbook = temp.Combine("Book.xlsx");
+    var metadata = new byte[] { 0, 0, 0, 0, 3, 0, 0, 0, 0x3C, 0x61, 0x3E }; // "<a>", which isn't the metadata's XML
+    await File.WriteAllBytesAsync(
+      workbook,
+      MashupWorkbook.FromMashup(MashupWorkbook.Sections(0, MashupWorkbook.PackageParts("section Section1;\r\nshared A = 1;"), [], metadata, [])),
+      TestContext.Current.CancellationToken);
+    using var app = App();
+
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(workbook));
+
+    Assert.Contains(app.Log.Messages(LogEventLevel.Warning), m => m.Contains("Could not read the workbook's query groups", StringComparison.Ordinal));
+    Assert.True(File.Exists(temp.Combine(Path.Combine("PowerQuery", "Book-powerquery.html"))));
+  }
+
+  [Fact]
   public async Task A_workbook_whose_queries_cannot_be_read_leaves_existing_query_files_alone()
   {
     var workbook = temp.Combine("Book.xlsx");

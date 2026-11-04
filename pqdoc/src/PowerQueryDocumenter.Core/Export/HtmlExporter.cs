@@ -5,6 +5,7 @@ using System.Text.Json;
 using ExcelDocumenter.Shared;
 using ExcelDocumenter.Shared.Pages;
 using PowerQueryDocumenter.Core.Configuration;
+using PowerQueryDocumenter.Core.Extraction;
 using PowerQueryDocumenter.Core.Model;
 
 namespace PowerQueryDocumenter.Core.Export;
@@ -126,14 +127,7 @@ public sealed class HtmlExporter : IExporter
       details.TryAdd(detail.Query, detail);
     }
 
-    var groups = details.Values
-      .Where(d => d.Group is not null)
-      .Select(d => d.Group!)
-      .DistinctBy(g => g.Name, StringComparer.Ordinal)
-      .OrderBy(g => g.Order)
-      .ThenBy(g => g.Name, StringComparer.OrdinalIgnoreCase)
-      .Select(g => g.Name)
-      .ToArray();
+    var groups = GroupDocuments(details.Values.Select(d => d.Group), out var groupIndex);
     var document = new GraphDocument(
       context.Title,
       FormatTimestamp(context.GeneratedAt),
@@ -142,7 +136,7 @@ public sealed class HtmlExporter : IExporter
         n.Name, RoleName(n.Role), n.IsInCycle, n.UpstreamCount, n.DownstreamCount,
         files.GetValueOrDefault(n.Name)?.FileName, files.GetValueOrDefault(n.Name)?.Hash,
         details.GetValueOrDefault(n.Name)?.IsFunction == true ? "function" : "query",
-        details.GetValueOrDefault(n.Name)?.Group?.Name)).ToArray(),
+        details.GetValueOrDefault(n.Name)?.Group is { } group ? groupIndex[group] : null)).ToArray(),
       graph.Edges.Select(e => new EdgeDocument(
         e.Upstream,
         e.Downstream,
@@ -151,6 +145,41 @@ public sealed class HtmlExporter : IExporter
       groups);
 
     return PageBuilder.EscapeForScriptElement(JsonSerializer.Serialize(document, JsonOptions));
+  }
+
+  /// <summary>
+  /// The groups that hold a query, directly or through the groups inside them, as Excel's Queries pane lists them: each
+  /// group before the groups inside it, and groups beside each other in Excel's order, then by name. A group with no
+  /// queries in it isn't listed, as the explorer has nothing to show under it. <paramref name="index"/> gives each
+  /// group's place in the list, which is how queries and groups refer to their group.
+  /// </summary>
+  private static GroupDocument[] GroupDocuments(IEnumerable<QueryGroup?> groupsOfQueries, out Dictionary<QueryGroup, int> index)
+  {
+    var used = new HashSet<QueryGroup>();
+    foreach (var group in groupsOfQueries)
+    {
+      foreach (var step in group?.Path() ?? [])
+      {
+        used.Add(step);
+      }
+    }
+
+    var childrenOf = used.ToLookup(g => g.Parent);
+    var list = new List<GroupDocument>();
+    var places = new Dictionary<QueryGroup, int>();
+    void Add(QueryGroup? parent)
+    {
+      foreach (var group in childrenOf[parent].OrderBy(g => g.Order).ThenBy(g => g.Name, StringComparer.OrdinalIgnoreCase).ThenBy(g => g.Name, StringComparer.Ordinal))
+      {
+        places[group] = list.Count;
+        list.Add(new GroupDocument(group.Name, parent is null ? null : places[parent], group.Description));
+        Add(group);
+      }
+    }
+
+    Add(null);
+    index = places;
+    return [.. list];
   }
 
   /// <summary>
@@ -195,14 +224,18 @@ public sealed class HtmlExporter : IExporter
     IReadOnlyList<QueryDocument> Queries,
     IReadOnlyList<EdgeDocument> Edges,
     IReadOnlyList<IReadOnlyList<string>> Cycles,
-    IReadOnlyList<string> Groups);
+    IReadOnlyList<GroupDocument> Groups);
 
   /// <param name="File">The query's .m file name, or null when it has no readable file.</param>
   /// <param name="Hash">The first 16 hex digits of the SHA-256 of that file, or null.</param>
   /// <param name="Kind">"function" or "query".</param>
-  /// <param name="Group">Its Excel query group, or null.</param>
+  /// <param name="Group">Its Excel query group, as its place in <see cref="GraphDocument.Groups"/>, or null.</param>
   private sealed record QueryDocument(
-    string Id, string Role, bool InCycle, int Upstream, int Downstream, string? File, string? Hash, string Kind, string? Group);
+    string Id, string Role, bool InCycle, int Upstream, int Downstream, string? File, string? Hash, string Kind, int? Group);
+
+  /// <param name="Parent">The group it's in, as its place in <see cref="GraphDocument.Groups"/>, or null at the top level.</param>
+  /// <param name="Description">Its description in Excel, or null.</param>
+  private sealed record GroupDocument(string Name, int? Parent, string? Description);
 
   private sealed record EdgeDocument(string From, string To, bool InCycle);
 }

@@ -80,7 +80,7 @@ Forms (UserForms) are in scope, but no sample workbook with forms has been avail
 ### Explorer
 
 - A panel on the left lists every module, with its members under it in source order (an Enum's values under the Enum). Each member shows its kind, its role when it has one (such as Macro), and whether it's unreferenced.
-- Modules are grouped by `'@Folder("Parent.Child")` comments in their declarations if any module has one (the Rubberduck convention; `'@Folder "Parent.Child"` also counts), nested at the dots, with modules that have none in a No folder group. Otherwise they're grouped by kind: standard modules, classes, interfaces, forms and document modules.
+- When any module has a `'@Folder("Parent.Child")` comment in its declarations (the Rubberduck convention; `'@Folder "Parent.Child"` also counts), modules are shown in those folders by default, nested at the dots and drawn as folders, with modules that have none in a No folder group. A switch shows them by kind instead, and the choice is remembered. Without folders they're shown by kind: standard modules, classes, interfaces, forms and document modules.
 - A filter box narrows the tree to the names containing its text, with what holds them. Search stays for jumping straight to a name.
 - Choosing an item selects it in every view, and the explorer follows selections made elsewhere. It works from the keyboard as a tree: the arrows move and open or close, and Enter chooses.
 - It can be hidden and resized, and both are remembered. It's open by default on a wide screen and closed on a narrow one, where it opens above the views.

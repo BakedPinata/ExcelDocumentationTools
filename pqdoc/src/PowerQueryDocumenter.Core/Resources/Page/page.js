@@ -167,8 +167,9 @@
 
   // ---- Explorer ----
   //
-  // Queries in their Excel query groups, in Excel's order, with the rest under "Other queries" as Excel's Queries pane
-  // shows them. Without groups (a folder of .m files, or a workbook that has none), queries and functions apart.
+  // Two layouts: queries in their Excel query groups, nested and in Excel's order, with the rest under "Other queries",
+  // as Excel's Queries pane shows them; and queries and functions apart. Groups come first when the workbook has any;
+  // without any (or for a folder of .m files) there are only queries and functions.
 
   function queryNode(query, showKind) {
     return { id: query.id, label: query.id, detail: showKind && query.kind === "function" ? "Function" : "" };
@@ -178,21 +179,42 @@
     return { label: label, detail: String(queries.length), children: queries.map(function (q) { return queryNode(q, showKind); }) };
   }
 
-  function explorerTree() {
+  function explorerLayouts() {
     var queries = data.queries.slice().sort(function (a, b) { return byName(a.id, b.id); });
-    var nodes;
-    if (data.groups.length > 0) {
-      nodes = data.groups.map(function (name) {
-        return groupNode(name, queries.filter(function (q) { return q.group === name; }), true);
-      });
-      nodes.push(groupNode("Other queries", queries.filter(function (q) { return !q.group; }), true));
-    } else {
-      nodes = [
+    var types = {
+      name: "types", label: "Types", title: "Queries and functions apart",
+      nodes: [
         groupNode("Queries", queries.filter(function (q) { return q.kind !== "function"; }), false),
         groupNode("Functions", queries.filter(function (q) { return q.kind === "function"; }), false)
-      ];
+      ].filter(function (node) { return node.children.length > 0; })
+    };
+    if (data.groups.length === 0) return [types];
+    return [{ name: "groups", label: "Groups", title: "Queries in their Excel query groups", nodes: groupTree(queries) }, types];
+  }
+
+  // data.groups lists each group before the groups inside it, so one pass puts every group under its parent. A group
+  // shows the groups inside it, then its queries, and counts every query under it.
+  function groupTree(queries) {
+    var groups = data.groups.map(function (g) {
+      return { label: g.name, title: g.description || "", folder: true, groups: [], queries: [] };
+    });
+    var top = [];
+    data.groups.forEach(function (g, i) { (g.parent === null ? top : groups[g.parent].groups).push(groups[i]); });
+    var loose = [];
+    queries.forEach(function (q) { (q.group === null || q.group === undefined ? loose : groups[q.group].queries).push(q); });
+
+    function finish(group) {
+      var inside = group.groups.map(finish);
+      var count = inside.reduce(function (total, g) { return total + Number(g.detail); }, group.queries.length);
+      return {
+        label: group.label, title: group.title, folder: true, detail: String(count),
+        children: inside.concat(group.queries.map(function (q) { return queryNode(q, true); }))
+      };
     }
-    return nodes.filter(function (node) { return node.children.length > 0; });
+
+    var nodes = top.map(finish);
+    if (loose.length > 0) nodes.push(groupNode("Other queries", loose, true));
+    return nodes;
   }
 
   // ---- Search ----
@@ -260,7 +282,7 @@
     countText: countText
   };
 
-  shell.explorer.setTree(explorerTree(), select);
+  shell.explorer.setLayouts(explorerLayouts(), select);
   shell.start();
   renderDetails();
 })();

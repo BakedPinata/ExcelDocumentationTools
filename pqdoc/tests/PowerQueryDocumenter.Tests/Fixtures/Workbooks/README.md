@@ -1,7 +1,7 @@
 # Sample workbooks
 
-Workbooks with Power Query queries, made in Excel for pqdoc's tests (feedback plan step B1). They hold made-up data
-only, because this repository is public. What step B1 confirmed about how Excel stores the queries is in
+Workbooks with Power Query queries, made in Excel for pqdoc's tests (feedback plan step B1, with nested query groups
+added for step D1b). They hold made-up data only, because this repository is public. What step B1 confirmed about how Excel stores the queries is in
 `pqdoc/docs/DECISIONS.md`.
 
 | File | What it's for |
@@ -14,17 +14,30 @@ only, because this repository is public. What step B1 confirmed about how Excel 
 | Query | What it covers |
 |---|---|
 | `Companies` | An inline table; loaded to the data model only; in the Reference group |
-| `Sales Data` | A name with a space; loaded to a sheet; a block comment on its last lines |
+| `Sales Data` | A name with a space; loaded to a sheet; a block comment on its last lines; in the Deep group, three deep |
 | `fnClean` | A function, used by `Chain_C` and `Manual Targets` |
 | `pRegion` | A parameter (`meta [IsParameterQuery = true]`), used by `Chain_B` |
 | `Chain_A` to `Chain_E` | A chain, each using the one before (`Chain_A` uses `Sales Data`). A to D are in the Staging group. `Chain_E` has a description, loads to a sheet, and has a line comment on its last line |
-| `Sales/Returns` | A name with `/`, which Windows doesn't allow in file names; loaded to a sheet |
+| `Sales/Returns` | A name with `/`, which Windows doesn't allow in file names; loaded to a sheet; in the Has Description group |
 | `Discount%` | A name with `%`; loaded to the data model; in the Reference group |
 | `Manual Targets` | An Enter Data table (compressed in the M itself); loaded to a sheet; in the Reference group |
 | `Notes` | A text value containing `;` and a line starting `shared` |
 | `Commented` | Line and block comments throughout, including right after `=` and on the last line |
 
 Every query that isn't loaded to a sheet or the data model is connection only.
+
+## Query groups
+
+| Group | What it covers |
+|---|---|
+| `Staging` | A top-level group, first in Excel's order |
+| `Reference` | A top-level group, second |
+| `Empty Folder` | A group with no queries, third |
+| `Root` | A top-level group holding only another group, fourth |
+| `Root` > `Has Description` | A nested group with a description, holding a group and a query |
+| `Root` > `Has Description` > `Deep` | A group three deep |
+
+The other queries are in no group.
 
 ## Changing them
 

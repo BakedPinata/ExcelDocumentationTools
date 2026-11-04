@@ -437,7 +437,7 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
 
 ### Explorer (0.10.0, step D1 of the feedback plan)
 
-- **The explorer is the shell's,** filled by `page.js` (`explorerTree()`); see `shared/README.md`.
+- **The explorer is the shell's,** filled by `page.js` (`explorerLayouts()` since D1b); see `shared/README.md`.
 - **`'@Folder` is read as Rubberduck reads it:** a comment in the declarations, before the first procedure, with or
   without brackets; the first one counts. It's kept as written in `ModuleModel.Folder` and the page splits it at the
   dots. A module with none goes in No folder, at the end, rather than the project's name as Rubberduck shows it,
@@ -448,6 +448,12 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
   the detail, the role is a badge, and an unreferenced member is in italics with a tooltip.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
+
+### Explorer layouts (0.11.0, step D1b of the feedback plan)
+
+- **Folders and Types are two layouts of the same tree,** chosen with the explorer's switch (the shell's), which is
+  remembered as `vbadoc-explorer-layout`. Folders come first when any module has one; without folders there's only
+  Types, and no switch, as in D1. Folders are drawn with a folder icon; No folder isn't a folder, so it has none.
 
 ### Agreed for later stages
 

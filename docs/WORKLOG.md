@@ -10,21 +10,21 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.10.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
-  `<workbook>-vba.html`, with an explorer of modules and members, grouped by `'@Folder` comments or by kind. It asks
+- **vbadoc 0.11.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+  `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.6.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.7.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
-  queries in their Excel groups.
+  queries in their Excel groups, nested as Excel shows them, or as queries and functions.
 - **`shared/`** (`ExcelDocumenter.Shared`): the code both tools use, since step C1, and the page shell both pages are
   built on, since C2. See its README.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. The user's build, test and
   publish of A0 on the work machine is still to come. A0–A5, F1, B1–B4, C1 and C2 are pushed and reviewed. D1 is done.
-  The user's review of D1 added steps D1a to D1d, before D2, now settled (see the plan's "After D1's review").
-  **Next: D1b** (explorer layouts and nested query groups), first because the user's updated sample workbooks have
-  nested groups, which tests on them fail on until pqdoc reads them; then D1a, D1c and D1d.
+  The user's review of D1 added steps D1a to D1d, before D2, now settled (see the plan's "After D1's review"). D1b is
+  done, waiting for review and the user's check of the workbook with 20 groups. **Next: D1a** (panel controls), then
+  D1c and D1d.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -34,6 +34,21 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-04: Step D1b, explorer layouts and nested query groups
+
+- pqdoc reads nested query groups to any depth: after a group's description, a byte says whether a parent's GUID
+  follows, then its order. D1 read those as five fixed bytes, so one nested group lost them all. A list that still
+  can't be read now gives a warning. Groups with no queries aren't shown; a group's description is its tooltip. The
+  page data's `groups` is a list of `{ name, parent, description }`, referred to by place.
+- The explorer has layouts, in the shell (`shell.explorer.setLayouts`): Folders or Types in vbadoc, Groups or Types in
+  pqdoc, with a switch when there's more than one, remembered per tool. Folders and groups have a folder icon, our own
+  SVG. A node's tooltip moved to its row; the segmented control's styles moved into `shell.css`.
+- The user's updated `Queries.xlsx` and `Queries.xlsb` are committed with this step; their README lists the groups.
+  pqdoc's FR-HTML-11 and decisions, vbadoc's requirements and decisions, both READMEs, the shared README and the
+  guidelines (layouts, icons) follow. vbadoc 0.11.0, pqdoc 1.7.0.
+- Tests: 6 new pqdoc unit tests and 1 CLI test; 4 new pqdoc and 2 new vbadoc explorer browser tests, with others
+  extended. Screenshots checked in both themes, wide and narrow.
 
 ### 2026-11-04: D1's follow-ups settled
 

@@ -276,22 +276,43 @@ public sealed class HtmlExporterTests
   [Fact]
   public void FR_HTML_11_each_query_has_its_kind_and_group_and_the_groups_keep_Excels_order()
   {
+    var alpha = new QueryGroup("Alpha", 2);
     var details = new[]
     {
       new QueryDetails("A", false, new QueryGroup("Staging", 1)),
-      new QueryDetails("B", true, new QueryGroup("Alpha", 2)),
+      new QueryDetails("B", true, alpha),
       new QueryDetails("C", false, new QueryGroup("Zulu", 0)),
+      new QueryDetails("E", false, new QueryGroup("Inner", 0, "Inside Alpha", alpha)),
     };
 
-    var data = EmbeddedData(Render(Fixtures.Graph(["A>B"], "C", "D"), Context with { Details = details }));
+    var data = EmbeddedData(Render(Fixtures.Graph(["A>B"], "C", "D", "E"), Context with { Details = details }));
 
     var queries = data.GetProperty("queries").EnumerateArray().ToDictionary(q => q.GetProperty("id").GetString()!, q => q);
     Assert.Equal("query", queries["A"].GetProperty("kind").GetString());
     Assert.Equal("function", queries["B"].GetProperty("kind").GetString());
-    Assert.Equal("Staging", queries["A"].GetProperty("group").GetString());
     Assert.Equal("query", queries["D"].GetProperty("kind").GetString());
     Assert.Equal(JsonValueKind.Null, queries["D"].GetProperty("group").ValueKind);
-    Assert.Equal(new[] { "Zulu", "Staging", "Alpha" }, data.GetProperty("groups").EnumerateArray().Select(g => g.GetString()).ToArray());
+
+    // Each group before the groups inside it, groups beside each other in Excel's order, and queries by place.
+    var groups = data.GetProperty("groups").EnumerateArray().Select(g => (
+      Name: g.GetProperty("name").GetString(),
+      Parent: g.GetProperty("parent").ValueKind == JsonValueKind.Null ? (int?)null : g.GetProperty("parent").GetInt32(),
+      Description: g.GetProperty("description").GetString())).ToArray();
+    Assert.Equal([("Zulu", null, null), ("Staging", null, null), ("Alpha", null, null), ("Inner", 2, "Inside Alpha")], groups);
+    Assert.Equal(1, queries["A"].GetProperty("group").GetInt32());
+    Assert.Equal(2, queries["B"].GetProperty("group").GetInt32());
+    Assert.Equal(3, queries["E"].GetProperty("group").GetInt32());
+  }
+
+  [Fact]
+  public void FR_HTML_11_a_group_with_queries_only_in_the_groups_inside_it_is_still_listed()
+  {
+    var outer = new QueryGroup("Outer", 0);
+    var details = new[] { new QueryDetails("A", false, new QueryGroup("Inner", 0, null, outer)) };
+
+    var data = EmbeddedData(Render(Fixtures.Graph([], "A"), Context with { Details = details }));
+
+    Assert.Equal(["Outer", "Inner"], data.GetProperty("groups").EnumerateArray().Select(g => g.GetProperty("name").GetString()));
   }
 
   [Fact]

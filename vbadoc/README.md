@@ -122,9 +122,9 @@ These break anything that runs vbadoc from a script:
 ### The page
 
 The explorer on the left lists every module with its members. If your modules have Rubberduck's
-`'@Folder("Parent.Child")` comments, it groups them into those folders; otherwise by kind. Its filter box narrows the
-list, and choosing an item selects it in the graph, the class diagram and the source panel. Hide it with **Explorer**
-in the top bar, or drag its edge to resize it.
+`'@Folder("Parent.Child")` comments, it shows them in those folders, or by kind with **Types** at its top; otherwise by
+kind. Its filter box narrows the list, and choosing an item selects it in the graph, the class diagram and the source
+panel. Hide it with **Explorer** in the top bar, or drag its edge to resize it.
 
 ### What it writes
 

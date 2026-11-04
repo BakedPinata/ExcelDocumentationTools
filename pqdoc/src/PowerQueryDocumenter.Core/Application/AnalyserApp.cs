@@ -193,7 +193,7 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     IReadOnlyList<WorkbookQuery> queries;
     try
     {
-      queries = WorkbookReader.Read(workbook);
+      queries = WorkbookReader.Read(workbook, logger);
     }
     catch (ExtractionException ex)
     {

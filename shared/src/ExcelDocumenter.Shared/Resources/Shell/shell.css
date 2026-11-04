@@ -222,6 +222,20 @@ body.resizing { cursor: col-resize; user-select: none; }
   .title { max-width: 100%; flex-basis: 100%; }
 }
 
+/* ---- Segmented control: a few buttons as one, with role="radio" and aria-checked on the chosen one ---- */
+
+.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.segmented button {
+  padding: 5px 10px;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.segmented button + button { border-left: 1px solid var(--border); }
+.segmented button[aria-checked="true"] { background: var(--surface-2); color: var(--text); font-weight: 600; }
+
 /* ---- Explorer (shell.js): a tree of everything the page documents, with a filter ---- */
 
 .explorer-toggle[aria-pressed="true"] { border-color: var(--accent); }
@@ -237,6 +251,9 @@ body.resizing { cursor: col-resize; user-select: none; }
   font: inherit;
   font-size: 13px;
 }
+.explorer-layouts { display: flex; margin: 0 8px 6px 10px; font-size: 12px; }
+.explorer-layouts[hidden] { display: none; }
+.explorer-layouts button { flex: 1; padding: 3px 8px; }
 .explorer-empty { margin: 8px 12px; font-size: 13px; }
 .explorer-empty[hidden] { display: none; }
 
@@ -262,6 +279,7 @@ body.resizing { cursor: col-resize; user-select: none; }
 .tree li[aria-expanded="true"] > .tree-row .tree-twisty::before { content: "\25BE"; } /* down-pointing small triangle */
 .tree li[aria-expanded="false"] > .tree-row .tree-twisty::before { content: "\25B8"; } /* right-pointing small triangle */
 .tree.filtering li.open-for-filter > .tree-row .tree-twisty::before { content: "\25BE"; }
+.tree-icon { flex: none; align-self: center; width: 14px; height: 14px; color: var(--text-muted); }
 .tree-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .tree li.group > .tree-row .tree-label { font-weight: 600; }
 .tree-detail { flex: none; color: var(--text-muted); font-size: 12px; }
