@@ -331,8 +331,9 @@ public class GraphTests(PageFixture fixture)
   [Fact]
   public async Task Dragged_nodes_can_be_pinned_and_released_with_a_double_click()
   {
-    // With the panel locked open, so the double-click's first click doesn't open it over the node.
-    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithPanelLocked);
+    // With the panel locked open, so the double-click's first click doesn't open it over the node, and focus on click
+    // off, so it doesn't redraw the graph around the node (with it on, Ctrl+double-click releases a node).
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithPanelLocked + OpenedPage.WithoutFocusOnClick);
     var page = opened.Page;
     await OpenSettings(page);
     await page.CheckAsync("#graph-setting-pinDragged");
@@ -344,6 +345,25 @@ public class GraphTests(PageFixture fixture)
 
     await page.DblClickAsync("#graph-svg g.node[data-id='Utils'] path.shape", new() { Force = true });
     Assert.Equal(0, await Count(page, "#graph-svg g.node.pinned"));
+  }
+
+  [Fact]
+  public async Task With_focus_on_click_on_Ctrl_double_click_releases_a_pinned_node()
+  {
+    // A plain double-click's first click focuses the graph on the node and redraws it, so the second lands elsewhere.
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithPanelLocked);
+    var page = opened.Page;
+    await OpenSettings(page);
+    await page.CheckAsync("#graph-setting-pinDragged");
+    await page.ClickAsync("#graph-settings summary"); // close the panel
+
+    await Drag(page, "#graph-svg g.node[data-id='Utils'] path.shape", -120, 80);
+    await WaitUntilStill(page);
+    Assert.Equal(1, await Count(page, "#graph-svg g.node.pinned[data-id='Utils']"));
+
+    await page.DblClickAsync("#graph-svg g.node[data-id='Utils'] path.shape", new() { Force = true, Modifiers = [KeyboardModifier.Control] });
+    Assert.Equal(0, await Count(page, "#graph-svg g.node.pinned"));
+    Assert.Equal(12, await Count(page, "#graph-svg g.node")); // selected, not focused
   }
 
   [Fact]

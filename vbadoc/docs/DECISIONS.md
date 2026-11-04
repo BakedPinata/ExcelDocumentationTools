@@ -449,6 +449,32 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Speed on large projects (0.15.0, step D1d of the feedback plan)
+
+- **Measured on a generated project the size and shape of the user's** (`PageFixture.UserSizedEmbedded`: 70 modules in
+  folders, about 1,500 procedures, about 320 module and 1,540 member dependencies), in headless Chromium with the CPU
+  slowed four times to stand in for a work machine: frame times and long tasks while panning and zooming at both
+  levels, hovering, and scrolling the explorer and source panel, and Chromium's own counters for script, style and
+  layout.
+- **Hovering laid out the whole graph again.** Showing or hiding the tooltip by `hidden` (display) took it out of the
+  layout and back, and the browser then laid out every SVG element: about 140 ms a time there, 400 ms of every hover at
+  member level. The tooltip is now hidden by visibility, keeping its place in the layout, and contains its own layout;
+  hovering 25 nodes went from 10 s of long tasks to under 0.2 s. pqdoc's tooltip had the same pattern and the same fix.
+- **The whole graph's layout is kept** when a focused graph or the other level replaces it, per level and Show…
+  choices, and put back when it returns, with pinned nodes still pinned. Clearing a focus went from 4.3 s to 1.6 s
+  there (the rest is drawing it). The first layout is unchanged, as are Re-run layout and Reset to defaults, which start
+  afresh; a change to a layout setting forgets the other kept layouts, which were made with the old setting.
+- **With focus on click on, a double-click's first click focuses the graph** and redraws it around the node, so the
+  second lands elsewhere and a pinned node isn't released; and since the whole graph's layout is now kept, the pin is
+  still there when the focus is cleared (before, laying it out again dropped it). Ctrl+double-click releases a node
+  (the Ctrl+click selects without focusing), as does Release pinned in Settings. Raised with the user.
+- **Zooming at member level is left as it is.** Its cost is painting about 1,500 member names at each new scale (taking
+  the names away halves it; their halos, arrowheads, outlines and edges cost little), and the user would rather keep
+  every feature than gain speed, rating the lag at about 3 out of 10.
+- **The speed tests** (`SpeedTests`) keep a generous budget for hovering on that project (800 ms of long tasks for 20
+  hovers; the old tooltip took about 1,700 ms, the new one none), and check what can't vary: the tooltip's style, and
+  layouts coming back unchanged.
+
 ### View controls and the summary (0.14.0, step D1c of the feedback plan)
 
 - **Focus on click is the shell's, one setting for the page** (`vbadoc-focus-on-click`, on unless turned off), and the

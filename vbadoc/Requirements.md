@@ -76,6 +76,7 @@ Forms (UserForms) are in scope, but no sample workbook with forms has been avail
 - The page has a **tab for each view**: Dependency graph and Class diagram.
 - If something is selected when switching tabs, it should stay selected in the other tab where it exists.
 - Both views must stay readable on large projects. Provide zoom and pan, and a way to focus on part of the project (see each view).
+- They must stay quick to use on a project the size of a large real one (70 modules, about 320 module and 1,540 member dependencies): hovering doesn't hold the page up, and going back to the whole graph after a focus, or to a level shown before, puts its layout back rather than working it out again, with dragged and pinned nodes where they were. Speed is never bought by leaving out what the page shows.
 - **Focus on click** is one setting for the whole page, the Focus button at the start of each view's toolbar, on by default and remembered. While it's on, selecting anything (in a view, the explorer, search or the source panel) shows only that and what it's connected to, in every view; clearing the selection shows everything again. Turning it on focuses on the current selection too.
 - **Ctrl+click** (Cmd+click on a Mac) does the other thing for that click: with focus on click on, it selects without focusing; with it off, it selects and focuses.
 - **Esc** clears the selection, and with it any focus, in every view. An open menu, or a box with text in it, takes Esc first.

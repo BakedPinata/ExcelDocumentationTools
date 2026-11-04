@@ -149,7 +149,11 @@ html[data-theme="light"] {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
   font-size: 12.5px;
   pointer-events: none;
+  contain: layout style;
 }
+/* Hidden by visibility, not display: taking it out of the layout and back made the browser lay out the whole graph
+   again on every hover, which took a noticeable moment on a large project (step D1d of the feedback plan). */
+.graph-tooltip[hidden] { display: block; visibility: hidden; }
 .graph-tooltip strong { display: block; color: var(--text); overflow-wrap: anywhere; }
 .graph-tooltip span { display: block; color: var(--text-muted); }
 

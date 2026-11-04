@@ -201,6 +201,18 @@ public sealed class GraphTests(PageFixture fixture)
   }
 
   [Fact]
+  public async Task The_hidden_tooltip_stays_in_the_layout_so_showing_it_does_not_lay_out_the_graph()
+  {
+    // Taking it out of the layout and back made every hover lay out the whole graph again (feedback plan step D1d).
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);
+    var page = opened.Page;
+
+    Assert.True(await page.IsHiddenAsync("#graph-tooltip"));
+    Assert.Equal("block", await page.EvaluateAsync<string>("() => getComputedStyle(document.getElementById('graph-tooltip')).display"));
+    Assert.Equal("hidden", await page.EvaluateAsync<string>("() => getComputedStyle(document.getElementById('graph-tooltip')).visibility"));
+  }
+
+  [Fact]
   public async Task The_tooltip_says_when_a_query_is_in_a_circular_dependency()
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);

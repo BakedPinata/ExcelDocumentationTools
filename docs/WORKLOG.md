@@ -10,11 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.14.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.15.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.9.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.9.1**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -26,8 +26,8 @@ rather than repeating it.
   pushed; the user's check of the workbook with 20 groups is still to come. D1a (with the copy button the user asked
   for after D1b) is pushed. D1e (`'@Folder` after a label, asked for after D1a) and D1c (view controls and both pages'
   summary) are pushed. The user's review of D1c added the explorer's filter (checkboxes, apart from selecting) and
-  Expand / Collapse all to D3, which moved widely used items to a new D4. **Next: D1d** (speed on large projects,
-  keeping every feature), then D2.
+  Expand / Collapse all to D3, which moved widely used items to a new D4. D1d (speed) is done, waiting for review and
+  the user's check on the production workbook. **Next: D2** (favourites).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -37,6 +37,20 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-04: Step D1d, speed on large projects
+
+- Measured on a generated project shaped like the user's (70 modules, about 320 module and 1,540 member dependencies),
+  CPU slowed four times. Hovering at member level spent about 400 ms per hover laying out the whole graph, because
+  showing or hiding the tooltip by display did; it's now hidden by visibility, in both tools (10 s of long tasks for
+  25 hovers became under 0.2 s).
+- The whole graph's layout is kept when a focus or the other level replaces it, and put back when it returns, pinned
+  nodes included: clearing a focus went from 4.3 s to 1.6 s there. Zooming at member level is left alone: its cost is
+  painting the names, which stay. vbadoc 0.15.0, pqdoc 1.9.1.
+- `SpeedTests` keep a generous hover budget on that project and check the tooltip's style and that layouts come back
+  unchanged; pqdoc checks its tooltip's style.
+- Found on the way: with focus on click on, a double-click's first click focuses and redraws the graph, so a pinned
+  node isn't released by it; Ctrl+double-click (tested) or Release pinned does it. Raised with the user.
 
 ### 2026-11-04: D1c reviewed; the explorer's filter planned in D3
 

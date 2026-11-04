@@ -183,6 +183,12 @@ Reading them is step B2 of the feedback plan.
   Anything else counts as a query; a parameter does too, since it isn't a function.
 - **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
 
+## Speed (1.9.1, step D1d of the feedback plan)
+
+- **The tooltip is hidden by visibility, not display,** as vbadoc's is now: taking it out of the layout and back made
+  every hover lay out the whole graph again, which vbadoc's measurements found on a large project. See vbadoc's
+  decisions for the measurements.
+
 ## View controls and the summary (1.9.0, step D1c of the feedback plan)
 
 - **The graph gains Focus, following the page's focus on click** (FR-HTML-13), as vbadoc's views do: a focused query

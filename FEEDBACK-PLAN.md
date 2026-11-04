@@ -49,7 +49,7 @@ questions the draft raised.
 | D1a | Panel controls: the toggles as icons at the two ends of the top bar; the side panel follows the selection unless locked; a button to copy the source (added after D1 and D1b) | Claude | Done |
 | D1e | `'@Folder` after a label in a header comment, such as `' Folder:<tabs>@Folder("Reports")` (added after D1a) | Claude | Done |
 | D1c | View controls: a Focus on click switch for every view, Ctrl+click for the other, Esc to deselect, Transitive into Settings, the class diagram's legend as the graph's, and the same summary in both pages (added after D1) | Claude | Done |
-| D1d | Speed: large projects stay smooth to pan and scroll, keeping every feature (added after D1; about 3 out of 10 after more use) | Claude, then you on a work machine | |
+| D1d | Speed: large projects stay smooth to pan and scroll, keeping every feature (added after D1; about 3 out of 10 after more use) | Claude, then you on a work machine | Done; your check to come |
 | D2 | Favourites, replacing Home and the trail | Claude | |
 | D3 | Showing less, from the explorer: checkboxes that filter every view to chosen items and folders, Expand and Collapse all, hiding, and the Show menus (reshaped after D1c) | Claude | |
 | D4 | Widely used items and predeclared classes, marked and grouped in the explorer, with Hide all (split from D3 after D1c) | Claude | |

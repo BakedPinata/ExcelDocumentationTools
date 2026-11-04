@@ -43,6 +43,39 @@ public sealed class PageFixture : IAsyncLifetime
     LargeEmbedded = Generate(SyntheticWorkbook.Xlsm(LargeProject(300)), "Large.xlsm", "large-embedded", embedSource: true);
     AwkwardEmbedded = Generate(SyntheticWorkbook.Xlsm(AwkwardProject()), "Awkward.xlsm", "awkward-embedded", embedSource: true);
     FolderedEmbedded = Generate(SyntheticWorkbook.Xlsm(FolderedProject()), "Foldered.xlsm", "foldered-embedded", embedSource: true);
+    UserSizedEmbedded = Generate(SyntheticWorkbook.Xlsm(UserSizedProject()), "UserSized.xlsm", "user-sized-embedded", embedSource: true);
+  }
+
+  /// <summary>
+  /// A generated project the size and shape of the user's large one (step D1d of the feedback plan): 70 modules in
+  /// folders, about 1,500 procedures, and about 320 module and 1,540 member dependencies, for checking the page stays
+  /// quick to pan, hover and scroll.
+  /// </summary>
+  public string UserSizedEmbedded { get; private set; } = "";
+
+  /// <summary>
+  /// Modules M00..M69 in eight folders, every third a class, each with 22 procedures. Each procedure calls one in one of
+  /// five other modules, so each module uses about five others.
+  /// </summary>
+  static List<SyntheticModule> UserSizedProject()
+  {
+    const int Count = 70, Procedures = 22;
+    var modules = new List<SyntheticModule>();
+    for (int i = 0; i < Count; i++)
+    {
+      var name = $"M{i:00}";
+      int[] uses = [(i + 1) % Count, (i + 3) % Count, (i * 7 + 5) % Count, (i * 11 + 2) % Count, (i * 13 + 9) % Count];
+      var code = new System.Text.StringBuilder($"Attribute VB_Name = \"{name}\"\r\n'@Folder(\"Area{i % 8}.Part{i % 3}\")\r\nOption Explicit\r\n");
+      for (int p = 0; p < Procedures; p++)
+      {
+        var callee = uses[p % uses.Length] == i ? (i + 2) % Count : uses[p % uses.Length];
+        code.Append($"Public Sub Procedure{p:00}(ByVal value As Long)\r\n")
+            .Append($"    M{callee:00}.Procedure{(p * 3) % Procedures:00} value + 1\r\n")
+            .Append("End Sub\r\n");
+      }
+      modules.Add(new SyntheticModule(name, i % 3 == 0 ? VbaModuleKind.Class : VbaModuleKind.Standard, code.ToString()));
+    }
+    return modules;
   }
 
   /// <summary>SampleVba with '@Folder comments on most modules, and a Settings module with an Enum.</summary>

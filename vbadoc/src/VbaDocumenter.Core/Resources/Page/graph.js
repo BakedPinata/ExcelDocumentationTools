@@ -683,8 +683,47 @@
   // The drawn elements, kept so each simulation tick only moves them.
   var drawn = { hulls: null, edges: null, nodes: null };
 
-  function render() {
+  // ---- Keeping the whole graph's layout ----
+  //
+  // Laying out every member takes a moment on a large project, and gives the same picture every time. So the whole
+  // graph's positions, and which nodes are pinned, are kept when a focused graph or the other level replaces it, and
+  // put back when it returns: clearing a focus or switching back is quick, and nothing dragged is lost. Each level and
+  // set of Show… choices has its own. Re-run layout and Reset to defaults start afresh.
+  var keptLayouts = new Map();
+
+  function layoutKey() {
+    var show = state.show;
+    return state.level + "|" + JSON.stringify([
+      Array.from(show.hiddenModuleKinds).sort(), Array.from(show.hiddenCategories).sort(), Array.from(show.hiddenEdgeKinds).sort(),
+      show.references, show.privateMembers, show.unconnected]);
+  }
+
+  function keepLayout() {
+    if (!graph || !graph.layoutKey) return;
+    var positions = new Map();
+    graph.nodes.forEach(function (n) { positions.set(n.id, { x: n.x, y: n.y, fx: n.fx, fy: n.fy, pinned: !!n.pinned }); });
+    keptLayouts.set(graph.layoutKey, positions);
+  }
+
+  // Puts a kept layout back, if it has every node. Returns whether it did.
+  function restoreLayout(graph, key) {
+    var positions = keptLayouts.get(key);
+    if (!positions || !graph.nodes.every(function (n) { return positions.has(n.id); })) return false;
+    graph.nodes.forEach(function (n) {
+      var p = positions.get(n.id);
+      if (state.level === "members") setBox(n);
+      n.x = p.x; n.y = p.y; n.vx = 0; n.vy = 0; n.fx = p.fx; n.fy = p.fy; n.pinned = p.pinned;
+    });
+    createSimulation(graph);
+    simulation.alpha(0);
+    return true;
+  }
+
+  // fresh: lay the graph out from the start, forgetting kept layouts (Re-run layout, Reset to defaults).
+  function render(fresh) {
     hideTooltip();
+    keepLayout();
+    if (fresh) keptLayouts.clear();
     var full = buildFullGraph();
     graph = full;
     state.focused = false;
@@ -700,7 +739,9 @@
     }
 
     applyStyleSettings();
-    initialLayout(graph);
+    var key = layoutKey();
+    if (state.focused || !restoreLayout(graph, key)) initialLayout(graph);
+    graph.layoutKey = state.focused ? null : key; // only the whole graph's layout is kept
     svg.classed("members", state.level === "members");
 
     // Module outlines (member level only).
@@ -1376,6 +1417,9 @@
       if (state.focused) render(); else highlight();
       return;
     }
+    // Layouts kept for other graphs were made with the old setting (the one drawn moves to the new one, and is kept
+    // when it's replaced).
+    if (control.layout || control.key === "nodeSize") keptLayouts.clear();
     if (control.key === "nodeSize") {
       // Node sizes are set when nodes are made; resize the drawn ones in place, keeping their positions.
       var fresh = buildFullGraph();
@@ -1405,12 +1449,12 @@
       release(graph.nodes);
       if (settings.live) simulation.alpha(0.3).restart();
     } else if (id === "graph-relayout") {
-      render();
+      render(true);
     } else if (id === "graph-reset-settings") {
       settings = Object.assign({}, DEFAULTS);
       saveSetting("vbadoc-graph-settings", JSON.stringify(settings));
       buildSettingsMenu();
-      if (graph) render();
+      if (graph) render(true);
     }
   });
 
