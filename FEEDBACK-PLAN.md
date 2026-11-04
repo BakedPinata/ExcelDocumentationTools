@@ -45,8 +45,12 @@ questions the draft raised.
 | C2 | Shared page shell: both pages rebuilt on it, with no visible change | Claude | Done |
 | A5 | vbadoc asks before overwriting its page, with `--on-exists` and `--force` as pqdoc has them (added after C1) | Claude | Done |
 | D1 | Explorer: a tree of everything in the workbook, beside the view | Claude | Done |
+| D1a | Panel controls: the toggles as icons at the two ends of the top bar; the side panel follows the selection unless locked (added after D1) | Claude | |
+| D1b | Explorer layouts: folders or kinds, with folders drawn as folders; pqdoc reads nested query groups (added after D1) | You in Excel, then Claude | |
+| D1c | View controls: Ctrl+click to focus, Transitive into Settings, the class diagram's legend as the graph's, vbadoc's page summary (added after D1) | Claude | |
+| D1d | Speed: large projects stay smooth to pan and scroll (added after D1) | Claude, then you on a work machine | |
 | D2 | Favourites, replacing Home and the trail | Claude | |
-| D3 | Hiding items, and flagging the ones used almost everywhere | Claude | |
+| D3 | Hiding items, flagging the ones used almost everywhere, and the Show menus moving into the explorer | Claude | |
 | E1 | Uses / Used by: each item once, with links to the exact lines | Claude | |
 | E2 | Calls tab: the procedures an entry point calls, in order | Claude | |
 | E3 | Calls tab: the Ifs, loops and Select Cases around each call | Claude | |
@@ -124,6 +128,15 @@ The notes behind this plan are kept out of the repository. This section is what 
 | The VBA editor can't organise modules into folders | D1 groups modules by `'@Folder` comments |
 | The trail is less useful than expected; favourites would help | D2 |
 | Too much on screen; some items are used almost everywhere (logging, settings, predeclared classes, Power Query functions) | D3 |
+| The panel toggles are far off at the top right, and the explorer's is on the wrong side of the screen (after D1) | D1a |
+| The source panel should close when clicking off a node, with a lock to keep it open (after D1) | D1a |
+| Switch the explorer between folders and kinds, with folders looking different (after D1) | D1b |
+| A workbook with 140 queries in 20 groups, up to about 4 deep, showed no groups (after D1) | D1b |
+| Focus gets lost among the toolbar's buttons, Transitive is seldom used, and Ctrl+click could focus (after D1) | D1c |
+| The class diagram's legend should pick things out as the graph's does (after D1) | D1c |
+| vbadoc's page has no summary like pqdoc's (after D1) | D1c |
+| 70 modules with 320 module and 1,540 member dependencies are laggy to scroll and pan, about 5 out of 10 (after D1) | D1d |
+| The Show menus belong in the explorer, for every view (after D1) | D3 |
 | Uses / Used by lists an item twice; a count isn't useful; links to the exact place would be | E1 |
 | What I most want to know: the path execution takes | E2–E4 |
 | A sequence diagram, if it can be narrowed to one flow | E5 (optional) |
@@ -171,7 +184,7 @@ Both tools' pages share this layout. Panels can be hidden and resized, as the so
 
 ```
 +------------------------------------------------------------------------------------------+
-| Title   [Dependency graph] [Class diagram] [Calls]   Find...   Views v  Print  Theme  v0.x |
+| ≡ Title [Dependency graph] [Class diagram] [Calls] Find... Views v Print Theme v0.x  </> |
 +----------------+--------------------------------------------------+----------------------+
 | Filter...      |                                                  | Order.Save           |
 | * Favourites   |                                                  | Saves the order...   |
@@ -188,6 +201,8 @@ Both tools' pages share this layout. Panels can be hidden and resized, as the so
 
 - **vbadoc's tabs:** Dependency graph, Class diagram, and the new Calls.
 - **pqdoc's tab:** Dependency graph. A query's details gain its source and its steps.
+- **≡ at the left end of the top bar shows or hides the explorer, and `</>` at the right end the side panel** (added
+  after D1), each beside the panel it opens.
 
 ### The Calls tab
 
@@ -261,6 +276,9 @@ the long name is the code's identity.
 - **vbadoc's overwrite options (A5) come straight after the shell.** They need no page work, and move pqdoc's overwrite
   code into `shared/` while C1's library is fresh. No existing step fits them: C2 allows no new features, and D to H
   are about the page or importing.
+- **D1's follow-ups (D1a to D1d) come before favourites (D2),** so favourites and hiding build on the panels and the
+  explorer as the user wants them. D1b needs the sample workbook first; speed (D1d) comes last of them, so it's
+  measured with their changes in.
 - **Finding your way (D) comes before the execution path (E),** because the call tree relies on hiding items and on
   the explorer's list of entry points. If the call tree is wanted sooner, E2 could move before C2 as a vbadoc-only step,
   at the cost of moving it again in C2.
@@ -349,6 +367,48 @@ the long name is the code's identity.
   all button. **Nothing is hidden by default**, so the first picture is complete until the user chooses otherwise.
 - **Classes with `VB_PredeclaredId = True` are labelled "predeclared",** since they're used like standard modules.
 - **Focus can take the favourites as well as the selection,** showing them and what they use.
+
+### After D1's review
+
+The user tried D1 on real workbooks; these follow from what they asked for.
+
+- **The panel toggles are icons at the two ends of the top bar,** each beside the panel it opens: three bars at the
+  left for the explorer, `</>` at the right for the side panel. Their names show in a tooltip and are their
+  `aria-label`s. *To settle in review:* the user suggested Font Awesome's `fa-bars` and `fa-code`. Its free icons are
+  CC BY 4.0, a licence the guidelines don't list, which also asks for attribution in every page; drawing two such simple
+  icons as inline SVG avoids both, so that's the recommendation.
+- **The side panel follows the selection unless locked:** it opens when something is selected and closes when the
+  selection is cleared, so clicking off a node gives the view the room. A lock in its header keeps it open, remembered
+  per tool. The toggle still opens and closes it by hand.
+- **The explorer has two layouts, folders or kinds,** chosen with a switch at its top and remembered per tool: in
+  vbadoc, `'@Folder` folders or standard modules, classes, interfaces, forms and document modules; in pqdoc, Excel's
+  query groups or queries and functions. Folders are the default when there are any. Folders and groups have a folder
+  icon, so the two layouts look different at a glance.
+- **pqdoc reads nested query groups to any depth.** D1 rejected a group list in a layout it didn't know, so a workbook
+  with nested groups showed none. Working out the nested layout needs a sample workbook with nested groups. A list that
+  still can't be read leaves the queries ungrouped, as now, but the run now says so in a warning.
+- **The Show menus move into the explorer** (in D3, with hiding): one set of filters, applied to every view (vbadoc's
+  graph and class diagram, pqdoc's graph) and to the tree, so what's shown is chosen in one place. The views' own Show
+  buttons go.
+- **Ctrl+click on a node or box focuses on it** (Cmd+click on a Mac): it selects it and shows only it and what it's
+  connected to, as Focus does. Focus moves to the start of the toolbar, where it isn't lost among the other buttons.
+  *To settle in review:* pqdoc's graph has no Focus; the recommendation is to give it one, showing the query's
+  upstream and downstream chains, so Ctrl+click works the same in every view.
+- **Direct / Transitive moves into the graph's Settings,** since it's seldom changed.
+- **The class diagram's legend picks things out as the graph's does:** clicking a kind or a relationship lights up the
+  boxes and lines that match and fades the rest; items add to each other, and Clear turns them off.
+- **vbadoc's page gets a summary like pqdoc's** in the top bar, as a shell slot both tools use: modules, members, and
+  module and member dependencies. *To settle in review:* the user asked for when the page was generated too, but
+  vbadoc's page must be deterministic (its requirements say no timestamps, so git diffs show only real changes), and a
+  generation time would also make A5 ask before overwriting on every run. The recommendation is to show when the
+  workbook was last saved instead, from its own document properties when it has them, which changes only when the
+  workbook does.
+- **Large projects stay smooth to pan and scroll.** The user's example (70 modules, 320 module and 1,540 member
+  dependencies) is about 5 out of 10. The causes are measured, not guessed, on a generated project of that size, in
+  headless Chromium with performance traces: frame times while panning the graph at both levels, scrolling the
+  explorer and the source panel, and moving the pointer over the graph. Candidates to check: the number of SVG elements
+  and labels at member level, work done on every zoom, tick or hover, CSS that makes the browser repaint large areas,
+  and the explorer listing every member. A browser test keeps a budget, so later steps don't slow it again.
 
 ### References and the execution path
 
@@ -620,6 +680,41 @@ Added after C1, at the user's request, to bring vbadoc into line with pqdoc. Don
 - Selecting in the explorer selects in every view, and the explorer follows selections made elsewhere.
 - Browser tests in both pages, including a workbook with `'@Folder` comments and one without. Look at screenshots.
 
+### Step D1a: Panel controls
+
+Added after D1, from the user's review, as are D1b to D1d.
+
+- Move the explorer's toggle to the left end of the top bar and the side panel's to the right end, as icons with
+  tooltips and `aria-label`s (section 5), without their text.
+- The side panel opens on a selection and closes when it's cleared, unless locked. Add the lock to its header, remembered
+  per tool. A page opened with nothing selected starts with the panel closed, unless locked.
+- Update the browser tests that open, close or measure the panel, and add ones for following the selection and the
+  lock. Screenshots in both themes.
+
+### Step D1b: Explorer layouts and nested query groups
+
+- **You in Excel:** add nested query groups to a copy of `Queries.xlsx` (for example Staging > Raw > Deep, a group with a
+  description, and an empty group), and save it as a new sample with made-up data, as in B1.
+- Work out how nested groups are stored, record it in pqdoc's decisions, and read groups to any depth. When they can't
+  be read, warn and carry on without them.
+- Add the layout switch to the explorer in both tools, and the folder icon.
+- Tests: nested groups from the new sample; the switch in both pages. You check the workbook with 20 groups on a work
+  machine.
+
+### Step D1c: View controls and vbadoc's summary
+
+- Ctrl+click (Cmd+click) focuses on a node in vbadoc's graph, a box in its class diagram and, with its new Focus, a query
+  in pqdoc's graph. Focus first in each toolbar; Direct / Transitive into the graph's Settings.
+- The class diagram's legend items light up what they stand for, like the graph's.
+- vbadoc's summary in the top bar, in a shell slot both tools use (section 5 for what it shows).
+- Browser tests for each, and screenshots.
+
+### Step D1d: Speed on large projects
+
+- Generate a project the size of the user's, and measure as section 5 describes, before and after each change.
+- Fix what the measurements show, keeping the pages' behaviour.
+- Add the budget test. You compare the production workbook's page on a work machine.
+
 ### Step D2: Favourites
 
 - Add favourites to the shell: the star in the explorer and the panel header, and the Favourites group.
@@ -633,7 +728,10 @@ Added after C1, at the user's request, to bring vbadoc into line with pqdoc. Don
   fixtures.
 - Add hiding to the shell, applied by every view: graph, class diagram and (later) the Calls tab.
 - Add the Widely used and Hidden groups, the share setting, the panel note about hidden items, and Focus on favourites.
-- Browser tests: hiding an item removes it and its edges, persists across reloads, and comes back from the Hidden group.
+- Move the Show menus into the explorer (added after D1): one set of filters for every view and the tree, replacing
+  the views' Show buttons.
+- Browser tests: hiding an item removes it and its edges, persists across reloads, and comes back from the Hidden group;
+  a filter set in the explorer applies to every view.
 
 ### Step E1: Uses / Used by with references
 
@@ -754,6 +852,7 @@ Approving this plan covers the changes below. Anything else still needs asking.
 | Both `Requirements.md`s, `DECISIONS.md`s and `README.md`s | Documentation file names; vbadoc's `--output-name` | A4 |
 | Both `Requirements.md`s and `DECISIONS.md`s | Importing: what's chosen, dependencies, bundles, writing workbooks | H1–H4 |
 | Both `README.md`s | Usage and features | A3, B2–H4 |
+| Both `Requirements.md`s (pqdoc's FR-HTML-11 and new ids), both `DECISIONS.md`s and `README.md`s, `docs/GUIDELINES.md` (HTML pages) | Panel controls, the side panel following the selection, explorer layouts, nested query groups, the views' controls, vbadoc's summary, speed, the Show menus in the explorer | D1a–D1d, D3 |
 
 ## 8. When the plan is finished
 

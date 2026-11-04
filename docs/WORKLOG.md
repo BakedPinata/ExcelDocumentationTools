@@ -21,8 +21,10 @@ rather than repeating it.
 - **`shared/`** (`ExcelDocumenter.Shared`): the code both tools use, since step C1, and the page shell both pages are
   built on, since C2. See its README.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. The user's build, test and
-  publish of A0 on the work machine is still to come. A0–A5, F1, B1–B4, C1 and C2 are pushed and reviewed. D1 is done,
-  waiting for review. **Next: D2** (favourites, replacing Home and the trail).
+  publish of A0 on the work machine is still to come. A0–A5, F1, B1–B4, C1 and C2 are pushed and reviewed. D1 is done.
+  The user's review of D1 added steps D1a to D1d, before D2, with three questions to settle (icons, vbadoc's summary
+  time, pqdoc's Focus; see the plan's "After D1's review"). **Next: D1a** (panel controls), once the user has reviewed
+  the plan update. D1b needs a sample workbook with nested query groups from the user.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -32,6 +34,17 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-04: D1 reviewed; follow-up steps added to the plan
+
+- The user tried D1 on real workbooks. Added steps D1a (panel toggles as icons at the ends of the top bar; the side
+  panel follows the selection, with a lock), D1b (explorer layouts, folders or kinds; pqdoc's nested query groups,
+  which showed none on a workbook with 20 groups up to 4 deep), D1c (Ctrl+click to focus, Transitive into Settings, the
+  class diagram's legend as the graph's, vbadoc's summary) and D1d (speed on a project with 70 modules and 1,540 member
+  dependencies). The Show menus move into the explorer as part of D3.
+- To settle in review: Font Awesome's icons are CC BY 4.0, outside the guidelines' licences (recommend drawing our own);
+  a generation time in vbadoc's page breaks its determinism and A5's check (recommend the workbook's saved time);
+  whether pqdoc's graph gets Focus so Ctrl+click works there too (recommended).
 
 ### 2026-11-04: Step D1, the explorer
 
