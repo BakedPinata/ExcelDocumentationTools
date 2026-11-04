@@ -7,9 +7,11 @@ namespace VbaDocumenter.BrowserTests;
 [Collection("Browser")]
 public class ExplorerTests(PageFixture fixture)
 {
-  const string TopLevel = "#explorer-tree > li > .tree-row .tree-label";
+  // The layout's own groups and items, apart from the shell's groups (Favourites, Widely used, Hidden), which have tests of
+  // their own.
+  const string TopLevel = "#explorer-tree > li:not(.favourites, .widely-used-items, .hidden-items) > .tree-row .tree-label";
 
-  static string Item(string id) => $"#explorer-tree li[data-id='{id}']";
+  static string Item(string id) => $"#explorer-tree li[data-id='{id}']:not(.widely-used-items li)";
 
   static string Group(string label) => $"#explorer-tree li.group:has(> .tree-row .tree-label:text-is('{label}'))";
 
@@ -133,7 +135,7 @@ public class ExplorerTests(PageFixture fixture)
     await opened.SelectAsync("Logger");
     Assert.Equal("false", await page.GetAttributeAsync(Item("Order.Describe"), "aria-selected"));
     Assert.Equal("true", await page.GetAttributeAsync(Item("Logger"), "aria-selected"));
-    Assert.Equal(1, await page.Locator("#explorer-tree li[aria-selected='true']").CountAsync());
+    Assert.Equal(1, await page.Locator("#explorer-tree li[aria-selected='true']:not(.widely-used-items li)").CountAsync());
   }
 
   [Fact]

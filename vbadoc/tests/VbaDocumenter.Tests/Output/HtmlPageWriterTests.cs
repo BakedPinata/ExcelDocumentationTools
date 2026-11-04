@@ -39,6 +39,28 @@ public class HtmlPageWriterTests
   }
 
   [Fact]
+  public void Says_how_many_other_modules_use_each_module_and_member_and_which_classes_are_predeclared()
+  {
+    var settings = new SyntheticModule("Settings", VbaModuleKind.Class, string.Join("\r\n",
+        "Attribute VB_Name = \"Settings\"",
+        "Attribute VB_PredeclaredId = True",
+        "Option Explicit",
+        "Public Function Rate() As Double",
+        "    Rate = 0.1",
+        "End Function",
+        ""));
+    var data = Data(Build(false, Fixtures.SampleVbaModules().Append(settings)));
+    JsonElement Find(string list, string id) => data.GetProperty(list).EnumerateArray().Single(e => e.GetProperty("id").GetString() == id);
+
+    Assert.Equal(8, Find("modules", "Logger").GetProperty("usedBy").GetInt32());
+    Assert.Equal(7, Find("members", "Logger.LogInfo").GetProperty("usedBy").GetInt32());
+    Assert.False(Find("modules", "ThisWorkbook").TryGetProperty("usedBy", out _)); // nothing uses it
+    Assert.True(Find("modules", "Settings").GetProperty("predeclared").GetBoolean());
+    Assert.False(Find("modules", "Order").TryGetProperty("predeclared", out _));
+    Assert.False(Find("modules", "Sheet1").TryGetProperty("predeclared", out _)); // only classes are marked
+  }
+
+  [Fact]
   public void Without_a_saved_time_the_summary_has_the_counts_alone()
   {
     var html = Build(false);

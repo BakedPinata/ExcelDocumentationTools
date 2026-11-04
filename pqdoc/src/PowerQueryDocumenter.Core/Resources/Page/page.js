@@ -162,6 +162,20 @@
     return !!query && shell.choices.on(query.kind === "function" ? "kind:function" : "kind:query");
   }
 
+  // ---- Widely used ----
+  //
+  // Queries used directly by at least a share of the other queries (Core counts them, as downstream), most used first.
+
+  function widelyUsed(share) {
+    var others = data.queries.length - 1;
+    var least = Math.max(2, Math.ceil(share * others / 100));
+    return data.queries.filter(function (q) { return q.downstream >= least; })
+      .sort(function (a, b) { return b.downstream - a.downstream || byName(a.id, b.id); })
+      .map(function (q) {
+        return { id: q.id, label: q.id, detail: "used by " + q.downstream, title: "Used by " + q.downstream + " of the " + others + " other queries" };
+      });
+  }
+
   // ---- What the graph shows ----
   //
   // What the Show… choices keep, in the filter and not hidden. A ticked query is shown even with no connections.
@@ -365,6 +379,7 @@
   shell.items.init({
     workbook: data.title,
     kept: kept,
+    widelyUsed: widelyUsed,
     exists: function (id) { return queriesById.has(id); },
     node: function (id) { return queryNode(queriesById.get(id), true); },
     describeFilter: function (ids) { return ids.length + " of " + countText(data.queries.length); }

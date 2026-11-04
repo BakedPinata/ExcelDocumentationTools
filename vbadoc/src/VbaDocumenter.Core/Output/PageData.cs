@@ -15,12 +15,17 @@ public sealed record PageProject(string Title, string Name, int CodePage, string
 /// <param name="Hash">First 16 hex digits of the SHA-256 of the exported file, so the page can tell whether a
 /// loaded folder still matches.</param>
 /// <param name="Folder">The module's <c>'@Folder</c>, such as <c>Import.Parsing</c>, or null.</param>
-public sealed record PageModule(string Id, string Kind, string File, bool IsInterface, int Lines, string Hash, string? Folder);
+/// <param name="UsedBy">How many other modules use it, or null for none (see <see cref="Usage"/>).</param>
+/// <param name="Predeclared">True for a class with <c>VB_PredeclaredId = True</c>, used by its name like a standard module;
+/// null otherwise.</param>
+public sealed record PageModule(
+    string Id, string Kind, string File, bool IsInterface, int Lines, string Hash, string? Folder, int? UsedBy, bool? Predeclared);
 
 /// <param name="Class">The member's line in the class diagram, or null if it isn't shown there.</param>
+/// <param name="UsedBy">How many other modules use it, or null for none (see <see cref="Usage"/>).</param>
 public sealed record PageMember(
     string Id, string Module, string Name, string Kind, string Visibility, string Signature,
-    int Start, int End, int Declaration, string Role, bool Unreferenced, string? Parent, PageClassLine? Class);
+    int Start, int End, int Declaration, string Role, bool Unreferenced, string? Parent, PageClassLine? Class, int? UsedBy);
 
 public sealed record PageEdge(string From, string To, string Kind, int Count);
 
@@ -49,13 +54,16 @@ public sealed record PageData(
   {
     var filesByName = project.Modules.ToDictionary(m => m.Name, StringComparer.Ordinal);
     string Camel(Enum value) => JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
+    var usedBy = Usage.UsedByOtherModules(model);
+    int? UsedBy(string id) => usedBy.TryGetValue(id, out var count) ? count : null;
 
     var modules = model.Modules.Select(node =>
     {
       var content = ProjectExporter.FileContent(filesByName[node.Id]);
       return new PageModule(node.Id, Camel(node.Module.Kind), ProjectExporter.FileNameFor(filesByName[node.Id]),
               node.IsInterface, node.Module.LineCount, Convert.ToHexStringLower(SHA256.HashData(content))[..16],
-              string.IsNullOrEmpty(node.Module.Folder) ? null : node.Module.Folder);
+              string.IsNullOrEmpty(node.Module.Folder) ? null : node.Module.Folder, UsedBy(node.Id),
+              node.Module.Kind == VbaModuleKind.Class && !node.IsInterface && node.Module.HasPredeclaredId ? true : null);
     }).ToList();
 
     var classLines = model.Modules.ToDictionary(m => m.Id, m => ClassDiagram.Lines(m.Module));
@@ -63,7 +71,7 @@ public sealed record PageData(
         n.Id, n.Module.Name, n.Member!.Name, Camel(n.Member.Kind), Camel(n.Member.Visibility),
         MemberFormatter.Signature(n.Member), n.Member.StartLine, n.Member.EndLine, n.Member.DeclarationLine,
         Camel(n.Role), n.IsUnreferenced, n.Member.ParentName,
-        classLines[n.Module.Name].GetValueOrDefault(n.Member))).ToList();
+        classLines[n.Module.Name].GetValueOrDefault(n.Member), UsedBy(n.Id))).ToList();
 
     PageEdge Edge(Edge e) => new(e.From, e.To, Camel(e.Kind), e.Count);
 

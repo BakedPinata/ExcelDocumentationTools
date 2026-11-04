@@ -55,7 +55,7 @@ questions the draft raised.
 | D3a | Showing less, part 1: Expand and Collapse all, and checkboxes that filter every view to chosen items and folders, remembered per workbook (D3 split after D2) | Claude | Done |
 | D3b | Showing less, part 2: hiding, the Hidden group, the panel note about hidden items, and Focus on favourites | Claude | Done |
 | D3c | Showing less, part 3: the Show menus move into the explorer, for every view | Claude | Done |
-| D4 | Widely used items and predeclared classes, marked and grouped in the explorer, with Hide all (split from D3 after D1c) | Claude | |
+| D4 | Widely used items and predeclared classes, marked and grouped in the explorer, with Hide all (split from D3 after D1c) | Claude | Done |
 | E1 | Uses / Used by: each item once, with links to the exact lines | Claude | |
 | E2 | Calls tab: the procedures an entry point calls, in order | Claude | |
 | E3 | Calls tab: the Ifs, loops and Select Cases around each call | Claude | |

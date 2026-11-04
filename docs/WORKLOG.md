@@ -10,11 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.20.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.21.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.13.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.14.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -29,8 +29,8 @@ rather than repeating it.
   Expand / Collapse all to D3, which moved widely used items to a new D4. D1d (speed) is pushed; the user found it a
   little better on the production workbook, good enough for now. A6 (a name declared again under `#If` is one member)
   is pushed. D2 (favourites) is pushed. D3 is split into D3a (Expand / Collapse all and the views' filter), D3b
-  (hiding) and D3c (the Show menus in the explorer); D3a and D3b are pushed, and D3c is done, waiting for review.
-  **Next: D4** (widely used items and predeclared classes).
+  (hiding) and D3c (the Show menus in the explorer), all pushed. D4 (widely used items and predeclared classes) is
+  done, waiting for review. **Next: E1** (Uses / Used by with references).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -40,6 +40,21 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-05: Step D4, widely used items and predeclared classes
+
+- vbadoc's Core counts how many other modules use each module and member (`usedBy` in the page data), and marks classes
+  with `VB_PredeclaredId = True` (`predeclared`). pqdoc's page data already had each query's direct users.
+- The shell lists what's used by at least a share of the others in a Widely used group, with Hide all, and marks it
+  with a hub in the explorer; the share (20% to begin with) is in the Show… menu. vbadoc nests a module's widely used
+  members under it. Predeclared classes are labelled in the explorer, the source panel and the graph's tooltip.
+- The default share is 20% because on the production workbook the most used module is used by 8 of the 36 others.
+- The guideline that nothing leaves the views silently, agreed after D3b, is in the guidelines.
+- vbadoc's explorer requirements, pqdoc's FR-HTML-18, both decisions and READMEs, the shared README and the guidelines
+  follow. vbadoc 0.21.0, pqdoc 1.14.0.
+- Tests: 6 vbadoc unit tests of the counts and page data; 4 vbadoc and 1 pqdoc browser tests; older explorer tests now
+  look at the layout apart from the shell's groups. Screenshots in both themes. On the private workbook: at 20%, one
+  module with two of its members; no predeclared classes; no errors.
 
 ### 2026-11-05: Step D3c, the Show… menu in the explorer
 

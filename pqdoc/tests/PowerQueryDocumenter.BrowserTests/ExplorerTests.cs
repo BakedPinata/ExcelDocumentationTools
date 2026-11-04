@@ -9,7 +9,9 @@ namespace PowerQueryDocumenter.BrowserTests;
 [Collection("Browser")]
 public sealed class ExplorerTests(PageFixture fixture)
 {
-  private const string TopLevel = "#explorer-tree > li > .tree-row .tree-label";
+  // The layout's own groups and items, apart from the shell's groups (Favourites, Widely used, Hidden), which have tests of
+  // their own.
+  private const string TopLevel = "#explorer-tree > li:not(.favourites, .widely-used-items, .hidden-items) > .tree-row .tree-label";
 
   private static string Group(string label) => $"#explorer-tree li.group:has(> .tree-row .tree-label:text-is('{label}'))";
 
@@ -20,7 +22,7 @@ public sealed class ExplorerTests(PageFixture fixture)
   private static async Task<ILocator> Item(OpenedPage opened, string id)
   {
     var escaped = await opened.Page.EvaluateAsync<string>("id => CSS.escape(id)", id);
-    return opened.Page.Locator($"#explorer-tree li[data-id='{escaped}']");
+    return opened.Page.Locator($"#explorer-tree li[data-id='{escaped}']:not(.widely-used-items li)");
   }
 
   [Fact]

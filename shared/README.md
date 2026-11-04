@@ -116,6 +116,19 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
   fails too, the code is selected for Ctrl+C.
 - **The lock and copy icons are our own,** like the folder (see below).
 
+### Widely used (step D4)
+
+- **The tool counts, the shell lists:** `items.init`'s `widelyUsed(share)` returns the explorer nodes for what's used
+  by at least `share`% of the others, most used first, which may hold children (vbadoc puts a module's widely used
+  members under it). The shell lists them in a Widely used group after the layout and before Hidden, closed to begin
+  with, and puts a hub after the name of each, wherever it is, with the node's title as its tooltip.
+- **Hide all** hides the group's top-level items, and becomes Show all once they're all hidden. Nothing is hidden to
+  begin with.
+- **The share** is a section of the Show… menu (a number, 1 to 100, 20 to begin with), remembered per tool as
+  `<tool>-widely-used-share`. It isn't counted as a Show… choice, since it changes what's marked, not what's shown.
+- **The shell's groups** (Favourites, Widely used, Hidden) keep everything whatever the Show… choices, and an item's
+  main row is always the one in the layout.
+
 ### The Show… menu (step D3c)
 
 - **One Show… menu in the explorer** (`shell.choices`: `init({ sections })`, `on(id)`, `value(name)`, `count()`,

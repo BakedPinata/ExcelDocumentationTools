@@ -132,6 +132,8 @@ left to right by depth (how many queries feed them). You can:
   back), and expand or collapse every group at once;
 - choose with **Show…** in the explorer whether the explorer and the graph show queries, functions, and queries with
   no connections;
+- find queries used by many others, such as user-defined functions, in the explorer's Widely used group, and hide
+  them all at once;
 - hide queries from the graph with the eye beside their star, and show them again from the Hidden group at the bottom
   of the explorer; **Focus** on the Favourites group shows only the favourites and what they use;
 - reset the view.

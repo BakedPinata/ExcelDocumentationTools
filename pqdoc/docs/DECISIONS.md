@@ -183,6 +183,13 @@ Reading them is step B2 of the feedback plan.
   Anything else counts as a query; a parameter does too, since it isn't a function.
 - **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
 
+## Widely used queries (1.14.0, step D4 of the feedback plan)
+
+- **The count was already in the page data:** each query's `downstream`, the number of queries that use it directly,
+  which Core works out (and tests) for the graph. So pqdoc needed no change to Core: the page lists queries used
+  directly by at least max(2, share × the other queries), with the shell's Widely used group, markers and share
+  setting (FR-HTML-18), as vbadoc's are. User-defined functions are the expected case.
+
 ## The Show… menu (1.13.0, step D3c of the feedback plan)
 
 - **pqdoc gains the shell's Show… menu** (FR-HTML-17), which it didn't have before: queries and functions (for the tree

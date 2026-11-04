@@ -177,7 +177,7 @@
         var style = moduleStyle(m);
         nodes.push({
           id: m.id, module: m.id, label: m.id, group: style.group, shape: style.shape, hollow: !!style.hollow,
-          r: size * Math.min(20, 7 + 1.6 * Math.sqrt(memberCountByModule.get(m.id) || 0)), title: style.label, isModule: true,
+          r: size * Math.min(20, 7 + 1.6 * Math.sqrt(memberCountByModule.get(m.id) || 0)), title: m.predeclared ? "Predeclared class" : style.label, isModule: true,
           moduleKind: moduleKindOf(m)
         });
       });

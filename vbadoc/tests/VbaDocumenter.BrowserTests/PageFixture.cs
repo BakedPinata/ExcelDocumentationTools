@@ -44,6 +44,8 @@ public sealed class PageFixture : IAsyncLifetime
     AwkwardEmbedded = Generate(SyntheticWorkbook.Xlsm(AwkwardProject()), "Awkward.xlsm", "awkward-embedded", embedSource: true);
     FolderedEmbedded = Generate(SyntheticWorkbook.Xlsm(FolderedProject()), "Foldered.xlsm", "foldered-embedded", embedSource: true);
     UserSizedEmbedded = Generate(SyntheticWorkbook.Xlsm(UserSizedProject()), "UserSized.xlsm", "user-sized-embedded", embedSource: true);
+    PredeclaredEmbedded = Generate(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules().Append(PredeclaredSettings)), "Predeclared.xlsm",
+        "predeclared-embedded", embedSource: true);
   }
 
   /// <summary>
@@ -80,6 +82,18 @@ public sealed class PageFixture : IAsyncLifetime
 
   /// <summary>SampleVba with '@Folder comments on most modules, and a Settings module with an Enum.</summary>
   public string FolderedEmbedded { get; private set; } = "";
+
+  /// <summary>SampleVba with a class that has a default instance (VB_PredeclaredId = True), used by its name.</summary>
+  public string PredeclaredEmbedded { get; private set; } = "";
+
+  static readonly SyntheticModule PredeclaredSettings = new("Settings", VbaModuleKind.Class, string.Join("\r\n",
+      "Attribute VB_Name = \"Settings\"",
+      "Attribute VB_PredeclaredId = True",
+      "Option Explicit",
+      "Public Function Rate() As Double",
+      "    Rate = 0.1",
+      "End Function",
+      ""));
 
   static readonly Dictionary<string, string> Folders = new()
   {

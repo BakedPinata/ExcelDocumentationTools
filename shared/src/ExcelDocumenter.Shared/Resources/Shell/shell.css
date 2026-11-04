@@ -378,6 +378,12 @@ body.resizing { cursor: col-resize; user-select: none; }
 .panel-hide .icon { width: 15px; height: 15px; }
 .tree li.hidden-from-views > .tree-row .tree-label { color: var(--text-muted); text-decoration: line-through; }
 .tree li.hidden-items > .tree-row .tree-label { color: var(--text-muted); }
+
+/* Widely used: a hub after the name of each, and their group near the foot of the explorer. */
+.tree-wide { display: inline-flex; flex: none; align-self: center; color: var(--text-muted); }
+.tree-wide .icon { width: 13px; height: 13px; }
+.explorer-show label.share { display: block; }
+.explorer-show label.share input { width: 4.5em; margin: 0 2px; padding: 1px 4px; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
 .tree li.hidden-items li > .tree-row .tree-label { text-decoration: none; }
 .tree-action { flex: none; align-self: center; margin-left: auto; font-size: 12px; }
 button.tree-action:not(.link-button) { padding: 0 8px; border: 1px solid var(--border); border-radius: 999px; background: none; color: var(--text-muted); cursor: pointer; }

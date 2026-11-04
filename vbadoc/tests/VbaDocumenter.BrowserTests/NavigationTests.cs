@@ -21,7 +21,7 @@ public class NavigationTests(PageFixture fixture)
 
   static Task Favourite(OpenedPage opened, string id) => opened.Page.EvaluateAsync("id => window.vbadoc.toggleFavourite(id)", id);
 
-  static string Row(string id) => $"#explorer-tree li.item:not(.favourites li)[data-id='{id}'] > .tree-row";
+  static string Row(string id) => $"#explorer-tree li.item:not(.favourites li, .widely-used-items li)[data-id='{id}'] > .tree-row";
 
   [Fact]
   public async Task The_star_in_the_source_panel_makes_a_favourite_which_is_remembered_listed_and_starred_in_the_graph()
@@ -70,10 +70,10 @@ public class NavigationTests(PageFixture fixture)
     Assert.Equal(["Utils", "Logger"], await FavouritesListed(page));
     Assert.Equal("2", await page.TextContentAsync("#explorer-tree > li.favourites > .tree-row .tree-detail"));
 
-    // Choosing one in Favourites selects it, as in the layout, and both its rows are marked.
+    // Choosing one in Favourites selects it, as in the layout, and all its rows are marked (Logger is widely used too).
     await page.ClickAsync("#explorer-tree > li.favourites li[data-id='Logger'] > .tree-row .tree-label");
     Assert.Equal("Logger", await Selection(page));
-    Assert.Equal(2, await page.Locator("#explorer-tree li[data-id='Logger'][aria-selected='true']").CountAsync());
+    Assert.Equal(3, await page.Locator("#explorer-tree li[data-id='Logger'][aria-selected='true']").CountAsync());
 
     // Its star in Favourites takes it off there and in the layout.
     await page.ClickAsync("#explorer-tree > li.favourites li[data-id='Utils'] .favourite-toggle");

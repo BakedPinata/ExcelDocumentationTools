@@ -148,6 +148,10 @@ source panel. Favourites are listed at the top of the explorer and starred in th
 shortest chain of dependencies between the selection and the nearest favourite. **Focus** on the Favourites group shows
 only the favourites and what they use, in every view.
 
+Modules used by many others, such as a logger or a settings module, are listed in the explorer's **Widely used**
+group, with **Hide all** to take them out of the views at once, and marked with a hub where they are. How many counts as
+many is a share of the other modules, set in Show…. Classes with `VB_PredeclaredId = True` are labelled predeclared.
+
 To take something out of every view, hide it with the struck-through eye beside its star. It stays in the explorer,
 struck through, and is listed in the Hidden group at the bottom, where you can show it again. Each view's toolbar counts
 what's hidden, and the source panel says when what you've selected uses something hidden.

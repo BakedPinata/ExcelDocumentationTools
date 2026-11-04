@@ -276,7 +276,7 @@
   window.addEventListener("popstate", followAddress);
 
   function moduleKindLabel(module) {
-    return module.isInterface ? "Interface" : KIND_LABELS[module.kind] || module.kind;
+    return module.isInterface ? "Interface" : module.predeclared ? "Predeclared class" : KIND_LABELS[module.kind] || module.kind;
   }
 
   // ---- Dependencies list ----
@@ -473,7 +473,36 @@
     var children = members
       .filter(function (m) { return !(m.kind === "enumMember" && m.parent && members.some(function (e) { return e.kind === "enum" && e.name === m.parent; })); })
       .map(function (m) { return memberNode(m, m.kind === "enum" ? (valuesOf.get(m.name) || []).map(function (v) { return memberNode(v); }) : undefined); });
-    return { id: module.id, label: module.id, detail: showKind ? moduleKindLabel(module) : "", title: module.file, children: children };
+    return {
+      id: module.id, label: module.id, title: module.file, children: children,
+      detail: showKind ? moduleKindLabel(module) : module.predeclared ? "Predeclared" : ""
+    };
+  }
+
+  // ---- Widely used ----
+  //
+  // Modules used by at least a share of the other modules (Core counts them, as usedBy), most used first, each with its
+  // own members that are, under it. A member is never used by more modules than its module, so the module stands for it.
+
+  function widelyUsed(share) {
+    var others = data.modules.length - 1;
+    var least = Math.max(2, Math.ceil(share * others / 100));
+    function title(count) { return "Used by " + count + " of the " + others + " other modules"; }
+    function byUse(a, b) { return b.usedBy - a.usedBy || byLowerName(a.id, b.id); }
+    var membersOf = new Map();
+    data.members.forEach(function (m) {
+      if ((m.usedBy || 0) < least) return;
+      if (!membersOf.has(m.module)) membersOf.set(m.module, []);
+      membersOf.get(m.module).push(m);
+    });
+    return data.modules.filter(function (m) { return (m.usedBy || 0) >= least; }).sort(byUse).map(function (m) {
+      return {
+        id: m.id, label: m.id, detail: "used by " + m.usedBy, title: title(m.usedBy),
+        children: (membersOf.get(m.id) || []).sort(byUse).map(function (member) {
+          return { id: member.id, label: member.name, detail: "used by " + member.usedBy, title: title(member.usedBy) };
+        })
+      };
+    });
   }
 
   function explorerLayouts() {
@@ -614,6 +643,7 @@
   shell.items.init({
     workbook: data.project.title,
     kept: kept,
+    widelyUsed: widelyUsed,
     exists: function (id) { return modulesById.has(id) || membersById.has(id); },
     node: function (id) {
       var member = membersById.get(id);

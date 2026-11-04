@@ -455,6 +455,25 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Widely used items and predeclared classes (0.21.0, step D4 of the feedback plan)
+
+- **Core counts, the page decides** (the plan's "worked out in Core ... with the share in the page's settings"):
+  `Usage.UsedByOtherModules` gives each module and member the number of other modules that use it, through any kind
+  of edge, as `usedBy` in the page data (left out when none). The page lists what's used by at least
+  max(2, share × the other modules), so the share can change without making the page again.
+- **A module stands for its members:** it's used by at least as many modules as any of its members, so the group lists
+  modules, each with its widely used members under it, rather than modules and members side by side. Hide all hides
+  the modules listed, which takes their members with them.
+- **The default share is 20%,** not the 25% first thought of: on the user's production workbook the most used module
+  is used by 8 of the 36 others (22%), so a quarter would have listed nothing. It's a page setting, in the Show… menu,
+  remembered per browser as `vbadoc-widely-used-share`; it isn't counted as a Show… choice, since it doesn't change
+  what's shown.
+- **The group and markers are the shell's** (see `shared/README.md`), so pqdoc has them too. The group sits after the
+  layout and before Hidden, closed to begin with; Hide all becomes Show all once everything listed is hidden.
+- **Predeclared** is a class's `VB_PredeclaredId = True`, as `predeclared` in the page data (left out otherwise). Only
+  classes are marked: forms and document modules always have a default instance, so it says nothing about them. The
+  class diagram keeps «class» for them.
+
 ### The Show… menu in the explorer (0.20.0, step D3c of the feedback plan)
 
 - **One Show… menu, the shell's, in the explorer,** for the tree, the graph and the class diagram (the plan's "one set

@@ -42,7 +42,11 @@
 //                                      and hidden items are remembered per workbook, as <tool>-favourites|<workbook>,
 //                                      <tool>-filter|<workbook> and <tool>-hidden|<workbook>), whether an id is still
 //                                      in it (others are ignored), the explorer node for one, and what the filter
-//                                      shows, such as "5 of 70 modules"; call it before setLayouts
+//                                      shows, such as "5 of 70 modules"; call it before setLayouts. With
+//                                      widelyUsed(share), the tool's explorer nodes for what's used by at least share%
+//                                      of the others (most used first, and may hold children), the shell lists them in
+//                                      a Widely used group, marks their rows, and offers the share in the Show… menu,
+//                                      remembered as <tool>-widely-used-share
 //   shell.filter.active() / has(id) / ids() / clear() / onFilterChange(fn)   the explorer's filter: the items ticked,
 //                                      which the views show alone while any are. What a tick covers (a module's
 //                                      members, say) is the tool's to say, through has()
@@ -667,12 +671,15 @@
       treeBox.innerHTML = "";
       favouritesItem = null;
       hiddenItem = null;
+      widelyUsedItem = null;
       layout.nodes.forEach(function (node) { treeBox.appendChild(treeNode(node, 0)); });
       var first = treeBox.querySelector("li");
       if (first) first.tabIndex = 0;
       renderFavourites();
+      renderWidelyUsed();
       renderHidden();
       markHidden();
+      markWidelyUsed();
       markLeftOut();
       applyFilter();
       updateChecks();
@@ -708,6 +715,7 @@
       hiddenIds = loadIds(hiddenKey());
       updateFilter();
       updateNotes();
+      if (source.widelyUsed) addShareSetting();
     }
 
     function favouriteList() {
@@ -804,6 +812,7 @@
       });
       renderHidden();
       markHidden();
+      updateHideAll();
       applyFilter();
       updateChecks();
       updateNotes();
@@ -876,6 +885,110 @@
           (hiddenList().length > 0 ? " (<button type=\"button\" class=\"link-button\" data-show-hidden>list</button>)" : "") + ".");
       }
       return parts.length === 0 ? "" : "<p class=\"hidden-note\" role=\"note\">" + parts.join(" ") + "</p>";
+    }
+
+    // ---- Widely used ----
+    //
+    // What's used by at least a share of the others (the tool counts), listed in a Widely used group near the foot of
+    // the explorer, most used first, with Hide all, and marked where it is in the layout. The share is a setting in the
+    // Show… menu, remembered per tool. Nothing is hidden to begin with.
+
+    // Drawn for this page: a hub, with spokes out to what uses it.
+    var WIDE_ICON = "<svg class=\"icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\" focusable=\"false\">" +
+      "<circle cx=\"8\" cy=\"8\" r=\"2.25\"/><path d=\"M8 1.75v2.5M8 11.75v2.5M1.75 8h2.5M11.75 8h2.5M3.6 3.6l1.75 1.75M10.65 10.65l1.75 1.75M12.4 3.6l-1.75 1.75M5.35 10.65L3.6 12.4\"/></svg>";
+    var DEFAULT_SHARE = 20;
+    var widelyUsedItem = null;      // the Widely used group, or null when nothing is
+    var widelyUsedOpen = false;
+    var widelyUsedTops = [];        // the group's top-level ids, which Hide all hides
+    var widelyUsedTitles = new Map(); // id -> how widely it's used, for its marker
+    var share = clampShare(parseFloat(settings.load("widely-used-share")));
+
+    function clampShare(value) { return isFinite(value) && value >= 1 && value <= 100 ? Math.round(value) : DEFAULT_SHARE; }
+
+    function renderWidelyUsed() {
+      if (widelyUsedItem) {
+        widelyUsedOpen = widelyUsedItem.getAttribute("aria-expanded") === "true";
+        removeGroup(widelyUsedItem);
+        widelyUsedItem = null;
+      }
+      widelyUsedTops = [];
+      widelyUsedTitles = new Map();
+      if (!favouriteSource || !favouriteSource.widelyUsed) return;
+      var nodes = favouriteSource.widelyUsed(share);
+      (function collect(list) {
+        list.forEach(function (node) {
+          widelyUsedTitles.set(node.id, node.title || "Widely used");
+          if (node.children) collect(node.children);
+        });
+      })(nodes);
+      widelyUsedTops = nodes.map(function (node) { return node.id; });
+      if (nodes.length === 0) return;
+      widelyUsedItem = treeNode({
+        label: "Widely used",
+        detail: String(nodes.length),
+        title: "Used by at least " + share + "% of the others (the share is in the Show… menu)",
+        className: "widely-used-items",
+        expanded: widelyUsedOpen,
+        children: nodes
+      }, 0);
+      widelyUsedItem.querySelector(":scope > .tree-row").insertAdjacentHTML("beforeend",
+        "<button type=\"button\" class=\"link-button tree-action\" data-hide-widely-used tabindex=\"-1\"></button>");
+      treeBox.insertBefore(widelyUsedItem, hiddenItem);
+      updateHideAll();
+    }
+
+    // Hide all hides the group's top-level items (a vbadoc module takes its members); once they're all hidden, it shows
+    // them again.
+    function allWidelyUsedHidden() { return widelyUsedTops.length > 0 && widelyUsedTops.every(isHidden); }
+
+    function updateHideAll() {
+      var button = widelyUsedItem && widelyUsedItem.querySelector("[data-hide-widely-used]");
+      if (!button) return;
+      var all = allWidelyUsedHidden();
+      button.textContent = all ? "Show all" : "Hide all";
+      button.title = all ? "Show every widely used item in the views again" : "Hide every widely used item from the views";
+    }
+
+    function hideAllWidelyUsed() {
+      var rest = hiddenIds.filter(function (id) { return widelyUsedTops.indexOf(id) < 0; });
+      setHidden(allWidelyUsedHidden() ? rest : rest.concat(widelyUsedTops));
+    }
+
+    // A marker after the name of every widely used item, wherever it is (but not in its own group).
+    function markWidelyUsed() {
+      treeBox.querySelectorAll("li[data-id]").forEach(function (li) {
+        var row = li.querySelector(":scope > .tree-row");
+        var marker = row.querySelector(":scope > .tree-wide");
+        var title = widelyUsedItem && widelyUsedItem.contains(li) ? null : widelyUsedTitles.get(li.dataset.id);
+        if (!title) { if (marker) marker.remove(); return; }
+        if (!marker) {
+          marker = document.createElement("span");
+          marker.className = "tree-wide";
+          marker.innerHTML = WIDE_ICON;
+          row.querySelector(".tree-label").insertAdjacentElement("afterend", marker);
+        }
+        marker.title = "Widely used: " + title.charAt(0).toLowerCase() + title.slice(1);
+      });
+    }
+
+    // The share, as a section of the Show… menu (it's not a choice of what to show, so it isn't counted).
+    function addShareSetting() {
+      var sections = showMenu.querySelector(".show-sections");
+      if (!sections || $("explorer-widely-used-share")) return;
+      sections.insertAdjacentHTML("beforeend", "<section><h3>Widely used</h3><label class=\"share\">Used by at least " +
+        "<input type=\"number\" id=\"explorer-widely-used-share\" min=\"1\" max=\"100\" step=\"1\" value=\"" + share + "\"> %" +
+        " of the others</label></section>");
+      $("explorer-widely-used-share").addEventListener("input", function (event) {
+        var value = parseFloat(event.target.value);
+        if (!isFinite(value) || value < 1 || value > 100) return;
+        share = clampShare(value);
+        settings.save("widely-used-share", String(share));
+        renderWidelyUsed();
+        markWidelyUsed();
+        applyFilter();
+        updateChecks();
+        reveal(revealedId, true);
+      });
     }
 
     // ---- The Show… menu ----
@@ -1009,7 +1122,7 @@
     function markLeftOut() {
       var kept = favouriteSource && favouriteSource.kept;
       function mark(li) {
-        if (li === favouritesItem || li === hiddenItem) return true;
+        if (li === favouritesItem || li === hiddenItem || li === widelyUsedItem) return true;
         var group = li.querySelector(":scope > ul");
         var anyShown = false;
         if (group) Array.prototype.forEach.call(group.children, function (child) { if (mark(child)) anyShown = true; });
@@ -1055,6 +1168,7 @@
       else if (event.target.closest("[data-focus-favourites]")) setFocusFavourites(!focusFavouritesOn);
       else if (event.target.closest("[data-focus-favourites-off]")) setFocusFavourites(false);
       else if (event.target.closest("[data-show-reset]")) resetChoices();
+      else if (event.target.closest("[data-hide-widely-used]")) hideAllWidelyUsed();
       else if (event.target.closest("[data-show-open]")) openShowMenu();
     });
 
@@ -1389,7 +1503,8 @@
       if (selectedItems.length === 0) return;
       selectedItems.forEach(function (li) { li.setAttribute("aria-selected", "true"); });
       var main = selectedItems.filter(function (li) {
-        return (!favouritesItem || !favouritesItem.contains(li)) && (!hiddenItem || !hiddenItem.contains(li));
+        return (!favouritesItem || !favouritesItem.contains(li)) && (!hiddenItem || !hiddenItem.contains(li)) &&
+          (!widelyUsedItem || !widelyUsedItem.contains(li));
       })[0] || selectedItems[0];
       if (quiet) return;
       for (var at = parentItem(main); at; at = parentItem(at)) setExpanded(at, true);
