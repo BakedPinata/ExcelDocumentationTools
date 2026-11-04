@@ -449,6 +449,17 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### `'@Folder` after a label (0.13.0, step D1e of the feedback plan)
+
+- **The annotation can follow a label ending in a colon,** as in a header comment block of labelled values tabbed to
+  line up (`' Folder:<tabs>@Folder("Reports")`), which is how the user writes their module headers. The label is any
+  text without `:`, `@` or `"`. Rubberduck reads an annotation only when `@` comes straight after the `'` (its
+  `annotationList` rule), so it ignores such a line as a plain comment, and the module stays in its project's folder
+  there; vbadoc already allowed spaces before the `@`, which Rubberduck doesn't either.
+- **Prose that mentions the annotation still doesn't count** (`' A module about @Folder("x") annotations`), which is
+  why it's a label and not anywhere in the comment. As before, only comments in the declarations count, and the first
+  one wins.
+
 ### Panel controls (0.12.0, step D1a of the feedback plan)
 
 - **The panels' buttons are icons at the ends of the top bar,** each on the side of the panel it opens; the shell's

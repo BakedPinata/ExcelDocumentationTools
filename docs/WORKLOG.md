@@ -10,7 +10,7 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.12.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.13.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
@@ -23,8 +23,9 @@ rather than repeating it.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. The user's build, test and
   publish of A0 on the work machine is still to come. A0–A5, F1, B1–B4, C1 and C2 are pushed and reviewed. D1 is done.
   The user's review of D1 added steps D1a to D1d, before D2, now settled (see the plan's "After D1's review"). D1b is
-  pushed; the user's check of the workbook with 20 groups is still to come. D1a is done, with the copy button the user
-  asked for after D1b, waiting for review. **Next: D1c** (view controls and both pages' summary), then D1d.
+  pushed; the user's check of the workbook with 20 groups is still to come. D1a (with the copy button the user asked
+  for after D1b) is pushed. D1e (`'@Folder` after a label, asked for after D1a) is done. **Next: D1c** (view controls
+  and both pages' summary), then D1d.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -34,6 +35,14 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-04: Step D1e, `'@Folder` after a label
+
+- The user's modules start with a header block of labelled values tabbed to line up, and they wanted the folder there:
+  `' Folder:<tabs>@Folder("My Folder")`. Rubberduck reads annotations only straight after the `'`, so it ignores that
+  line (nothing breaks). vbadoc now reads the annotation straight after a label ending in a colon too; prose that
+  mentions it still doesn't count. The options weighed are in the plan. vbadoc 0.13.0.
+- Tests: 5 new parser cases. vbadoc's requirements, decisions and README follow.
 
 ### 2026-11-04: Step D1a, panel controls and the copy button
 

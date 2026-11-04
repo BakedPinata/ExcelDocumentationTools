@@ -194,6 +194,9 @@ public class ModuleParserTests
   [InlineData("'  @folder ( \"Spaced Out\" )", "Spaced Out")]
   [InlineData("Rem @Folder(\"Old Style\")", "Old Style")]
   [InlineData("'@Folder(\"Import\") @PredeclaredId", "Import")]
+  [InlineData("' Folder:           @Folder(\"My Folder\")", "My Folder")]
+  [InlineData("'\tFolder:\t\t@Folder(\"Reports.Monthly\")", "Reports.Monthly")]
+  [InlineData("'Module folder:@Folder \"Tight\"", "Tight")]
   public void A_folder_annotation_in_the_declarations_is_read(string comment, string expected)
   {
     var module = ModuleParser.Parse("M", VbaModuleKind.Standard,
@@ -206,6 +209,8 @@ public class ModuleParserTests
   [Theory]
   [InlineData("Option Explicit\r\n")]
   [InlineData("' A module about @Folder(\"Not this\") annotations\r\n")]
+  [InlineData("' Note: see @Folder(\"Not this\") for folders\r\n")]
+  [InlineData("' Folder: \"Quoted\": @Folder(\"Not this\")\r\n")]
   [InlineData("'@Folder(\"Unclosed)\r\n")]
   [InlineData("Sub A()\r\nEnd Sub\r\n'@Folder(\"After the declarations\")\r\n")]
   [InlineData("Sub A()\r\n    '@Folder(\"Inside a procedure\")\r\nEnd Sub\r\n")]

@@ -27,8 +27,10 @@ public static partial class ModuleParser
   private static partial Regex ProcedureStart();
   [GeneratedRegex(@"^End\s+(?<kind>Sub|Function|Property)$", Opts)]
   private static partial Regex ProcedureEnd();
-  // Rubberduck's folder annotation, with or without brackets: '@Folder("Parent.Child") or '@Folder "Parent.Child".
-  [GeneratedRegex(@"^\s*@Folder\s*(?:\(\s*""(?<path>[^""]*)""\s*\)|""(?<path>[^""]*)"")", Opts)]
+  // Rubberduck's folder annotation, with or without brackets: '@Folder("Parent.Child") or '@Folder "Parent.Child". It
+  // can also follow a label ending in a colon, as in a header's ' Folder:<tabs>@Folder("Reports"), which Rubberduck
+  // itself doesn't read; anything else before it, such as prose that mentions it, doesn't count.
+  [GeneratedRegex(@"^\s*(?:[^:@""]*:\s*)?@Folder\s*(?:\(\s*""(?<path>[^""]*)""\s*\)|""(?<path>[^""]*)"")", Opts)]
   private static partial Regex FolderAnnotation();
   [GeneratedRegex($@"^(?:(?<vis>Public|Private)\s+)?Enum\s+(?<name>{Id})$", Opts)]
   private static partial Regex EnumStart();

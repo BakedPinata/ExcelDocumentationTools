@@ -47,6 +47,7 @@ questions the draft raised.
 | D1 | Explorer: a tree of everything in the workbook, beside the view | Claude | Done |
 | D1b | Explorer layouts: folders or kinds, with folders drawn as folders; pqdoc reads nested query groups (added after D1; first, because the samples now have nested groups) | You in Excel, then Claude | Done |
 | D1a | Panel controls: the toggles as icons at the two ends of the top bar; the side panel follows the selection unless locked; a button to copy the source (added after D1 and D1b) | Claude | Done |
+| D1e | `'@Folder` after a label in a header comment, such as `' Folder:<tabs>@Folder("Reports")` (added after D1a) | Claude | Done |
 | D1c | View controls: a Focus on click switch for every view, Ctrl+click for the other, Esc to deselect, Transitive into Settings, the class diagram's legend as the graph's, and the same summary in both pages (added after D1) | Claude | |
 | D1d | Speed: large projects stay smooth to pan and scroll (added after D1) | Claude, then you on a work machine | |
 | D2 | Favourites, replacing Home and the trail | Claude | |
@@ -135,6 +136,7 @@ The notes behind this plan are kept out of the repository. This section is what 
 | A workbook with 140 queries in 20 groups, up to about 4 deep, showed no groups (after D1) | D1b |
 | Focus gets lost among the toolbar's buttons, Transitive is seldom used, and Ctrl+click could focus (after D1) | D1c |
 | A switch for focus on click, the same in every view; Esc to deselect (after D1's plan review) | D1c |
+| `@Folder` in a header comment block, after its label (after D1a) | D1e |
 | The class diagram's legend should pick things out as the graph's does (after D1) | D1c |
 | vbadoc's page has no summary like pqdoc's (after D1) | D1c |
 | 70 modules with 320 module and 1,540 member dependencies are laggy to scroll and pan, about 5 out of 10 (after D1) | D1d |
@@ -387,6 +389,13 @@ The user tried D1 on real workbooks; these follow from what they asked for.
   top right of the code that stays in view while it scrolls, and copies the lines shown (a member's, or the whole
   module or query) as plain text, without line numbers. It says Copied for a moment. If the browser won't let the page
   write to the clipboard, it selects the code instead, for Ctrl+C.
+- **`'@Folder` can follow a label in a header comment** (added after D1a's review): the user's modules start with a
+  block of labelled values, tabbed to line up, and the folder belongs there as `' Folder:<tabs>@Folder("Reports")`.
+  Rubberduck reads an annotation only when `@` comes straight after the `'`, so it ignores such a line, which breaks
+  nothing in it. vbadoc reads the annotation at the start of a comment, as before, or straight after a label ending
+  in a colon; prose that mentions `@Folder("…")` still doesn't count, and it's still only in the declarations, first
+  one wins. Of the options weighed (anywhere in a comment; a plain `Folder:` row with no annotation; changing the
+  header to Rubberduck's own line), this one keeps the header as the user writes it and keeps one syntax.
 - **The explorer has two layouts, folders or kinds,** chosen with a switch at its top and remembered per tool: in
   vbadoc, `'@Folder` folders or standard modules, classes, interfaces, forms and document modules; in pqdoc, Excel's
   query groups or queries and functions. Folders are the default when there are any. Folders and groups have a folder
@@ -718,6 +727,14 @@ Added after D1, from the user's review, as are D1b to D1d.
 - Tests: nested groups from the new sample; the switch in both pages. You check the workbook with 20 groups on a work
   machine.
 
+### Step D1e: `'@Folder` after a label
+
+Added after D1a, from the user's review, and done before D1c.
+
+- Read `@Folder` straight after a label ending in a colon in a declarations comment, as well as at its start
+  (section 5). Unit tests for the header forms and for prose that mentions it. vbadoc's requirements, decisions and
+  README.
+
 ### Step D1c: View controls and both pages' summary
 
 - Focus on click as one shell setting that every view follows, on by default, shown by the Focus button first in each
@@ -871,7 +888,7 @@ Approving this plan covers the changes below. Anything else still needs asking.
 | Both `Requirements.md`s, `DECISIONS.md`s and `README.md`s | Documentation file names; vbadoc's `--output-name` | A4 |
 | Both `Requirements.md`s and `DECISIONS.md`s | Importing: what's chosen, dependencies, bundles, writing workbooks | H1–H4 |
 | Both `README.md`s | Usage and features | A3, B2–H4 |
-| Both `Requirements.md`s (pqdoc's FR-HTML-8 without the generation time, FR-HTML-11 and new ids), both `DECISIONS.md`s and `README.md`s, `docs/GUIDELINES.md` (HTML pages) | Panel controls, the side panel following the selection, the copy button, explorer layouts, nested query groups, focus on click and Esc, both pages' summary, speed, the Show menus in the explorer | D1a–D1d, D3 |
+| Both `Requirements.md`s (pqdoc's FR-HTML-8 without the generation time, FR-HTML-11 and new ids), both `DECISIONS.md`s and `README.md`s, `docs/GUIDELINES.md` (HTML pages) | Panel controls, the side panel following the selection, the copy button, explorer layouts, nested query groups, focus on click and Esc, both pages' summary, speed, the Show menus in the explorer | D1a–D1e, D3 |
 
 ## 8. When the plan is finished
 
