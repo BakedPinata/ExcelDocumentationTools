@@ -49,9 +49,10 @@ questions the draft raised.
 | D1a | Panel controls: the toggles as icons at the two ends of the top bar; the side panel follows the selection unless locked; a button to copy the source (added after D1 and D1b) | Claude | Done |
 | D1e | `'@Folder` after a label in a header comment, such as `' Folder:<tabs>@Folder("Reports")` (added after D1a) | Claude | Done |
 | D1c | View controls: a Focus on click switch for every view, Ctrl+click for the other, Esc to deselect, Transitive into Settings, the class diagram's legend as the graph's, and the same summary in both pages (added after D1) | Claude | Done |
-| D1d | Speed: large projects stay smooth to pan and scroll (added after D1) | Claude, then you on a work machine | |
+| D1d | Speed: large projects stay smooth to pan and scroll, keeping every feature (added after D1; about 3 out of 10 after more use) | Claude, then you on a work machine | |
 | D2 | Favourites, replacing Home and the trail | Claude | |
-| D3 | Hiding items, flagging the ones used almost everywhere, and the Show menus moving into the explorer | Claude | |
+| D3 | Showing less, from the explorer: checkboxes that filter every view to chosen items and folders, Expand and Collapse all, hiding, and the Show menus (reshaped after D1c) | Claude | |
+| D4 | Widely used items and predeclared classes, marked and grouped in the explorer, with Hide all (split from D3 after D1c) | Claude | |
 | E1 | Uses / Used by: each item once, with links to the exact lines | Claude | |
 | E2 | Calls tab: the procedures an entry point calls, in order | Claude | |
 | E3 | Calls tab: the Ifs, loops and Select Cases around each call | Claude | |
@@ -128,7 +129,7 @@ The notes behind this plan are kept out of the repository. This section is what 
 | Search isn't always the best way to find things; a tree, perhaps in a sidebar | D1 |
 | The VBA editor can't organise modules into folders | D1 groups modules by `'@Folder` comments |
 | The trail is less useful than expected; favourites would help | D2 |
-| Too much on screen; some items are used almost everywhere (logging, settings, predeclared classes, Power Query functions) | D3 |
+| Too much on screen; some items are used almost everywhere (logging, settings, predeclared classes, Power Query functions) | D3, D4 |
 | The panel toggles are far off at the top right, and the explorer's is on the wrong side of the screen (after D1) | D1a |
 | The source panel should close when clicking off a node, with a lock to keep it open (after D1) | D1a |
 | A button in the source to copy it to the clipboard (after D1b) | D1a |
@@ -141,6 +142,9 @@ The notes behind this plan are kept out of the repository. This section is what 
 | vbadoc's page has no summary like pqdoc's (after D1) | D1c |
 | 70 modules with 320 module and 1,540 member dependencies are laggy to scroll and pan, about 5 out of 10 (after D1) | D1d |
 | The Show menus belong in the explorer, for every view (after D1) | D3 |
+| Expand all and Collapse all in the explorer (after D1c) | D3 |
+| Filter the views to items and folders picked in the explorer, with checkboxes, apart from selecting, and clear ways to remove the filter (after D1c) | D3 |
+| The lag is about 3 out of 10 after more use, on a project far larger than most; no feature should be lost for speed (after D1c) | D1d |
 | Uses / Used by lists an item twice; a count isn't useful; links to the exact place would be | E1 |
 | What I most want to know: the path execution takes | E2–E4 |
 | A sequence diagram, if it can be narrowed to one flow | E5 (optional) |
@@ -283,6 +287,8 @@ the long name is the code's identity.
 - **D1's follow-ups (D1a to D1d) come before favourites (D2),** so favourites and hiding build on the panels and the
   explorer as the user wants them. D1b goes first, because the sample workbooks now have nested groups and tests on
   them fail until pqdoc reads them; speed (D1d) comes last of them, so it's measured with their changes in.
+- **Showing less (D3) comes after favourites (D2),** as planned; favourites don't depend on it, so D3 could go first if
+  the filter is wanted sooner. Widely used items (D4) follow D3, since they feed its hiding.
 - **Finding your way (D) comes before the execution path (E),** because the call tree relies on hiding items and on
   the explorer's list of entry points. If the call tree is wanted sooner, E2 could move before C2 as a vbadoc-only step,
   at the cost of moving it again in C2.
@@ -429,11 +435,35 @@ The user tried D1 on real workbooks; these follow from what they asked for.
   overwriting an output it would write unchanged. A folder of `.m` files, or a workbook without the property, shows
   the counts alone.
 - **Large projects stay smooth to pan and scroll.** The user's example (70 modules, 320 module and 1,540 member
-  dependencies) is about 5 out of 10. The causes are measured, not guessed, on a generated project of that size, in
+  dependencies) was about 5 out of 10, which the user later put at about 3 after more use, on a project far larger than
+  most. No feature is to be lost for speed: fixes keep everything the pages do. The causes are measured, not guessed, on a generated project of that size, in
   headless Chromium with performance traces: frame times while panning the graph at both levels, scrolling the
   explorer and the source panel, and moving the pointer over the graph. Candidates to check: the number of SVG elements
   and labels at member level, work done on every zoom, tick or hover, CSS that makes the browser repaint large areas,
   and the explorer listing every member. A browser test keeps a budget, so later steps don't slow it again.
+
+### After D1c's review
+
+The user asked for these after using D1c; they come in D3, which they reshape.
+
+- **Expand all and Collapse all** are two small icon buttons beside the explorer's filter box, with tooltips. Expand all
+  opens every folder and group, but not each module's members, which in a large project would list every member;
+  Collapse all closes everything. Both apply to the layout showing.
+- **The views can be filtered to items picked in the explorer,** apart from selecting them: each row of the explorer
+  has a checkbox. Clicking a name selects it and shows its source, as now; ticking its box adds it to the filter
+  instead. Ticking a folder or group ticks everything in it, and items ticked one at a time add to the filter. While
+  anything is ticked, every view shows only the ticked items and the lines between them (in vbadoc, a ticked module
+  brings its members, and a ticked member its module at module level). Selecting, focus on click and search work within
+  what's shown.
+- **The filter is never silent and is easy to remove:** a bar at the top of the explorer and a note in each view's
+  toolbar say what's showing ("Filtered: 5 of 70 modules"), each with Clear; unticking an item takes it out; Esc clears
+  the selection but not the filter. *To settle in review:* whether the filter is remembered across reloads. The
+  recommendation is yes, per workbook, as favourites and hiding are, since a large project's working set is reused,
+  with the bar showing it as soon as the page opens.
+- **Filtering and hiding are two sides of one thing,** which items the views show: the filter keeps only what's ticked,
+  and hiding leaves out what's hidden. So they come together in D3, with the Show menus, which also say what the views
+  show, and the explorer becomes the one place for all three. Widely used items and predeclared classes, which only
+  feed hiding, move to a step of their own (D4), keeping D3 a reasonable size.
 
 ### References and the execution path
 
@@ -748,7 +778,8 @@ Added after D1a, from the user's review, and done before D1c.
 ### Step D1d: Speed on large projects
 
 - Generate a project the size of the user's, and measure as section 5 describes, before and after each change.
-- Fix what the measurements show, keeping the pages' behaviour.
+- Fix what the measurements show, keeping every feature and the pages' behaviour: the user would rather keep features
+  than gain speed, and rates the lag at about 3 out of 10.
 - Add the budget test. You compare the production workbook's page on a work machine.
 
 ### Step D2: Favourites
@@ -758,16 +789,31 @@ Added after D1a, from the user's review, and done before D1c.
   migrating a remembered Home into a favourite; the simple answer is to ignore it.
 - Update the browser tests for Home, the trail and Path from Home.
 
-### Step D3: Hiding and widely used items
+### Step D3: Showing less, from the explorer
+
+Reshaped after D1c's review: the filter and Expand / Collapse all join hiding and the Show menus, and widely used items
+moved to D4.
+
+- Add the shell's record of which items the views show, from the filter, hidden items and the Show menus' choices, and
+  have every view (graph, class diagram and, later, the Calls tab) draw only those.
+- Explorer: Expand all and Collapse all; a checkbox on each row for the filter (a folder ticks its contents); the filter
+  bar with Clear, and the note in each view's toolbar (section 5).
+- Hiding, the Hidden group, the panel note about hidden items, and Focus on favourites.
+- Move the Show menus into the explorer (added after D1): one set of filters for every view and the tree, replacing
+  the views' Show buttons.
+- Browser tests: ticking a folder filters every view to its items, and ticking items one at a time adds them; Clear and
+  unticking remove them; selecting doesn't filter and ticking doesn't select; hiding an item removes it and its edges,
+  persists across reloads, and comes back from the Hidden group; a filter set in the explorer applies to every view.
+
+### Step D4: Widely used items and predeclared classes
+
+Split from D3 after D1c's review.
 
 - Core works out widely used items and predeclared classes, and puts them in the page data. Unit tests with the
   fixtures.
-- Add hiding to the shell, applied by every view: graph, class diagram and (later) the Calls tab.
-- Add the Widely used and Hidden groups, the share setting, the panel note about hidden items, and Focus on favourites.
-- Move the Show menus into the explorer (added after D1): one set of filters for every view and the tree, replacing
-  the views' Show buttons.
-- Browser tests: hiding an item removes it and its edges, persists across reloads, and comes back from the Hidden group;
-  a filter set in the explorer applies to every view.
+- Add the Widely used group with Hide all, the marker in the explorer, the share setting, and the "predeclared" label.
+- Browser tests: the group lists what's used by at least the share; Hide all hides them; changing the share updates
+  the group.
 
 ### Step E1: Uses / Used by with references
 
@@ -888,7 +934,7 @@ Approving this plan covers the changes below. Anything else still needs asking.
 | Both `Requirements.md`s, `DECISIONS.md`s and `README.md`s | Documentation file names; vbadoc's `--output-name` | A4 |
 | Both `Requirements.md`s and `DECISIONS.md`s | Importing: what's chosen, dependencies, bundles, writing workbooks | H1–H4 |
 | Both `README.md`s | Usage and features | A3, B2–H4 |
-| Both `Requirements.md`s (pqdoc's FR-HTML-8 without the generation time, FR-HTML-11 and new ids), both `DECISIONS.md`s and `README.md`s, `docs/GUIDELINES.md` (HTML pages) | Panel controls, the side panel following the selection, the copy button, explorer layouts, nested query groups, focus on click and Esc, both pages' summary, speed, the Show menus in the explorer | D1a–D1e, D3 |
+| Both `Requirements.md`s (pqdoc's FR-HTML-8 without the generation time, FR-HTML-11 and new ids), both `DECISIONS.md`s and `README.md`s, `docs/GUIDELINES.md` (HTML pages) | Panel controls, the side panel following the selection, the copy button, explorer layouts, nested query groups, focus on click and Esc, both pages' summary, speed, the Show menus in the explorer, the explorer's filter, Expand and Collapse all | D1a–D1e, D3, D4 |
 
 ## 8. When the plan is finished
 

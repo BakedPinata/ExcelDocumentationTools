@@ -25,7 +25,9 @@ rather than repeating it.
   The user's review of D1 added steps D1a to D1d, before D2, now settled (see the plan's "After D1's review"). D1b is
   pushed; the user's check of the workbook with 20 groups is still to come. D1a (with the copy button the user asked
   for after D1b) is pushed. D1e (`'@Folder` after a label, asked for after D1a) and D1c (view controls and both pages'
-  summary) are done, waiting for review. **Next: D1d** (speed on large projects), then D2.
+  summary) are pushed. The user's review of D1c added the explorer's filter (checkboxes, apart from selecting) and
+  Expand / Collapse all to D3, which moved widely used items to a new D4. **Next: D1d** (speed on large projects,
+  keeping every feature), then D2.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -35,6 +37,15 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-04: D1c reviewed; the explorer's filter planned in D3
+
+- The user asked for Expand all and Collapse all in the explorer, and for a way to filter the views to items and
+  folders picked in it, apart from selecting (checkboxes), with clear ways to remove the filter. Both went into D3,
+  since filtering and hiding are two sides of which items the views show; widely used items and predeclared classes
+  moved from D3 to a new D4. To settle in review: whether the filter is remembered (recommended: yes, per workbook).
+- The user now rates the lag on their large project at about 3 out of 10, and would rather keep every feature than gain
+  speed; D1d says so.
 
 ### 2026-11-04: Step D1c, view controls and both pages' summary
 
