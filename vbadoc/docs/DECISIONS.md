@@ -467,7 +467,8 @@ dependencies over 150; and its 3.6 MB was almost all of the antivirus scan that 
 - **With focus on click on, a double-click's first click focuses the graph** and redraws it around the node, so the
   second lands elsewhere and a pinned node isn't released; and since the whole graph's layout is now kept, the pin is
   still there when the focus is cleared (before, laying it out again dropped it). Ctrl+double-click releases a node
-  (the Ctrl+click selects without focusing), as does Release pinned in Settings. Raised with the user.
+  (the Ctrl+click selects without focusing), as does Release pinned in Settings. The user chose to leave it so,
+  rather than make every focusing click wait the length of a double-click.
 - **Zooming at member level is left as it is.** Its cost is painting about 1,500 member names at each new scale (taking
   the names away halves it; their halos, arrowheads, outlines and edges cost little), and the user would rather keep
   every feature than gain speed, rating the lag at about 3 out of 10.

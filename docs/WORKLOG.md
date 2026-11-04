@@ -26,8 +26,9 @@ rather than repeating it.
   pushed; the user's check of the workbook with 20 groups is still to come. D1a (with the copy button the user asked
   for after D1b) is pushed. D1e (`'@Folder` after a label, asked for after D1a) and D1c (view controls and both pages'
   summary) are pushed. The user's review of D1c added the explorer's filter (checkboxes, apart from selecting) and
-  Expand / Collapse all to D3, which moved widely used items to a new D4. D1d (speed) is done, waiting for review and
-  the user's check on the production workbook. **Next: D2** (favourites).
+  Expand / Collapse all to D3, which moved widely used items to a new D4. D1d (speed) is pushed; the user found it a
+  little better on the production workbook, good enough for now. **Next:** the fix for declarations repeated under
+  `#If`, once the user has chosen how; then D2 (favourites).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -37,6 +38,13 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-04: D1d reviewed
+
+- The user found the production workbook a little better after D1d, good enough for now, and chose to leave a pinned
+  node's release at Ctrl+double-click while focus on click is on.
+- They found that a variable or procedure declared in both branches of `#If … #Else` (early or late binding) shows as
+  two members. A fix is proposed, waiting for the user's choice.
 
 ### 2026-11-04: Step D1d, speed on large projects
 
