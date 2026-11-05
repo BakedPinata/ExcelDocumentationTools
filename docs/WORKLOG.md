@@ -49,7 +49,8 @@ Newest first.
   calls, leaving out blocks with none. Turned round, a caller says which block its call is in.
 - vbadoc's requirements, decisions and README follow. vbadoc 0.24.0.
 - Tests: 10 parser tests of blocks and 1 of calls' blocks; 2 new browser tests, and the E2 ones updated for the
-  nesting. The private workbook check wasn't run for this step (usage limit).
+  nesting. On the private workbook: 246 blocks in 80 procedures, every keyword block's line names its keyword, 80
+  of 213 calls are in a block, no empty block rows, at most 49 ms an open, no warnings or errors.
 
 ### 2026-11-05: Step E2, the Calls tab
 
