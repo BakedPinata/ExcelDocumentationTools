@@ -75,6 +75,36 @@ html[data-theme="light"] {
 .calls-line { flex: none; font-size: 12px; }
 .calls-late code { font: 12px var(--font-code); color: var(--text-muted); }
 .calls-block-text { font: 12px var(--font-code); color: var(--text-muted); }
+/* The sequence diagram: colours from the page's variables, so it follows the theme. */
+.calls-sequence { padding: 0 8px 16px; }
+.calls-sequence[hidden] { display: none; }
+.calls-seq { display: block; font: 12px var(--font-ui, system-ui), sans-serif; }
+.calls-seq text { fill: var(--text); }
+.seq-title { font-weight: 600; }
+.seq-lane line { stroke: var(--border); stroke-dasharray: 4 4; }
+.seq-lane-head rect { fill: var(--surface-2); stroke: var(--border); }
+.seq-lane-head[data-seq-module] { cursor: pointer; }
+.seq-lane.late .seq-lane-head rect { stroke-dasharray: 4 3; }
+.seq-lane.late .seq-lane-head text { fill: var(--text-muted); font-style: italic; }
+.seq-activation { fill: var(--surface-2); stroke: var(--text-muted); }
+.seq-message line, .seq-message path { stroke: var(--text); fill: none; stroke-width: 1.2; }
+.seq-message.relation line, .seq-message.late line { stroke-dasharray: 5 3; stroke: var(--text-muted); }
+.seq-message.late .seq-name { fill: var(--text-muted); font-style: italic; }
+.seq-message.selected .seq-name { font-weight: 700; fill: var(--accent); }
+.seq-name[data-seq-select] { cursor: pointer; }
+.seq-name[data-seq-select]:hover { text-decoration: underline; }
+.seq-toggle { cursor: pointer; fill: var(--accent); }
+#seq-arrow path { fill: var(--text); }
+#seq-arrow-open path { fill: none; stroke: var(--text-muted); }
+.seq-frame rect { fill: none; stroke: var(--text-muted); stroke-opacity: 0.6; }
+.seq-frame.closed rect { stroke-dasharray: 3 3; }
+.seq-frame-label { cursor: pointer; }
+.seq-frame-label path { fill: var(--surface-2); stroke: var(--text-muted); stroke-opacity: 0.6; }
+.seq-frame-label text { font-weight: 600; font-size: 11px; }
+.seq-guard { fill: var(--text-muted) !important; font: 11px var(--font-code); }
+.calls-seq-empty { margin: 8px 4px; }
+.calls-seq-starts { display: flex; flex-wrap: wrap; gap: 6px; }
+.calls-seq-starts .button { padding: 3px 8px; font-size: 12px; }
 .calls-within { flex: 0 1000 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
 
 /* ---- Dependency graph (graph.js) ---- */

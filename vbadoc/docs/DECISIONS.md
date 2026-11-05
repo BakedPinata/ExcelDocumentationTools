@@ -455,6 +455,25 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### The sequence diagram (0.25.0, step E5 of the feedback plan)
+
+- **Drawn from what's open in the Calls tree,** which is what the rejected attempt lacked: that drew a whole entry point
+  and was too large to read. The tree and diagram share one record of what's open (the tree's keys), so opening or
+  closing in either changes both; a message's ▸ and a frame's label open and close there.
+- **One diagram per open starting procedure,** stacked, each with its own lifelines in the order modules first take
+  part. Messages follow the code's order; a call within a module is a message to itself; an implementation or handler
+  reached through an interface member or RaiseEvent is a dashed message; late-bound calls go to a "late-bound"
+  lifeline, so the gaps show. Activation bars show how long each opened procedure runs.
+- **Blocks are frames,** labelled with their keyword (if, else if, else, select, case, loop, with, on error) and the
+  statement as a guard; frames nest, outer ones wider, and a closed frame stays as an outline to open again. Their
+  labels are drawn last, over lifelines.
+- **Plain SVG with d3, sized to fit and scrolled** rather than zoomed: it's read top to bottom like the code. Text is set
+  as text, and colours come from the page's variables, so it follows the theme.
+- **Called by has no diagram:** a sequence diagram follows calls forwards. The switch is disabled there.
+- **Requirements' Out of scope** keeps the rejected whole-entry-point diagram, and says why this one is different.
+- With every branch of the production workbook open four deep, its 77 diagrams draw in about 230 ms; a toggle redraws
+  in about 130 ms.
+
 ### The logic around each call (0.24.0, step E3 of the feedback plan)
 
 - **The parser follows block statements** (`BlockTracker`) and gives each statement its innermost block and each

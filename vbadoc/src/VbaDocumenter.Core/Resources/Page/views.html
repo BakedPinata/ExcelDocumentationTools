@@ -51,6 +51,10 @@
         <button type="button" role="radio" data-calls-direction="calls" aria-checked="true" title="What each procedure calls, in the order of its code">Calls</button>
         <button type="button" role="radio" data-calls-direction="calledBy" aria-checked="false" title="What calls each procedure">Called by</button>
       </div>
+      <div class="segmented" role="radiogroup" aria-label="Show as">
+        <button type="button" role="radio" data-calls-show="tree" aria-checked="true" title="Show the calls as a tree">Tree</button>
+        <button type="button" role="radio" data-calls-show="sequence" aria-checked="false" title="Draw what's open as a sequence diagram">Sequence</button>
+      </div>
       <button type="button" class="button" id="calls-collapse" title="Close every open call">Collapse all</button>
       <span class="toolbar-note" id="calls-root-note" hidden><span></span> <button type="button" class="link-button" id="calls-entry-points" title="Start from the entry points and favourites again">Entry points</button></span>
     </div>
@@ -58,5 +62,6 @@
       <p class="calls-note muted">Calls the code makes directly, in its order. The tree can't see Application.Run, OnAction or other calls made by name, and a late-bound call shows only its expression.</p>
       <p class="view-message calls-message" id="calls-message" hidden></p>
       <ul class="tree calls-tree" id="calls-tree" role="tree" aria-label="Calls"></ul>
+      <div class="calls-sequence" id="calls-sequence" hidden></div>
     </div>
   </section>

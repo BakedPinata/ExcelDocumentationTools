@@ -213,10 +213,21 @@
   function draw() {
     drawn = true;
     var list = roots();
+    var sequence = showing === "sequence" && direction === "calls"; // Called by has no diagram
+    view.querySelectorAll("[data-calls-show]").forEach(function (b) {
+      b.setAttribute("aria-checked", (b.getAttribute("data-calls-show") === "sequence") === sequence ? "true" : "false");
+      if (b.getAttribute("data-calls-show") === "sequence") {
+        b.disabled = direction !== "calls";
+        b.title = direction === "calls" ? "Draw what's open as a sequence diagram" : "The sequence diagram follows Calls, not Called by";
+      }
+    });
+    tree.hidden = sequence;
+    sequenceBox.hidden = !sequence;
     rootNote.hidden = !root;
     if (root) rootNote.querySelector("span").textContent = (direction === "calls" ? "Calls from " : "Called by, into ") + nameOf(root);
     if (list.length === 0) {
       tree.innerHTML = "";
+      sequenceBox.innerHTML = "";
       message.hidden = false;
       message.textContent = direction === "calls"
         ? "No macros, event handlers, worksheet functions or favourite procedures to start from. Ctrl+click a procedure to start from it."
@@ -234,6 +245,7 @@
     }).join("");
     var first = tree.querySelector("li[role=\"treeitem\"]");
     if (first) first.tabIndex = 0;
+    if (sequence) drawSequence(list);
     view.querySelectorAll("[data-calls-direction]").forEach(function (b) {
       b.setAttribute("aria-checked", b.getAttribute("data-calls-direction") === direction ? "true" : "false");
     });
@@ -267,6 +279,273 @@
     li.tabIndex = 0;
     li.focus();
   }
+
+
+  // ---- Sequence diagram (step E5) ----
+  //
+  // What's open in the tree, drawn as a sequence diagram for each open starting procedure: modules as lifelines, in the
+  // order they first take part; calls as messages in the order of the code, dashed to an implementation or handler;
+  // late-bound calls to a lifeline of their own; and the blocks around calls as frames. The tree and the diagram share
+  // what's open: a message's ▸ opens its calls, a frame's label closes or opens it, and either narrows both. Drawn with
+  // d3 and set out by the page, so text is only ever text.
+
+  var showing = loadSetting("vbadoc-calls-show", "tree") === "sequence" ? "sequence" : "tree";
+  var sequenceBox = document.getElementById("calls-sequence");
+
+  var LANE = 170, HEAD = 30, ROW = 30, FRAME_HEAD = 26, MARGIN = 16, TITLE = 26, CHAR = 6.4;
+  var FRAME_WORDS = { "if": "if", elseIf: "else if", "else": "else", select: "select", "case": "case", "for": "loop", "do": "loop", "while": "loop", "with": "with", onError: "on error" };
+
+  function moduleOf(id) { var m = vb.membersById.get(id); return m ? m.module : id; }
+  function memberName(id) { var m = vb.membersById.get(id); return m ? m.name : id; }
+
+  // The open starting procedures, as the tree has them.
+  function sequenceStarts(list) {
+    var starts = [];
+    list.forEach(function (item) {
+      if (!item.group) { if (open.has(item.key) && hasChildren(item.id)) starts.push({ id: item.id, key: item.key }); return; }
+      if (open.has(item.key + ":closed")) return;
+      item.children.forEach(function (id) {
+        var key = item.key + "/" + id;
+        if (open.has(key) && hasChildren(id)) starts.push({ id: id, key: key });
+      });
+    });
+    return starts;
+  }
+
+  // The lifelines and, in order, the messages, frames and activations below a starting procedure, following the tree's
+  // rows and keys.
+  function sequenceModel(start) {
+    var lanes = [];
+    var laneOf = new Map();
+    function lane(name, late) {
+      if (!laneOf.has(name)) { laneOf.set(name, lanes.length); lanes.push({ name: name, late: !!late }); }
+      return laneOf.get(name);
+    }
+    var items = [];
+    lane(moduleOf(start.id));
+    function rowsOf(rows, callerId, key, path) {
+      var from = lane(moduleOf(callerId));
+      rows.forEach(function (row, i) {
+        var rowKey = key + (row.block ? "/b" + row.block.id : "/" + i + ":" + (row.id || ""));
+        if (row.block) {
+          var blockOpen = !open.has(rowKey + ":closed");
+          items.push({ type: "frameStart", block: row.block, key: rowKey, open: blockOpen, lane: from, line: row.line, lineIn: callerId });
+          if (blockOpen) rowsOf(row.rows, callerId, rowKey, path);
+          items.push({ type: "frameEnd" });
+          return;
+        }
+        if (row.lateBound !== undefined) {
+          items.push({ type: "message", from: from, to: lane("late-bound", true), label: row.lateBound, late: true, line: row.line, lineIn: callerId });
+          return;
+        }
+        var recursive = path.indexOf(row.id) >= 0;
+        var expandable = !recursive && hasChildren(row.id);
+        var isOpen = expandable && open.has(rowKey);
+        var to = lane(moduleOf(row.id));
+        items.push({
+          type: "message", from: from, to: to, label: memberName(row.id), id: row.id, relation: row.relation, recursive: recursive,
+          expandable: expandable, open: isOpen, key: rowKey, line: row.line, lineIn: row.lineIn
+        });
+        if (isOpen) {
+          items.push({ type: "activationStart", lane: to });
+          rowsOf(childrenOf(row.id).rows, row.id, rowKey, path.concat([row.id]));
+          items.push({ type: "activationEnd" });
+        }
+      });
+    }
+    items.push({ type: "activationStart", lane: 0 });
+    rowsOf(childrenOf(start.id).rows, start.id, start.key, [start.id]);
+    items.push({ type: "activationEnd" });
+    return { start: start, lanes: lanes, items: items };
+  }
+
+  // Where everything goes, from the top of this diagram down.
+  function sequenceLayout(model) {
+    var y = TITLE + HEAD + 14;
+    var messages = [], frames = [], activations = [];
+    var openFrames = [], openActivations = [];
+    function touch(laneIndex) {
+      openFrames.forEach(function (f) { f.min = Math.min(f.min, laneIndex); f.max = Math.max(f.max, laneIndex); });
+    }
+    model.items.forEach(function (item) {
+      if (item.type === "frameStart") {
+        var frame = { item: item, y: y, min: item.lane, max: item.lane, depth: openFrames.length };
+        openFrames.push(frame);
+        frames.push(frame);
+        y += FRAME_HEAD;
+      } else if (item.type === "frameEnd") {
+        var ended = openFrames.pop();
+        ended.end = y + (ended.item.open ? 10 : 2);
+        y = ended.end + 6;
+      } else if (item.type === "message") {
+        y += ROW;
+        touch(item.from);
+        touch(item.to);
+        var nested = openActivations.filter(function (a) { return a.lane === item.from; }).length;
+        messages.push({ item: item, y: y, fromOffset: Math.max(0, nested - 1) * 5 });
+      } else if (item.type === "activationStart") {
+        var depth = openActivations.filter(function (a) { return a.lane === item.lane; }).length;
+        openActivations.push({ lane: item.lane, y: y + (openActivations.length ? 0 : -6), depth: depth });
+      } else {
+        var activation = openActivations.pop();
+        activation.end = y + 8;
+        activations.push(activation);
+        y += 4;
+      }
+    });
+    // Outer frames are wider, so each sits inside the one around it and frames side by side line up.
+    var deepest = d3.max(frames, function (f) { return f.depth; }) || 0;
+    frames.forEach(function (f) { f.pad = 24 + 12 * (deepest - f.depth); });
+    return { messages: messages, frames: frames, activations: activations, height: y + 20 };
+  }
+
+  function laneX(index) { return MARGIN + LANE / 2 + index * LANE; }
+  function fit(text, width) { var most = Math.max(4, Math.floor(width / CHAR)); return text.length > most ? text.slice(0, most - 1) + "…" : text; }
+
+  function drawSequence(list) {
+    var starts = sequenceStarts(list);
+    var box = d3.select(sequenceBox);
+    box.selectAll("*").remove();
+    if (starts.length === 0) {
+      // Nothing open yet: a way to start, from the same starting points as the tree.
+      var empty = box.append("div").attr("class", "calls-seq-empty");
+      empty.append("p").attr("class", "muted").text("Open a procedure to draw its calls. Here, or in the tree:");
+      var startable = [];
+      list.forEach(function (item) {
+        if (!item.group) startable.push({ id: item.id, key: item.key });
+        else item.children.forEach(function (id) { startable.push({ id: id, key: item.key + "/" + id }); });
+      });
+      empty.append("div").attr("class", "calls-seq-starts").selectAll("button")
+        .data(startable.filter(function (s) { return hasChildren(s.id); }).slice(0, 40)).join("button")
+        .attr("type", "button").attr("class", "button").attr("data-seq-start", function (s) { return s.key; })
+        .text(function (s) { return nameOf(s.id); });
+      return;
+    }
+    var models = starts.map(sequenceModel);
+    var layouts = models.map(sequenceLayout);
+    var width = MARGIN * 2 + d3.max(models, function (m) { return m.lanes.length; }) * LANE + 60;
+    var height = d3.sum(layouts, function (l) { return l.height; });
+    var svg = box.append("svg").attr("class", "calls-seq").attr("width", width).attr("height", height)
+      .attr("role", "img").attr("aria-label", "Sequence diagram of the open calls");
+    var defs = svg.append("defs");
+    [["seq-arrow", "M0,-4L9,0L0,4Z"], ["seq-arrow-open", "M0,-4L9,0L0,4"]].forEach(function (m) {
+      defs.append("marker").attr("id", m[0]).attr("viewBox", "0 -5 10 10").attr("refX", 9).attr("refY", 0)
+        .attr("markerWidth", 8).attr("markerHeight", 8).attr("markerUnits", "userSpaceOnUse").attr("orient", "auto")
+        .append("path").attr("d", m[1]);
+    });
+    var top = 0;
+    models.forEach(function (model, n) {
+      drawOneSequence(svg.append("g").attr("class", "seq-diagram").attr("data-start", model.start.id)
+        .attr("transform", "translate(0," + top + ")"), model, layouts[n]);
+      top += layouts[n].height;
+    });
+  }
+
+  function drawOneSequence(g, model, layout) {
+    var bottom = layout.height - 10;
+    g.append("text").attr("class", "seq-title").attr("x", MARGIN).attr("y", 16).text("Calls from " + nameOf(model.start.id));
+
+    // Frames' outlines first, so lifelines and messages draw over them; their labels last, over everything.
+    var frameLayer = g.append("g").attr("class", "seq-frames");
+
+    // Lifelines.
+    var lanes = g.selectAll("g.seq-lane").data(model.lanes).join("g")
+      .attr("class", function (l) { return "seq-lane" + (l.late ? " late" : ""); })
+      .attr("data-lane", function (l) { return l.name; });
+    lanes.append("line").attr("x1", function (l, i) { return laneX(i); }).attr("x2", function (l, i) { return laneX(i); })
+      .attr("y1", TITLE + HEAD).attr("y2", bottom);
+    var head = lanes.append("g").attr("class", "seq-lane-head").attr("data-seq-module", function (l) { return l.late ? null : l.name; });
+    head.append("rect").attr("x", function (l, i) { return laneX(i) - LANE / 2 + 8; }).attr("y", TITLE)
+      .attr("width", LANE - 16).attr("height", HEAD).attr("rx", 3);
+    head.append("text").attr("x", function (l, i) { return laneX(i); }).attr("y", TITLE + HEAD / 2 + 4).attr("text-anchor", "middle")
+      .text(function (l) { return fit(l.name, LANE - 24); });
+    head.append("title").text(function (l) {
+      return l.late ? "Late-bound calls: on an Object or Variant, so what they call can't be known without running the code" : l.name;
+    });
+
+    // Activations: how long each opened procedure runs.
+    layout.activations.forEach(function (a) {
+      g.append("rect").attr("class", "seq-activation").attr("x", laneX(a.lane) - 4 + a.depth * 5).attr("y", a.y)
+        .attr("width", 8).attr("height", Math.max(6, a.end - a.y));
+    });
+
+    // Messages.
+    layout.messages.forEach(function (m) {
+      var item = m.item;
+      var x1 = laneX(item.from) + 4 + m.fromOffset, x2 = laneX(item.to) - 4;
+      var message = g.append("g").attr("class", "seq-message" + (item.relation ? " relation" : "") + (item.late ? " late" : "") +
+        (item.id && item.id === vb.selection() ? " selected" : "")).attr("data-id", item.id || null).attr("data-key", item.key || null);
+      var label = message.append("text").attr("class", "seq-label");
+      if (item.from === item.to) {
+        var x = laneX(item.from) + 4;
+        message.append("path").attr("d", "M" + x + "," + (m.y - 10) + "h28v12h-24").attr("marker-end", "url(#seq-arrow)");
+        label.attr("x", x + 34).attr("y", m.y - 2);
+      } else {
+        var leftToRight = x2 > x1;
+        message.append("line").attr("x1", leftToRight ? x1 : laneX(item.from) - 4).attr("x2", leftToRight ? x2 : laneX(item.to) + 4)
+          .attr("y1", m.y).attr("y2", m.y).attr("marker-end", item.relation ? "url(#seq-arrow-open)" : "url(#seq-arrow)");
+        label.attr("x", (x1 + x2) / 2).attr("y", m.y - 6).attr("text-anchor", "middle");
+      }
+      var room = item.from === item.to ? LANE - 40 : Math.abs(x2 - x1) - 10;
+      if (item.expandable) label.append("tspan").attr("class", "seq-toggle").attr("data-seq-toggle", item.key).text(item.open ? "▾ " : "▸ ");
+      label.append("tspan").attr("class", "seq-name").attr("data-seq-select", item.id || null)
+        .text(fit((item.relation ? item.relation + ": " : "") + item.label, room) + (item.recursive ? " ↻" : ""));
+      message.append("title").text((item.late ? "Late-bound: " + item.label : nameOf(item.id) + (item.recursive ? " (recursion: already open above)" : "")) +
+        (item.line ? ", line " + item.line + " of " + nameOf(item.lineIn) : ""));
+    });
+
+    layout.frames.forEach(function (f) {
+      var left = laneX(f.min) - f.pad, right = laneX(f.max) + f.pad + 30;
+      var frame = frameLayer.append("g").attr("class", "seq-frame kind-" + f.item.block.kind + (f.item.open ? "" : " closed"))
+        .attr("data-key", f.item.key);
+      frame.append("rect").attr("x", left).attr("y", f.y).attr("width", right - left).attr("height", f.end - f.y).attr("rx", 3);
+      var word = FRAME_WORDS[f.item.block.kind] || f.item.block.kind;
+      var label = g.append("g").attr("class", "seq-frame-label").attr("data-seq-frame", f.item.key);
+      var tabWidth = (word.length + 2) * CHAR + 16; // with its ▾ or ▸
+      label.append("path").attr("d", "M" + left + "," + f.y + "h" + tabWidth + "v12l-6,6h-" + (tabWidth - 6) + "z");
+      label.append("text").attr("x", left + 5).attr("y", f.y + 13).text((f.item.open ? "▾ " : "▸ ") + word);
+      label.append("title").text((f.item.open ? "Close: " : "Open: ") + f.item.block.text + " (line " + f.item.line + ")");
+      if (f.item.block.kind !== "else") {
+        label.append("text").attr("class", "seq-guard").attr("x", left + tabWidth + 8).attr("y", f.y + 13)
+          .text(fit("[" + f.item.block.text + "]", right - left - tabWidth - 14));
+      }
+    });
+  }
+
+  sequenceBox.addEventListener("click", function (event) {
+    var target = event.target;
+    var start = target.closest("[data-seq-start]");
+    if (start) { open.add(start.getAttribute("data-seq-start")); draw(); return; }
+    var toggle = target.closest("[data-seq-toggle]");
+    if (toggle) {
+      var key = toggle.getAttribute("data-seq-toggle");
+      if (open.has(key)) open.delete(key); else open.add(key);
+      draw();
+      return;
+    }
+    var frame = target.closest("[data-seq-frame]");
+    if (frame) {
+      var frameKey = frame.getAttribute("data-seq-frame") + ":closed";
+      if (open.has(frameKey)) open.delete(frameKey); else open.add(frameKey);
+      draw();
+      return;
+    }
+    // A plain click only selects, as in the tree; Ctrl+click starts from it.
+    var focus = event.ctrlKey || event.metaKey;
+    var name = target.closest("[data-seq-select]");
+    if (name) { vb.select(name.getAttribute("data-seq-select"), focus ? !vb.focusOnClick() : vb.focusOnClick()); return; }
+    var module = target.closest("[data-seq-module]");
+    if (module) vb.select(module.getAttribute("data-seq-module"), focus ? !vb.focusOnClick() : vb.focusOnClick());
+  });
+
+  view.querySelectorAll("[data-calls-show]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      if (showing === button.getAttribute("data-calls-show")) return;
+      showing = button.getAttribute("data-calls-show");
+      saveSetting("vbadoc-calls-show", showing);
+      draw();
+    });
+  });
 
   // ---- Clicks and keys ----
 
@@ -351,6 +630,9 @@
     if (vb.selection() === null && root !== null) { root = null; open = new Set(); rerooted = true; }
     if (rerooted) { drawIfVisible(); return; }
     tree.querySelectorAll("li[data-id]").forEach(function (li) { li.setAttribute("aria-selected", li.dataset.id === vb.selection() ? "true" : "false"); });
+    sequenceBox.querySelectorAll("g.seq-message[data-id]").forEach(function (m) {
+      m.classList.toggle("selected", m.getAttribute("data-id") === vb.selection());
+    });
   });
   vb.onFocusChange(function () { followFocus(); drawIfVisible(); });
   vb.onShownChange(drawIfVisible);
@@ -363,6 +645,7 @@
   // For tests: the tree's root and direction.
   window.vbadocCalls = {
     root: function () { return root; },
-    direction: function () { return direction; }
+    direction: function () { return direction; },
+    showing: function () { return showing; }
   };
 })();

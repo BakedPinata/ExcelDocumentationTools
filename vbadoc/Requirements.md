@@ -183,6 +183,7 @@ Shared by both views.
 - **Each call** shows what's called, its kind, and the line it's on, which selects the procedure making the call and shows the line in the source panel. Calls are to procedures, properties (each side of one), events (RaiseEvent) and Declares; uses of variables and constants stay in Dependencies.
 - **Through an interface or an event:** a call to an interface member opens to its implementations, and RaiseEvent to its WithEvents handlers.
 - **The logic around each call:** If, ElseIf and Else branches (a single-line If's too), Select Case and each Case, For, Do and While loops, With, and On Error handlers are rows holding the calls made inside them, in order, open to begin with, with a link to their line. A block with no calls isn't shown, and its text is cut to about 60 characters. Turned round, each caller says which block its call is in.
+- **Sequence diagram:** a Tree / Sequence switch draws what's open in the tree as a sequence diagram for each open starting procedure: modules as lifelines in the order they take part, calls as messages in the order of the code (dashed to an implementation or handler), late-bound calls to a lifeline of their own, and the blocks around calls as frames. It shares what's open with the tree: a message's ▸ opens its calls, a frame's label closes or opens it, and either narrows both. A click on a message selects as in the tree, and Ctrl+click starts from it. The choice is remembered; Called by has no diagram. Drawn by the page with d3.
 - **Recursion:** a procedure already open higher up the same branch is marked ↻ and doesn't open again.
 - **Left out and counted:** calls to items the views don't show (hidden, filtered out, or left out by Show…) aren't listed, and a row counts them. A late-bound call is a leaf showing its expression. A note says the tree can't see `Application.Run`, `OnAction` or other calls made by name.
 - **Calls / Called by** turns the tree round, to show what leads to a procedure; an implementation or handler then opens to what calls the interface member or raises the event. The choice is remembered.
@@ -190,4 +191,4 @@ Shared by both views.
 
 ## Out of scope
 
-- **Sequence diagrams:** these were prototyped and rejected. Diagrams for real entry points were too large to read, and Mermaid rendered large ones incorrectly.
+- **Sequence diagrams of a whole entry point at once:** prototyped and rejected, as too large to read, and Mermaid rendered large ones incorrectly. The Calls tab's diagram draws only what's open in its tree, so it's as small as the part being looked at (step E5 of the feedback plan).

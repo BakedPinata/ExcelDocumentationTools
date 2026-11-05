@@ -10,7 +10,7 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.24.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.25.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
@@ -31,8 +31,8 @@ rather than repeating it.
   is pushed. D2 (favourites) is pushed. D3 is split into D3a (Expand / Collapse all and the views' filter), D3b
   (hiding) and D3c (the Show menus in the explorer), all pushed, as are D4 (widely used items and predeclared classes)
   and E1 (Uses / Used by with references). E2 (the Calls tab) is pushed. E3 (the logic around each call) and E4 (a
-  query's steps, in pqdoc) are done, waiting for review. **Next: E5** (the optional sequence diagram), or G1 if E5 is
-  dropped.
+  query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is done, waiting for review.
+  **Next: G1** (saved views).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -42,6 +42,15 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-05: Step E5, the sequence diagram
+
+- The Calls tab's Tree / Sequence switch draws what's open in the tree as a sequence diagram: modules as lifelines,
+  calls as messages in order, late-bound calls to their own lifeline, blocks as frames. It shares what's open with the
+  tree, and its ▸ and frame labels open and close in place.
+- vbadoc's requirements (the Calls view, and Out of scope), decisions and README follow. vbadoc 0.25.0.
+- Tests: 5 browser tests. Screenshots in both themes. On the private workbook, every branch open four deep draws 77
+  diagrams (244 messages, 97 frames) in about 230 ms, with no errors.
 
 ### 2026-11-05: Step E4, a query's steps
 
