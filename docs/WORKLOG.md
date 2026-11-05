@@ -49,11 +49,12 @@ Newest first.
   Shift+click in the diagram) opens everything under a procedure or group, so whole entry points can be drawn; that's
   in scope now, the old reasons having been Mermaid's.
 - The Show… menu has Show nothing and All / None per section (both tools).
-- Dragging in the graph moves only the dragged nodes' neighbours, holds the rest, and stops when dropped, so the graph
-  no longer pulls in; every graph setting explains itself on hover.
+- Every graph setting explains itself on hover. A gentler drag (only neighbours moving, the layout stopping when
+  dropped) was tried and rolled back after review: it froze the graph, so nodes could overlap.
+- From now on each phase is worked on its own branch, with a commit per change; the user rebases and pushes.
 - vbadoc's requirements (Out of scope, the Calls view, the explorer, the graph), both decisions, pqdoc's FR-HTML-17, the
   shared README and vbadoc's README follow. vbadoc 0.26.0, pqdoc 1.17.0.
-- Tests: 6 browser tests (dragging, explainers, open all below twice, Shift+click and guards, Show nothing). Screenshots.
+- Tests: 5 browser tests (explainers, open all below twice, Shift+click and guards, Show nothing). Screenshots.
 
 ### 2026-11-05: Step E5, the sequence diagram
 

@@ -79,7 +79,7 @@
     curvedEdges: true,
     bundleEdges: false,
     showHulls: true,
-    live: true,            // let the dragged node's neighbours make room while dragging
+    live: true,            // rearrange the rest of the graph while dragging
     pinDragged: false,     // dragged nodes stay where they're dropped
     linkStrength: 1,
     memberSpacing: 12,     // px between neighbouring member names
@@ -112,8 +112,8 @@
     { key: "showHulls", type: "checkbox", label: "Module outlines", note: "member level",
       help: "Draw an outline around each module's members, named after the module. Drag an outline to move the whole module." },
     { section: "Dragging" },
-    { key: "live", type: "checkbox", label: "Neighbours make room while dragging",
-      help: "While you drag, the dragged node's direct neighbours move to make room for it. Everything else stays where it is, and nothing moves once you let go. Off, only what you drag moves." },
+    { key: "live", type: "checkbox", label: "Rearrange while dragging",
+      help: "While you drag, the rest of the graph rearranges around what you're moving, and settles again once you let go, so nothing overlaps. Off, only what you drag moves." },
     { key: "pinDragged", type: "checkbox", label: "Keep dragged nodes where dropped", note: "double-click a node to release it",
       help: "A node you drag stays pinned where you drop it, so later changes to the layout don't move it. Double-click it, or Release pinned below, to let it move again." },
     { section: "Layout" },
@@ -838,24 +838,6 @@
   var CLICK_DISTANCE = 4; // screen pixels, as d3's clickDistance
   var dragging = false;
 
-  // Nodes held still while something is dragged: everything but the dragged nodes and their direct neighbours.
-  var held = [];
-
-  function holdAllBut(nodes) {
-    var moving = new Set(nodes.map(function (n) { return n.id; }));
-    nodes.forEach(function (n) {
-      (graph.outgoing.get(n.id) || []).forEach(function (e) { moving.add(e.to); });
-      (graph.incoming.get(n.id) || []).forEach(function (e) { moving.add(e.from); });
-    });
-    held = graph.nodes.filter(function (n) { return !moving.has(n.id) && n.fx == null; });
-    held.forEach(function (n) { n.fx = n.x; n.fy = n.y; });
-  }
-
-  function letGo() {
-    held.forEach(function (n) { n.fx = null; n.fy = null; });
-    held = [];
-  }
-
   function dragBehaviour(nodesOf) {
     var pendingX = 0, pendingY = 0; // movement before the drag really starts, in graph units
     return d3.drag()
@@ -875,8 +857,7 @@
           hideTooltip();
           svg.classed("dragging", true);
           nodes.forEach(function (n) { n.fx = n.x + pendingX; n.fy = n.y + pendingY; });
-          // Only the neighbours make room: the rest of the graph is held, so it can't drift or pull in.
-          if (settings.live) { holdAllBut(nodes); simulation.alphaTarget(0.15).restart(); }
+          if (settings.live) simulation.alphaTarget(0.3).restart();
         } else {
           nodes.forEach(function (n) { n.fx += event.dx; n.fy += event.dy; });
         }
@@ -889,14 +870,7 @@
         if (!dragging) return; // a click: nothing was pinned or woken
         dragging = false;
         svg.classed("dragging", false);
-        // Once dropped, nothing moves on: the layout stops where it is.
-        if (settings.live) {
-          // Stopped outright, with no speed left over: a last tick would still carry the neighbours on a little.
-          simulation.alphaTarget(0).alpha(0).stop();
-          graph.nodes.forEach(function (n) { n.vx = 0; n.vy = 0; });
-          letGo();
-          updatePositions();
-        }
+        if (settings.live) simulation.alphaTarget(0);
         var nodes = nodesOf(d);
         if (settings.pinDragged) {
           nodes.forEach(function (n) { n.pinned = true; });

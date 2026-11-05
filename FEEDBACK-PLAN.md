@@ -61,7 +61,7 @@ questions the draft raised.
 | E3 | Calls tab: the Ifs, loops and Select Cases around each call | Claude | Done |
 | E4 | pqdoc: a query's steps, in order | Claude | Done |
 | E5 | Optional: a sequence diagram of the expanded calls | Claude | Done |
-| E5a | Follow-ups after E5's review: labels never cut in the diagram, open all below, whole entry points in scope, Show nothing and All / None, gentler dragging in the graph, explained settings | Claude | Done |
+| E5a | Follow-ups after E5's review: labels never cut in the diagram, open all below, whole entry points in scope, Show nothing and All / None, explained settings (a gentler drag was tried and rolled back) | Claude | Done |
 | G1 | Saved views: named, exported to a file and imported again | Claude | |
 | G2 | A views file in the output folder is built into the page | Claude | |
 | G3 | Printing a view or every view, with descriptions | Claude, then you on a work machine | |
