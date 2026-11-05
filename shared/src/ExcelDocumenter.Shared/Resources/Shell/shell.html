@@ -35,6 +35,35 @@
   <nav class="tabs" role="tablist" aria-label="Views">
 {{TABS}}
   </nav>
+  <details class="dropdown views-menu" id="views">
+    <summary class="button" title="Saved views: arrangements of the page to come back to, and to share as a file">Views<span class="views-current" id="views-current"></span></summary>
+    <div class="menu" id="views-menu">
+      <h3>Saved views</h3>
+      <ul class="views-list" id="views-list"></ul>
+      <p class="views-none muted" id="views-none">None yet. Arrange the page as you want it, then save it as a view to come back to it.</p>
+      <form class="views-form" id="views-form" hidden>
+        <label for="views-name">Name</label>
+        <input type="text" id="views-name" maxlength="80" autocomplete="off">
+        <label for="views-description">Description <span class="muted">(optional)</span></label>
+        <textarea id="views-description" rows="3"></textarea>
+        <p class="warning views-error" id="views-error" hidden></p>
+        <div class="actions">
+          <button type="submit" class="button primary" id="views-form-save">Save</button>
+          <button type="button" class="button" id="views-form-cancel">Cancel</button>
+        </div>
+      </form>
+      <div class="actions" id="views-actions">
+        <button type="button" class="button" id="views-new" title="Save how the page is arranged now as a new view">Save as a new view…</button>
+        <button type="button" class="button" id="views-update" hidden></button>
+      </div>
+      <div class="actions">
+        <button type="button" class="button" id="views-export">Export</button>
+        <button type="button" class="button" id="views-import-button" title="Read views from a views file">Import…</button>
+      </div>
+      <p class="views-status" id="views-status" role="status"></p>
+    </div>
+  </details>
+  <input type="file" id="views-import" accept=".json,application/json" hidden>
   <div class="search">
 {{SEARCH}}
   </div>
@@ -59,6 +88,7 @@
     </button>
   </div>
 </header>
+<div class="page-notice" id="page-notice" role="status" hidden><span id="page-notice-text"></span> <button type="button" class="link-button" id="page-notice-close">Dismiss</button></div>
 {{BEFORE_LAYOUT}}
 <main class="layout" id="layout">
   <nav class="explorer" id="explorer" aria-label="Explorer">

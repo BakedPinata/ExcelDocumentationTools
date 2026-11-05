@@ -316,6 +316,54 @@ body.resizing { cursor: col-resize; user-select: none; }
 .explorer-show input { flex: none; margin: 2px 0 0; accent-color: var(--accent); }
 .explorer-show .actions { display: flex; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
 .explorer-show .actions .button { padding: 3px 8px; }
+/* The Views menu: the saved views, a form to name and describe one, and Export and Import. */
+.views-menu { position: relative; }
+.views-menu > summary { padding: 6px 12px; }
+.views-current { display: inline-block; max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; color: var(--accent); }
+.views-menu .menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  width: min(380px, calc(100vw - 24px));
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  font-size: 13px;
+}
+.views-menu h3 { margin: 2px 0 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.views-list { margin: 0; padding: 0; list-style: none; }
+.views-item { display: flex; align-items: flex-start; gap: 8px; margin: 0 -6px; padding: 2px 6px; border-radius: var(--radius); }
+.views-item.current { background: var(--line-highlight); }
+.views-open { flex: 1; min-width: 0; padding: 3px 0; font: inherit; color: var(--text); text-align: left; background: none; border: 0; cursor: pointer; }
+.views-open:hover .views-name { text-decoration: underline; }
+.views-name { font-weight: 600; overflow-wrap: anywhere; }
+.views-changed { margin-left: 4px; padding: 0 6px; font-size: 11px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; }
+.views-description { display: block; color: var(--text-muted); white-space: pre-line; overflow-wrap: anywhere; }
+.views-item-actions { display: flex; flex: none; gap: 10px; padding: 3px 0; font-size: 12px; white-space: nowrap; }
+.views-none { margin: 0 0 4px; }
+.views-none[hidden], .views-form[hidden], .views-menu .actions[hidden], .views-error[hidden], .views-menu .button[hidden] { display: none; }
+.views-form { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+.views-form input, .views-form textarea { width: 100%; padding: 4px 8px; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
+.views-form textarea { resize: vertical; }
+.views-error { margin: 2px 0 0; }
+.views-menu .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+.views-form .actions { margin-top: 4px; padding-top: 0; border-top: 0; }
+.views-menu .actions .button { padding: 3px 8px; }
+.views-menu .button:disabled { opacity: 0.55; cursor: default; }
+.views-menu .button:disabled:hover { border-color: var(--border); }
+.views-status { margin: 8px 0 0; color: var(--text-muted); }
+.views-status:empty { display: none; }
+.views-status.warning { color: var(--warn); }
+
+/* A note across the top of the page, such as the items a view mentions that the workbook doesn't have. */
+.page-notice { margin: 0; padding: 6px 16px; font-size: 13px; color: var(--text); background: var(--surface); border-bottom: 1px solid var(--warn); }
+.page-notice[hidden] { display: none; }
+
 .view-show-note { padding: 4px 8px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--surface); font-size: 12px; }
 .view-show-note[hidden] { display: none; }
 .tree li.left-out { display: none; }

@@ -116,6 +116,28 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
   fails too, the code is selected for Ctrl+C.
 - **The lock and copy icons are our own,** like the folder (see below).
 
+### Saved views (step G1)
+
+- **The Views menu is the shell's,** in the top bar after the tabs: Save as a new view (a name, unique whatever its
+  case, and an optional description), Save changes to the view last opened once the page has changed since, open,
+  Edit (rename and describe) and Delete with Undo, Export and Import. The button shows the view last opened or saved.
+- **A view holds the shell's part** (`tab`, `filter`, `hidden`, and `show`, the Show… choices) **and the tool's,**
+  each added with `shell.views.part(name, { save(), apply(value), ids(value) })`. `save()` gives JSON (or null for
+  nothing); `apply(value)` sets the view without drawing, and `value` is undefined for a view without that part, which
+  starts afresh; `ids(value)` lists the items it mentions. Favourites and the selection aren't part of a view.
+- **Opening a view** clears the selection, sets the shell's state without its usual events, calls each part's `apply`,
+  then tells the tool once through `onViewApplied` (in place of `onFilterChange`, `onHiddenChange` and
+  `onChoicesChange`), and then `onViewChange` for the view's tab, which is shown without an event of its own first.
+- **Kept per workbook in the browser** as `<tool>-views|<workbook>`; if the browser can't keep them, the menu says to
+  export them. Which view was open isn't kept.
+- **The file** is `<tool>-views.json`: `{ "formatVersion": 1, "tool": "<tool>", "views": [...] }`, written with sorted
+  keys and 2-space indentation and a final line feed, downloaded through a `Blob` link. Import (a hidden file input,
+  `#views-import`) adds its views, replacing those of the same name; a file that isn't JSON or has no `views`, another
+  tool's, or a newer format is refused with the reason, and views without a name are left out and counted.
+- **Items a view mentions that the workbook doesn't have** (`items.init`'s `exists(id)`) are listed on import, in the
+  menu, and on opening, in the page notice (`#page-notice`, across the top of the page, with Dismiss), up to eight by
+  name, and all of them on the console as a warning. They're never an error.
+
 ### Uses / Used by and showing a line (step E1)
 
 - **The list is the shell's** (`shell.references.listHtml(entries, empty)`), each item once: its name selects it, its

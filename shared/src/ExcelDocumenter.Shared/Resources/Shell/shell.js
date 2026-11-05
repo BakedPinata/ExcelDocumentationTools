@@ -1,7 +1,7 @@
 // shell.js: the page shell both tools' pages are built on (see shared/README.md). It owns the frame around the views:
-// remembered settings, the theme, the tabs, the side panel and its splitter, Load folder and the source text. A tool's
-// page.js creates it, fills the side panel, and builds the tool's own window.vbadoc or window.pqdoc on top, which is
-// what the tool's views use.
+// remembered settings, the theme, the tabs, saved views, the side panel and its splitter, Load folder and the source
+// text. A tool's page.js creates it, fills the side panel, and builds the tool's own window.vbadoc or window.pqdoc on
+// top, which is what the tool's views use.
 //
 //   var shell = ExcelDocumenterShell.create(options)
 //
@@ -95,6 +95,15 @@
 //                                      with their text when source `source` is there. Choosing one selects `in` and
 //                                      shows the line in the side panel's source, marked. empty is the text for none
 //   shell.source.showLine(line)        scrolls the side panel's source to a line and marks it, if it's shown
+//   shell.views.part(name, { save(), apply(value), ids(value) })   a part of every saved view, for one of the tool's
+//                                      views: save() gives what to keep (JSON, or null for nothing), apply(value)
+//                                      sets the view to it without drawing (value is undefined for a view without
+//                                      it, which starts afresh), and ids(value) lists the items it mentions, so those
+//                                      the workbook no longer has can be listed. name can't be one of the shell's own:
+//                                      name, description, tab, filter, hidden or show
+//   shell.onViewApplied(fn)            called once a saved view has been opened, in place of onFilterChange,
+//                                      onHiddenChange and onChoicesChange, so the tool draws its views once; then
+//                                      onViewChange tells of the view's tab
 //   A button with id "load-folder-prompt" anywhere in the page opens Load folder.
 (function () {
   "use strict";
@@ -115,13 +124,18 @@
     // localStorage is shared by every page opened from disk, so each tool's settings start with its name. It can
     // throw when the page is opened from disk, so every access is guarded.
 
+    // Saving returns whether it worked, for what's worth saying when it doesn't (saved views).
+    function saveSetting(name, value) {
+      try { localStorage.setItem(tool + "-" + name, value); return true; } catch (e) { return false; }
+    }
+
     var settings = {
       load: function (name) { try { return localStorage.getItem(tool + "-" + name); } catch (e) { return null; } },
-      save: function (name, value) { try { localStorage.setItem(tool + "-" + name, value); } catch (e) { /* not remembered */ } },
+      save: function (name, value) { saveSetting(name, value); },
       remove: function (name) { try { localStorage.removeItem(tool + "-" + name); } catch (e) { /* nothing stored */ } }
     };
 
-    var listeners = { theme: [], view: [], focus: [], favourites: [], filter: [], hidden: [], choices: [] };
+    var listeners = { theme: [], view: [], focus: [], favourites: [], filter: [], hidden: [], choices: [], applied: [] };
     function emit(name, value) {
       listeners[name].forEach(function (fn) {
         try { fn(value); } catch (e) { console.error(e); }
@@ -774,8 +788,10 @@
       favourites = loadIds(favouritesKey());
       ticked = new Set(loadIds(filterKey()));
       hiddenIds = loadIds(hiddenKey());
+      savedViews = loadViews();
       updateFilter();
       updateNotes();
+      updateViewsSummary();
       if (source.widelyUsed) addShareSetting();
     }
 
@@ -863,14 +879,18 @@
         hideTitle(on) + "\">" + HIDE_ICON + "</button>";
     }
 
-    function setHidden(ids) {
-      hiddenIds = ids;
-      if (favouriteSource) settings.save(hiddenKey(), JSON.stringify(hiddenIds));
+    function updateHideButtons() {
       document.querySelectorAll("[data-hide]").forEach(function (button) {
         var on = isHidden(button.getAttribute("data-hide"));
         button.setAttribute("aria-pressed", on ? "true" : "false");
         button.title = hideTitle(on);
       });
+    }
+
+    function setHidden(ids) {
+      hiddenIds = ids;
+      if (favouriteSource) settings.save(hiddenKey(), JSON.stringify(hiddenIds));
+      updateHideButtons();
       renderHidden();
       markHidden();
       updateHideAll();
@@ -1606,13 +1626,437 @@
       return box.bottom > view.top && box.top < view.bottom;
     }
 
+    // ---- Saved views ----
+    //
+    // A view is a named arrangement of the page, with a description: the tab, the explorer's filter, the hidden items,
+    // the Show… choices, and what each of the tool's views adds through views.part (the graph's positions, say).
+    // Favourites are the user's own, so they aren't part of one, and nor is the selection. The Views menu in the top
+    // bar saves the page as a view, opens one, and renames, describes or deletes it. Views are kept per workbook in the
+    // browser, as <tool>-views|<workbook>, and Export and Import carry them in a file, <tool>-views.json, which works
+    // offline in a page opened from disk. The file is JSON with a format version, written with sorted keys and 2-space
+    // indentation so its diffs are small.
+    //
+    // Opening a view clears the selection and sets everything at once, telling the tool through onViewApplied rather
+    // than the filter's, hiding's and the choices' own events, so each view is drawn once. What it mentions that the
+    // workbook no longer has is left out and listed, in the page and on the console, never treated as an error.
+
+    var VIEWS_FORMAT = 1;
+    var VIEW_NAME_LENGTH = 80;
+    var SHELL_PARTS = ["name", "description", "tab", "filter", "hidden", "show"];
+    var viewParts = [];          // { name, save(), apply(value), ids(value) }, from the tool
+    var savedViews = [];         // in the menu's order
+    var currentView = null;      // the name of the view last opened or saved, or null
+    var currentArrangement = null; // how the page was arranged then, to tell whether it's changed since
+    var deleted = null;          // { view, at }, for Undo
+    var editing = null;          // null, "new", or the view being renamed or described
+    var viewsBox = $("views");
+    var viewsSummary = viewsBox.querySelector("summary");
+    var viewsList = $("views-list");
+    var viewsForm = $("views-form");
+    var viewsName = $("views-name");
+    var viewsDescription = $("views-description");
+    var viewsError = $("views-error");
+    var viewsStatus = $("views-status");
+    var viewsInput = $("views-import");
+    var noticeBox = $("page-notice");
+
+    function viewsKey() { return "views|" + favouriteSource.workbook; }
+
+    function stringList(value) { return Array.isArray(value) ? value.filter(function (id) { return typeof id === "string"; }) : []; }
+
+    // A view as read from the browser or a file: its name and description checked and the shell's parts made sound.
+    // The tool's parts are kept as they are, for their apply() to check.
+    function cleanView(raw) {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw) || typeof raw.name !== "string" || raw.name.trim() === "") return null;
+      var view = {};
+      Object.keys(raw).forEach(function (key) { view[key] = raw[key]; });
+      view.name = raw.name.trim().slice(0, VIEW_NAME_LENGTH);
+      view.description = typeof raw.description === "string" ? raw.description : "";
+      if (typeof raw.tab !== "string") delete view.tab;
+      view.filter = stringList(raw.filter);
+      view.hidden = stringList(raw.hidden);
+      var show = raw.show && typeof raw.show === "object" ? raw.show : {};
+      view.show = { off: stringList(show.off), radios: {} };
+      if (show.radios && typeof show.radios === "object") {
+        Object.keys(show.radios).forEach(function (name) {
+          if (typeof show.radios[name] === "string") view.show.radios[name] = show.radios[name];
+        });
+      }
+      return view;
+    }
+
+    function loadViews() {
+      try {
+        var stored = JSON.parse(settings.load(viewsKey()) || "[]");
+        return Array.isArray(stored) ? stored.map(cleanView).filter(function (view) { return view !== null; }) : [];
+      } catch (e) { return []; }
+    }
+
+    // Returns whether the browser kept them.
+    function storeViews() { return !favouriteSource || saveSetting(viewsKey(), JSON.stringify(savedViews)); }
+
+    // How the page is arranged now, as a view without a name.
+    function captureView() {
+      var view = {
+        tab: activeView,
+        filter: Array.from(ticked).sort(),
+        hidden: hiddenIds.slice(),
+        show: { off: Array.from(choicesOff).sort(), radios: Object.assign({}, radioValues) }
+      };
+      viewParts.forEach(function (part) {
+        try {
+          var value = part.save();
+          if (value !== undefined && value !== null) view[part.name] = value;
+        } catch (e) { console.error(e); }
+      });
+      return view;
+    }
+
+    // Objects with their keys in order, so the same views always give the same text.
+    function sortedKeys(value) {
+      if (Array.isArray(value)) return value.map(sortedKeys);
+      if (value && typeof value === "object") {
+        var sorted = {};
+        Object.keys(value).sort().forEach(function (key) { sorted[key] = sortedKeys(value[key]); });
+        return sorted;
+      }
+      return value;
+    }
+
+    function arrangementOf(view) {
+      var copy = Object.assign({}, view);
+      delete copy.name;
+      delete copy.description;
+      return JSON.stringify(sortedKeys(copy));
+    }
+
+    // The items a view mentions that the workbook doesn't have.
+    function missingFrom(view) {
+      if (!favouriteSource) return [];
+      var ids = view.filter.concat(view.hidden);
+      viewParts.forEach(function (part) {
+        if (!part.ids || view[part.name] === undefined) return;
+        try { ids = ids.concat(part.ids(view[part.name]) || []); } catch (e) { console.error(e); }
+      });
+      var missing = new Set();
+      ids.forEach(function (id) { if (typeof id === "string" && !favouriteSource.exists(id)) missing.add(id); });
+      return Array.from(missing).sort();
+    }
+
+    function listOf(ids) {
+      var most = 8;
+      return ids.slice(0, most).join(", ") + (ids.length > most ? " and " + (ids.length - most) + " more" : "");
+    }
+
+    function itemsText(count) { return count + (count === 1 ? " item" : " items"); }
+    function viewsText(count) { return count + (count === 1 ? " view" : " views"); }
+
+    // Sets the page as the view has it, all at once, then lets the tool draw.
+    function applyView(view) {
+      selectItem(null);
+      var boxes = [];
+      choiceSections.forEach(function (s) { if (!s.radio) s.choices.forEach(function (c) { boxes.push(c.id); }); });
+      choicesOff = new Set(view.show.off.filter(function (id) { return boxes.indexOf(id) >= 0; }));
+      radioValues = {};
+      Object.keys(view.show.radios).forEach(function (name) {
+        var section = choiceSections.filter(function (s) { return s.radio === name; })[0];
+        var values = section ? section.choices.map(function (c) { return c.value; }) : [];
+        if (values.indexOf(view.show.radios[name]) > 0) radioValues[name] = view.show.radios[name];
+      });
+      settings.save("show", JSON.stringify({ off: Array.from(choicesOff), radios: radioValues }));
+      hiddenIds = view.hidden.slice();
+      settings.save(hiddenKey(), JSON.stringify(hiddenIds));
+      ticked = new Set(view.filter);
+      settings.save(filterKey(), JSON.stringify(Array.from(ticked)));
+      if (view.tab && tabs.some(function (tab) { return viewOf(tab) === view.tab; })) setView(view.tab);
+      viewParts.forEach(function (part) {
+        try { part.apply(view[part.name]); } catch (e) { console.error(e); }
+      });
+
+      updateChoices();
+      markLeftOut();
+      updateHideButtons();
+      renderHidden();
+      markHidden();
+      updateHideAll();
+      updateFilter();
+      applyFilter();
+      updateNotes();
+      reveal(revealedId, true);
+      emit("applied");
+      emit("view", activeView);
+    }
+
+    function openView(view) {
+      applyView(view);
+      currentView = view.name;
+      currentArrangement = arrangementOf(captureView());
+      var missing = missingFrom(view);
+      if (missing.length > 0) {
+        console.warn(tool + ": the view \"" + view.name + "\" mentions " + itemsText(missing.length) + " that this workbook doesn't have: " + missing.join(", "));
+        showNotice("The view “" + view.name + "” mentions " + itemsText(missing.length) + " that this workbook doesn't have, so " +
+          (missing.length === 1 ? "it's" : "they're") + " left out: " + listOf(missing) + ".");
+      } else {
+        hideNotice();
+      }
+      updateViewsSummary();
+    }
+
+    function showNotice(text) {
+      $("page-notice-text").textContent = text;
+      noticeBox.hidden = false;
+    }
+
+    function hideNotice() { noticeBox.hidden = true; }
+
+    $("page-notice-close").addEventListener("click", hideNotice);
+
+    function indexOfView(name, except) {
+      var wanted = name.toLowerCase();
+      for (var i = 0; i < savedViews.length; i++) {
+        if (savedViews[i] !== except && savedViews[i].name.toLowerCase() === wanted) return i;
+      }
+      return -1;
+    }
+
+    function updateViewsSummary() {
+      $("views-current").textContent = currentView === null ? "" : " · " + currentView;
+      viewsSummary.title = currentView === null
+        ? "Saved views: arrangements of the page to come back to, and to share as a file"
+        : "Saved views. Showing “" + currentView + "”" + (renderedChanged ? ", changed since" : "");
+    }
+
+    var renderedChanged = false;
+
+    // The list, and the buttons that depend on it. A view is "changed" once the page is arranged differently from how
+    // it was when the view was opened or saved.
+    function renderViewsMenu() {
+      renderedChanged = currentView !== null && arrangementOf(captureView()) !== currentArrangement;
+      viewsList.innerHTML = savedViews.map(function (view, i) {
+        var current = view.name === currentView;
+        return "<li class=\"views-item" + (current ? " current" : "") + "\">" +
+          "<button type=\"button\" class=\"views-open\" data-view-open=\"" + i + "\"" + (current ? " aria-current=\"true\"" : "") +
+          " title=\"Show the page as this view has it\"><span class=\"views-name\">" + escapeHtml(view.name) + "</span>" +
+          (current && renderedChanged ? " <span class=\"views-changed\">changed</span>" : "") +
+          (view.description ? "<span class=\"views-description\">" + escapeHtml(view.description) + "</span>" : "") + "</button>" +
+          "<span class=\"views-item-actions\"><button type=\"button\" class=\"link-button\" data-view-edit=\"" + i +
+          "\" title=\"Rename it or change its description\">Edit</button> <button type=\"button\" class=\"link-button\" data-view-delete=\"" + i +
+          "\" title=\"Delete this view\">Delete</button></span></li>";
+      }).join("");
+      $("views-none").hidden = savedViews.length > 0;
+      var update = $("views-update");
+      var at = currentView === null ? -1 : indexOfView(currentView);
+      update.hidden = at < 0 || !renderedChanged;
+      update.textContent = at < 0 ? "" : "Save changes to “" + savedViews[at].name + "”";
+      update.title = "Save how the page is arranged now into this view, keeping its name and description";
+      var exportButton = $("views-export");
+      exportButton.disabled = savedViews.length === 0;
+      exportButton.title = savedViews.length === 0 ? "There are no views to export yet" : "Download the views as " + tool + "-views.json";
+      updateViewsSummary();
+    }
+
+    // status: text, with an Undo button after it when undo is true.
+    function setViewsStatus(text, isWarning, undo) {
+      viewsStatus.textContent = text;
+      viewsStatus.classList.toggle("warning", !!isWarning);
+      if (undo) {
+        viewsStatus.appendChild(document.createTextNode(" "));
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "link-button";
+        button.id = "views-undo";
+        button.textContent = "Undo";
+        viewsStatus.appendChild(button);
+      }
+    }
+
+    // Keeps the views in the browser, and returns what to add to the status if it couldn't.
+    function storeViewsAndSay() { return storeViews() ? "" : " This browser couldn't keep them, so export them to keep them."; }
+
+    function openForm(view) {
+      editing = view || "new";
+      viewsForm.hidden = false;
+      $("views-actions").hidden = true;
+      viewsName.value = view ? view.name : "";
+      viewsDescription.value = view ? view.description : "";
+      viewsError.hidden = true;
+      $("views-form-save").textContent = view ? "Save" : "Save view";
+      viewsName.focus();
+    }
+
+    function closeForm() {
+      editing = null;
+      viewsForm.hidden = true;
+      $("views-actions").hidden = false;
+    }
+
+    viewsForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var name = viewsName.value.trim().slice(0, VIEW_NAME_LENGTH);
+      var other = editing === "new" ? null : editing;
+      viewsError.hidden = false;
+      if (name === "") { viewsError.textContent = "Give the view a name."; viewsName.focus(); return; }
+      if (indexOfView(name, other) >= 0) { viewsError.textContent = "There's already a view called “" + name + "”."; viewsName.focus(); return; }
+      viewsError.hidden = true;
+      if (editing === "new") {
+        var view = captureView();
+        view.name = name;
+        view.description = viewsDescription.value.trim();
+        savedViews.push(view);
+        currentView = name;
+        currentArrangement = arrangementOf(view);
+      } else {
+        if (currentView === editing.name) currentView = name;
+        editing.name = name;
+        editing.description = viewsDescription.value.trim();
+      }
+      closeForm();
+      renderViewsMenu();
+      setViewsStatus("Saved “" + name + "”." + storeViewsAndSay(), false);
+      $("views-new").focus();
+    });
+
+    $("views-form-cancel").addEventListener("click", function () {
+      closeForm();
+      $("views-new").focus();
+    });
+
+    $("views-new").addEventListener("click", function () { openForm(null); });
+
+    $("views-update").addEventListener("click", function () {
+      var at = indexOfView(currentView);
+      if (at < 0) return;
+      var view = captureView();
+      view.name = savedViews[at].name;
+      view.description = savedViews[at].description;
+      savedViews[at] = view;
+      currentArrangement = arrangementOf(view);
+      renderViewsMenu();
+      setViewsStatus("Saved the changes to “" + view.name + "”." + storeViewsAndSay(), false);
+      $("views-new").focus();
+    });
+
+    viewsList.addEventListener("click", function (event) {
+      var open = event.target.closest("[data-view-open]");
+      var edit = event.target.closest("[data-view-edit]");
+      var remove = event.target.closest("[data-view-delete]");
+      if (open) {
+        var view = savedViews[Number(open.getAttribute("data-view-open"))];
+        viewsBox.open = false;
+        setViewsStatus("");
+        if (view) openView(view);
+      } else if (edit) {
+        openForm(savedViews[Number(edit.getAttribute("data-view-edit"))]);
+      } else if (remove) {
+        var at = Number(remove.getAttribute("data-view-delete"));
+        deleted = { view: savedViews[at], at: at };
+        savedViews.splice(at, 1);
+        if (currentView === deleted.view.name) currentView = null;
+        closeForm();
+        renderViewsMenu();
+        setViewsStatus("Deleted “" + deleted.view.name + "”." + storeViewsAndSay(), false, true);
+        $("views-undo").focus();
+      }
+    });
+
+    viewsStatus.addEventListener("click", function (event) {
+      if (!event.target.closest("#views-undo") || !deleted) return;
+      if (indexOfView(deleted.view.name) < 0) savedViews.splice(Math.min(deleted.at, savedViews.length), 0, deleted.view);
+      var name = deleted.view.name;
+      deleted = null;
+      renderViewsMenu();
+      setViewsStatus("Brought back “" + name + "”." + storeViewsAndSay(), false);
+      $("views-new").focus();
+    });
+
+    // The menu is filled as it opens, and anything half-done in it is dropped when it closes.
+    viewsSummary.addEventListener("click", function () {
+      if (viewsBox.open) return;
+      renderViewsMenu();
+    });
+    viewsBox.addEventListener("toggle", function () {
+      if (viewsBox.open) return;
+      closeForm();
+      setViewsStatus("");
+    });
+
+    // ---- Export and Import ----
+
+    function exportViews() {
+      var text = JSON.stringify(sortedKeys({ formatVersion: VIEWS_FORMAT, tool: tool, views: savedViews }), null, 2) + "\n";
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+      link.download = tool + "-views.json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(function () { URL.revokeObjectURL(link.href); }, 60000);
+      setViewsStatus("Exported " + viewsText(savedViews.length) + " as " + tool + "-views.json.", false);
+    }
+
+    $("views-export").addEventListener("click", function () { if (savedViews.length > 0) exportViews(); });
+    $("views-import-button").addEventListener("click", function () { viewsInput.click(); });
+
+    viewsInput.addEventListener("change", function () {
+      var file = viewsInput.files && viewsInput.files[0];
+      if (!file) return;
+      var reading = file.text ? file.text() : new Response(file).text();
+      reading.then(function (text) { importViews(text, file.name); }, function () {
+        setViewsStatus("Couldn't read " + file.name + ".", true);
+      }).then(function () { viewsInput.value = ""; }); // so the same file can be read again
+    });
+
+    // Views read from a file are added, replacing any of the same name, and nothing else changes until one is opened.
+    function importViews(text, fileName) {
+      var file;
+      try { file = JSON.parse(text); } catch (e) { file = null; }
+      if (!file || typeof file !== "object" || !Array.isArray(file.views) || typeof file.formatVersion !== "number" || file.formatVersion < 1) {
+        setViewsStatus(fileName + " isn't a views file.", true);
+        return;
+      }
+      if (file.tool !== tool) {
+        setViewsStatus(fileName + " holds " + (typeof file.tool === "string" ? file.tool + "'s" : "another tool's") + " views, not " + tool + "'s.", true);
+        return;
+      }
+      if (file.formatVersion > VIEWS_FORMAT) {
+        setViewsStatus(fileName + " was written by a newer " + tool + " than the one that made this page. Run " + tool + " again to read it.", true);
+        return;
+      }
+      var views = file.views.map(cleanView).filter(function (view) { return view !== null; });
+      var skipped = file.views.length - views.length;
+      var replaced = 0;
+      var missing = new Set();
+      views.forEach(function (view) {
+        var at = indexOfView(view.name);
+        if (at >= 0) { savedViews[at] = view; replaced++; } else savedViews.push(view);
+        var notHere = missingFrom(view);
+        notHere.forEach(function (id) { missing.add(id); });
+        if (notHere.length > 0) {
+          console.warn(tool + ": the view \"" + view.name + "\" in " + fileName + " mentions " + itemsText(notHere.length) + " that this workbook doesn't have: " + notHere.join(", "));
+        }
+      });
+      renderViewsMenu();
+      var ids = Array.from(missing).sort();
+      setViewsStatus("Imported " + viewsText(views.length) + " from " + fileName +
+        (replaced > 0 ? ", replacing " + replaced + " of the same name" : "") + "." +
+        (skipped > 0 ? " " + skipped + " without a name " + (skipped === 1 ? "was" : "were") + " left out." : "") +
+        (ids.length > 0 ? " " + (views.length === 1 ? "It mentions " : "They mention ") + itemsText(ids.length) +
+          " that this workbook doesn't have, which will be left out: " + listOf(ids) + "." : "") + storeViewsAndSay(), ids.length > 0);
+    }
+
+    function addViewPart(name, part) {
+      if (SHELL_PARTS.indexOf(name) >= 0) throw new Error("A view part can't be called " + name);
+      viewParts.push({ name: name, save: part.save, apply: part.apply, ids: part.ids });
+    }
+
     // ---- Tabs ----
 
     var tabs = Array.prototype.slice.call(document.querySelectorAll(".tabs [role=\"tab\"]"));
     function viewOf(tab) { return tab.id.slice(4); } // "tab-graph" -> "graph"
     var activeView = viewOf(tabs[0]);
 
-    function showView(name, focus) {
+    // Shows a tab's view without telling the tool, for a saved view, which tells it once everything's set.
+    function setView(name, focus) {
       activeView = name;
       tabs.forEach(function (tab) {
         var on = viewOf(tab) === name;
@@ -1622,6 +2066,10 @@
         if (on && focus) tab.focus();
       });
       if (options.rememberView) settings.save("view", name);
+    }
+
+    function showView(name, focus) {
+      setView(name, focus);
       emit("view", name);
     }
 
@@ -1696,6 +2144,8 @@
         reset: resetChoices
       },
       onChoicesChange: function (fn) { listeners.choices.push(fn); },
+      views: { part: addViewPart },
+      onViewApplied: function (fn) { listeners.applied.push(fn); },
       source: {
         init: initSource,
         has: function (id) { return sources.has(id); },
