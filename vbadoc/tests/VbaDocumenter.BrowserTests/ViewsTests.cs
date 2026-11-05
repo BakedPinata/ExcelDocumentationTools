@@ -251,6 +251,15 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     Assert.Equal(["Orders"], await ViewNames(page));
     Assert.Equal("Mine", await page.InnerTextAsync(ViewRow("Orders") + " .views-description"));
 
+    // Another file chosen while one waits takes its place.
+    var matching = WriteFile("matching.json", """{ "formatVersion": 1, "tool": "vbadoc", "views": [{ "name": "Mine too" }] }""");
+    await Import();
+    await page.SetInputFilesAsync("#views-import", matching);
+    await page.WaitForFunctionAsync("() => document.getElementById('views-status').textContent.includes('matching.json')");
+    Assert.True(await page.IsHiddenAsync("#views-confirm"));
+    Assert.Equal(["Orders", "Mine too"], await ViewNames(page));
+    await page.ClickAsync("#views-undo");
+
     // Closing the menu drops an import waiting to be confirmed.
     await Import();
     await page.Keyboard.PressAsync("Escape");

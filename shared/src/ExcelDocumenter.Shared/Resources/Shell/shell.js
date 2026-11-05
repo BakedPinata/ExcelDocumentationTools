@@ -2151,6 +2151,7 @@
     // A file that doesn't match the workbook (it names another, or mentions items this one doesn't have) says so
     // first, with what would be replaced, and is imported only if the person goes on. Undo puts the list back.
     function importViews(text, fileName) {
+      closeConfirm(); // a file chosen while another waited to be confirmed takes its place
       var file;
       try { file = JSON.parse(text); } catch (e) { file = null; }
       if (!file || typeof file !== "object" || !Array.isArray(file.views) || typeof file.formatVersion !== "number" || file.formatVersion < 1) {
