@@ -346,7 +346,11 @@ body.resizing { cursor: col-resize; user-select: none; }
 .views-description { display: block; color: var(--text-muted); white-space: pre-line; overflow-wrap: anywhere; }
 .views-item-actions { display: flex; flex: none; gap: 10px; padding: 3px 0; font-size: 12px; white-space: nowrap; }
 .views-none { margin: 0 0 4px; }
-.views-none[hidden], .views-form[hidden], .views-menu .actions[hidden], .views-error[hidden], .views-menu .button[hidden] { display: none; }
+.views-none[hidden], .views-form[hidden], .views-confirm[hidden], .views-menu .actions[hidden], .views-error[hidden], .views-menu .button[hidden] { display: none; }
+/* Before an import that doesn't match the workbook: what doesn't, and whether to go on. */
+.views-confirm { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+.views-confirm p { margin: 0 0 6px; overflow-wrap: anywhere; }
+.views-menu .views-confirm .actions { margin-top: 0; padding-top: 0; border-top: 0; }
 .views-form { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
 .views-form input, .views-form textarea { width: 100%; padding: 4px 8px; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
 .views-form textarea { resize: vertical; }

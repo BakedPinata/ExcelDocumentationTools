@@ -209,6 +209,58 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
   }
 
   [Fact]
+  public async Task Importing_another_workbooks_views_asks_first_and_can_be_cancelled_or_undone()
+  {
+    var file = WriteFile("views.json", """
+      {
+        "formatVersion": 1,
+        "tool": "vbadoc",
+        "workbook": "Budget.xlsm",
+        "views": [
+          { "name": "Orders", "filter": ["Order"] },
+          { "name": "Budget lines", "filter": ["Order"] }
+        ]
+      }
+      """);
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    await SaveAs(page, "Orders", "Mine");
+
+    async Task Import()
+    {
+      await page.SetInputFilesAsync("#views-import", file);
+      await page.WaitForSelectorAsync("#views-confirm:not([hidden])");
+    }
+
+    await Import();
+    Assert.Equal("views.json holds views of Budget.xlsm, not SampleVba.xlsm. Importing replaces the view “Orders” here.",
+        await page.InnerTextAsync("#views-confirm-text"));
+    Assert.Equal("Import anyway", await page.InnerTextAsync("#views-confirm-import"));
+    await page.ClickAsync("#views-confirm-cancel");
+    Assert.Equal("Nothing was imported from views.json.", await page.InnerTextAsync("#views-status"));
+    Assert.Equal(["Orders"], await ViewNames(page));
+    Assert.Equal("Mine", await page.InnerTextAsync(ViewRow("Orders") + " .views-description"));
+    Assert.True(await page.IsVisibleAsync("#views-actions"));
+
+    await Import();
+    await page.ClickAsync("#views-confirm-import");
+    Assert.Equal("Imported 2 views from views.json, replacing 1 of the same name. Undo", await page.InnerTextAsync("#views-status"));
+    Assert.Equal(["Orders", "Budget lines"], await ViewNames(page));
+    await page.ClickAsync("#views-undo");
+    Assert.Equal("Put the views back as they were before importing views.json.", await page.InnerTextAsync("#views-status"));
+    Assert.Equal(["Orders"], await ViewNames(page));
+    Assert.Equal("Mine", await page.InnerTextAsync(ViewRow("Orders") + " .views-description"));
+
+    // Closing the menu drops an import waiting to be confirmed.
+    await Import();
+    await page.Keyboard.PressAsync("Escape");
+    await OpenMenu(page);
+    Assert.True(await page.IsHiddenAsync("#views-confirm"));
+    Assert.Equal(["Orders"], await ViewNames(page));
+    Assert.Empty(opened.Errors);
+  }
+
+  [Fact]
   public async Task A_view_can_be_renamed_described_and_deleted_with_Undo_names_are_unique_and_views_are_remembered()
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
@@ -280,9 +332,10 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
 
     var text = File.ReadAllText(file);
     var json = JsonNode.Parse(text)!.AsObject();
-    Assert.Equal(["formatVersion", "tool", "views"], json.Select(p => p.Key));
+    Assert.Equal(["formatVersion", "tool", "views", "workbook"], json.Select(p => p.Key));
     Assert.Equal(1, (int)json["formatVersion"]!);
     Assert.Equal("vbadoc", (string)json["tool"]!);
+    Assert.Equal("SampleVba.xlsm", (string)json["workbook"]!);
     var first = json["views"]![0]!.AsObject();
     Assert.Equal(first.Select(p => p.Key).Order(StringComparer.Ordinal), first.Select(p => p.Key));
     Assert.Equal("Without logging", (string)first["name"]!);
@@ -296,7 +349,7 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     await OpenMenu(fresh);
     await fresh.SetInputFilesAsync("#views-import", file);
     await fresh.WaitForFunctionAsync("() => document.getElementById('views-status').textContent !== ''");
-    Assert.Equal("Imported 2 views from vbadoc-views.json.", await fresh.InnerTextAsync("#views-status"));
+    Assert.Equal("Imported 2 views from vbadoc-views.json. Undo", await fresh.InnerTextAsync("#views-status"));
     Assert.Equal(["Without logging", "All"], await ViewNames(fresh));
     await OpenView(fresh, "Without logging");
     await WaitUntilStill(fresh);
@@ -307,7 +360,7 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     await OpenMenu(fresh);
     await fresh.SetInputFilesAsync("#views-import", file);
     await fresh.WaitForFunctionAsync("() => document.getElementById('views-status').textContent.includes('replacing')");
-    Assert.Equal("Imported 2 views from vbadoc-views.json, replacing 2 of the same name.", await fresh.InnerTextAsync("#views-status"));
+    Assert.Equal("Imported 2 views from vbadoc-views.json, replacing 2 of the same name. Undo", await fresh.InnerTextAsync("#views-status"));
     Assert.Equal(["Without logging", "All"], await ViewNames(fresh));
     Assert.Empty(other.Errors);
   }
@@ -342,12 +395,17 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     var warnings = new List<string>();
     page.Console += (_, message) => { if (message.Type == "warning") warnings.Add(message.Text); };
 
+    // It says so before anything is imported.
     await OpenMenu(page);
     await page.SetInputFilesAsync("#views-import", file);
-    await page.WaitForFunctionAsync("() => document.getElementById('views-status').textContent !== ''");
-    Assert.Equal("Imported 2 views from old-views.json. 1 without a name was left out. They mention 3 items that this workbook " +
-        "doesn't have, which will be left out: Billing, Billing.Charge, Billing.Run.",
-        await page.InnerTextAsync("#views-status"));
+    await page.WaitForSelectorAsync("#views-confirm:not([hidden])");
+    Assert.Equal("Its views mention 3 items that this workbook doesn't have, which would be left out: Billing, Billing.Charge, " +
+        "Billing.Run.", await page.InnerTextAsync("#views-confirm-text"));
+    Assert.True(await page.IsVisibleAsync("#views-none"));
+    Assert.True(await page.IsHiddenAsync("#views-actions"));
+    await page.ClickAsync("#views-confirm-import");
+    Assert.Equal("Imported 2 views from old-views.json. 1 without a name was left out. Undo", await page.InnerTextAsync("#views-status"));
+    Assert.True(await page.IsHiddenAsync("#views-confirm"));
     Assert.Contains(warnings, w => w.Contains("\"Before the rename\"") && w.Contains("Billing.Run"));
 
     await OpenView(page, "Before the rename");

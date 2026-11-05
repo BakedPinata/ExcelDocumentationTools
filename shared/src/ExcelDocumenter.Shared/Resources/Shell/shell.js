@@ -1664,6 +1664,7 @@
     var currentArrangement = null; // how the page was arranged then, to tell whether it's changed since
     var undoState = null;        // while Undo is offered: the list as it was, and what to say once it's put back
     var editing = null;          // null, "new", or the view being renamed or described
+    var pendingImport = null;    // views read from a file that doesn't match the workbook, until imported or not
     var viewsBox = $("views");
     var viewsSummary = viewsBox.querySelector("summary");
     var viewsList = $("views-list");
@@ -1993,6 +1994,7 @@
     }
 
     function openForm(view) {
+      closeConfirm();
       editing = view || "new";
       viewsForm.hidden = false;
       $("views-actions").hidden = true;
@@ -2003,10 +2005,11 @@
       viewsName.focus();
     }
 
+    // Also drops an import waiting to be confirmed, since anything else done in the menu goes on without it.
     function closeForm() {
       editing = null;
       viewsForm.hidden = true;
-      $("views-actions").hidden = false;
+      closeConfirm();
     }
 
     viewsForm.addEventListener("submit", function (event) {
@@ -2117,8 +2120,11 @@
 
     // ---- Export and Import ----
 
+    // The workbook's name goes in the file, so an import into another workbook's page can say so first.
     function exportViews() {
-      var text = JSON.stringify(sortedKeys({ formatVersion: VIEWS_FORMAT, tool: tool, views: savedViews }), null, 2) + "\n";
+      var file = { formatVersion: VIEWS_FORMAT, tool: tool, views: savedViews };
+      if (favouriteSource) file.workbook = favouriteSource.workbook;
+      var text = JSON.stringify(sortedKeys(file), null, 2) + "\n";
       var link = document.createElement("a");
       link.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
       link.download = tool + "-views.json";
@@ -2142,6 +2148,8 @@
     });
 
     // Views read from a file are added, replacing any of the same name, and nothing else changes until one is opened.
+    // A file that doesn't match the workbook (it names another, or mentions items this one doesn't have) says so
+    // first, with what would be replaced, and is imported only if the person goes on. Undo puts the list back.
     function importViews(text, fileName) {
       var file;
       try { file = JSON.parse(text); } catch (e) { file = null; }
@@ -2158,26 +2166,71 @@
         return;
       }
       var views = file.views.map(cleanView).filter(function (view) { return view !== null; });
-      var skipped = file.views.length - views.length;
-      var replaced = 0;
+      var reading = { views: views, fileName: fileName, skipped: file.views.length - views.length };
       var missing = new Set();
-      views.forEach(function (view) {
+      views.forEach(function (view) { missingFrom(view).forEach(function (id) { missing.add(id); }); });
+      var ids = Array.from(missing).sort();
+      var workbook = favouriteSource ? favouriteSource.workbook : null;
+      var otherWorkbook = typeof file.workbook === "string" && workbook !== null && file.workbook !== workbook ? file.workbook : null;
+      if (ids.length === 0 && otherWorkbook === null) { addImported(reading); return; }
+
+      var parts = [];
+      if (otherWorkbook !== null) parts.push(fileName + " holds views of " + otherWorkbook + ", not " + workbook + ".");
+      if (ids.length > 0) {
+        parts.push((views.length === 1 ? "Its view mentions " : "Its views mention ") + itemsText(ids.length) +
+          " that this workbook doesn't have, which would be left out: " + listOf(ids) + ".");
+      }
+      var replaced = views.filter(function (view) { return indexOfView(view.name) >= 0; });
+      if (replaced.length > 0) {
+        parts.push("Importing replaces " + (replaced.length === 1 ? "the view “" + replaced[0].name + "”" : viewsText(replaced.length) + " of the same name") + " here.");
+      }
+      closeForm();
+      setViewsStatus("");
+      pendingImport = reading;
+      $("views-confirm-text").textContent = parts.join(" ");
+      $("views-confirm").hidden = false;
+      $("views-actions").hidden = true;
+      $("views-confirm-import").focus();
+    }
+
+    function closeConfirm() {
+      pendingImport = null;
+      $("views-confirm").hidden = true;
+      $("views-actions").hidden = false;
+    }
+
+    function addImported(reading) {
+      var before = listBefore("Put the views back as they were before importing " + reading.fileName + ".");
+      var replaced = 0;
+      reading.views.forEach(function (view) {
         var at = indexOfView(view.name);
         if (at >= 0) { savedViews[at] = view; replaced++; } else savedViews.push(view);
         var notHere = missingFrom(view);
-        notHere.forEach(function (id) { missing.add(id); });
         if (notHere.length > 0) {
-          console.warn(tool + ": the view \"" + view.name + "\" in " + fileName + " mentions " + itemsText(notHere.length) + " that this workbook doesn't have: " + notHere.join(", "));
+          console.warn(tool + ": the view \"" + view.name + "\" in " + reading.fileName + " mentions " + itemsText(notHere.length) +
+            " that this workbook doesn't have: " + notHere.join(", "));
         }
       });
       renderViewsMenu();
-      var ids = Array.from(missing).sort();
-      setViewsStatus("Imported " + viewsText(views.length) + " from " + fileName +
+      var skipped = reading.skipped;
+      setViewsStatus("Imported " + viewsText(reading.views.length) + " from " + reading.fileName +
         (replaced > 0 ? ", replacing " + replaced + " of the same name" : "") + "." +
-        (skipped > 0 ? " " + skipped + " without a name " + (skipped === 1 ? "was" : "were") + " left out." : "") +
-        (ids.length > 0 ? " " + (views.length === 1 ? "It mentions " : "They mention ") + itemsText(ids.length) +
-          " that this workbook doesn't have, which will be left out: " + listOf(ids) + "." : "") + storeViewsAndSay(), ids.length > 0);
+        (skipped > 0 ? " " + skipped + " without a name " + (skipped === 1 ? "was" : "were") + " left out." : "") + storeViewsAndSay(), false, before);
     }
+
+    $("views-confirm-import").addEventListener("click", function () {
+      var reading = pendingImport;
+      closeConfirm();
+      if (reading) addImported(reading);
+      $("views-import-button").focus();
+    });
+
+    $("views-confirm-cancel").addEventListener("click", function () {
+      var reading = pendingImport;
+      closeConfirm();
+      setViewsStatus(reading ? "Nothing was imported from " + reading.fileName + "." : "", false);
+      $("views-import-button").focus();
+    });
 
     function addViewPart(name, part) {
       if (SHELL_PARTS.indexOf(name) >= 0) throw new Error("A view part can't be called " + name);

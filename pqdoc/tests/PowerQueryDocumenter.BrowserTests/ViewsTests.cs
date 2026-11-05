@@ -191,7 +191,7 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     await OpenMenu(fresh);
     await fresh.SetInputFilesAsync("#views-import", file);
     await fresh.WaitForFunctionAsync("() => document.getElementById('views-status').textContent !== ''");
-    Assert.Equal("Imported 1 view from pqdoc-views.json.", await fresh.InnerTextAsync("#views-status"));
+    Assert.Equal("Imported 1 view from pqdoc-views.json. Undo", await fresh.InnerTextAsync("#views-status"));
     await OpenView(fresh, "Moved");
     await WaitUntilStill(fresh);
     Assert.Equal(moved, await Position(fresh, "Customers"));
