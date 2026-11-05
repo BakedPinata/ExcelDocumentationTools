@@ -148,7 +148,7 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     Assert.True(await page.IsVisibleAsync(ViewRow("Everything") + " .views-changed"));
     Assert.Equal("Save changes to “Everything”", await page.InnerTextAsync("#views-update"));
     await page.ClickAsync("#views-update");
-    Assert.Equal("Saved the changes to “Everything”.", await page.InnerTextAsync("#views-status"));
+    Assert.Equal("Saved the changes to “Everything”. Undo", await page.InnerTextAsync("#views-status"));
     Assert.True(await page.IsHiddenAsync(ViewRow("Everything") + " .views-changed"));
     await page.Keyboard.PressAsync("Escape");
 
@@ -156,6 +156,55 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     Assert.Contains("Logger", await GraphNodes(page));
     await OpenView(page, "Everything");
     Assert.DoesNotContain("Logger", await GraphNodes(page));
+    Assert.Empty(opened.Errors);
+  }
+
+  // After G1's review: saving over another view used to mean opening it first, which lost what had been arranged.
+  [Fact]
+  public async Task The_page_can_be_saved_over_another_view_without_opening_it_with_Undo()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    await HideFromRow(page, "Logger");
+    await SaveAs(page, "Quiet", "Logger hidden");
+    await page.Keyboard.PressAsync("Escape");
+    await page.ClickAsync("#explorer-tree > li.hidden-items [data-unhide-all]");
+    await SaveAs(page, "Everything");
+    await page.Keyboard.PressAsync("Escape");
+    await HideFromRow(page, "Utils");
+
+    await OpenMenu(page);
+    Assert.Equal(0, await page.Locator(ViewRow("Everything") + " [data-view-save]").CountAsync()); // it has Save changes
+    await page.ClickAsync(ViewRow("Quiet") + " [data-view-save]");
+    Assert.Equal("Saved over “Quiet”. Undo", await page.InnerTextAsync("#views-status"));
+    Assert.Equal("Views · Quiet", await page.TextContentAsync("#views > summary"));
+    Assert.Equal("Logger hidden", await page.InnerTextAsync(ViewRow("Quiet") + " .views-description"));
+    Assert.True(await page.IsHiddenAsync(ViewRow("Quiet") + " .views-changed"));
+    await page.ClickAsync("#views-undo");
+    Assert.Equal("Put “Quiet” back as it was.", await page.InnerTextAsync("#views-status"));
+    Assert.Equal("Views · Everything", await page.TextContentAsync("#views > summary"));
+    await page.Keyboard.PressAsync("Escape");
+    await page.ClickAsync("#explorer-tree > li.hidden-items [data-unhide-all]");
+    await OpenView(page, "Quiet");
+    Assert.Equal(["Logger"], await page.EvaluateAsync<string[]>("() => window.vbadoc.hidden()"));
+
+    // From the form: a name that's taken offers to save over that view, with the description typed.
+    await page.ClickAsync("#explorer-tree > li.hidden-items [data-unhide-all]");
+    await HideFromRow(page, "Utils");
+    await OpenMenu(page);
+    await page.ClickAsync("#views-new");
+    await page.FillAsync("#views-name", "everything");
+    await page.FillAsync("#views-description", "Without Utils");
+    await page.ClickAsync("#views-form-save");
+    await page.ClickAsync("#views-save-over");
+    Assert.Equal("Saved over “Everything”. Undo", await page.InnerTextAsync("#views-status"));
+    Assert.Equal(["Quiet", "Everything"], await ViewNames(page));
+    Assert.Equal("Without Utils", await page.InnerTextAsync(ViewRow("Everything") + " .views-description"));
+    Assert.True(await page.IsHiddenAsync("#views-form"));
+    await page.Keyboard.PressAsync("Escape");
+    await page.ClickAsync("#explorer-tree > li.hidden-items [data-unhide-all]");
+    await OpenView(page, "Everything");
+    Assert.Equal(["Utils"], await page.EvaluateAsync<string[]>("() => window.vbadoc.hidden()"));
     Assert.Empty(opened.Errors);
   }
 
@@ -170,7 +219,7 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     await page.ClickAsync("#views-new");
     await page.FillAsync("#views-name", "one");
     await page.ClickAsync("#views-form-save");
-    Assert.Equal("There's already a view called “one”.", await page.InnerTextAsync("#views-error"));
+    Assert.Equal("There's already a view called “one”. Save over it", await page.InnerTextAsync("#views-error"));
     await page.FillAsync("#views-name", " ");
     await page.ClickAsync("#views-form-save");
     Assert.Equal("Give the view a name.", await page.InnerTextAsync("#views-error"));
@@ -179,6 +228,9 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
 
     await page.ClickAsync(ViewRow("Two") + " [data-view-edit]");
     Assert.Equal("Two", await page.InputValueAsync("#views-name"));
+    await page.FillAsync("#views-name", "one");
+    await page.ClickAsync("#views-form-save");
+    Assert.Equal("There's already a view called “one”.", await page.InnerTextAsync("#views-error")); // a rename can't save over
     await page.FillAsync("#views-name", "Three");
     await page.FillAsync("#views-description", "The third");
     await page.ClickAsync("#views-form-save");
@@ -191,6 +243,7 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     Assert.StartsWith("Deleted “One”.", await page.InnerTextAsync("#views-status"));
     await page.ClickAsync("#views-undo");
     Assert.Equal(["One", "Three"], await ViewNames(page));
+    Assert.Equal("Brought back “One”.", await page.InnerTextAsync("#views-status"));
 
     await page.ReloadAsync();
     await page.WaitForFunctionAsync("() => !!window.vbadocGraph");

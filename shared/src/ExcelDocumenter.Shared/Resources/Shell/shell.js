@@ -1662,7 +1662,7 @@
     var savedViews = [];         // in the menu's order
     var currentView = null;      // the name of the view last opened or saved, or null
     var currentArrangement = null; // how the page was arranged then, to tell whether it's changed since
-    var deleted = null;          // { view, at }, for Undo
+    var undoState = null;        // while Undo is offered: the list as it was, and what to say once it's put back
     var editing = null;          // null, "new", or the view being renamed or described
     var viewsBox = $("views");
     var viewsSummary = viewsBox.querySelector("summary");
@@ -1927,12 +1927,15 @@
       renderedChanged = currentView !== null && arrangementOf(captureView()) !== currentArrangement;
       viewsList.innerHTML = savedViews.map(function (view, i) {
         var current = view.name === currentView;
+        // The view showing has Save changes instead, below.
+        var saveOver = current ? "" : "<button type=\"button\" class=\"link-button\" data-view-save=\"" + i +
+          "\" title=\"Save how the page is arranged now into this view, in place of what it holds, keeping its name and description\">Save over</button> ";
         return "<li class=\"views-item" + (current ? " current" : "") + "\">" +
           "<button type=\"button\" class=\"views-open\" data-view-open=\"" + i + "\"" + (current ? " aria-current=\"true\"" : "") +
           " title=\"Show the page as this view has it\"><span class=\"views-name\">" + escapeHtml(view.name) + "</span>" +
           (current && renderedChanged ? " <span class=\"views-changed\">changed</span>" : "") +
           (view.description ? "<span class=\"views-description\">" + escapeHtml(view.description) + "</span>" : "") + "</button>" +
-          "<span class=\"views-item-actions\"><button type=\"button\" class=\"link-button\" data-view-edit=\"" + i +
+          "<span class=\"views-item-actions\">" + saveOver + "<button type=\"button\" class=\"link-button\" data-view-edit=\"" + i +
           "\" title=\"Rename it or change its description\">Edit</button> <button type=\"button\" class=\"link-button\" data-view-delete=\"" + i +
           "\" title=\"Delete this view\">Delete</button></span></li>";
       }).join("");
@@ -1948,8 +1951,10 @@
       updateViewsSummary();
     }
 
-    // status: text, with an Undo button after it when undo is true.
+    // status: text, with an Undo button after it when undo is given (from listBefore). Undo is offered only until the
+    // next status, so nothing else has changed the list in between.
     function setViewsStatus(text, isWarning, undo) {
+      undoState = undo || null;
       viewsStatus.textContent = text;
       viewsStatus.classList.toggle("warning", !!isWarning);
       if (undo) {
@@ -1965,6 +1970,27 @@
 
     // Keeps the views in the browser, and returns what to add to the status if it couldn't.
     function storeViewsAndSay() { return storeViews() ? "" : " This browser couldn't keep them, so export them to keep them."; }
+
+    // The list as it is now, to put back with Undo, and what to say when it is.
+    function listBefore(undone) {
+      return { views: savedViews.slice(), current: currentView, arrangement: currentArrangement, undone: undone };
+    }
+
+    // Saves the page as it is now into the view at `at`, keeping its name, and its description unless given one. It's
+    // then the view showing, as a new one would be.
+    function saveOver(at, statusText, description) {
+      var before = listBefore("Put “" + savedViews[at].name + "” back as it was.");
+      var view = captureView();
+      view.name = savedViews[at].name;
+      view.description = description !== undefined ? description : savedViews[at].description;
+      savedViews[at] = view;
+      currentView = view.name;
+      currentArrangement = arrangementOf(view);
+      closeForm();
+      renderViewsMenu();
+      setViewsStatus(statusText + storeViewsAndSay(), false, before);
+      $("views-undo").focus();
+    }
 
     function openForm(view) {
       editing = view || "new";
@@ -1989,7 +2015,16 @@
       var other = editing === "new" ? null : editing;
       viewsError.hidden = false;
       if (name === "") { viewsError.textContent = "Give the view a name."; viewsName.focus(); return; }
-      if (indexOfView(name, other) >= 0) { viewsError.textContent = "There's already a view called “" + name + "”."; viewsName.focus(); return; }
+      if (indexOfView(name, other) >= 0) {
+        viewsError.textContent = "There's already a view called “" + name + "”.";
+        // A new view can go in its place instead.
+        if (editing === "new") {
+          viewsError.insertAdjacentHTML("beforeend", " <button type=\"button\" class=\"link-button\" id=\"views-save-over\" " +
+            "title=\"Save the page as it is now into that view, keeping its name\">Save over it</button>");
+        }
+        viewsName.focus();
+        return;
+      }
       viewsError.hidden = true;
       if (editing === "new") {
         var view = captureView();
@@ -2014,23 +2049,25 @@
       $("views-new").focus();
     });
 
+    // Save over it, from the form's note that the name is taken: the description typed, if any, replaces the view's.
+    viewsError.addEventListener("click", function (event) {
+      if (!event.target.closest("#views-save-over")) return;
+      var at = indexOfView(viewsName.value.trim().slice(0, VIEW_NAME_LENGTH));
+      if (at < 0) return;
+      var description = viewsDescription.value.trim();
+      saveOver(at, "Saved over “" + savedViews[at].name + "”.", description === "" ? undefined : description);
+    });
+
     $("views-new").addEventListener("click", function () { openForm(null); });
 
     $("views-update").addEventListener("click", function () {
       var at = indexOfView(currentView);
-      if (at < 0) return;
-      var view = captureView();
-      view.name = savedViews[at].name;
-      view.description = savedViews[at].description;
-      savedViews[at] = view;
-      currentArrangement = arrangementOf(view);
-      renderViewsMenu();
-      setViewsStatus("Saved the changes to “" + view.name + "”." + storeViewsAndSay(), false);
-      $("views-new").focus();
+      if (at >= 0) saveOver(at, "Saved the changes to “" + savedViews[at].name + "”.");
     });
 
     viewsList.addEventListener("click", function (event) {
       var open = event.target.closest("[data-view-open]");
+      var save = event.target.closest("[data-view-save]");
       var edit = event.target.closest("[data-view-edit]");
       var remove = event.target.closest("[data-view-delete]");
       if (open) {
@@ -2038,27 +2075,32 @@
         viewsBox.open = false;
         setViewsStatus("");
         if (view) openView(view);
+      } else if (save) {
+        var target = Number(save.getAttribute("data-view-save"));
+        if (savedViews[target]) saveOver(target, "Saved over “" + savedViews[target].name + "”.");
       } else if (edit) {
         openForm(savedViews[Number(edit.getAttribute("data-view-edit"))]);
       } else if (remove) {
         var at = Number(remove.getAttribute("data-view-delete"));
-        deleted = { view: savedViews[at], at: at };
+        var name = savedViews[at].name;
+        var before = listBefore("Brought back “" + name + "”.");
         savedViews.splice(at, 1);
-        if (currentView === deleted.view.name) currentView = null;
+        if (currentView === name) currentView = null;
         closeForm();
         renderViewsMenu();
-        setViewsStatus("Deleted “" + deleted.view.name + "”." + storeViewsAndSay(), false, true);
+        setViewsStatus("Deleted “" + name + "”." + storeViewsAndSay(), false, before);
         $("views-undo").focus();
       }
     });
 
     viewsStatus.addEventListener("click", function (event) {
-      if (!event.target.closest("#views-undo") || !deleted) return;
-      if (indexOfView(deleted.view.name) < 0) savedViews.splice(Math.min(deleted.at, savedViews.length), 0, deleted.view);
-      var name = deleted.view.name;
-      deleted = null;
+      if (!event.target.closest("#views-undo") || !undoState) return;
+      var undo = undoState;
+      savedViews = undo.views;
+      currentView = undo.current;
+      currentArrangement = undo.arrangement;
       renderViewsMenu();
-      setViewsStatus("Brought back “" + name + "”." + storeViewsAndSay(), false);
+      setViewsStatus(undo.undone + storeViewsAndSay(), false);
       $("views-new").focus();
     });
 
