@@ -400,6 +400,7 @@
   // Wakes the simulation after a layout setting changed, so the graph visibly moves to its new shape.
   function relayout() {
     if (!graph) return;
+    markMoved();
     configureForces(graph);
     simulation.alpha(0.6).restart();
   }
@@ -660,7 +661,7 @@
   // set of Show… choices has its own. Re-run layout and Reset to defaults start afresh.
   var keptLayouts = new Map();
 
-  function layoutKey() { return state.level + "\u0000" + vb.choicesKey() + "\u0000" + vb.shownKey(); }
+  function layoutKey(level) { return (level || state.level) + "\u0000" + vb.choicesKey() + "\u0000" + vb.shownKey(); }
 
   function keepLayout() {
     if (!graph || !graph.layoutKey) return;
@@ -683,11 +684,144 @@
     return true;
   }
 
+  // ---- Saved views ----
+  //
+  // A saved view keeps the graph's level and, at each level where anything was moved (dragged, let go, or spaced out
+  // differently in the settings), every node's position in the whole graph and which are pinned. A level where
+  // nothing was moved isn't kept: it's laid out afresh, as it would be anyway. Opening a view puts its positions back
+  // when that level is next drawn. Nodes it doesn't know of (the workbook has changed since) are placed beside what
+  // they're linked to, and the layout settles them while the rest is held still.
+
+  var movedLayouts = new Set(); // keys of whole-graph layouts that have been moved
+  var viewLayouts = new Map();  // layout key -> { positions: { id: [x, y] }, pinned: [id] }, from a view, until drawn
+
+  function markMoved() { if (graph && graph.layoutKey) movedLayouts.add(graph.layoutKey); }
+
+  function layoutForView(positions) {
+    var layout = { positions: {}, pinned: [] };
+    positions.forEach(function (p, id) {
+      layout.positions[id] = [Math.round(p.x), Math.round(p.y)];
+      if (p.pinned) layout.pinned.push(id);
+    });
+    layout.pinned.sort();
+    return layout;
+  }
+
+  // A layout as a view file has it, made sound, or null.
+  function cleanLayout(raw) {
+    if (!raw || typeof raw !== "object" || !raw.positions || typeof raw.positions !== "object") return null;
+    var layout = { positions: {}, pinned: [] };
+    Object.keys(raw.positions).forEach(function (id) {
+      var p = raw.positions[id];
+      if (Array.isArray(p) && isFinite(p[0]) && isFinite(p[1])) layout.positions[id] = [Number(p[0]), Number(p[1])];
+    });
+    if (Array.isArray(raw.pinned)) layout.pinned = raw.pinned.filter(function (id) { return typeof id === "string" && layout.positions[id]; });
+    return Object.keys(layout.positions).length > 0 ? layout : null;
+  }
+
+  function placeFromView(graph, layout) {
+    var pinned = new Set(layout.pinned);
+    var known = [];
+    var unknown = [];
+    graph.nodes.forEach(function (n) {
+      if (state.level === "members") setBox(n);
+      n.vx = 0; n.vy = 0; n.fx = null; n.fy = null; n.pinned = false;
+      var p = Object.prototype.hasOwnProperty.call(layout.positions, n.id) ? layout.positions[n.id] : null;
+      if (!p) { unknown.push(n); return; }
+      n.x = p[0];
+      n.y = p[1];
+      n.pinned = pinned.has(n.id);
+      known.push(n);
+    });
+    createSimulation(graph);
+    if (unknown.length > 0 && known.length > 0) {
+      placeNewNodes(graph, known, unknown);
+    } else if (unknown.length > 0) {
+      initialLayout(graph);
+      return;
+    }
+    graph.nodes.forEach(function (n) { if (n.pinned) { n.fx = n.x; n.fy = n.y; } });
+    simulation.alpha(0);
+  }
+
+  // New nodes start beside the known members of their module, or what they're linked to, or else to the right of the
+  // graph; then the layout settles them with the known nodes held where the view put them.
+  function placeNewNodes(graph, known, unknown) {
+    var placed = new Map(known.map(function (n) { return [n.id, n]; }));
+    var right = d3.max(known, function (n) { return n.x; }) + 120;
+    var top = d3.min(known, function (n) { return n.y; });
+    var spare = 0;
+    unknown.forEach(function (n, k) {
+      var near = known.filter(function (m) { return state.level === "members" && m.module === n.module; });
+      if (near.length === 0) {
+        graph.outgoing.get(n.id).concat(graph.incoming.get(n.id)).forEach(function (e) {
+          var other = placed.get(e.from === n.id ? e.to : e.from);
+          if (other) near.push(other);
+        });
+      }
+      var angle = k * 2.39996;
+      if (near.length > 0) {
+        n.x = d3.mean(near, function (m) { return m.x; }) + 30 * Math.cos(angle);
+        n.y = d3.mean(near, function (m) { return m.y; }) + 30 * Math.sin(angle);
+      } else {
+        n.x = right;
+        n.y = top + 40 * spare++;
+      }
+    });
+    known.forEach(function (n) { n.fx = n.x; n.fy = n.y; });
+    simulation.alpha(0.5);
+    for (var i = 0; i < 150; i++) simulation.tick();
+    known.forEach(function (n) { n.fx = null; n.fy = null; });
+    removeOverlaps(graph);
+    graph.nodes.forEach(function (n) { n.vx = 0; n.vy = 0; });
+  }
+
+  vb.viewPart("graph", {
+    save: function () {
+      keepLayout();
+      var layouts = {};
+      ["modules", "members"].forEach(function (level) {
+        var key = layoutKey(level);
+        if (movedLayouts.has(key) && keptLayouts.has(key)) layouts[level] = layoutForView(keptLayouts.get(key));
+        else if (viewLayouts.has(key)) layouts[level] = viewLayouts.get(key);
+      });
+      return { level: state.level, layouts: layouts };
+    },
+    apply: function (value) {
+      value = value && typeof value === "object" ? value : {};
+      state.level = value.level === "members" ? "members" : "modules";
+      saveSetting("vbadoc-graph-level", state.level);
+      state.legend.clear();
+      state.path = false;
+      keptLayouts.clear();
+      movedLayouts.clear();
+      viewLayouts.clear();
+      var layouts = value.layouts && typeof value.layouts === "object" ? value.layouts : {};
+      ["modules", "members"].forEach(function (level) {
+        var layout = cleanLayout(layouts[level]);
+        if (layout) viewLayouts.set(layoutKey(level), layout);
+      });
+    },
+    ids: function (value) {
+      var ids = [];
+      var layouts = value && value.layouts && typeof value.layouts === "object" ? value.layouts : {};
+      ["modules", "members"].forEach(function (level) {
+        var layout = cleanLayout(layouts[level]);
+        if (layout) ids = ids.concat(Object.keys(layout.positions));
+      });
+      return ids;
+    }
+  });
+
   // fresh: lay the graph out from the start, forgetting kept layouts (Re-run layout, Reset to defaults).
   function render(fresh) {
     hideTooltip();
     keepLayout();
-    if (fresh) keptLayouts.clear();
+    if (fresh) {
+      keptLayouts.clear();
+      movedLayouts.clear();
+      viewLayouts.clear();
+    }
     var full = buildFullGraph();
     graph = full;
     state.focused = false;
@@ -715,7 +849,17 @@
 
     applyStyleSettings();
     var key = layoutKey();
-    if (state.focused || !restoreLayout(graph, key)) initialLayout(graph);
+    if (state.focused) {
+      initialLayout(graph);
+    } else if (!restoreLayout(graph, key)) {
+      if (viewLayouts.has(key)) {
+        placeFromView(graph, viewLayouts.get(key));
+        viewLayouts.delete(key);
+        movedLayouts.add(key);
+      } else {
+        initialLayout(graph);
+      }
+    }
     graph.layoutKey = state.focused ? null : key; // only the whole graph's layout is kept
     svg.classed("members", state.level === "members");
 
@@ -875,6 +1019,7 @@
         if (!dragging) return; // a click: nothing was pinned or woken
         dragging = false;
         svg.classed("dragging", false);
+        markMoved();
         if (settings.live) simulation.alphaTarget(0);
         var nodes = nodesOf(d);
         if (settings.pinDragged) {
@@ -888,6 +1033,7 @@
 
   function release(nodes) {
     nodes.forEach(function (n) { n.fx = null; n.fy = null; n.pinned = false; });
+    markMoved();
     updatePinned();
   }
 
@@ -1334,7 +1480,10 @@
     }
     // Layouts kept for other graphs were made with the old setting (the one drawn moves to the new one, and is kept
     // when it's replaced).
-    if (control.layout || control.key === "nodeSize") keptLayouts.clear();
+    if (control.layout || control.key === "nodeSize") {
+      keptLayouts.clear();
+      movedLayouts = new Set(graph.layoutKey && movedLayouts.has(graph.layoutKey) ? [graph.layoutKey] : []);
+    }
     if (control.key === "nodeSize") {
       // Node sizes are set when nodes are made; resize the drawn ones in place, keeping their positions.
       var fresh = buildFullGraph();

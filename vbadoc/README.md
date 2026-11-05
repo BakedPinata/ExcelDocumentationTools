@@ -156,6 +156,12 @@ To take something out of every view, hide it with the struck-through eye beside 
 struck through, and is listed in the Hidden group at the bottom, where you can show it again. Each view's toolbar counts
 what's hidden, and the source panel says when what you've selected uses something hidden.
 
+**Views**, in the top bar, saves how the page is arranged as a named view with a description: the tab, what's ticked,
+hidden and chosen in Show…, where you've moved things in the graph and the class diagram, and what's open in the Calls
+tab. Open a view to come back to it. **Export** downloads your views as `vbadoc-views.json`, to keep with the source or
+share, and **Import** reads one back. A view that mentions something the workbook no longer has still opens, and says
+what's missing.
+
 The **Calls** tab follows the execution path: start from a macro, event handler or worksheet function (or a
 favourite, or Ctrl+click any procedure) and open its calls one level at a time, in the order of the code. Each call
 links to its line. Calls through an interface open to the implementations, RaiseEvent to its handlers, and **Called by**

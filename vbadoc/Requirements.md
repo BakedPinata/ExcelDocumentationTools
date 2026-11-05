@@ -191,5 +191,12 @@ Shared by both views.
 - **Calls / Called by** turns the tree round, to show what leads to a procedure; an implementation or handler then opens to what calls the interface member or raises the event. The choice is remembered.
 - **Clicks:** a click on a name selects it without changing the tree, so the path opened stays (the exception to Focus on click in the guidelines); Ctrl+click starts the tree from that procedure, as a focused selection made in another view does. Entry points, or clearing the selection, goes back to the entry points. The tree works from the keyboard as the explorer's does.
 
+### Saved views
+
+- **A view** is the page's arrangement, saved under a name, with a description: the tab, the views' filter, the hidden items, the Show… choices, the graph's level and, at each level where anything was moved, where its nodes are and which are pinned, the class diagram's Members switch and moved boxes, and the Calls tab's starting point, open rows, Calls or Called by, and tree or sequence diagram. Favourites and the selection aren't part of a view.
+- **The Views menu** in the top bar saves the page as a new view, or saves changes to the view last opened once the page has changed since (the view is marked "changed"), opens a view, and renames, describes or deletes one (with Undo). Names are unique, whatever their case. The button shows the name of the view last opened or saved. Opening a view clears the selection and sets everything at once.
+- **Views are kept per workbook in the browser.** **Export** downloads them as `vbadoc-views.json`, and **Import** reads such a file back with a file picker, adding its views and replacing any of the same name. Both work offline, in a page opened from disk. The file is JSON with a format version, using the page's names, written with sorted keys and 2-space indentation so its diffs are small. A file for another tool, or from a newer vbadoc, is refused, saying why.
+- **A view that mentions items the workbook no longer has still opens:** they're left out, and listed in a note across the page and on the browser's console, as they are when it's imported; it's never an error. Nodes it has no position for are placed beside what they're linked to.
+
 ## Out of scope
 

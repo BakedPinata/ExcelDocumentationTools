@@ -455,6 +455,39 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Saved views (0.27.0, step G1 of the feedback plan)
+
+- **The views are the shell's,** so pqdoc has them the same way (see `shared/README.md`). The shell keeps a view's
+  name, description, tab, filter, hidden items and Show… choices; each of the tool's views adds its own part through
+  `vbadoc.viewPart(name, { save, apply, ids })`: `graph`, `classes` and `calls`.
+- **"The focus set" in the plan is the explorer's filter,** which D3a made: what a view shows. The selection, and so a
+  focus on it, isn't kept: opening a view clears it, so the page looks as the view was saved. Favourites stay personal.
+- **The graph keeps its level, and positions only where something was moved** (dragged, let go, or spaced out
+  differently in the settings), for each level, in the whole graph as the view's filter and choices draw it. Every
+  node's position is kept, rounded to whole units, since the rest moves around what's dragged; which are pinned is
+  listed. A level nothing was moved at is laid out afresh, which gives the same picture, and keeps files small.
+  Positions are put back when that level is next drawn; nodes the view doesn't know (the workbook has changed) start
+  beside the known members of their module, or what they're linked to, and settle while the rest is held still.
+- **The class diagram keeps the Members switch and the moved boxes** of the view's diagram. Moves in a filtered diagram
+  are now kept while the page is open, so a view with a filter can keep them; D3a laid a filtered diagram out afresh
+  each time. The whole diagram's are still kept in the browser, as before.
+- **The Calls tab keeps its starting point, open rows, Calls or Called by, and tree or diagram.** A row is known by its
+  path, so after the workbook changes, a row may not open where it did; the ids in the paths are checked like any
+  other.
+- **Opening a view sets everything at once, and the views draw once:** the shell sets its state without its usual
+  events, each part's `apply` sets its own without drawing, then `onViewApplied` (which `page.js` turns into one
+  `onShownChange`) and `onViewChange` draw the view's tab.
+- **"Changed"** compares the page's arrangement now with how it was when the view was opened or saved, when the menu
+  opens; Save changes is offered only then. Which view was open isn't remembered after a reload, since the graph's
+  positions aren't either.
+- **Import adds, replacing views of the same name,** so reading a newer copy of the same file updates its views, and
+  says how many it replaced. Names are unique whatever their case. Delete has Undo, rather than asking first.
+- **Missing items are listed, never an error:** on import, in the menu, and on opening, in a note across the top of the
+  page (which G2 will use for the views file built into the page), up to eight by name; all of them go to the console
+  as a warning.
+- **Export is a download** of a `Blob` through a link with `download`, which a page opened from disk can do under its
+  Content-Security-Policy, and Import a file input; neither needs a server.
+
 ### Follow-ups after E5's review (0.26.0, step E5a of the feedback plan)
 
 - **Sequence diagrams of a whole entry point are in scope now:** the old reasons (too large to read, Mermaid drawing
@@ -625,7 +658,8 @@ Favourites below. Back and Forward stay as they are.
   something just ticked would look like the filter had failed.
 - **Focus works within the filter:** a selection outside it isn't drawn, so the graph shows the filter as it is. The
   graph keeps a layout per filter, as it does per level and Show choices; the class diagram lays a filtered diagram
-  out afresh and doesn't remember moves made in it, as when focused.
+  out afresh and doesn't remember moves made in it, as when focused. (Since G1 it keeps them while the page is open,
+  for saved views.)
 - **`window.vbadoc`** has `inFilter(id)`, `filterActive()`, `filterKey()` and `onFilterChange(fn)`. Space in the
   explorer ticks, so Enter alone chooses.
 

@@ -729,6 +729,48 @@
 
   focusButton.addEventListener("click", function () { vb.setFocusOnClick(!vb.focusOnClick()); });
 
+  // ---- Saved views ----
+  //
+  // A saved view keeps where the tree starts, which rows are open, Calls or Called by, and the tree or the diagram. A
+  // row is known by its path from the top, so after the workbook changes a row may not open where it did.
+
+  function idsInKey(key) {
+    var ids = [];
+    key.split("/").forEach(function (part, i) {
+      if (i === 0) { if (part.indexOf("g:") !== 0) ids.push(part); return; }
+      var call = /^\d+:(.+)$/.exec(part);
+      if (call) ids.push(call[1].replace(/:closed$/, ""));
+      else if (!/^b\d+(:closed)?$/.test(part) && !/^\d+:$/.test(part)) ids.push(part.replace(/:closed$/, ""));
+    });
+    return ids;
+  }
+
+  vb.viewPart("calls", {
+    save: function () {
+      var value = { direction: direction, show: showing, open: Array.from(open).sort() };
+      if (root) value.root = root;
+      return value;
+    },
+    apply: function (value) {
+      value = value && typeof value === "object" ? value : {};
+      direction = value.direction === "calledBy" ? "calledBy" : "calls";
+      showing = value.show === "sequence" ? "sequence" : "tree";
+      saveSetting("vbadoc-calls-direction", direction);
+      saveSetting("vbadoc-calls-show", showing);
+      root = typeof value.root === "string" && (isProcedure(value.root) || vb.modulesById.has(value.root)) ? value.root : null;
+      open = new Set(Array.isArray(value.open) ? value.open.filter(function (key) { return typeof key === "string"; }) : []);
+      openNote.hidden = true;
+      drawn = false;
+    },
+    ids: function (value) {
+      var ids = value && typeof value.root === "string" ? [value.root] : [];
+      (value && Array.isArray(value.open) ? value.open : []).forEach(function (key) {
+        if (typeof key === "string") ids = ids.concat(idsInKey(key));
+      });
+      return ids;
+    }
+  });
+
   // ---- Wiring to the rest of the page ----
 
   vb.onViewChange(function () { if (vb.activeView() === "calls" && !drawn) draw(); });
