@@ -8,13 +8,13 @@ rather than repeating it.
 - **Updating it:** at the end of each stage, and after any session that changes direction, update *Current state* and
   add an entry at the top of the log. Give the date, what changed and why, and commits, in a few lines.
 
-## Current state (2026-11-04)
+## Current state (2026-11-05)
 
-- **vbadoc 0.26.1:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.27.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.17.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.18.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -31,9 +31,11 @@ rather than repeating it.
   is pushed. D2 (favourites) is pushed. D3 is split into D3a (Expand / Collapse all and the views' filter), D3b
   (hiding) and D3c (the Show menus in the explorer), all pushed, as are D4 (widely used items and predeclared classes)
   and E1 (Uses / Used by with references). E2 (the Calls tab) is pushed. E3 (the logic around each call) and E4 (a
-  query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is pushed; its review's
-  follow-ups (E5a) are pushed, apart from a gentler drag, which is done, waiting for review. **Next: G1** (saved
-  views).
+  query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is pushed, as are its
+  review's follow-ups (E5a) and a gentler drag. G1 (saved views) is done on `feedback/g1-saved-views`, waiting for
+  review. **Next: G2** (the views file built into the page).
+- **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
+  reviews, rebases onto main and pushes.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -43,6 +45,20 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-05: Step G1, saved views
+
+- The Views menu, in the shell's top bar, saves the page's arrangement as a named, described view, opens it, renames,
+  describes and deletes it (with Undo), and exports and imports views as `<tool>-views.json`. Views are kept per
+  workbook in the browser. A view holds the tab, the filter, hidden items and Show… choices, and each view's own part:
+  in vbadoc, the graph's level and the positions at each level where something was moved, the class diagram's Members
+  switch and moved boxes, and the Calls tab's starting point, open rows and switches; in pqdoc, the graph's positions
+  once something was dragged. Items a view mentions that the workbook doesn't have are listed (menu, page notice,
+  console), never an error.
+- The class diagram now keeps moves made in a filtered diagram while the page is open (D3a laid it out afresh), so a
+  filtered view can keep them.
+- vbadoc 0.27.0, pqdoc 1.18.0. Browser tests: 7 in vbadoc, 3 in pqdoc.
+- Open: pqdoc's `Requirements.md` and `DECISIONS.md` aren't covered by the plan for G1, so they wait for the user.
 
 ### 2026-11-05: A gentler drag in the graph (E5a)
 
