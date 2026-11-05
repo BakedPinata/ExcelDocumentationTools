@@ -152,6 +152,8 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
 - **Never silent:** the button counts the choices in effect ("Show… (2)"), outlined in the accent colour, and so does a
   note at the end of every view's toolbar, whose count opens the menu (and the explorer, if it's closed) and whose Show
   everything puts the choices back.
+- **Show nothing and All / None** (since E5a): Show nothing clears every box, and each section of boxes has All and
+  None in its heading, so a few things can be picked quickly. Radios stay as they are.
 - **The menu fits the window:** it's opened by the shell so it can measure first, takes the room below it, and moves
   left if it would run off; its sections flow into two columns where there's room, and long labels wrap.
 - **Drop-downs are the shell's:** every `<details class="dropdown">` closes on a press outside it or on Esc, which

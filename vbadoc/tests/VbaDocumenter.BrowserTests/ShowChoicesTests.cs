@@ -85,4 +85,29 @@ public class ShowChoicesTests(PageFixture fixture)
     Assert.Equal("Show…", await page.InnerTextAsync("#explorer-show summary"));
     Assert.Empty(opened.Errors);
   }
+
+  [Fact]
+  public async Task A_sections_None_and_All_and_Show_nothing_make_picking_a_few_things_quick()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    await page.ClickAsync("#explorer-show summary");
+
+    await page.ClickAsync("#explorer-show section:has(h3 span:text-is('Modules')) [data-show-section-none]");
+    Assert.Equal(0, await page.Locator("#explorer-show [data-choice^='module:']:checked").CountAsync());
+    await page.CheckAsync("#explorer-show [data-choice='module:class']");
+    Assert.Equal(["CsvOrderRepository", "Order", "OrderService", "ProgressReporter", "SheetOrderRepository"], await GraphNodes(page));
+
+    await page.ClickAsync("#explorer-show section:has(h3 span:text-is('Modules')) [data-show-section-all]");
+    Assert.Equal(5, await page.Locator("#explorer-show [data-choice^='module:']:checked").CountAsync());
+
+    await page.ClickAsync("#explorer-show [data-show-nothing]");
+    Assert.Equal(0, await page.Locator("#explorer-show [data-choice]:checked").CountAsync());
+    Assert.Empty(await GraphNodes(page));
+    Assert.Equal("all members", (await page.Locator("#explorer-show [data-radio='references']:checked").EvaluateAsync<string>("r => r.parentElement.textContent")).Trim().ToLowerInvariant());
+
+    await page.ClickAsync("#explorer-show [data-show-reset]");
+    Assert.Equal(12, (await GraphNodes(page)).Length);
+    Assert.Empty(opened.Errors);
+  }
 }

@@ -1098,14 +1098,19 @@
         var value = stored.radios && stored.radios[name];
         if (radios[name].indexOf(value) > 0) radioValues[name] = value;
       });
-      showMenu.innerHTML = "<div class=\"show-sections\">" + choiceSections.map(function (s) {
-        return "<section><h3>" + escapeHtml(s.title) + "</h3>" + s.choices.map(function (c) {
+      // A section of check boxes can be ticked or cleared at once, to pick a few things quickly.
+      showMenu.innerHTML = "<div class=\"show-sections\">" + choiceSections.map(function (s, i) {
+        var quick = s.radio ? "" : " <span class=\"show-quick\"><button type=\"button\" class=\"link-button\" data-show-section-all=\"" + i +
+          "\" title=\"Tick everything in " + escapeHtml(s.title) + "\">All</button> · <button type=\"button\" class=\"link-button\" data-show-section-none=\"" + i +
+          "\" title=\"Clear everything in " + escapeHtml(s.title) + ", to tick just what you want\">None</button></span>";
+        return "<section><h3><span>" + escapeHtml(s.title) + "</span>" + quick + "</h3>" + s.choices.map(function (c) {
           return s.radio
             ? "<label><input type=\"radio\" name=\"show-" + escapeHtml(s.radio) + "\" data-radio=\"" + escapeHtml(s.radio) + "\" value=\"" + escapeHtml(c.value) + "\"> " + escapeHtml(c.label) + "</label>"
             : "<label><input type=\"checkbox\" data-choice=\"" + escapeHtml(c.id) + "\"> " + escapeHtml(c.label) + "</label>";
         }).join("") + "</section>";
       }).join("") + "</div>" +
-        "<div class=\"actions\"><button type=\"button\" class=\"button\" data-show-reset>Show everything</button></div>";
+        "<div class=\"actions\"><button type=\"button\" class=\"button\" data-show-reset>Show everything</button>" +
+        "<button type=\"button\" class=\"button\" data-show-nothing title=\"Clear every box, to tick just what you want\">Show nothing</button></div>";
       showBox.hidden = false;
       updateChoices();
     }
@@ -1144,6 +1149,23 @@
         return;
       }
       saveChoices();
+    });
+
+    // Ticks or clears every box in a section.
+    function setSection(index, on) {
+      choiceSections[index].choices.forEach(function (c) { if (on) choicesOff.delete(c.id); else choicesOff.add(c.id); });
+      saveChoices();
+    }
+
+    showMenu.addEventListener("click", function (event) {
+      var all = event.target.closest("[data-show-section-all]");
+      var none = event.target.closest("[data-show-section-none]");
+      if (all) setSection(Number(all.getAttribute("data-show-section-all")), true);
+      else if (none) setSection(Number(none.getAttribute("data-show-section-none")), false);
+      else if (event.target.closest("[data-show-nothing]")) {
+        choiceSections.forEach(function (s) { if (!s.radio) s.choices.forEach(function (c) { choicesOff.add(c.id); }); });
+        saveChoices();
+      }
     });
 
     function resetChoices() {

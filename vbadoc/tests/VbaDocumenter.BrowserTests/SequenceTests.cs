@@ -120,4 +120,24 @@ public class SequenceTests(PageFixture fixture)
     Assert.True(await page.IsVisibleAsync("#calls-tree"));
     Assert.Empty(opened.Errors);
   }
+
+  [Fact]
+  public async Task Shift_click_opens_everything_below_a_message_and_every_frame_fits_its_whole_guard()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = await OpenProcessOrdersAsSequence(opened);
+
+    await page.ClickAsync(Diagram + " g.seq-message[data-id='OrderService.Process'] .seq-toggle", new() { Modifiers = [KeyboardModifier.Shift] });
+
+    Assert.Contains("implemented by: IOrderRepository_Save", await Messages(page));
+    Assert.Equal("[ElseIf o.Status = \"DRAFT\" Then]",
+        await page.TextContentAsync(Diagram + " .seq-frame-label:has(title:text-matches('ElseIf')) .seq-guard"));
+    Assert.True(await page.EvaluateAsync<bool>(@"() => [...document.querySelectorAll('#calls-sequence .seq-frame-label')].every(label => {
+      const guard = label.querySelector('.seq-guard');
+      if (!guard) return true;
+      const frame = document.querySelector(`#calls-sequence .seq-frame[data-key='${CSS.escape(label.dataset.seqFrame)}'] rect`);
+      return guard.getBoundingClientRect().right <= frame.getBoundingClientRect().right;
+    })"));
+    Assert.Empty(opened.Errors);
+  }
 }

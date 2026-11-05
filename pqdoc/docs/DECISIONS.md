@@ -183,6 +183,11 @@ Reading them is step B2 of the feedback plan.
   Anything else counts as a query; a parameter does too, since it isn't a function.
 - **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
 
+## Show nothing (1.17.0, step E5a of the feedback plan)
+
+- **The shell's Show… menu gained Show nothing and All / None on each section** (FR-HTML-17), for picking a few kinds
+  quickly. pqdoc's page changed only through the shell.
+
 ## A query's steps (1.16.0, step E4 of the feedback plan)
 
 - **The structural pass keeps the outermost `let`'s steps** (FR-HTML-20): `ReferenceExtractor.Read` returns each step's

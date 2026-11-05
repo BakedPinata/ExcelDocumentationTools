@@ -131,6 +131,49 @@
   var root = null;            // the procedure (or module) the tree starts from, or null for the entry points
   var open = new Set();       // keys of the open rows, kept while the tree is drawn again
   var drawn = false;
+  var pathsByKey = new Map(); // a drawn row's key -> { id, path }: what it is and the procedures above it
+
+  // ---- Open all below ----
+  //
+  // Opens a procedure's calls and everything below them, as far as recursion allows, so a whole entry point can be
+  // read or drawn at once. A large project could hold a great many, so it stops after OPEN_ALL_LIMIT and says so.
+
+  var OPEN_ALL_LIMIT = 2000;
+  var openNote = document.getElementById("calls-open-note");
+
+  function openAll(id, key, path, budget) {
+    if (budget.left <= 0) { budget.stopped = true; return; }
+    open.add(key);
+    budget.left--;
+    var below = path.concat([id]);
+    (function each(rows, parentKey) {
+      rows.forEach(function (row, i) {
+        var rowKey = parentKey + (row.block ? "/b" + row.block.id : "/" + i + ":" + (row.id || ""));
+        if (row.block) { open.delete(rowKey + ":closed"); each(row.rows, rowKey); return; }
+        if (!row.id || below.indexOf(row.id) >= 0 || !hasChildren(row.id)) return;
+        openAll(row.id, rowKey, below, budget);
+      });
+    })(childrenOf(id).rows, key);
+  }
+
+  function openAllBelow(starts) {
+    var budget = { left: OPEN_ALL_LIMIT, stopped: false };
+    starts.forEach(function (s) { openAll(s.id, s.key, s.path, budget); });
+    openNote.hidden = !budget.stopped;
+    openNote.textContent = budget.stopped ? "Opened the first " + OPEN_ALL_LIMIT.toLocaleString() + " calls; open the rest one at a time." : "";
+    draw();
+  }
+
+  // A group's procedures, each opened all the way down.
+  function openGroup(key) {
+    var group = roots().filter(function (item) { return item.key === key; })[0];
+    if (!group) return;
+    open.delete(key + ":closed");
+    openAllBelow(group.children.filter(hasChildren).map(function (id) { return { id: id, key: key + "/" + id, path: [] }; }));
+  }
+
+  var OPEN_ALL_BUTTON = "<button type=\"button\" class=\"calls-open-all\" tabindex=\"-1\" title=\"Open everything below (or press *)\" aria-label=\"Open everything below\">" +
+    "<svg class=\"icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M4.5 3.5 8 7l3.5-3.5M4.5 9 8 12.5 11.5 9\"/></svg>" + "</button>";
 
   // What the tree starts from: the root's procedures, or the entry points and favourites in groups.
   function roots() {
@@ -179,6 +222,7 @@
     var expandable = !recursive && hasChildren(row.id);
     var isOpen = expandable && open.has(key);
     var member = vb.membersById.get(row.id);
+    pathsByKey.set(key, { id: row.id, path: path });
     var html = li + " data-id=\"" + escapeHtml(row.id) + "\" aria-selected=\"" + (row.id === vb.selection()) + "\"" +
       (expandable ? " aria-expanded=\"" + isOpen + "\"" : "") + (isOpen ? "" : " class=\"collapsed\"") + ">" +
       "<div class=\"tree-row\" style=\"--depth:" + depth + "\"><span class=\"tree-twisty\" aria-hidden=\"true\"></span>" +
@@ -189,7 +233,8 @@
       (recursive ? " <span class=\"calls-recursion\" title=\"Already open above, on this branch: recursion\">↻</span>" : "") +
       lineButton(row) +
       (row.within ? " <span class=\"calls-within muted\" title=\"" + escapeHtml("The call is inside " + row.within) + "\">in " +
-        escapeHtml(cut(row.within, 40)) + "</span>" : "") + "</div>";
+        escapeHtml(cut(row.within, 40)) + "</span>" : "") +
+      (expandable ? OPEN_ALL_BUTTON.replace("<button ", "<button data-open-all=\"" + escapeHtml(key) + "\" ") : "") + "</div>";
     if (isOpen) html += childrenHtml(row.id, depth + 1, key, path.concat([row.id]));
     return html + "</li>";
   }
@@ -212,6 +257,7 @@
 
   function draw() {
     drawn = true;
+    pathsByKey = new Map();
     var list = roots();
     var sequence = showing === "sequence" && direction === "calls"; // Called by has no diagram
     view.querySelectorAll("[data-calls-show]").forEach(function (b) {
@@ -240,7 +286,8 @@
       var isOpen = !open.has(item.key + ":closed");
       return "<li role=\"treeitem\" tabindex=\"-1\" aria-level=\"1\" class=\"group" + (isOpen ? "" : " collapsed") + "\" data-key=\"" +
         escapeHtml(item.key) + "\" aria-expanded=\"" + isOpen + "\"><div class=\"tree-row\" style=\"--depth:0\"><span class=\"tree-twisty\" aria-hidden=\"true\"></span>" +
-        "<span class=\"tree-label\">" + escapeHtml(item.group) + "</span><span class=\"tree-detail\">" + item.children.length + "</span></div>" +
+        "<span class=\"tree-label\">" + escapeHtml(item.group) + "</span><span class=\"tree-detail\">" + item.children.length + "</span>" +
+        OPEN_ALL_BUTTON.replace("<button ", "<button data-open-all-group=\"" + escapeHtml(item.key) + "\" ") + "</div>" +
         "<ul role=\"group\">" + item.children.map(function (id) { return rowHtml({ id: id }, 1, item.key + "/" + id, []); }).join("") + "</ul></li>";
     }).join("");
     var first = tree.querySelector("li[role=\"treeitem\"]");
@@ -292,7 +339,7 @@
   var showing = loadSetting("vbadoc-calls-show", "tree") === "sequence" ? "sequence" : "tree";
   var sequenceBox = document.getElementById("calls-sequence");
 
-  var LANE = 170, HEAD = 30, ROW = 30, FRAME_HEAD = 26, MARGIN = 16, TITLE = 26, CHAR = 6.4;
+  var MIN_LANE = 170, MAX_LANE = 380, LANE = MIN_LANE, CODE_CHAR = 6.8, HEAD = 30, ROW = 30, FRAME_HEAD = 26, MARGIN = 16, TITLE = 26, CHAR = 6.4;
   var FRAME_WORDS = { "if": "if", elseIf: "else if", "else": "else", select: "select", "case": "case", "for": "loop", "do": "loop", "while": "loop", "with": "with", onError: "on error" };
 
   function moduleOf(id) { var m = vb.membersById.get(id); return m ? m.module : id; }
@@ -339,6 +386,7 @@
           return;
         }
         var recursive = path.indexOf(row.id) >= 0;
+        seqPaths.set(rowKey, { id: row.id, path: path });
         var expandable = !recursive && hasChildren(row.id);
         var isOpen = expandable && open.has(rowKey);
         var to = lane(moduleOf(row.id));
@@ -356,7 +404,22 @@
     items.push({ type: "activationStart", lane: 0 });
     rowsOf(childrenOf(start.id).rows, start.id, start.key, [start.id]);
     items.push({ type: "activationEnd" });
-    return { start: start, lanes: lanes, items: items };
+    return { start: start, lanes: lanes, items: items, lane: laneWidth(lanes, items) };
+  }
+
+  var seqPaths = new Map(); // a message's key -> { id, path }, for Shift+click to open all below it
+
+  // Lanes as wide as the widest label a message between neighbours, or a lifeline's name, needs, within bounds.
+  function laneWidth(lanes, items) {
+    var width = MIN_LANE;
+    lanes.forEach(function (l) { width = Math.max(width, l.name.length * CHAR + 32); });
+    items.forEach(function (item) {
+      if (item.type !== "message") return;
+      var text = ((item.relation ? item.relation + ": " : "") + item.label + (item.recursive ? " ↻" : "")).length + (item.expandable ? 2 : 0);
+      var span = Math.abs(item.to - item.from);
+      width = Math.max(width, span === 0 ? text * CHAR + 56 : (text * CHAR + 28) / span);
+    });
+    return Math.min(MAX_LANE, Math.ceil(width));
   }
 
   // Where everything goes, from the top of this diagram down.
@@ -403,6 +466,7 @@
   function fit(text, width) { var most = Math.max(4, Math.floor(width / CHAR)); return text.length > most ? text.slice(0, most - 1) + "…" : text; }
 
   function drawSequence(list) {
+    seqPaths = new Map();
     var starts = sequenceStarts(list);
     var box = d3.select(sequenceBox);
     box.selectAll("*").remove();
@@ -418,14 +482,14 @@
       empty.append("div").attr("class", "calls-seq-starts").selectAll("button")
         .data(startable.filter(function (s) { return hasChildren(s.id); }).slice(0, 40)).join("button")
         .attr("type", "button").attr("class", "button").attr("data-seq-start", function (s) { return s.key; })
+        .attr("data-seq-id", function (s) { return s.id; }).attr("title", "Draw its calls; Shift+click to open everything below it")
         .text(function (s) { return nameOf(s.id); });
       return;
     }
     var models = starts.map(sequenceModel);
     var layouts = models.map(sequenceLayout);
-    var width = MARGIN * 2 + d3.max(models, function (m) { return m.lanes.length; }) * LANE + 60;
     var height = d3.sum(layouts, function (l) { return l.height; });
-    var svg = box.append("svg").attr("class", "calls-seq").attr("width", width).attr("height", height)
+    var svg = box.append("svg").attr("class", "calls-seq").attr("height", height)
       .attr("role", "img").attr("aria-label", "Sequence diagram of the open calls");
     var defs = svg.append("defs");
     [["seq-arrow", "M0,-4L9,0L0,4Z"], ["seq-arrow-open", "M0,-4L9,0L0,4"]].forEach(function (m) {
@@ -434,14 +498,18 @@
         .append("path").attr("d", m[1]);
     });
     var top = 0;
+    var width = 0;
     models.forEach(function (model, n) {
-      drawOneSequence(svg.append("g").attr("class", "seq-diagram").attr("data-start", model.start.id)
-        .attr("transform", "translate(0," + top + ")"), model, layouts[n]);
+      width = Math.max(width, drawOneSequence(svg.append("g").attr("class", "seq-diagram").attr("data-start", model.start.id)
+        .attr("transform", "translate(0," + top + ")"), model, layouts[n]));
       top += layouts[n].height;
     });
+    svg.attr("width", width + MARGIN);
   }
 
+  // Draws one diagram and returns how wide it is.
   function drawOneSequence(g, model, layout) {
+    LANE = model.lane;
     var bottom = layout.height - 10;
     g.append("text").attr("class", "seq-title").attr("x", MARGIN).attr("y", 16).text("Calls from " + nameOf(model.start.id));
 
@@ -487,36 +555,63 @@
         label.attr("x", (x1 + x2) / 2).attr("y", m.y - 6).attr("text-anchor", "middle");
       }
       var room = item.from === item.to ? LANE - 40 : Math.abs(x2 - x1) - 10;
-      if (item.expandable) label.append("tspan").attr("class", "seq-toggle").attr("data-seq-toggle", item.key).text(item.open ? "▾ " : "▸ ");
+      if (item.expandable) {
+        label.append("tspan").attr("class", "seq-toggle").attr("data-seq-toggle", item.key).text(item.open ? "▾ " : "▸ ")
+          .append("title").text((item.open ? "Close" : "Open") + " its calls; Shift+click to open everything below it");
+      }
       label.append("tspan").attr("class", "seq-name").attr("data-seq-select", item.id || null)
         .text(fit((item.relation ? item.relation + ": " : "") + item.label, room) + (item.recursive ? " ↻" : ""));
       message.append("title").text((item.late ? "Late-bound: " + item.label : nameOf(item.id) + (item.recursive ? " (recursion: already open above)" : "")) +
         (item.line ? ", line " + item.line + " of " + nameOf(item.lineIn) : ""));
     });
 
+    // Each frame is wide enough for its label and its whole guard, and holds the frames inside it.
     layout.frames.forEach(function (f) {
-      var left = laneX(f.min) - f.pad, right = laneX(f.max) + f.pad + 30;
+      f.word = FRAME_WORDS[f.item.block.kind] || f.item.block.kind;
+      f.tab = (f.word.length + 2) * CHAR + 16; // with its ▾ or ▸
+      f.guard = f.item.block.kind === "else" ? "" : "[" + cut(f.item.block.text, 80) + "]";
+      f.left = laneX(f.min) - f.pad;
+      f.right = Math.max(laneX(f.max) + f.pad + 30, f.left + f.tab + 8 + f.guard.length * CODE_CHAR + 12);
+    });
+    for (var i = layout.frames.length - 1; i >= 0; i--) {
+      for (var j = i - 1; j >= 0; j--) {
+        var outer = layout.frames[j], inner = layout.frames[i];
+        if (outer.depth === inner.depth - 1 && outer.y < inner.y && outer.end >= inner.end) { outer.right = Math.max(outer.right, inner.right + 12); break; }
+      }
+    }
+    var widest = MARGIN + model.lanes.length * LANE + 60;
+
+    layout.frames.forEach(function (f) {
+      var left = f.left, right = f.right;
+      widest = Math.max(widest, right);
       var frame = frameLayer.append("g").attr("class", "seq-frame kind-" + f.item.block.kind + (f.item.open ? "" : " closed"))
         .attr("data-key", f.item.key);
       frame.append("rect").attr("x", left).attr("y", f.y).attr("width", right - left).attr("height", f.end - f.y).attr("rx", 3);
-      var word = FRAME_WORDS[f.item.block.kind] || f.item.block.kind;
+      var word = f.word;
       var label = g.append("g").attr("class", "seq-frame-label").attr("data-seq-frame", f.item.key);
-      var tabWidth = (word.length + 2) * CHAR + 16; // with its ▾ or ▸
+      var tabWidth = f.tab;
       label.append("path").attr("d", "M" + left + "," + f.y + "h" + tabWidth + "v12l-6,6h-" + (tabWidth - 6) + "z");
       label.append("text").attr("x", left + 5).attr("y", f.y + 13).text((f.item.open ? "▾ " : "▸ ") + word);
       label.append("title").text((f.item.open ? "Close: " : "Open: ") + f.item.block.text + " (line " + f.item.line + ")");
-      if (f.item.block.kind !== "else") {
-        label.append("text").attr("class", "seq-guard").attr("x", left + tabWidth + 8).attr("y", f.y + 13)
-          .text(fit("[" + f.item.block.text + "]", right - left - tabWidth - 14));
-      }
+      if (f.guard) label.append("text").attr("class", "seq-guard").attr("x", left + tabWidth + 8).attr("y", f.y + 13).text(f.guard);
     });
+    return widest;
   }
 
   sequenceBox.addEventListener("click", function (event) {
     var target = event.target;
     var start = target.closest("[data-seq-start]");
-    if (start) { open.add(start.getAttribute("data-seq-start")); draw(); return; }
+    if (start) {
+      if (event.shiftKey) openAllBelow([{ id: start.getAttribute("data-seq-id"), key: start.getAttribute("data-seq-start"), path: [] }]);
+      else { open.add(start.getAttribute("data-seq-start")); draw(); }
+      return;
+    }
     var toggle = target.closest("[data-seq-toggle]");
+    if (toggle && event.shiftKey && seqPaths.has(toggle.getAttribute("data-seq-toggle"))) {
+      var at = seqPaths.get(toggle.getAttribute("data-seq-toggle"));
+      openAllBelow([{ id: at.id, key: toggle.getAttribute("data-seq-toggle"), path: at.path }]);
+      return;
+    }
     if (toggle) {
       var key = toggle.getAttribute("data-seq-toggle");
       if (open.has(key)) open.delete(key); else open.add(key);
@@ -550,6 +645,14 @@
   // ---- Clicks and keys ----
 
   tree.addEventListener("click", function (event) {
+    var all = event.target.closest("[data-open-all]");
+    if (all) {
+      var at = pathsByKey.get(all.getAttribute("data-open-all"));
+      if (at) openAllBelow([{ id: at.id, key: all.getAttribute("data-open-all"), path: at.path }]);
+      return;
+    }
+    var group = event.target.closest("[data-open-all-group]");
+    if (group) { openGroup(group.getAttribute("data-open-all-group")); return; }
     var name = event.target.closest("[data-call-select]");
     if (name) {
       event.preventDefault();
@@ -592,6 +695,9 @@
     } else if (event.key === "ArrowLeft") {
       if (li.getAttribute("aria-expanded") === "true") setOpen(li, false);
       else { var parent = li.parentElement.closest("li"); if (parent) focusRow(parent); }
+    } else if (event.key === "*") {
+      var button = li.querySelector(":scope > .tree-row .calls-open-all");
+      if (button) button.click();
     } else if (event.key === "Enter" && li.dataset.id) {
       var focus = event.ctrlKey || event.metaKey;
       vb.select(li.dataset.id, focus ? !vb.focusOnClick() : vb.focusOnClick());
@@ -617,6 +723,7 @@
 
   document.getElementById("calls-collapse").addEventListener("click", function () {
     open = new Set();
+    openNote.hidden = true;
     draw();
   });
 

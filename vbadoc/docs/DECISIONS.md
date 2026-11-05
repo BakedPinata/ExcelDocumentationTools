@@ -455,6 +455,23 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Follow-ups after E5's review (0.26.0, step E5a of the feedback plan)
+
+- **Sequence diagrams of a whole entry point are in scope now:** the old reasons (too large to read, Mermaid drawing
+  large ones wrongly) were Mermaid's, and the page draws its own. **Open all below** (a row's button, `*`, or Shift+click
+  on a ▸ or a starting point) opens everything under a procedure or a group, as far as recursion allows, stopping after
+  2,000 calls with a note rather than freezing a very large project.
+- **Nothing in the diagram is cut short:** lanes are as wide as the widest message between neighbours or lifeline
+  name needs (170 to 380 px), and each frame as wide as its label and whole guard (cut only past 80 characters), with
+  frames around it widening to hold it.
+- **Dragging in the graph no longer pulls everything in:** live dragging reheated the whole layout, so every node moved
+  towards the forces' resting places, which were more compact than the layout shown. Now the dragged nodes' direct
+  neighbours alone make room; everything else is held still while dragging, and when it's dropped the layout stops
+  outright, with no speed left over. The setting is now "Neighbours make room while dragging".
+- **Every graph setting explains itself** in a tooltip on its label (and control).
+- **The Show… menu has Show nothing, and All / None on each section of boxes,** for picking a few things quickly; radios
+  stay as they are. It's the shell's, so pqdoc's menu has them too.
+
 ### The sequence diagram (0.25.0, step E5 of the feedback plan)
 
 - **Drawn from what's open in the Calls tree,** which is what the rejected attempt lacked: that drew a whole entry point
@@ -470,7 +487,8 @@ Favourites below. Back and Forward stay as they are.
 - **Plain SVG with d3, sized to fit and scrolled** rather than zoomed: it's read top to bottom like the code. Text is set
   as text, and colours come from the page's variables, so it follows the theme.
 - **Called by has no diagram:** a sequence diagram follows calls forwards. The switch is disabled there.
-- **Requirements' Out of scope** keeps the rejected whole-entry-point diagram, and says why this one is different.
+- **Requirements' Out of scope** kept the rejected whole-entry-point diagram at first; after E5's review it went (see
+  below), as its reasons were Mermaid's.
 - With every branch of the production workbook open four deep, its 77 diagrams draw in about 230 ms; a toggle redraws
   in about 130 ms.
 

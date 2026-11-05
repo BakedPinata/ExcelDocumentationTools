@@ -160,7 +160,8 @@ The **Calls** tab follows the execution path: start from a macro, event handler 
 favourite, or Ctrl+click any procedure) and open its calls one level at a time, in the order of the code. Each call
 links to its line. Calls through an interface open to the implementations, RaiseEvent to its handlers, and **Called by**
 turns the tree round to show what leads to a procedure. The Ifs, loops, Select Cases, Withs and error handlers around the calls show as rows holding them, and **Sequence**
-draws what's open as a sequence diagram, with modules as lifelines and the blocks as frames. The tree can't see
+draws what's open as a sequence diagram, with modules as lifelines and the blocks as frames. The button that shows on a
+row (or `*`) opens everything below it, to read or draw a whole entry point at once. The tree can't see
 `Application.Run` or `OnAction`.
 
 **Dependencies**, in the source panel, lists what the selection uses and what uses it, each item once. Open an item

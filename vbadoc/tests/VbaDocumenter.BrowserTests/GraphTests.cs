@@ -784,4 +784,36 @@ public class GraphTests(PageFixture fixture)
     Assert.True(await Count(page, "#graph-svg g.node.related") >= 4);
     Assert.Empty(opened.Errors);
   }
+
+  [Fact]
+  public async Task Dragging_moves_only_the_dragged_node_and_its_neighbours_and_nothing_moves_once_dropped()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutExplorer);
+    var page = opened.Page;
+    await WaitUntilStill(page);
+    var far = await Position(page, "ThisWorkbook"); // not linked to Utils
+    var before = await Position(page, "Utils");
+
+    await Drag(page, "#graph-svg g.node[data-id='Utils']", 90, 60);
+    await page.WaitForTimeoutAsync(600);
+
+    var after = await Position(page, "Utils");
+    Assert.True(Math.Sqrt(Math.Pow(after[0] - before[0], 2) + Math.Pow(after[1] - before[1], 2)) > 20, "Utils moved where it was dragged");
+    var stayed = await Position(page, "ThisWorkbook");
+    Assert.True(Math.Abs(stayed[0] - far[0]) < 0.5 && Math.Abs(stayed[1] - far[1]) < 0.5, "a node not linked to it stayed put");
+    Assert.False(await page.EvaluateAsync<bool>("() => window.vbadocGraph.moving()"));
+    Assert.Empty(opened.Errors);
+  }
+
+  [Fact]
+  public async Task Every_setting_explains_itself_on_hover()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    await OpenSettings(page);
+
+    var labels = await page.Locator("#graph-settings-menu label").EvaluateAllAsync<string[]>("ls => ls.map(l => l.title)");
+    Assert.Equal(16, labels.Length);
+    Assert.All(labels, title => Assert.True(title.Length > 20, title));
+  }
 }

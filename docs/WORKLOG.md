@@ -10,11 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.25.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.26.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.16.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.17.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -31,8 +31,8 @@ rather than repeating it.
   is pushed. D2 (favourites) is pushed. D3 is split into D3a (Expand / Collapse all and the views' filter), D3b
   (hiding) and D3c (the Show menus in the explorer), all pushed, as are D4 (widely used items and predeclared classes)
   and E1 (Uses / Used by with references). E2 (the Calls tab) is pushed. E3 (the logic around each call) and E4 (a
-  query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is done, waiting for review.
-  **Next: G1** (saved views).
+  query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is pushed; its review's
+  follow-ups (E5a) are done, waiting for review. **Next: G1** (saved views).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -42,6 +42,18 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-05: Step E5a, follow-ups after E5's review
+
+- The sequence diagram's lanes and frames widen to fit their labels and guards. Open all below (a row's button, `*`,
+  Shift+click in the diagram) opens everything under a procedure or group, so whole entry points can be drawn; that's
+  in scope now, the old reasons having been Mermaid's.
+- The Show… menu has Show nothing and All / None per section (both tools).
+- Dragging in the graph moves only the dragged nodes' neighbours, holds the rest, and stops when dropped, so the graph
+  no longer pulls in; every graph setting explains itself on hover.
+- vbadoc's requirements (Out of scope, the Calls view, the explorer, the graph), both decisions, pqdoc's FR-HTML-17, the
+  shared README and vbadoc's README follow. vbadoc 0.26.0, pqdoc 1.17.0.
+- Tests: 6 browser tests (dragging, explainers, open all below twice, Shift+click and guards, Show nothing). Screenshots.
 
 ### 2026-11-05: Step E5, the sequence diagram
 

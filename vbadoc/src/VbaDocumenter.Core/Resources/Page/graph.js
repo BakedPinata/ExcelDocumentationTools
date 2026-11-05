@@ -79,7 +79,7 @@
     curvedEdges: true,
     bundleEdges: false,
     showHulls: true,
-    live: true,            // rearrange the rest of the graph while dragging
+    live: true,            // let the dragged node's neighbours make room while dragging
     pinDragged: false,     // dragged nodes stay where they're dropped
     linkStrength: 1,
     memberSpacing: 12,     // px between neighbouring member names
@@ -92,27 +92,43 @@
   var CONTROLS = [
     { section: "Highlight" },
     { key: "reach", type: "select", label: "Around the selection", relight: true,
+      help: "What a selection lights up, and what Focus shows: only what it uses and what uses it directly, or everything along each chain.",
       options: [["direct", "Direct neighbours"], ["transitive", "The whole chain each way"]] },
     { section: "Names" },
     { key: "labels", type: "select", label: "Member names",
+      help: "When member names are drawn at member level: always, only once you've zoomed in far enough to read them, or only for the selection and its neighbours.",
       options: [["always", "Always"], ["zoom", "When zoomed in"], ["selection", "Selection and neighbours only"]] },
-    { key: "labelSize", type: "range", label: "Text size", min: 8, max: 18, step: 0.5, unit: "px", layout: true },
+    { key: "labelSize", type: "range", label: "Text size", min: 8, max: 18, step: 0.5, unit: "px", layout: true,
+      help: "The size of member names; module names are a little bigger. Bigger names need more room, so the layout makes it." },
     { section: "Look" },
-    { key: "nodeSize", type: "range", label: "Node size", min: 0.5, max: 2.5, step: 0.1, unit: "×", layout: true },
-    { key: "edgeOpacity", type: "range", label: "Edge opacity", min: 0.1, max: 1, step: 0.05 },
-    { key: "curvedEdges", type: "checkbox", label: "Curved edges" },
-    { key: "bundleEdges", type: "checkbox", label: "Bundle edges between modules", note: "member level" },
-    { key: "showHulls", type: "checkbox", label: "Module outlines", note: "member level" },
+    { key: "nodeSize", type: "range", label: "Node size", min: 0.5, max: 2.5, step: 0.1, unit: "×", layout: true,
+      help: "How big nodes are drawn. A module's node also grows with how many members it has." },
+    { key: "edgeOpacity", type: "range", label: "Edge opacity", min: 0.1, max: 1, step: 0.05,
+      help: "How solid edges are. Lower it to see the nodes through a dense web of edges." },
+    { key: "curvedEdges", type: "checkbox", label: "Curved edges",
+      help: "Draw edges as gentle curves, so two edges between the same nodes don't lie on top of each other. Off draws straight lines." },
+    { key: "bundleEdges", type: "checkbox", label: "Bundle edges between modules", note: "member level",
+      help: "Gather edges running between the same two modules into one bundle. Tidier on a busy graph, but harder to see which member each edge leaves from." },
+    { key: "showHulls", type: "checkbox", label: "Module outlines", note: "member level",
+      help: "Draw an outline around each module's members, named after the module. Drag an outline to move the whole module." },
     { section: "Dragging" },
-    { key: "live", type: "checkbox", label: "Rearrange while dragging" },
-    { key: "pinDragged", type: "checkbox", label: "Keep dragged nodes where dropped", note: "double-click a node to release it" },
+    { key: "live", type: "checkbox", label: "Neighbours make room while dragging",
+      help: "While you drag, the dragged node's direct neighbours move to make room for it. Everything else stays where it is, and nothing moves once you let go. Off, only what you drag moves." },
+    { key: "pinDragged", type: "checkbox", label: "Keep dragged nodes where dropped", note: "double-click a node to release it",
+      help: "A node you drag stays pinned where you drop it, so later changes to the layout don't move it. Double-click it, or Release pinned below, to let it move again." },
     { section: "Layout" },
-    { key: "linkStrength", type: "range", label: "Edge pull", min: 0, max: 3, step: 0.1, unit: "×", layout: true },
-    { key: "memberSpacing", type: "range", label: "Space between members", min: 0, max: 40, step: 1, unit: "px", layout: true, note: "member level" },
-    { key: "moduleSpacing", type: "range", label: "Space between modules", min: 0, max: 200, step: 5, unit: "px", layout: true, note: "member level" },
-    { key: "cohesion", type: "range", label: "Module compactness", min: 0.1, max: 3, step: 0.1, unit: "×", layout: true, note: "member level" },
-    { key: "linkDistance", type: "range", label: "Edge length", min: 40, max: 400, step: 10, unit: "px", layout: true, note: "module level" },
-    { key: "repulsion", type: "range", label: "Repulsion", min: 0.1, max: 3, step: 0.1, unit: "×", layout: true, note: "module level" }
+    { key: "linkStrength", type: "range", label: "Edge pull", min: 0, max: 3, step: 0.1, unit: "×", layout: true,
+      help: "How strongly edges pull the nodes they join towards each other. Higher keeps neighbours close; lower lets the other forces spread them out." },
+    { key: "memberSpacing", type: "range", label: "Space between members", min: 0, max: 40, step: 1, unit: "px", layout: true, note: "member level",
+      help: "The room kept between neighbouring members' names, so they don't overlap." },
+    { key: "moduleSpacing", type: "range", label: "Space between modules", min: 0, max: 200, step: 5, unit: "px", layout: true, note: "member level",
+      help: "The room kept between module outlines." },
+    { key: "cohesion", type: "range", label: "Module compactness", min: 0.1, max: 3, step: 0.1, unit: "×", layout: true, note: "member level",
+      help: "How tightly each module's members are drawn together. Higher keeps a module in a tight group; lower lets its members drift towards what they use." },
+    { key: "linkDistance", type: "range", label: "Edge length", min: 40, max: 400, step: 10, unit: "px", layout: true, note: "module level",
+      help: "The length edges try to keep between the modules they join." },
+    { key: "repulsion", type: "range", label: "Repulsion", min: 0.1, max: 3, step: 0.1, unit: "×", layout: true, note: "module level",
+      help: "How strongly modules push each other apart. Higher spreads the graph out; lower lets it pull in." }
   ];
 
   var settings = loadSettings();
@@ -822,6 +838,24 @@
   var CLICK_DISTANCE = 4; // screen pixels, as d3's clickDistance
   var dragging = false;
 
+  // Nodes held still while something is dragged: everything but the dragged nodes and their direct neighbours.
+  var held = [];
+
+  function holdAllBut(nodes) {
+    var moving = new Set(nodes.map(function (n) { return n.id; }));
+    nodes.forEach(function (n) {
+      (graph.outgoing.get(n.id) || []).forEach(function (e) { moving.add(e.to); });
+      (graph.incoming.get(n.id) || []).forEach(function (e) { moving.add(e.from); });
+    });
+    held = graph.nodes.filter(function (n) { return !moving.has(n.id) && n.fx == null; });
+    held.forEach(function (n) { n.fx = n.x; n.fy = n.y; });
+  }
+
+  function letGo() {
+    held.forEach(function (n) { n.fx = null; n.fy = null; });
+    held = [];
+  }
+
   function dragBehaviour(nodesOf) {
     var pendingX = 0, pendingY = 0; // movement before the drag really starts, in graph units
     return d3.drag()
@@ -841,7 +875,8 @@
           hideTooltip();
           svg.classed("dragging", true);
           nodes.forEach(function (n) { n.fx = n.x + pendingX; n.fy = n.y + pendingY; });
-          if (settings.live) simulation.alphaTarget(0.3).restart();
+          // Only the neighbours make room: the rest of the graph is held, so it can't drift or pull in.
+          if (settings.live) { holdAllBut(nodes); simulation.alphaTarget(0.15).restart(); }
         } else {
           nodes.forEach(function (n) { n.fx += event.dx; n.fy += event.dy; });
         }
@@ -854,7 +889,14 @@
         if (!dragging) return; // a click: nothing was pinned or woken
         dragging = false;
         svg.classed("dragging", false);
-        if (settings.live) simulation.alphaTarget(0);
+        // Once dropped, nothing moves on: the layout stops where it is.
+        if (settings.live) {
+          // Stopped outright, with no speed left over: a last tick would still carry the neighbours on a little.
+          simulation.alphaTarget(0).alpha(0).stop();
+          graph.nodes.forEach(function (n) { n.vx = 0; n.vy = 0; });
+          letGo();
+          updatePositions();
+        }
         var nodes = nodesOf(d);
         if (settings.pinDragged) {
           nodes.forEach(function (n) { n.pinned = true; });
@@ -1281,17 +1323,18 @@
       if (c.section) { html += "<h3>" + c.section + "</h3>"; return; }
       var note = c.note ? "<small>" + c.note + "</small>" : "";
       var id = "graph-setting-" + c.key;
+      var help = c.help ? " title=\"" + c.help.replace(/"/g, "&quot;") + "\"" : "";
       if (c.type === "checkbox") {
-        html += "<label class=\"check\"><input type=\"checkbox\" id=\"" + id + "\" data-setting=\"" + c.key + "\"" +
+        html += "<label class=\"check\"" + help + "><input type=\"checkbox\" id=\"" + id + "\" data-setting=\"" + c.key + "\"" +
           (settings[c.key] ? " checked" : "") + "><span>" + c.label + note + "</span></label>";
       } else if (c.type === "select") {
-        html += "<label class=\"field\" for=\"" + id + "\"><span>" + c.label + note + "</span></label><select id=\"" + id +
-          "\" data-setting=\"" + c.key + "\">" + c.options.map(function (o) {
+        html += "<label class=\"field\" for=\"" + id + "\"" + help + "><span>" + c.label + note + "</span></label><select id=\"" + id + "\"" + help +
+          " data-setting=\"" + c.key + "\">" + c.options.map(function (o) {
             return "<option value=\"" + o[0] + "\"" + (settings[c.key] === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
           }).join("") + "</select>";
       } else {
-        html += "<label class=\"field\" for=\"" + id + "\"><span>" + c.label + note + "</span><output>" +
-          formatValue(c, settings[c.key]) + "</output></label><input type=\"range\" id=\"" + id + "\" data-setting=\"" + c.key +
+        html += "<label class=\"field\" for=\"" + id + "\"" + help + "><span>" + c.label + note + "</span><output>" +
+          formatValue(c, settings[c.key]) + "</output></label><input type=\"range\" id=\"" + id + "\"" + help + " data-setting=\"" + c.key +
           "\" min=\"" + c.min + "\" max=\"" + c.max + "\" step=\"" + c.step + "\" value=\"" + settings[c.key] + "\">";
       }
     });

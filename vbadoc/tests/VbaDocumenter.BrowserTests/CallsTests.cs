@@ -247,4 +247,42 @@ public class CallsTests(PageFixture fixture)
     Assert.Equal("OrderService.Init", await page.EvaluateAsync<string?>("() => window.vbadoc.selection()"));
     Assert.Empty(opened.Errors);
   }
+
+  [Fact]
+  public async Task Open_all_below_opens_every_call_under_a_procedure_as_far_as_recursion_allows()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = await OpenCalls(opened);
+
+    await page.HoverAsync(ProcessOrders + " > .tree-row");
+    await page.ClickAsync(ProcessOrders + " > .tree-row .calls-open-all");
+
+    Assert.Equal(0, await page.Locator(ProcessOrders + " li[aria-expanded='false']").CountAsync());
+    var save = Under(Under(ProcessOrders, "OrderService.Process"), "IOrderRepository.Save");
+    Assert.Equal(2, await page.Locator(save + " > ul > li .calls-relation").CountAsync()); // its implementations, open too
+    var recursion = Under(Under(ProcessOrders, "Main.Factorial"), "Main.Factorial");
+    Assert.Equal(1, await page.Locator(recursion + " .calls-recursion").CountAsync());
+    Assert.Null(await page.GetAttributeAsync(recursion, "aria-expanded"));
+    Assert.Empty(opened.Errors);
+  }
+
+  [Fact]
+  public async Task Open_all_below_a_group_opens_each_of_its_procedures_and_the_star_key_does_it_from_the_keyboard()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = await OpenCalls(opened);
+    const string macros = "#calls-tree > li.group:has(> .tree-row .tree-label:text-is('Macros'))";
+
+    await page.HoverAsync(macros + " > .tree-row");
+    await page.ClickAsync(macros + " > .tree-row .calls-open-all");
+    Assert.Equal("true", await page.GetAttributeAsync(macros + " > ul > li[data-id='AppInit.Startup']", "aria-expanded"));
+    Assert.Equal("true", await page.GetAttributeAsync(ProcessOrders, "aria-expanded"));
+
+    await page.ClickAsync("#calls-collapse");
+    await page.FocusAsync(ProcessOrders);
+    await page.Keyboard.PressAsync("*");
+    Assert.Equal(0, await page.Locator(ProcessOrders + " li[aria-expanded='false']").CountAsync());
+    Assert.Equal("true", await page.GetAttributeAsync(ProcessOrders, "aria-expanded"));
+    Assert.Empty(opened.Errors);
+  }
 }

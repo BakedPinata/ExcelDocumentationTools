@@ -75,6 +75,10 @@ html[data-theme="light"] {
 .calls-line { flex: none; font-size: 12px; }
 .calls-late code { font: 12px var(--font-code); color: var(--text-muted); }
 .calls-block-text { font: 12px var(--font-code); color: var(--text-muted); }
+.calls-open-all { display: inline-flex; flex: none; align-self: center; margin-left: auto; padding: 1px 3px; border: 0; border-radius: var(--radius); background: none; color: var(--text-muted); cursor: pointer; visibility: hidden; }
+.calls-open-all .icon { width: 13px; height: 13px; }
+.calls-open-all:hover { color: var(--text); background: var(--surface-2); }
+.calls-tree .tree-row:hover .calls-open-all, .calls-tree li:focus-visible > .tree-row .calls-open-all { visibility: visible; }
 /* The sequence diagram: colours from the page's variables, so it follows the theme. */
 .calls-sequence { padding: 0 8px 16px; }
 .calls-sequence[hidden] { display: none; }
