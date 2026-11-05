@@ -138,6 +138,9 @@ left to right by depth (how many queries feed them). You can:
   them all at once;
 - hide queries from the graph with the eye beside their star, and show them again from the Hidden group at the bottom
   of the explorer; **Focus** on the Favourites group shows only the favourites and what they use;
+- save how the page is arranged (what's ticked, hidden and chosen in Show…, and where you've dragged queries) as a
+  named view with **Views** in the top bar, open it again later, and **Export** your views as `pqdoc-views.json` or
+  **Import** them, to keep with the source or share;
 - reset the view.
 
 The top bar says how many queries and dependencies there are and, for a workbook, when it was last saved; it never

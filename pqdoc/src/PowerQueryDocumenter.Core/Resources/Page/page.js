@@ -22,6 +22,9 @@
 //   pqdoc.uses(id) / usedBy(id)      the ids directly upstream or downstream of a query
 //   pqdoc.upstream(id) / downstream(id)  the same, following the whole chain (a Set)
 //   pqdoc.countText(n)               "1 query" or "n queries"
+//   pqdoc.viewPart(name, part)       a view's part of every saved view (the shell's views.part): its save(),
+//                                    apply(value) and ids(value). Opening a saved view sets each part, then the
+//                                    views hear of it through onShownChange, once
 (function () {
   "use strict";
 
@@ -205,6 +208,8 @@
     if (selection !== null) renderDetails();
     emit("shown");
   });
+  // A saved view sets the filter, hiding and the Show… choices at once (and clears the selection): the graph draws once.
+  shell.onViewApplied(function () { emit("shown"); });
 
   // How many of the queries the selection uses or is used by are hidden.
   function hiddenNear(id) {
@@ -399,7 +404,8 @@
     usedBy: function (id) { return usedBy.get(id); },
     upstream: function (id) { return chain(id, uses); },
     downstream: function (id) { return chain(id, usedBy); },
-    countText: countText
+    countText: countText,
+    viewPart: shell.views.part
   };
 
   shell.items.init({

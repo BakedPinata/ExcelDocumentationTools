@@ -305,6 +305,7 @@
       if (!moved) return;
       simulation.alphaTarget(0);
       d3.select(this).classed("pinned", true);
+      arranged = true;
     }));
 
   node.on("dblclick", function (event, n) {
@@ -312,7 +313,80 @@
     n.fx = null;
     n.fy = null;
     d3.select(this).classed("pinned", false);
+    arranged = true;
     simulation.alpha(0.2).restart();
+  });
+
+  // ---- Saved views ----
+  //
+  // Once a query has been dragged or let go, a saved view keeps every query's position and which are pinned; until
+  // then it keeps nothing, and opening it puts the starting layout back. Queries it doesn't know of (the workbook has
+  // changed since) start where the starting layout had them, and settle while the rest is held still.
+
+  var arranged = false;       // whether anything has been moved since the starting layout
+  var startPositions = null;  // id -> [x, y] once the starting layout is made
+  var pendingLayout;          // a view's layout opened before the graph was first drawn (null: the starting layout)
+
+  function cleanLayout(raw) {
+    if (!raw || typeof raw !== "object" || !raw.positions || typeof raw.positions !== "object") return null;
+    var layout = { positions: {}, pinned: [] };
+    Object.keys(raw.positions).forEach(function (id) {
+      var p = raw.positions[id];
+      if (Array.isArray(p) && isFinite(p[0]) && isFinite(p[1])) layout.positions[id] = [Number(p[0]), Number(p[1])];
+    });
+    if (Array.isArray(raw.pinned)) layout.pinned = raw.pinned.filter(function (id) { return typeof id === "string" && layout.positions[id]; });
+    return Object.keys(layout.positions).length > 0 ? layout : null;
+  }
+
+  function currentLayout() {
+    var layout = { positions: {}, pinned: [] };
+    nodes.forEach(function (n) {
+      layout.positions[n.id] = [Math.round(n.x), Math.round(n.y)];
+      if (n.fx !== null && n.fx !== undefined) layout.pinned.push(n.id);
+    });
+    layout.pinned.sort();
+    return layout;
+  }
+
+  function placeFromView(layout) {
+    var pinned = new Set(layout ? layout.pinned : []);
+    var known = [];
+    nodes.forEach(function (n) {
+      var p = layout && Object.prototype.hasOwnProperty.call(layout.positions, n.id) ? layout.positions[n.id] : null;
+      var start = startPositions.get(n.id);
+      n.x = p ? p[0] : start[0];
+      n.y = p ? p[1] : start[1];
+      n.vx = 0;
+      n.vy = 0;
+      n.fx = null;
+      n.fy = null;
+      if (p) known.push(n);
+    });
+    if (layout && known.length < nodes.length) {
+      known.forEach(function (n) { n.fx = n.x; n.fy = n.y; });
+      simulation.alpha(0.3);
+      for (var i = 0; i < 150; i++) simulation.tick();
+      known.forEach(function (n) { n.fx = null; n.fy = null; n.vx = 0; n.vy = 0; });
+    }
+    nodes.forEach(function (n) { if (pinned.has(n.id)) { n.fx = n.x; n.fy = n.y; } });
+    simulation.alpha(0);
+    node.classed("pinned", function (n) { return pinned.has(n.id); });
+    arranged = !!layout;
+    userMovedView = false;
+    showingKey = null; // so the graph is fitted to it once it's drawn
+    updatePositions();
+  }
+
+  pq.viewPart("graph", {
+    save: function () {
+      if (!started) return pendingLayout ? pendingLayout : {};
+      return arranged ? currentLayout() : {};
+    },
+    apply: function (value) {
+      var layout = cleanLayout(value);
+      if (started) placeFromView(layout); else pendingLayout = layout;
+    },
+    ids: function (value) { var layout = cleanLayout(value); return layout ? Object.keys(layout.positions) : []; }
   });
 
   // ---- Focus and the filter ----
@@ -496,6 +570,7 @@
     pq.select(null);
     nodes.forEach(function (n) { n.fx = null; n.fy = null; });
     node.classed("pinned", false);
+    arranged = false;
     userMovedView = false;
     if (!reducedMotion) simulation.alpha(0.3).restart();
     fit(500);
@@ -511,6 +586,11 @@
     if (view.clientWidth < 600 || view.clientHeight < 480) legend.open = false; // it would cover a small view
     simulation.tick(300);
     simulation.alpha(0);
+    startPositions = new Map(nodes.map(function (n) { return [n.id, [n.x, n.y]]; }));
+    if (pendingLayout !== undefined) {
+      placeFromView(pendingLayout);
+      pendingLayout = undefined;
+    }
     simulation.on("tick", updatePositions);
     updatePositions();
     highlight();
