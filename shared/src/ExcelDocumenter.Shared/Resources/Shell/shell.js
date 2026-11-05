@@ -100,10 +100,12 @@
 //                                      sets the view to it without drawing (value is undefined for a view without
 //                                      it, which starts afresh), and ids(value) lists the items it mentions, so those
 //                                      the workbook no longer has can be listed. name can't be one of the shell's own:
-//                                      name, description, tab, filter, hidden or show
-//   shell.onViewApplied(fn)            called once a saved view has been opened, in place of onFilterChange,
-//                                      onHiddenChange and onChoicesChange, so the tool draws its views once; then
-//                                      onViewChange tells of the view's tab
+//                                      name, description, tab, filter, hidden, show, selection, focus, explorer or panel
+//   shell.onViewApplied(fn)            called once a saved view has been opened, with the view's selection (an id, or
+//                                      null), in place of onFilterChange, onHiddenChange and onChoicesChange, so the
+//                                      tool draws its views once. The shell has already taken the selection, its focus
+//                                      and the panels as the view has them, so the tool takes it as its own without
+//                                      calling selectionChanged. Then onViewChange tells of the view's tab
 //   A button with id "load-folder-prompt" anywhere in the page opens Load folder.
 (function () {
   "use strict";
@@ -463,6 +465,7 @@
       }
 
       // size: a share of the layout, or null for the stylesheets' default.
+      var chosenSize = null;
       function setSize(size, remember) {
         if (size === null) {
           layout.style.removeProperty(config.sizeVariable);
@@ -470,6 +473,7 @@
           size = clampSize(size);
           layout.style.setProperty(config.sizeVariable, (size * 100).toFixed(1) + "%");
         }
+        chosenSize = size === null ? null : Math.round(size * 1000) / 1000;
         if (remember) settings.save(config.setting + "-size", size === null ? "" : size.toFixed(3));
         updateSplitter();
       }
@@ -555,7 +559,10 @@
       setSize(isNaN(storedSize) ? null : storedSize, false);
       var storedHidden = config.rememberVisible === false ? null : settings.load(config.setting + "-hidden");
       setVisible(storedHidden === null ? config.visibleByDefault() : storedHidden !== "true", false);
-      return { element: element, setVisible: setVisible, isVisible: function () { return !element.hidden; } };
+      return {
+        element: element, setVisible: setVisible, isVisible: function () { return !element.hidden; },
+        size: function () { return chosenSize; }, setSize: setSize
+      };
     }
 
     // ---- The side panel follows the selection ----
@@ -622,12 +629,17 @@
       focused = nextFocused;
       reveal(selected);
       if (locked || sidePanel.isVisible() === (selected !== null)) return true;
-      following = true;
+      keepViewsStill();
       sidePanel.setVisible(selected !== null, false);
+      return true;
+    }
+
+    // While the panels change size for the selection, or for a saved view, which draws the views to fit already.
+    function keepViewsStill() {
+      following = true;
       window.requestAnimationFrame(function () {
         window.requestAnimationFrame(function () { following = false; });
       });
-      return true;
     }
 
     // Esc clears the selection wherever it's pressed. An open menu takes it first, and so does a box with text in it,
@@ -1628,21 +1640,24 @@
 
     // ---- Saved views ----
     //
-    // A view is a named arrangement of the page, with a description: the tab, the explorer's filter, the hidden items,
-    // the Show… choices, and what each of the tool's views adds through views.part (the graph's positions, say).
-    // Favourites are the user's own, so they aren't part of one, and nor is the selection. The Views menu in the top
-    // bar saves the page as a view, opens one, and renames, describes or deletes it. Views are kept per workbook in the
-    // browser, as <tool>-views|<workbook>, and Export and Import carry them in a file, <tool>-views.json, which works
-    // offline in a page opened from disk. The file is JSON with a format version, written with sorted keys and 2-space
-    // indentation so its diffs are small.
+    // A view is a named arrangement of the page, with a description: the tab, the selection and whether it's focused,
+    // Focus on click and Focus on favourites, the explorer's filter, the hidden items, the Show… choices and the
+    // widely used share, whether the explorer and the side panel are shown, their sizes, the explorer's layout and the
+    // side panel's lock, and what each of the tool's views adds through views.part (the graph's positions, say).
+    // Favourites are the user's own, so they aren't part of one, and nor are the theme and the views' own preferences.
+    // The Views menu in the top bar saves the page as a view, opens one, saves over one, and renames, describes or
+    // deletes it. Views are kept per workbook in the browser, as <tool>-views|<workbook>, and Export and Import carry
+    // them in a file, <tool>-views.json, which works offline in a page opened from disk. The file is JSON with a format
+    // version and the workbook's name, written with sorted keys and 2-space indentation so its diffs are small.
     //
-    // Opening a view clears the selection and sets everything at once, telling the tool through onViewApplied rather
-    // than the filter's, hiding's and the choices' own events, so each view is drawn once. What it mentions that the
-    // workbook no longer has is left out and listed, in the page and on the console, never treated as an error.
+    // Opening a view sets everything at once, the selection included, telling the tool through onViewApplied rather
+    // than the selection's, the filter's, hiding's and the choices' own events, so each view is drawn once. What it
+    // mentions that the workbook no longer has is left out and listed, in the page and on the console, never treated
+    // as an error. A view saved before it kept something (the panels, say) leaves that as it is.
 
     var VIEWS_FORMAT = 1;
     var VIEW_NAME_LENGTH = 80;
-    var SHELL_PARTS = ["name", "description", "tab", "filter", "hidden", "show"];
+    var SHELL_PARTS = ["name", "description", "tab", "filter", "hidden", "show", "selection", "focus", "explorer", "panel"];
     var viewParts = [];          // { name, save(), apply(value), ids(value) }, from the tool
     var savedViews = [];         // in the menu's order
     var currentView = null;      // the name of the view last opened or saved, or null
@@ -1682,7 +1697,33 @@
           if (typeof show.radios[name] === "string") view.show.radios[name] = show.radios[name];
         });
       }
+      if (typeof show.share === "number" && isFinite(show.share)) view.show.share = show.share;
+      var selection = raw.selection;
+      if (selection && typeof selection === "object" && typeof selection.id === "string") {
+        view.selection = { id: selection.id, focused: selection.focused === true };
+      } else {
+        delete view.selection;
+      }
+      // What a view saved before these were kept doesn't have is left as it is when it's opened.
+      view.focus = pick(raw.focus, { onClick: "boolean", favourites: "boolean" });
+      view.explorer = pick(raw.explorer, { shown: "boolean", size: "size", layout: "string" });
+      view.panel = pick(raw.panel, { shown: "boolean", size: "size", locked: "boolean" });
+      ["focus", "explorer", "panel"].forEach(function (key) { if (view[key] === null) delete view[key]; });
       return view;
+    }
+
+    // The fields of an object that have the type given ("size": a share of the layout, or null for the default), or
+    // null when there are none.
+    function pick(raw, types) {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+      var picked = {};
+      var any = false;
+      Object.keys(types).forEach(function (key) {
+        var value = raw[key];
+        var ok = types[key] === "size" ? value === null || (typeof value === "number" && isFinite(value)) : typeof value === types[key];
+        if (ok) { picked[key] = value; any = true; }
+      });
+      return any ? picked : null;
     }
 
     function loadViews() {
@@ -1701,8 +1742,14 @@
         tab: activeView,
         filter: Array.from(ticked).sort(),
         hidden: hiddenIds.slice(),
-        show: { off: Array.from(choicesOff).sort(), radios: Object.assign({}, radioValues) }
+        show: { off: Array.from(choicesOff).sort(), radios: Object.assign({}, radioValues) },
+        focus: { onClick: focusOnClick, favourites: focusFavouritesOn },
+        explorer: { shown: explorerPanel.isVisible(), size: explorerPanel.size() },
+        panel: { shown: sidePanel.isVisible(), size: sidePanel.size(), locked: locked }
       };
+      if (favouriteSource && favouriteSource.widelyUsed) view.show.share = share;
+      if (activeLayout !== null) view.explorer.layout = activeLayout;
+      if (selected !== null) view.selection = { id: selected, focused: focused };
       viewParts.forEach(function (part) {
         try {
           var value = part.save();
@@ -1733,7 +1780,7 @@
     // The items a view mentions that the workbook doesn't have.
     function missingFrom(view) {
       if (!favouriteSource) return [];
-      var ids = view.filter.concat(view.hidden);
+      var ids = view.filter.concat(view.hidden, view.selection ? [view.selection.id] : []);
       viewParts.forEach(function (part) {
         if (!part.ids || view[part.name] === undefined) return;
         try { ids = ids.concat(part.ids(view[part.name]) || []); } catch (e) { console.error(e); }
@@ -1751,9 +1798,8 @@
     function itemsText(count) { return count + (count === 1 ? " item" : " items"); }
     function viewsText(count) { return count + (count === 1 ? " view" : " views"); }
 
-    // Sets the page as the view has it, all at once, then lets the tool draw.
+    // Sets the page as the view has it, all at once, then lets the tool take the selection and draw.
     function applyView(view) {
-      selectItem(null);
       var boxes = [];
       choiceSections.forEach(function (s) { if (!s.radio) s.choices.forEach(function (c) { boxes.push(c.id); }); });
       choicesOff = new Set(view.show.off.filter(function (id) { return boxes.indexOf(id) >= 0; }));
@@ -1768,11 +1814,58 @@
       settings.save(hiddenKey(), JSON.stringify(hiddenIds));
       ticked = new Set(view.filter);
       settings.save(filterKey(), JSON.stringify(Array.from(ticked)));
+      var shareChanged = false;
+      if (view.show.share !== undefined && favouriteSource && favouriteSource.widelyUsed && clampShare(view.show.share) !== share) {
+        share = clampShare(view.show.share);
+        settings.save("widely-used-share", String(share));
+        if ($("explorer-widely-used-share")) $("explorer-widely-used-share").value = String(share);
+        shareChanged = true;
+      }
+
+      var focus = view.focus || {};
+      if (focus.onClick !== undefined) {
+        focusOnClick = focus.onClick;
+        settings.save("focus-on-click", focusOnClick ? "true" : "false");
+      }
+      if (focus.favourites !== undefined) {
+        focusFavouritesOn = focus.favourites;
+        settings.save("focus-favourites", focusFavouritesOn ? "true" : "false");
+        document.querySelectorAll("[data-focus-favourites]").forEach(function (button) {
+          button.setAttribute("aria-pressed", focusFavouritesOn ? "true" : "false");
+        });
+      }
+
+      // The selection is the shell's to set here, without the side panel following it: the view says where the panels
+      // are. The views keep still while the panels change, since they're drawn for their new size.
+      keepViewsStill();
+      selected = view.selection && favouriteSource && favouriteSource.exists(view.selection.id) ? view.selection.id : null;
+      focused = selected !== null && view.selection.focused;
+      var explorer = view.explorer || {};
+      if (explorer.shown !== undefined) explorerPanel.setVisible(explorer.shown, true);
+      if (explorer.size !== undefined) explorerPanel.setSize(explorer.size, true);
+      var layoutChanged = explorer.layout !== undefined && explorer.layout !== activeLayout &&
+        layouts.some(function (l) { return l.name === explorer.layout; });
+      if (layoutChanged) {
+        activeLayout = explorer.layout;
+        settings.save("explorer-layout", activeLayout);
+      }
+      var side = view.panel || {};
+      if (side.locked !== undefined) setLocked(side.locked);
+      if (side.size !== undefined) sidePanel.setSize(side.size, true);
+      sidePanel.setVisible(side.shown !== undefined ? side.shown : locked || selected !== null, false);
+
       if (view.tab && tabs.some(function (tab) { return viewOf(tab) === view.tab; })) setView(view.tab);
       viewParts.forEach(function (part) {
         try { part.apply(view[part.name]); } catch (e) { console.error(e); }
       });
 
+      if (layoutChanged) {
+        revealedId = selected;
+        showLayout(); // draws the tree, with everything below in it
+      } else if (shareChanged) {
+        renderWidelyUsed();
+        markWidelyUsed();
+      }
       updateChoices();
       markLeftOut();
       updateHideButtons();
@@ -1782,8 +1875,8 @@
       updateFilter();
       applyFilter();
       updateNotes();
-      reveal(revealedId, true);
-      emit("applied");
+      reveal(selected);
+      emit("applied", selected);
       emit("view", activeView);
     }
 

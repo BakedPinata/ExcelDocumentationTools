@@ -208,8 +208,13 @@
     if (selection !== null) renderDetails();
     emit("shown");
   });
-  // A saved view sets the filter, hiding and the Show… choices at once (and clears the selection): the graph draws once.
-  shell.onViewApplied(function () { emit("shown"); });
+  // A saved view sets the selection, the filter, hiding and the Show… choices at once: the graph draws once, reading
+  // the selection and its focus. The shell has taken the selection already.
+  shell.onViewApplied(function (id) {
+    selection = id;
+    renderDetails();
+    emit("shown");
+  });
 
   // How many of the queries the selection uses or is used by are hidden.
   function hiddenNear(id) {

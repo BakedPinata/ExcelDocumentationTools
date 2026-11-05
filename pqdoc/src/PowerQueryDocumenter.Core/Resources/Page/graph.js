@@ -608,7 +608,12 @@
     var n = id !== null && pq.activeView() === "graph" ? nodes.find(function (q) { return q.id === id; }) : null;
     if (n && (!clickedInGraph || (pq.panelFollowing() && !inView(n)))) centreOn(n);
   });
-  pq.onShownChange(function () { if (started && pq.activeView() === "graph") applyFocus(300); });
+  // A saved view can bring a selection with it, so the highlight follows too.
+  pq.onShownChange(function () {
+    if (!started || pq.activeView() !== "graph") return;
+    highlight();
+    applyFocus(300);
+  });
   pq.onFocusChange(function () {
     if (started && pq.activeView() === "graph") applyFocus(300);
     else focusButton.setAttribute("aria-pressed", pq.focusOnClick() ? "true" : "false");

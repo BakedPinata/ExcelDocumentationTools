@@ -388,6 +388,61 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     Assert.Empty(opened.Errors);
   }
 
+  static Task<string> PanelSize(IPage page, string variable) =>
+      page.EvaluateAsync<string>("v => document.getElementById('layout').style.getPropertyValue(v)", variable);
+
+  [Fact]
+  public async Task A_view_keeps_the_selection_its_focus_Focus_on_click_the_panels_and_what_the_source_panel_shows()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    await WaitUntilStill(page);
+    await page.ClickAsync("#graph-svg g.node[data-id='OrderService'] path.shape");
+    await WaitUntilStill(page);
+    var focusedNodes = await GraphNodes(page);
+    await page.ClickAsync("#explorer-toggle");
+    await page.FocusAsync("#side-panel-splitter");
+    await page.Keyboard.PressAsync("Home");
+    Assert.Equal("20.0%", await PanelSize(page, "--side-panel-size"));
+    await SaveAs(page, "Order service");
+    await page.Keyboard.PressAsync("Escape");
+
+    // Focus on click off, a member shown in its whole module, unfocused, with the explorer back.
+    await page.ClickAsync("#graph-focus");
+    await opened.SelectAsync("Main.ProcessOrders");
+    await page.ClickAsync("#toggle-context");
+    await page.ClickAsync("#explorer-toggle");
+    await WaitUntilStill(page);
+    var allNodes = await GraphNodes(page);
+    await SaveAs(page, "Processing orders");
+    await page.Keyboard.PressAsync("Escape");
+    await page.Keyboard.PressAsync("Escape"); // clears the selection, and the side panel closes with it
+    Assert.True(await page.IsHiddenAsync("#side-panel"));
+
+    await OpenView(page, "Order service");
+    await WaitUntilStill(page);
+    Assert.Equal("OrderService", await page.EvaluateAsync<string?>("() => window.vbadoc.selection()"));
+    Assert.True(await page.EvaluateAsync<bool>("() => window.vbadoc.focused()"));
+    Assert.Equal("true", await page.GetAttributeAsync("#graph-focus", "aria-pressed"));
+    Assert.Equal(focusedNodes, await GraphNodes(page));
+    Assert.True(await page.IsHiddenAsync("#explorer"));
+    Assert.True(await page.IsVisibleAsync("#side-panel"));
+    Assert.Equal("20.0%", await PanelSize(page, "--side-panel-size"));
+    Assert.Contains("OrderService", await page.InnerTextAsync("#side-panel-header h2"));
+
+    await OpenView(page, "Processing orders");
+    await WaitUntilStill(page);
+    Assert.Equal("Main.ProcessOrders", await page.EvaluateAsync<string?>("() => window.vbadoc.selection()"));
+    Assert.False(await page.EvaluateAsync<bool>("() => window.vbadoc.focused()"));
+    Assert.Equal("false", await page.GetAttributeAsync("#graph-focus", "aria-pressed"));
+    Assert.Equal(allNodes, await GraphNodes(page));
+    Assert.True(await page.IsVisibleAsync("#explorer"));
+    Assert.Equal("true", await page.GetAttributeAsync(Row("Main.ProcessOrders").Replace(" > .tree-row", ""), "aria-selected"));
+    Assert.Equal("Show this member only", await page.InnerTextAsync("#toggle-context"));
+    Assert.Equal("#Main.ProcessOrders", await page.EvaluateAsync<string>("() => location.hash"));
+    Assert.Empty(opened.Errors);
+  }
+
   // The user's report after G1: moved nodes weren't put back by a view once the graph had been laid out again, or
   // focused and cleared, with the same filter and choices. The graph kept the layout on screen and put that back.
   [Fact]

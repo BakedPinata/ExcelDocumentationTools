@@ -104,6 +104,47 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
   }
 
   [Fact]
+  public async Task A_view_keeps_the_selection_its_focus_the_panels_the_explorers_layout_and_the_widely_used_share()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.WorkbookPage);
+    var page = opened.Page;
+    await WaitUntilStill(page);
+    await opened.SelectAsync("Sales Data");
+    var focused = await Shown(opened);
+    Assert.NotEqual(await opened.DrawnIdsAsync("#graph-svg g.node"), focused);
+    await page.ClickAsync("#explorer-layouts [data-layout='types']");
+    await page.ClickAsync("#explorer-show summary");
+    await page.FillAsync("#explorer-widely-used-share", "50");
+    await page.Keyboard.PressAsync("Escape");
+    await page.FocusAsync("#side-panel-splitter");
+    await page.Keyboard.PressAsync("Home");
+    await SaveAs(page, "Sales");
+    await page.Keyboard.PressAsync("Escape");
+
+    await page.Keyboard.PressAsync("Escape"); // clears the selection
+    await page.ClickAsync("#graph-focus");
+    await page.ClickAsync("#explorer-layouts [data-layout='groups']");
+    await page.ClickAsync("#explorer-show summary");
+    await page.FillAsync("#explorer-widely-used-share", "20");
+    await page.Keyboard.PressAsync("Escape");
+    Assert.True(await page.IsHiddenAsync("#side-panel"));
+
+    await OpenView(page, "Sales");
+    await WaitUntilStill(page);
+    Assert.Equal("Sales Data", await opened.SelectionAsync());
+    Assert.True(await page.EvaluateAsync<bool>("() => window.pqdoc.focused()"));
+    Assert.Equal("true", await page.GetAttributeAsync("#graph-focus", "aria-pressed"));
+    Assert.Equal(focused, await Shown(opened));
+    Assert.Equal(["Sales Data"], await opened.DrawnIdsAsync("#graph-svg g.node.selected"));
+    Assert.Equal("true", await page.GetAttributeAsync("#explorer-layouts [data-layout='types']", "aria-checked"));
+    Assert.Equal("50", await page.InputValueAsync("#explorer-widely-used-share"));
+    Assert.True(await page.IsVisibleAsync("#side-panel"));
+    Assert.Equal("20.0%", await page.EvaluateAsync<string>("() => document.getElementById('layout').style.getPropertyValue('--side-panel-size')"));
+    Assert.Equal("true", await (await Row(opened, "Sales Data")).Locator("..").GetAttributeAsync("aria-selected"));
+    Assert.Empty(opened.Errors);
+  }
+
+  [Fact]
   public async Task A_view_saved_before_anything_was_moved_opens_with_the_starting_layout()
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SamplePage);

@@ -239,10 +239,14 @@
     if (selection !== null) renderHeader(modulesById.get(membersById.has(selection) ? membersById.get(selection).module : selection), membersById.get(selection) || null);
     emit("shown");
   });
-  // A saved view sets the filter, hiding and the Show… choices at once (and clears the selection): the views draw once.
-  shell.onViewApplied(function () {
+  // A saved view sets the selection, the filter, hiding and the Show… choices at once: the views draw once, each
+  // reading the selection and its focus as it does. The shell has taken the selection already.
+  shell.onViewApplied(function (id) {
     refreshFilter();
     hiddenNow = new Set(shell.hidden.list());
+    selection = id;
+    renderSource();
+    rememberInHistory(id);
     emit("shown");
   });
 
@@ -480,6 +484,20 @@
     if (firstInMember) firstInMember.scrollIntoView({ block: "start" });
     else panelBody.scrollTop = 0;
   }
+
+  // A saved view keeps what the source panel shows of the selection: a member alone or in the whole module, and
+  // whether its Dependencies are open. The shell keeps the selection.
+  shell.views.part("source", {
+    save: function () { return { whole: showWholeModule, dependencies: dependenciesOpen }; },
+    apply: function (value) {
+      value = value && typeof value === "object" ? value : {};
+      showWholeModule = value.whole === true;
+      if (typeof value.dependencies === "boolean") {
+        dependenciesOpen = value.dependencies;
+        settings.save("dependencies-open", dependenciesOpen ? "true" : "false");
+      }
+    }
+  });
 
   // ---- Explorer ----
   //
