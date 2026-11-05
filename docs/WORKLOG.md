@@ -10,11 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-05)
 
-- **vbadoc 0.27.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.28.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.18.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.19.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -32,8 +32,8 @@ rather than repeating it.
   (hiding) and D3c (the Show menus in the explorer), all pushed, as are D4 (widely used items and predeclared classes)
   and E1 (Uses / Used by with references). E2 (the Calls tab) is pushed. E3 (the logic around each call) and E4 (a
   query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is pushed, as are its
-  review's follow-ups (E5a) and a gentler drag. G1 (saved views) is done on `feedback/g1-saved-views`, waiting for
-  review. **Next: G2** (the views file built into the page).
+  review's follow-ups (E5a) and a gentler drag. G1 (saved views) and its review's follow-ups (G1a) are done on
+  `feedback/g1-saved-views`, waiting for review. **Next: G2** (the views file built into the page).
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
@@ -45,6 +45,22 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-05: Step G1a, follow-ups after G1's review
+
+- A view keeps everything the page shows: the selection and its focus, Focus on click and Focus on favourites, both
+  panels (shown, size, lock), the explorer's layout and the widely used share; in vbadoc also the source panel's
+  whole module and Dependencies, the graph's direction, Path, legend and settings, and the class diagram's legend.
+  Opening a view sets the selection rather than clearing it. Favourites, the theme, the dragging settings and the zoom
+  stay out (a view opens fitted).
+- Fixed: moved nodes weren't put back after Re-run layout or a focus, as the graph kept the layout on screen and put
+  that back instead. Nodes and boxes moved while focused are now kept for that focus, and in views.
+- Save over on every other view, and from a new view's taken name, with Undo; Save changes, Delete and Import have
+  Undo too. A views file names its workbook, and an import from another workbook, or that mentions missing items,
+  says so first, with what it would replace, and can be cancelled.
+- vbadoc 0.28.0, pqdoc 1.19.0, on the same branch, a commit per change. Browser tests: 13 views tests in vbadoc (one a
+  regression test that failed before the fix), 4 in pqdoc. Screenshots of the menu in both themes.
+- Open, as after G1: pqdoc's `Requirements.md` and `DECISIONS.md` don't describe views yet, waiting for the user.
 
 ### 2026-11-05: Step G1, saved views
 

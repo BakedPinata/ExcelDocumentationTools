@@ -156,11 +156,13 @@ To take something out of every view, hide it with the struck-through eye beside 
 struck through, and is listed in the Hidden group at the bottom, where you can show it again. Each view's toolbar counts
 what's hidden, and the source panel says when what you've selected uses something hidden.
 
-**Views**, in the top bar, saves how the page is arranged as a named view with a description: the tab, what's ticked,
-hidden and chosen in Show…, where you've moved things in the graph and the class diagram, and what's open in the Calls
-tab. Open a view to come back to it. **Export** downloads your views as `vbadoc-views.json`, to keep with the source or
-share, and **Import** reads one back. A view that mentions something the workbook no longer has still opens, and says
-what's missing.
+**Views**, in the top bar, saves how the page is arranged as a named view with a description: the tab, what's
+selected and whether it's focused, Focus on click, what's ticked, hidden and chosen in Show…, whether the explorer and
+source panel are shown and how wide, the graph's level, direction and settings, where you've moved things in the graph
+and the class diagram (focused or not), and what's open in the Calls tab. Open a view to come back to it, or **Save
+over** any view with the page as it is now; Undo puts it back. **Export** downloads your views as `vbadoc-views.json`,
+to keep with the source or share, and **Import** reads one back, saying first if it's from another workbook. A view
+that mentions something the workbook no longer has still opens, and says what's missing.
 
 The **Calls** tab follows the execution path: start from a macro, event handler or worksheet function (or a
 favourite, or Ctrl+click any procedure) and open its calls one level at a time, in the order of the code. Each call

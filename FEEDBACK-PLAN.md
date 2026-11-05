@@ -63,6 +63,7 @@ questions the draft raised.
 | E5 | Optional: a sequence diagram of the expanded calls | Claude | Done |
 | E5a | Follow-ups after E5's review: labels never cut in the diagram, open all below, whole entry points in scope, Show nothing and All / None, explained settings, gentler dragging (one try rolled back) | Claude | Done |
 | G1 | Saved views: named, exported to a file and imported again | Claude | Done |
+| G1a | Follow-ups after G1's review: a view keeps everything the page shows (the selection and its focus, Focus on click, the panels), moved nodes put back after Re-run layout or a focus, Save over any view with Undo, and a check before importing another workbook's views | Claude | Done |
 | G2 | A views file in the output folder is built into the page | Claude | |
 | G3 | Printing a view or every view, with descriptions | Claude, then you on a work machine | |
 | G4 | Optional: copy a view as text, to paste into a chat | Claude | |
@@ -545,6 +546,23 @@ The user asked for these after using D1c; they come in D3, which they reshape.
   above it (already part of its source), and from a module's comments at the top. For queries, from the description in
   the workbook if B1 finds one is stored, otherwise from comments at the top of the query. They show in the panel too.
 
+### After G1's review
+
+The user tried G1 and asked for these; they come in G1a, before G2.
+
+- **A view keeps everything the page shows,** not only what the views draw: the selection and whether it's focused,
+  Focus on click and Focus on favourites, whether the explorer and the side panel are shown, their sizes and the
+  side panel's lock, the explorer's layout, the widely used share, and each view's own state (in vbadoc, the graph's
+  direction, Path, legend and settings, and what the source panel shows of the selection). Favourites and the theme
+  stay personal, as do how dragging works and the zoom (a view opens fitted, so it reads on any screen).
+- **Moved nodes come back:** opening a view puts its positions back after Re-run layout, or a focus, with the same
+  filter and Show… choices. Nodes and boxes moved while focused are kept for that focus, and in a view saved with it.
+- **Save over any view without opening it first,** which used to throw away what had just been arranged. Save over,
+  Save changes, Delete and Import have Undo, rather than asking first.
+- **An import that doesn't match the workbook asks first:** a views file names its workbook, and one from another
+  workbook, or that mentions items this one doesn't have, says so before anything is imported, with what it would
+  replace, and the person can cancel.
+
 ### Importing into a workbook
 
 H1 is a spike, so these are the starting position. H1's findings confirm or change them before H2 begins.
@@ -890,6 +908,12 @@ This can be dropped without affecting anything after it.
 - Add the Views menu, Export and Import to the shell, as section 5 describes. Each view records what its tool's views
   need through the shell's interface.
 - Browser tests: save, switch, rename, delete, export and import a view, and import a file with missing items.
+
+### Step G1a: Follow-ups after G1's review
+
+- Everything the page shows in a view, the graph's positions put back, Save over with Undo, and the check before an
+  import, as "After G1's review" in section 5 describes.
+- Browser tests for each, including a regression test for the positions, which fails without the fix.
 
 ### Step G2: Views file built into the page
 

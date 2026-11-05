@@ -120,23 +120,36 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
 
 - **The Views menu is the shell's,** in the top bar after the tabs: Save as a new view (a name, unique whatever its
   case, and an optional description), Save changes to the view last opened once the page has changed since, open,
-  Edit (rename and describe) and Delete with Undo, Export and Import. The button shows the view last opened or saved.
-- **A view holds the shell's part** (`tab`, `filter`, `hidden`, and `show`, the Show… choices) **and the tool's,**
-  each added with `shell.views.part(name, { save(), apply(value), ids(value) })`. `save()` gives JSON (or null for
-  nothing); `apply(value)` sets the view without drawing, and `value` is undefined for a view without that part, which
-  starts afresh; `ids(value)` lists the items it mentions. Favourites and the selection aren't part of a view.
-- **Opening a view** clears the selection, sets the shell's state without its usual events, calls each part's `apply`,
-  then tells the tool once through `onViewApplied` (in place of `onFilterChange`, `onHiddenChange` and
-  `onChoicesChange`), and then `onViewChange` for the view's tab, which is shown without an event of its own first.
+  Save over (any other view, without opening it first), Edit (rename and describe), Delete, Export and Import. A new
+  view given a name that's taken offers Save over it. Save over, Save changes, Delete and Import offer Undo, which puts
+  the list back as it was (`listBefore`), until the menu's next status. The button shows the view last opened or saved.
+- **A view holds everything the page shows** (since G1's review): the shell's part, `tab`; `selection`
+  (`{ id, focused }`, when something's selected); `focus` (`{ onClick, favourites }`: Focus on click and Focus on
+  favourites); `filter`; `hidden`; `show` (the Show… choices, and `share`, the widely used share); `explorer`
+  (`{ shown, size, layout }`) and `panel` (`{ shown, size, locked }`), where `size` is the panel's share of the layout
+  or null for the default; **and the tool's,** each added with `shell.views.part(name, { save(), apply(value),
+  ids(value) })`. `save()` gives JSON (or null for nothing); `apply(value)` sets the view without drawing, and `value`
+  is undefined for a view without that part, which starts afresh; `ids(value)` lists the items it mentions.
+  Favourites, the theme, and preferences such as how dragging works stay the person's own. A view saved before G1's
+  review has no `selection`, `focus`, `explorer` or `panel`, and opening it leaves those as they are.
+- **Opening a view** sets the shell's state without its usual events, the selection and its focus included, with the
+  panels as the view has them rather than following the selection, and keeps the views still while the panels change
+  size (`panel.following()`), since they're drawn for their new size. Then each part's `apply`, then `onViewApplied`
+  once, with the view's selection, which the tool takes as its own without calling `selectionChanged` (in place of
+  the selection's events, `onFilterChange`, `onHiddenChange` and `onChoicesChange`), and then `onViewChange` for the
+  view's tab, which is shown without an event of its own first.
 - **Kept per workbook in the browser** as `<tool>-views|<workbook>`; if the browser can't keep them, the menu says to
   export them. Which view was open isn't kept.
-- **The file** is `<tool>-views.json`: `{ "formatVersion": 1, "tool": "<tool>", "views": [...] }`, written with sorted
-  keys and 2-space indentation and a final line feed, downloaded through a `Blob` link. Import (a hidden file input,
-  `#views-import`) adds its views, replacing those of the same name; a file that isn't JSON or has no `views`, another
-  tool's, or a newer format is refused with the reason, and views without a name are left out and counted.
-- **Items a view mentions that the workbook doesn't have** (`items.init`'s `exists(id)`) are listed on import, in the
-  menu, and on opening, in the page notice (`#page-notice`, across the top of the page, with Dismiss), up to eight by
-  name, and all of them on the console as a warning. They're never an error.
+- **The file** is `<tool>-views.json`: `{ "formatVersion": 1, "tool": "<tool>", "views": [...], "workbook": "<name>" }`,
+  written with sorted keys and 2-space indentation and a final line feed, downloaded through a `Blob` link. Import (a
+  hidden file input, `#views-import`) adds its views, replacing those of the same name; a file that isn't JSON or has
+  no `views`, another tool's, or a newer format is refused with the reason, and views without a name are left out and
+  counted. A file that names another workbook, or mentions items this one doesn't have, is checked first
+  (`#views-confirm`): the menu says so, with the views it would replace, and imports only on Import anyway. The
+  workbook's name is optional, so G1's files still import, checked only for missing items.
+- **Items a view mentions that the workbook doesn't have** (`items.init`'s `exists(id)`) are listed before an import,
+  in the menu, and on opening, in the page notice (`#page-notice`, across the top of the page, with Dismiss), up to
+  eight by name, and all of them on the console as a warning. They're never an error.
 
 ### Uses / Used by and showing a line (step E1)
 

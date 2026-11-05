@@ -455,6 +455,35 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Follow-ups after G1's review (0.28.0, step G1a of the feedback plan)
+
+- **A view keeps everything the page shows,** as the user asked: the selection and whether it's focused, Focus on
+  click and Focus on favourites, both panels (shown, size, the source panel's lock), the explorer's layout and the
+  widely used share (the shell's, so pqdoc's views keep them too), and vbadoc's own: whether the source panel shows a
+  member in its whole module and its Dependencies, the graph's Dependencies / Dependents, Path, legend picks and
+  settings, and the class diagram's legend picks. Opening a view no longer clears the selection.
+- **Not kept:** favourites and the theme, which are the person's own, and the graph's two dragging settings (Rearrange
+  while dragging, Keep dragged nodes where dropped), which are how they like to work rather than what the page shows.
+  Nor the zoom: a view opens fitted, as a focus does, so it reads on any screen.
+- **A view saved in G1 leaves what it doesn't have as it is** (the panels, Focus on click, the graph's direction and
+  settings), rather than setting defaults, so opening an old view changes only what it saved.
+- **The graph put the layout on screen back in place of a view's positions,** when the filter and Show… choices were
+  the same (after Re-run layout, or a focus the view cleared): opening a view cleared the kept layouts, but the redraw
+  kept the one on screen again first. Now the layout on screen isn't kept once a view is opened, and a view's positions
+  come before a kept layout. G1's tests changed the filter between saving and opening, so they missed it.
+- **A focused graph's or class diagram's moves are kept for that focus,** while the page is open, as the whole graph's
+  are: going back to a focus finds what was moved in it, and a view saved with a focus keeps them, with what decided
+  the focus (the selection, direction, favourites and reach; or the modules the diagram showed), so they're put back
+  only for the same focus. Before, a focused graph or diagram was laid out afresh each time.
+- **Save over, on every view but the one showing** (which has Save changes), saves the page into it without opening
+  it, keeping its name and description, and makes it the view showing. A new view given a name that's taken offers
+  Save over it instead of only refusing. Save over, Save changes, Delete and Import have Undo rather than asking first,
+  as Delete already did: one step back, offered until the menu's next message.
+- **Import asks first only when the file doesn't match:** when it names another workbook (files now carry the
+  workbook's name) or mentions items this one doesn't have, listing them and any views it would replace; a file that
+  matches is imported at once, so reading a newer copy of the same file stays one step. A file from G1, without the
+  workbook's name, is checked for missing items only.
+
 ### Saved views (0.27.0, step G1 of the feedback plan)
 
 - **The views are the shell's,** so pqdoc has them the same way (see `shared/README.md`). The shell keeps a view's
@@ -462,6 +491,7 @@ Favourites below. Back and Forward stay as they are.
   `vbadoc.viewPart(name, { save, apply, ids })`: `graph`, `classes` and `calls`.
 - **"The focus set" in the plan is the explorer's filter,** which D3a made: what a view shows. The selection, and so a
   focus on it, isn't kept: opening a view clears it, so the page looks as the view was saved. Favourites stay personal.
+  (Since G1a a view keeps the selection and its focus, as the user asked; see above.)
 - **The graph keeps its level, and positions only where something was moved** (dragged, let go, or spaced out
   differently in the settings), for each level, in the whole graph as the view's filter and choices draw it. Every
   node's position is kept, rounded to whole units, since the rest moves around what's dragged; which are pinned is

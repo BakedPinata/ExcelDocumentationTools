@@ -26,8 +26,9 @@
 //   vbadoc.focusFavourites() / setFocusFavourites(on)   whether the views show only the favourites and what they use
 //                                     (with the focused selection's); changes come through onFocusChange
 //   vbadoc.viewPart(name, part)       a view's part of every saved view (the shell's views.part): its save(),
-//                                     apply(value) and ids(value). Opening a saved view sets each part, then the
-//                                     views hear of it through onShownChange, once
+//                                     apply(value) and ids(value). Opening a saved view sets each part and the
+//                                     selection, then the views hear of it through onShownChange, once, and read
+//                                     the selection and its focus as they draw (onSelectionChange isn't called)
 (function () {
   "use strict";
 
