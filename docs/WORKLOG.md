@@ -14,7 +14,7 @@ rather than repeating it.
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.15.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.16.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -30,8 +30,9 @@ rather than repeating it.
   little better on the production workbook, good enough for now. A6 (a name declared again under `#If` is one member)
   is pushed. D2 (favourites) is pushed. D3 is split into D3a (Expand / Collapse all and the views' filter), D3b
   (hiding) and D3c (the Show menus in the explorer), all pushed, as are D4 (widely used items and predeclared classes)
-  and E1 (Uses / Used by with references). E2 (the Calls tab) is pushed. E3 (the logic around each call) is done,
-  waiting for review. **Next: E4** (a query's steps, in pqdoc).
+  and E1 (Uses / Used by with references). E2 (the Calls tab) is pushed. E3 (the logic around each call) and E4 (a
+  query's steps, in pqdoc) are done, waiting for review. **Next: E5** (the optional sequence diagram), or G1 if E5 is
+  dropped.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -41,6 +42,16 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-05: Step E4, a query's steps
+
+- pqdoc's structural pass keeps the steps of a query's own outermost `let` (at the top, or a function query's body):
+  each name, line and the queries it uses, then the `in` expression; a `let` inside a step adds none.
+- The details panel lists them above the source, each linking to its line and to the queries it uses.
+- pqdoc's FR-HTML-20, decisions and README follow. pqdoc 1.16.0.
+- Tests: 6 unit tests with the B1 sample workbook (nested `let`, quoted names, comments, a step over several lines, a
+  function query, no `let` of its own) and 3 browser tests. The private folder's one query reads as one step and
+  its `in`, in line order.
 
 ### 2026-11-05: Step E3, the logic around each call
 

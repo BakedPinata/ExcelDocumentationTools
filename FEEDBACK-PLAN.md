@@ -59,7 +59,7 @@ questions the draft raised.
 | E1 | Uses / Used by: each item once, with links to the exact lines | Claude | Done |
 | E2 | Calls tab: the procedures an entry point calls, in order | Claude | Done |
 | E3 | Calls tab: the Ifs, loops and Select Cases around each call | Claude | Done |
-| E4 | pqdoc: a query's steps, in order | Claude | |
+| E4 | pqdoc: a query's steps, in order | Claude | Done |
 | E5 | Optional: a sequence diagram of the expanded calls | Claude | |
 | G1 | Saved views: named, exported to a file and imported again | Claude | |
 | G2 | A views file in the output folder is built into the page | Claude | |

@@ -17,6 +17,7 @@ public sealed class DependencyGraph
   private readonly FrozenDictionary<string, QueryNode> nodesByName;
   private readonly FrozenDictionary<string, string[]> upstreamByName;
   private readonly FrozenDictionary<string, string[]> downstreamByName;
+  private readonly FrozenDictionary<string, IReadOnlyList<QueryStep>> stepsByName;
 
   private DependencyGraph(
     QueryNode[] nodes,
@@ -24,11 +25,13 @@ public sealed class DependencyGraph
     DependencyCycle[] cycles,
     Dictionary<string, string[]> upstreamByName,
     Dictionary<string, string[]> downstreamByName,
-    Dictionary<DependencyEdge, IReadOnlyList<int>> referenceLines)
+    Dictionary<DependencyEdge, IReadOnlyList<int>> referenceLines,
+    Dictionary<string, IReadOnlyList<QueryStep>> steps)
   {
     Nodes = Array.AsReadOnly(nodes);
     Edges = Array.AsReadOnly(edges);
     ReferenceLines = referenceLines.ToFrozenDictionary();
+    stepsByName = steps.ToFrozenDictionary(NameComparer);
     Cycles = Array.AsReadOnly(cycles);
     nodesByName = nodes.ToFrozenDictionary(n => n.Name, NameComparer);
     this.upstreamByName = upstreamByName.ToFrozenDictionary(NameComparer);
@@ -47,6 +50,12 @@ public sealed class DependencyGraph
   /// </summary>
   public IReadOnlyDictionary<DependencyEdge, IReadOnlyList<int>> ReferenceLines { get; }
 
+  /// <summary>
+  /// A query's <c>let</c> steps, then its <c>in</c> expression (see <see cref="QueryStep"/>); none for a query without
+  /// <c>let</c> or whose source wasn't read.
+  /// </summary>
+  public IReadOnlyList<QueryStep> StepsOf(string name) => stepsByName.TryGetValue(name, out var steps) ? steps : [];
+
   /// <summary>The lines of the downstream query's source that name the upstream query, or none if they aren't known.</summary>
   public IReadOnlyList<int> LinesOf(DependencyEdge edge) => ReferenceLines.TryGetValue(edge, out var lines) ? lines : [];
 
@@ -63,11 +72,13 @@ public sealed class DependencyGraph
   /// <param name="queryNames">Every query.</param>
   /// <param name="edges">The dependencies between them.</param>
   /// <param name="referenceLines">Optionally, where each edge's references are (see <see cref="ReferenceLines"/>).</param>
+  /// <param name="steps">Optionally, each query's steps (see <see cref="StepsOf"/>).</param>
   /// <exception cref="ArgumentException">A name is blank, or an edge refers to an unknown query.</exception>
   public static DependencyGraph Create(
     IEnumerable<string> queryNames,
     IEnumerable<DependencyEdge> edges,
-    IReadOnlyDictionary<DependencyEdge, IReadOnlyList<int>>? referenceLines = null)
+    IReadOnlyDictionary<DependencyEdge, IReadOnlyList<int>>? referenceLines = null,
+    IReadOnlyDictionary<string, IReadOnlyList<QueryStep>>? steps = null)
   {
     ArgumentNullException.ThrowIfNull(queryNames);
     ArgumentNullException.ThrowIfNull(edges);
@@ -132,7 +143,10 @@ public sealed class DependencyGraph
       [.. cycles],
       upstream.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray(), NameComparer),
       downstream.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray(), NameComparer),
-      lines);
+      lines,
+      (steps ?? new Dictionary<string, IReadOnlyList<QueryStep>>())
+        .Where(kv => canonicalNames.ContainsKey(kv.Key))
+        .ToDictionary(kv => canonicalNames[kv.Key], kv => kv.Value, NameComparer));
 
     string Canonicalise(string name) =>
       canonicalNames.TryGetValue(name, out var canonical)

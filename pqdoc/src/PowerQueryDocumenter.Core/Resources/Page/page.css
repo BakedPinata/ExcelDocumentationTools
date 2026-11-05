@@ -45,6 +45,12 @@ html[data-theme="light"] {
 .side-panel-body .none { margin: 2px 0 0; }
 .side-panel-body .reach { margin: 14px 0 0; }
 .side-panel-body .actions { margin-top: 12px; }
+/* A query's steps: each a line link with its name, and what it uses beside it. */
+.query-steps { margin: 0; padding: 0; list-style: none; }
+.side-panel-body .query-steps li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+.query-steps .ref-line { width: auto; flex: none; }
+.query-steps .step-in code { color: var(--text-muted); }
+.step-uses { min-width: 0; }
 .side-panel-body .button { padding: 3px 8px; }
 /* The colour ties a list to its edges in the graph; the heading itself stays in a text colour. */
 .swatch { flex: none; width: 14px; height: 3px; border-radius: 2px; }

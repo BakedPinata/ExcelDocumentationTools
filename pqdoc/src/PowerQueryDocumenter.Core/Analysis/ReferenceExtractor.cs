@@ -25,6 +25,15 @@ namespace PowerQueryDocumenter.Core.Analysis;
 /// can still produce a false positive or negative, which is acceptable for a dependency overview.
 /// </para>
 /// </remarks>
+/// <summary>What <see cref="ReferenceExtractor.Read"/> finds in a query.</summary>
+/// <param name="Uses">Each free identifier use, in source order, with its position.</param>
+/// <param name="Steps">The outermost <c>let</c>'s steps, in order: each name and its position.</param>
+/// <param name="InPosition">The position of the outermost <c>let</c>'s <c>in</c>, or null without one.</param>
+public sealed record MQueryStructure(
+  IReadOnlyList<(string Name, int Position)> Uses,
+  IReadOnlyList<(string Name, int Position)> Steps,
+  int? InPosition);
+
 public static class ReferenceExtractor
 {
   private enum FrameKind
@@ -53,9 +62,22 @@ public static class ReferenceExtractor
   /// Returns each use of a bare or quoted identifier that isn't defined locally, in source order, with its token's
   /// position, so a reference can be traced to its line.
   /// </summary>
-  public static IReadOnlyList<(string Name, int Position)> FindFreeIdentifierUses(IReadOnlyList<MToken> tokens)
+  public static IReadOnlyList<(string Name, int Position)> FindFreeIdentifierUses(IReadOnlyList<MToken> tokens) =>
+    Read(tokens).Uses;
+
+  /// <summary>
+  /// Reads a query's free identifier uses, as <see cref="FindFreeIdentifierUses(IReadOnlyList{MToken})"/> does, and the
+  /// steps of its outermost <c>let</c> (step E4 of the feedback plan): each step's name, unescaped, and the position of
+  /// its name, then the position of the <c>in</c>. A <c>let</c> inside a step isn't the outermost, so its steps aren't
+  /// listed, and nor is one inside an argument. A query with no <c>let</c> of its own has no steps and no <c>in</c>.
+  /// </summary>
+  public static MQueryStructure Read(IReadOnlyList<MToken> tokens)
   {
     ArgumentNullException.ThrowIfNull(tokens);
+
+    Frame? outerLet = null;
+    var steps = new List<(string Name, int Position)>();
+    int? inPosition = null;
 
     var uses = new List<(string Name, int Position, Scope Scope)>();
     var frames = new Stack<Frame>();
@@ -76,12 +98,20 @@ public static class ReferenceExtractor
 
       if (token.IsKeyword("let"))
       {
-        frames.Push(new Frame(FrameKind.Let, new Scope(frame.Scope), closer: null) { ExpectingName = true });
+        var let = new Frame(FrameKind.Let, new Scope(frame.Scope), closer: null) { ExpectingName = true };
+        // The query's own let: at the top, or the body of a function query, not one inside a step or an argument.
+        outerLet ??= frames.All(f => f.Kind is FrameKind.Root or FrameKind.Function) ? let : null;
+        frames.Push(let);
       }
       else if (token.IsKeyword("in"))
       {
         if (frame.Kind == FrameKind.Let)
         {
+          if (frame == outerLet)
+          {
+            inPosition = token.Position;
+          }
+
           // The body after "in" can see every step, so it keeps the let's scope.
           frame.Kind = FrameKind.LetBody;
           frame.ExpectingName = false;
@@ -154,6 +184,11 @@ public static class ReferenceExtractor
       {
         frame.ExpectingName = false;
         frame.Scope.Names.Add(name);
+        if (frame == outerLet && frame.Kind == FrameKind.Let)
+        {
+          steps.Add((name, token.Position));
+        }
+
         i = equalsIndex;
       }
       else
@@ -166,7 +201,10 @@ public static class ReferenceExtractor
       }
     }
 
-    return uses.Where(use => !use.Scope.Defines(use.Name)).Select(use => (use.Name, use.Position)).ToArray();
+    return new MQueryStructure(
+      uses.Where(use => !use.Scope.Defines(use.Name)).Select(use => (use.Name, use.Position)).ToArray(),
+      steps,
+      inPosition);
   }
 
   private static bool IsBodyTerminator(MToken token) =>

@@ -134,7 +134,8 @@ public sealed class HtmlExporter : IExporter
         n.Name, RoleName(n.Role), n.IsInCycle, n.UpstreamCount, n.DownstreamCount,
         files.GetValueOrDefault(n.Name)?.FileName, files.GetValueOrDefault(n.Name)?.Hash,
         details.GetValueOrDefault(n.Name)?.IsFunction == true ? "function" : "query",
-        details.GetValueOrDefault(n.Name)?.Group is { } group ? groupIndex[group] : null)).ToArray(),
+        details.GetValueOrDefault(n.Name)?.Group is { } group ? groupIndex[group] : null,
+        graph.StepsOf(n.Name).Select(s => new StepDocument(s.Name, s.Line, s.Uses)).ToArray())).ToArray(),
       graph.Edges.Select(e => new EdgeDocument(
         e.Upstream,
         e.Downstream,
@@ -223,8 +224,13 @@ public sealed class HtmlExporter : IExporter
   /// <param name="Hash">The first 16 hex digits of the SHA-256 of that file, or null.</param>
   /// <param name="Kind">"function" or "query".</param>
   /// <param name="Group">Its Excel query group, as its place in <see cref="GraphDocument.Groups"/>, or null.</param>
+  /// <param name="Steps">Its <c>let</c> steps, then its <c>in</c> expression (FR-HTML-20); empty without <c>let</c>.</param>
   private sealed record QueryDocument(
-    string Id, string Role, bool InCycle, int Upstream, int Downstream, string? File, string? Hash, string Kind, int? Group);
+    string Id, string Role, bool InCycle, int Upstream, int Downstream, string? File, string? Hash, string Kind, int? Group,
+    IReadOnlyList<StepDocument> Steps);
+
+  /// <param name="Name">The step's name, or null for the <c>in</c> expression.</param>
+  private sealed record StepDocument(string? Name, int Line, IReadOnlyList<string> Uses);
 
   /// <param name="Parent">The group it's in, as its place in <see cref="GraphDocument.Groups"/>, or null at the top level.</param>
   /// <param name="Description">Its description in Excel, or null.</param>

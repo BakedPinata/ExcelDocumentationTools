@@ -149,10 +149,18 @@ public sealed class DependencyAnalyser
 
     var edges = new List<DependencyEdge>();
     var lines = new Dictionary<DependencyEdge, IReadOnlyList<int>>();
+    var steps = new Dictionary<string, IReadOnlyList<QueryStep>>(DependencyGraph.NameComparer);
     foreach (var source in sourceList)
     {
       var current = knownQueries[source.Name];
-      var references = FindReferences(source.Content, current, knownQueries);
+      var structure = ReferenceExtractor.Read(MTokeniser.Tokenise(source.Content));
+      var references = FindReferences(source.Content, structure, current, knownQueries);
+      var queryStepList = StepsOf(source.Content, structure, current, knownQueries);
+      if (queryStepList.Count > 0)
+      {
+        steps[current] = queryStepList;
+      }
+
       if (references.Count > 0)
       {
         logger.Debug("{Query} references {References}", current, references.Keys);
@@ -166,7 +174,7 @@ public sealed class DependencyAnalyser
       }
     }
 
-    return DependencyGraph.Create(knownQueries.Values, edges, lines);
+    return DependencyGraph.Create(knownQueries.Values, edges, lines, steps);
   }
 
   /// <summary>
@@ -182,28 +190,16 @@ public sealed class DependencyAnalyser
   /// </remarks>
   private static SortedDictionary<string, IReadOnlyList<int>> FindReferences(
     string content,
+    MQueryStructure structure,
     string currentQueryName,
     Dictionary<string, string> knownQueries)
   {
     var referenced = new SortedDictionary<string, SortedSet<int>>(DependencyGraph.NameComparer);
     var lineStarts = LineStarts(content);
 
-    foreach (var (identifier, position) in ReferenceExtractor.FindFreeIdentifierUses(MTokeniser.Tokenise(content)))
+    foreach (var (identifier, position) in structure.Uses)
     {
-      if (!knownQueries.TryGetValue(identifier, out var query))
-      {
-        continue;
-      }
-
-      // Lower-case M type names ("as table", "type [A = text]") are types, so they only refer to
-      // a query whose name is spelled exactly the same way, not to "Table" or "Text".
-      if (MLanguage.IsTypeWord(identifier) && !string.Equals(identifier, query, StringComparison.Ordinal))
-      {
-        continue;
-      }
-
-      // Self-references never create an edge (FR-ANA-4).
-      if (DependencyGraph.NameComparer.Equals(query, currentQueryName))
+      if (QueryNamed(identifier, currentQueryName, knownQueries) is not { } query)
       {
         continue;
       }
@@ -220,6 +216,64 @@ public sealed class DependencyAnalyser
     foreach (var (query, at) in referenced)
     {
       result[query] = at.ToArray();
+    }
+
+    return result;
+  }
+
+  /// <summary>
+  /// The known query an identifier refers to, or null: only known query names count, a lower-case M type name
+  /// ("as table") only refers to a query spelled exactly the same way, and a query never refers to itself (FR-ANA-4).
+  /// </summary>
+  private static string? QueryNamed(string identifier, string currentQueryName, Dictionary<string, string> knownQueries)
+  {
+    if (!knownQueries.TryGetValue(identifier, out var query))
+    {
+      return null;
+    }
+
+    if (MLanguage.IsTypeWord(identifier) && !string.Equals(identifier, query, StringComparison.Ordinal))
+    {
+      return null;
+    }
+
+    return DependencyGraph.NameComparer.Equals(query, currentQueryName) ? null : query;
+  }
+
+  /// <summary>
+  /// The outermost <c>let</c>'s steps (step E4), each with its line and the queries it uses, in the order first used,
+  /// then the <c>in</c> expression, with no name; none for a query without <c>let</c>.
+  /// </summary>
+  private static List<QueryStep> StepsOf(
+    string content,
+    MQueryStructure structure,
+    string currentQueryName,
+    Dictionary<string, string> knownQueries)
+  {
+    var result = new List<QueryStep>();
+    if (structure.Steps.Count == 0)
+    {
+      return result;
+    }
+
+    var lineStarts = LineStarts(content);
+    var starts = structure.Steps.Select(s => s.Position).Append(structure.InPosition ?? int.MaxValue).ToArray();
+    var names = structure.Steps.Select(s => (string?)s.Name).Append(null).ToArray();
+    for (var k = 0; k < starts.Length; k++)
+    {
+      if (starts[k] == int.MaxValue)
+      {
+        break; // a let with no in, as when the text stops short
+      }
+
+      var end = k + 1 < starts.Length ? starts[k + 1] : int.MaxValue;
+      var uses = structure.Uses
+        .Where(u => u.Position >= starts[k] && u.Position < end)
+        .Select(u => QueryNamed(u.Name, currentQueryName, knownQueries))
+        .OfType<string>()
+        .Distinct(DependencyGraph.NameComparer)
+        .ToArray();
+      result.Add(new QueryStep(names[k], LineAt(lineStarts, starts[k]), uses));
     }
 
     return result;

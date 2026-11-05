@@ -236,7 +236,26 @@
       "<p class=\"muted reach\" id=\"details-reach\">Including indirect links, " + countText(upstream) + " feed" + (upstream === 1 ? "s" : "") +
       " this query and " + countText(downstream) + " depend" + (downstream === 1 ? "s" : "") + " on it.</p>" +
       "<div class=\"actions\"><button type=\"button\" class=\"button\" id=\"details-clear\">Clear selection</button></div>" +
+      stepsHtml(query) +
       sourceSection(query);
+  }
+
+  // A query's let steps in order (FR-HTML-20), each linking to its line and listing the queries it uses, then the in
+  // expression. A query without a let of its own has none: its Uses list says what it uses.
+  function stepsHtml(query) {
+    var steps = query.steps || [];
+    if (steps.length === 0) return "";
+    var named = steps.filter(function (s) { return s.name !== null; }).length;
+    return "<h3>Steps (" + named + ")</h3><ol class=\"query-steps\" id=\"details-steps\">" + steps.map(function (step) {
+      var label = step.name === null ? "in" : step.name;
+      return "<li" + (step.name === null ? " class=\"step-in\"" : "") + "><button type=\"button\" class=\"ref-line\" data-ref-select=\"" +
+        escapeHtml(query.id) + "\" data-ref-line=\"" + step.line + "\" title=\"Show line " + step.line + "\"><span class=\"ref-ln\">" + step.line +
+        "</span><code>" + escapeHtml(label) + "</code></button>" +
+        (step.uses.length === 0 ? "" : "<span class=\"step-uses\"><span class=\"muted\">uses</span> " + step.uses.map(function (id) {
+          return "<a href=\"#\" data-select=\"" + escapeHtml(id) + "\">" + escapeHtml(id) + "</a>" +
+            (shell.hidden.has(id) ? " <span class=\"hidden-tag\" title=\"Hidden from the graph\">hidden</span>" : "");
+        }).join(", ") + "</span>") + "</li>";
+    }).join("") + "</ol>";
   }
 
   panelBody.addEventListener("click", function (event) {

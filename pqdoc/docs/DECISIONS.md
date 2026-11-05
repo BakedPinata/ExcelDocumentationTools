@@ -183,6 +183,19 @@ Reading them is step B2 of the feedback plan.
   Anything else counts as a query; a parameter does too, since it isn't a function.
 - **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
 
+## A query's steps (1.16.0, step E4 of the feedback plan)
+
+- **The structural pass keeps the outermost `let`'s steps** (FR-HTML-20): `ReferenceExtractor.Read` returns each step's
+  name and position and the `in`'s position with the free identifier uses, and the analyser gives each step the known
+  queries used between its name and the next step's (or the `in`), with the line of its name. They travel as
+  `DependencyGraph.StepsOf`, beside the edges, and `steps` on each query in the page data.
+- **Only the query's own `let` counts:** at the top of the query, or the body of a function query. A `let` inside a step
+  or an argument isn't listed, so a query like `Table.Buffer(let … in …)` shows only what it uses, as a query without
+  `let` does.
+- **A step's uses are queries and functions of the workbook,** not built-in functions or other steps; a step named like
+  a query is the step, as the analyser already had it.
+- **Each step's line links to the source** through the shell's line links (E1), and each query it uses selects it.
+
 ## Uses / Used by with references (1.15.0, step E1 of the feedback plan)
 
 - **The analyser records where each reference is** (FR-HTML-19): `ReferenceExtractor.FindFreeIdentifierUses` keeps
