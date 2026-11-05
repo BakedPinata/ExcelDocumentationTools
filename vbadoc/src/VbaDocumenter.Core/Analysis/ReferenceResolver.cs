@@ -75,6 +75,18 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
 
   static int LineOf(Scope scope, string name) => LineNaming(scope.Module, scope.Line, scope.LastLine, name);
 
+  /// <summary>Calls made in procedure bodies, in the order they appear: see <see cref="Call"/>.</summary>
+  public List<Call> Calls { get; } = [];
+
+  // A reference from a procedure's body to something that runs: a procedure, property, event or Declare.
+  void RecordCall(Scope scope, Member target, int line)
+  {
+    if (scope.Procedure == null) return;
+    if (!target.IsProcedure && target.Kind is not (MemberKind.Event or MemberKind.Declare)) return;
+    var call = new Call(scope.FromId, index.IdOf(target), null, line);
+    if (Calls.Count == 0 || Calls[^1] != call) Calls.Add(call); // one call even if a chain names it twice
+  }
+
   /// <summary>A name in a chain, with whether it was followed by "(...)".</summary>
   sealed record Segment(string Name, bool HasArguments);
 
@@ -145,7 +157,11 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
         {
           var name = t[++i].Text;
           var declaration = scope.Module.Members.FirstOrDefault(m => m.Kind == MemberKind.Event && Same(m.Name, name));
-          if (declaration != null) edges.Add(scope.FromId, scope.Module, index.IdOf(declaration), EdgeKind.Events, LineOf(scope, name));
+          if (declaration != null)
+          {
+            edges.Add(scope.FromId, scope.Module, index.IdOf(declaration), EdgeKind.Events, LineOf(scope, name));
+            RecordCall(scope, declaration, LineOf(scope, name));
+          }
         }
         else if (token.IsKeyword("GoTo") || token.IsKeyword("GoSub") || token.IsKeyword("Resume"))
         {
@@ -211,6 +227,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
       {
         case ResolvedTypeKind.LateBound:
           lateBound.Add(new LateBoundReference(scope.FromId, Describe(segments, next, withDot), scope.Line));
+          if (scope.Procedure != null) Calls.Add(new Call(scope.FromId, null, Describe(segments, next, withDot), scope.Line));
           return (j, ResolvedType.Unknown);
 
         case ResolvedTypeKind.Module:
@@ -223,6 +240,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
             return (j, ResolvedType.Unknown);
           }
           edges.Add(scope.FromId, scope.Module, index.IdOf(member), EdgeKind.Uses, LineOf(scope, segment.Name));
+          RecordCall(scope, member, LineOf(scope, segment.Name));
           current = TypeOf(member, segmentAccess);
           break;
 
@@ -275,6 +293,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
     if (own != null)
     {
       edges.Add(scope.FromId, scope.Module, index.IdOf(own), EdgeKind.Uses, LineOf(scope, name));
+      RecordCall(scope, own, LineOf(scope, name));
       return TypeOf(own, access);
     }
 
@@ -291,6 +310,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
     if (global != null)
     {
       edges.Add(scope.FromId, scope.Module, index.IdOf(global), EdgeKind.Uses, LineOf(scope, name));
+      RecordCall(scope, global, LineOf(scope, name));
       return TypeOf(global, access);
     }
 

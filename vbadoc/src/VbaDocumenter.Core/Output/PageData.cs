@@ -33,6 +33,9 @@ public sealed record PageEdge(string From, string To, string Kind, int Count, IR
 
 public sealed record PageLateBound(string From, string Expression, int Line);
 
+/// <summary>A call, for the Calls tab (see <see cref="Call"/>): what's called, or the late-bound expression, and the line.</summary>
+public sealed record PageCall(string From, string? To, string? LateBound, int Line);
+
 public sealed record PageData(
     PageProject Project,
     IReadOnlyList<PageModule> Modules,
@@ -40,7 +43,8 @@ public sealed record PageData(
     IReadOnlyList<PageEdge> ModuleEdges,
     IReadOnlyList<PageEdge> MemberEdges,
     IReadOnlyList<PageClassEdge> ClassEdges,
-    IReadOnlyList<PageLateBound> LateBound)
+    IReadOnlyList<PageLateBound> LateBound,
+    IReadOnlyList<PageCall> Calls)
 {
   static readonly JsonSerializerOptions JsonOptions = new()
   {
@@ -85,7 +89,8 @@ public sealed record PageData(
         model.ModuleEdges.Select(Edge).ToList(),
         model.MemberEdges.Select(Edge).ToList(),
         ClassDiagram.Edges(model),
-        model.LateBound.Select(l => new PageLateBound(l.FromId, l.Expression, l.Line)).ToList());
+        model.LateBound.Select(l => new PageLateBound(l.FromId, l.Expression, l.Line)).ToList(),
+        model.Calls.Select(c => new PageCall(c.From, c.To, c.LateBound, c.Line)).ToList());
   }
 
   public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);

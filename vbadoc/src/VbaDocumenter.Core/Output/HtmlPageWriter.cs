@@ -44,7 +44,7 @@ public static class HtmlPageWriter
   const string GeneratorTag = "<meta name=\"generator\" content=\"vbadoc ";
 
   /// <summary>Our own scripts, in load order after the vendored libraries.</summary>
-  static readonly string[] PageScripts = ["Page/vba-highlight.js", "Page/page.js", "Page/graph.js", "Page/classes.js"];
+  static readonly string[] PageScripts = ["Page/vba-highlight.js", "Page/page.js", "Page/graph.js", "Page/classes.js", "Page/calls.js"];
 
   static Assembly Resources => typeof(HtmlPageWriter).Assembly;
 
@@ -60,7 +60,7 @@ public static class HtmlPageWriter
       Version = Version,
       PageTitle = title,
       Title = title,
-      Tabs = [new ShellTab("graph", "Dependency graph"), new ShellTab("classes", "Class diagram")],
+      Tabs = [new ShellTab("graph", "Dependency graph"), new ShellTab("classes", "Class diagram"), new ShellTab("calls", "Calls")],
       SearchHtml = EmbeddedResources.ReadText(Resources, "Page/search.html"),
       LoadFolderHint = "Choose the folder that holds this page's module files, to see their source",
       Summary = Summary(model),

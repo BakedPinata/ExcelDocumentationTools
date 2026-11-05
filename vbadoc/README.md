@@ -156,6 +156,11 @@ To take something out of every view, hide it with the struck-through eye beside 
 struck through, and is listed in the Hidden group at the bottom, where you can show it again. Each view's toolbar counts
 what's hidden, and the source panel says when what you've selected uses something hidden.
 
+The **Calls** tab follows the execution path: start from a macro, event handler or worksheet function (or a
+favourite, or Ctrl+click any procedure) and open its calls one level at a time, in the order of the code. Each call
+links to its line. Calls through an interface open to the implementations, RaiseEvent to its handlers, and **Called by**
+turns the tree round to show what leads to a procedure. The tree can't see `Application.Run` or `OnAction`.
+
 **Dependencies**, in the source panel, lists what the selection uses and what uses it, each item once. Open an item
 to see every line where it's referenced, and choose one to jump to that line in the source.
 

@@ -455,6 +455,29 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### The Calls tab (0.23.0, step E2 of the feedback plan)
+
+- **Core lists every call in the order of the code** (`DependencyModel.Calls`, `calls` in the page data), recorded by
+  the resolver as it reads each statement left to right, from E1's references: a call to a procedure, property (each
+  side), event (RaiseEvent) or Declare, or a late-bound call with its expression. Assigning a Function's result to its
+  name isn't a call; calling it with arguments is recursion. The page builds the tree from these, so nothing is laid
+  out ahead and only open rows are drawn.
+- **Clicks only select in the tree** (agreed with the user; the guidelines record the exception): following an
+  execution path means reading each procedure's source while the path stays open, which re-rooting on every click
+  would undo. Ctrl+click, a focused selection made elsewhere, or a focused module (its procedures) starts the tree
+  there; Entry points, or clearing the selection, goes back.
+- **Entry points** are the existing roles: macros, built-in and control event handlers, and worksheet functions, plus
+  favourite procedures. WithEvents handlers and interface implementations aren't entry points: the tree reaches them
+  through RaiseEvent and the interface member.
+- **Interfaces and events** are followed as the code runs them: a call to `IOrderRepository.Save` opens to each class's
+  `IOrderRepository_Save`, and RaiseEvent to the handlers. Turned round, an implementation opens to the interface member
+  it implements, and that to what calls it.
+- **What the views don't show** (hidden, filtered out, or left out by Show…) is left out of a node's calls and counted
+  in one row, rather than hidden silently. The roots are the user's choice, so they're always listed.
+- **Each call is its own row,** so a procedure called twice is listed twice, at each line. Opening a row draws the whole
+  tree again, keeping what's open (about 45 ms per open on the production workbook with every branch open six deep);
+  drawing only the opened row is the next step if that ever grows.
+
 ### Uses / Used by with references (0.22.0, step E1 of the feedback plan)
 
 - **Every member edge has its lines** (`Edge.Lines`, `lines` in the page data): the lines of its module's file, as the

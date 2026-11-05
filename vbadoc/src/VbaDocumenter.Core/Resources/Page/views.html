@@ -44,3 +44,19 @@
     </svg>
     <details class="view-legend" id="classes-legend" open><summary>Legend</summary><div id="classes-legend-body"></div></details>
   </section>
+  <section class="view calls-view" id="view-calls" role="tabpanel" aria-labelledby="tab-calls" hidden>
+    <div class="view-toolbar" role="toolbar" aria-label="Calls options">
+      <button type="button" class="button" id="calls-focus" aria-pressed="true" title="Focus on click, shared with the other views. Here a click only selects, so the tree stays as it is; Ctrl+click starts the tree from what you click.">Focus</button>
+      <div class="segmented" role="radiogroup" aria-label="Direction">
+        <button type="button" role="radio" data-calls-direction="calls" aria-checked="true" title="What each procedure calls, in the order of its code">Calls</button>
+        <button type="button" role="radio" data-calls-direction="calledBy" aria-checked="false" title="What calls each procedure">Called by</button>
+      </div>
+      <button type="button" class="button" id="calls-collapse" title="Close every open call">Collapse all</button>
+      <span class="toolbar-note" id="calls-root-note" hidden><span></span> <button type="button" class="link-button" id="calls-entry-points" title="Start from the entry points and favourites again">Entry points</button></span>
+    </div>
+    <div class="calls-body">
+      <p class="calls-note muted">Calls the code makes directly, in its order. The tree can't see Application.Run, OnAction or other calls made by name, and a late-bound call shows only its expression.</p>
+      <p class="view-message calls-message" id="calls-message" hidden></p>
+      <ul class="tree calls-tree" id="calls-tree" role="tree" aria-label="Calls"></ul>
+    </div>
+  </section>

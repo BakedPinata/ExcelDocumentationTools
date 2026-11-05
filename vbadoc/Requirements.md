@@ -177,6 +177,16 @@ Shared by both views.
   - Large diagrams must remain correctly drawn, with zoom and pan.
 - **Testing:** verify the drawn diagram in a headless browser.
 
+### Calls view
+
+- **A tree of the procedures each procedure calls, in the order of its code,** opened one level at a time, so its size never matters. It starts from the entry points (macros, event handlers and worksheet functions, in groups) and the favourite procedures.
+- **Each call** shows what's called, its kind, and the line it's on, which selects the procedure making the call and shows the line in the source panel. Calls are to procedures, properties (each side of one), events (RaiseEvent) and Declares; uses of variables and constants stay in Dependencies.
+- **Through an interface or an event:** a call to an interface member opens to its implementations, and RaiseEvent to its WithEvents handlers.
+- **Recursion:** a procedure already open higher up the same branch is marked ↻ and doesn't open again.
+- **Left out and counted:** calls to items the views don't show (hidden, filtered out, or left out by Show…) aren't listed, and a row counts them. A late-bound call is a leaf showing its expression. A note says the tree can't see `Application.Run`, `OnAction` or other calls made by name.
+- **Calls / Called by** turns the tree round, to show what leads to a procedure; an implementation or handler then opens to what calls the interface member or raises the event. The choice is remembered.
+- **Clicks:** a click on a name selects it without changing the tree, so the path opened stays (the exception to Focus on click in the guidelines); Ctrl+click starts the tree from that procedure, as a focused selection made in another view does. Entry points, or clearing the selection, goes back to the entry points. The tree works from the keyboard as the explorer's does.
+
 ## Out of scope
 
 - **Sequence diagrams:** these were prototyped and rejected. Diagrams for real entry points were too large to read, and Mermaid rendered large ones incorrectly.

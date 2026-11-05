@@ -10,7 +10,7 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.22.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.23.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
@@ -29,8 +29,9 @@ rather than repeating it.
   Expand / Collapse all to D3, which moved widely used items to a new D4. D1d (speed) is pushed; the user found it a
   little better on the production workbook, good enough for now. A6 (a name declared again under `#If` is one member)
   is pushed. D2 (favourites) is pushed. D3 is split into D3a (Expand / Collapse all and the views' filter), D3b
-  (hiding) and D3c (the Show menus in the explorer), all pushed. D4 (widely used items and predeclared classes) and
-  E1 (Uses / Used by with references) are done, waiting for review. **Next: E2** (the Calls tab).
+  (hiding) and D3c (the Show menus in the explorer), all pushed, as are D4 (widely used items and predeclared classes)
+  and E1 (Uses / Used by with references). E2 (the Calls tab) is done, waiting for review. **Next: E3** (the logic
+  around each call).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -40,6 +41,20 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-05: Step E2, the Calls tab
+
+- vbadoc's Core lists every call in the order of the code (`calls` in the page data): procedures, properties, events,
+  Declares, and late-bound calls.
+- A Calls tab draws them as a tree from the entry points and favourites, one level at a time, with recursion marked,
+  interfaces opening to their implementations and RaiseEvent to its handlers, calls to items not shown counted, and
+  each call's line linked. Called by turns it round.
+- A click in the tree only selects and Ctrl+click starts the tree there: the exception to Focus on click the user
+  agreed, now in the guidelines.
+- vbadoc's requirements (a Calls view section), decisions and README follow. vbadoc 0.23.0; pqdoc unchanged.
+- Tests: 5 unit tests of the calls (order, recursion, interface, RaiseEvent, no variables); 8 browser tests. On the
+  private workbook every one of 213 calls names what it calls, and opening every branch six deep took at most 45 ms an
+  open, with no errors.
 
 ### 2026-11-05: Step E1, Uses / Used by with references
 

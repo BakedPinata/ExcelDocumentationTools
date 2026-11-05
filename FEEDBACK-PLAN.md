@@ -57,7 +57,7 @@ questions the draft raised.
 | D3c | Showing less, part 3: the Show menus move into the explorer, for every view | Claude | Done |
 | D4 | Widely used items and predeclared classes, marked and grouped in the explorer, with Hide all (split from D3 after D1c) | Claude | Done |
 | E1 | Uses / Used by: each item once, with links to the exact lines | Claude | Done |
-| E2 | Calls tab: the procedures an entry point calls, in order | Claude | |
+| E2 | Calls tab: the procedures an entry point calls, in order | Claude | Done |
 | E3 | Calls tab: the Ifs, loops and Select Cases around each call | Claude | |
 | E4 | pqdoc: a query's steps, in order | Claude | |
 | E5 | Optional: a sequence diagram of the expanded calls | Claude | |

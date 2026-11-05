@@ -58,6 +58,23 @@ html[data-theme="light"] {
 .edge-tag.implements { border-color: var(--edge-implements); border-style: dashed; }
 .edge-tag.events { border-color: var(--edge-events); border-style: dotted; }
 
+/* ---- Calls (calls.js): a tree under the toolbar, which here takes its own room rather than floating ---- */
+
+.calls-view:not([hidden]) { display: flex; flex-direction: column; }
+.calls-view .view-toolbar { position: static; flex: none; padding: 8px 8px 0; }
+.calls-body { flex: 1; min-height: 0; overflow: auto; padding: 4px 0 16px; }
+.calls-note { margin: 4px 12px 8px; font-size: 12px; }
+.calls-view .calls-message { position: static; display: block; margin: 12px; }
+.calls-tree { overflow: visible; }
+.calls-tree .tree-row { cursor: default; }
+.calls-tree li[aria-expanded] > .tree-row { cursor: pointer; }
+.calls-name { color: var(--text); text-decoration: none; }
+.calls-name:hover, .calls-name:focus-visible { text-decoration: underline; }
+.calls-relation { flex: none; color: var(--text-muted); font-size: 12px; font-style: italic; }
+.calls-recursion { flex: none; color: var(--warn); }
+.calls-line { flex: none; font-size: 12px; }
+.calls-late code { font: 12px var(--font-code); color: var(--text-muted); }
+
 /* ---- Dependency graph (graph.js) ---- */
 
 .view-toolbar {

@@ -135,7 +135,9 @@ of generated pages, because changing one changes every page.
   Focus on favourites) is said in every view's toolbar, with a way back.
 - **Focus on click, Ctrl+click and Esc work the same in every view of both tools:** one Focus on click setting for the
   page, on by default; Ctrl+click (Cmd+click) does the other thing for a click; Esc clears the selection, after an open
-  menu or a box with text in it. A new view follows `focused()` from the shell.
+  menu or a box with text in it. A new view follows `focused()` from the shell. The one exception, agreed with the
+  user for vbadoc's Calls tab: a click in its tree only selects, so the path opened stays put, and Ctrl+click focuses;
+  a focused selection still starts the tree there, wherever it was made.
 - **A page never says when it was made,** so the same workbook gives the same page and git diffs show only real
   changes. The top bar's summary says when the workbook was last saved instead, from its own document properties.
 - **The side panel follows the selection** unless locked open: it opens when something is selected and closes when

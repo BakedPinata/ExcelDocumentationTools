@@ -58,6 +58,16 @@ public sealed record Edge(string From, string To, EdgeKind Kind, int Count)
   public override int GetHashCode() => HashCode.Combine(From, To, Kind, Count);
 }
 
+/// <summary>
+/// A call a procedure makes, to a procedure, property, event (RaiseEvent) or Declare, or late-bound (step E2 of the
+/// feedback plan). Calls are listed in the order they appear in the code, which is what the Calls tab follows.
+/// </summary>
+/// <param name="From">The calling procedure's id.</param>
+/// <param name="To">The id of what's called, or null for a late-bound call.</param>
+/// <param name="LateBound">For a late-bound call, the expression, such as "legacy.ExportAll"; otherwise null.</param>
+/// <param name="Line">The call's line in the module's file, as for <see cref="Edge.Lines"/>.</param>
+public sealed record Call(string From, string? To, string? LateBound, int Line);
+
 /// <summary>A member access on an Object, Variant or untyped value, which can't be resolved without running the code.</summary>
 /// <param name="Expression">e.g. "legacy.ExportAll" or "CreateObject(…).OpenTextFile".</param>
 public sealed record LateBoundReference(string FromId, string Expression, int Line);
@@ -81,4 +91,7 @@ public sealed class DependencyModel
 
   /// <summary>In project and source order.</summary>
   public required IReadOnlyList<LateBoundReference> LateBound { get; init; }
+
+  /// <summary>Every procedure's calls, in project and source order.</summary>
+  public IReadOnlyList<Call> Calls { get; init; } = [];
 }

@@ -34,6 +34,7 @@ public static class DependencyAnalyser
       ModuleEdges = moduleEdges,
       MemberEdges = memberEdges,
       LateBound = lateBound,
+      Calls = resolver.Calls,
     };
   }
 
