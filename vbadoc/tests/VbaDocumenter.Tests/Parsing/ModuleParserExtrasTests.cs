@@ -146,7 +146,8 @@ public class ModuleParserExtrasTests
             "started = #12:30:00 PM#",
             "rows(1).Id = \"A:1\"",
             "rows(1).Amount = 0",
-            "If count > MAX_ROWS Then GoTo TooMany",
+            "If count > MAX_ROWS Then",
+            "GoTo TooMany", // a single-line If is split into its branches
             "Exit Sub",
             "Sleep GetTickCount Mod 10",
         ], fillRows.Body.Select(s => s.Text));

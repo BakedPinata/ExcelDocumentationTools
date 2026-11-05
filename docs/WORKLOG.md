@@ -10,7 +10,7 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.23.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.24.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
@@ -30,8 +30,8 @@ rather than repeating it.
   little better on the production workbook, good enough for now. A6 (a name declared again under `#If` is one member)
   is pushed. D2 (favourites) is pushed. D3 is split into D3a (Expand / Collapse all and the views' filter), D3b
   (hiding) and D3c (the Show menus in the explorer), all pushed, as are D4 (widely used items and predeclared classes)
-  and E1 (Uses / Used by with references). E2 (the Calls tab) is done, waiting for review. **Next: E3** (the logic
-  around each call).
+  and E1 (Uses / Used by with references). E2 (the Calls tab) is pushed. E3 (the logic around each call) is done,
+  waiting for review. **Next: E4** (a query's steps, in pqdoc).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -41,6 +41,15 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-05: Step E3, the logic around each call
+
+- The parser follows block statements (If/ElseIf/Else, single-line If, Select Case and Case, loops, With, On Error
+  handlers, and #If in a body); each call carries its block, and the Calls tree shows blocks as rows holding their
+  calls, leaving out blocks with none. Turned round, a caller says which block its call is in.
+- vbadoc's requirements, decisions and README follow. vbadoc 0.24.0.
+- Tests: 10 parser tests of blocks and 1 of calls' blocks; 2 new browser tests, and the E2 ones updated for the
+  nesting. The private workbook check wasn't run for this step (usage limit).
 
 ### 2026-11-05: Step E2, the Calls tab
 

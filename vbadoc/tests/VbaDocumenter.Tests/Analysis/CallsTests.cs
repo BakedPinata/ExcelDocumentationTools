@@ -39,6 +39,28 @@ public class CallsTests
   }
 
   [Fact]
+  public void Each_call_is_in_the_innermost_block_around_it_and_a_blocks_own_line_is_in_the_block_around_that()
+  {
+    var process = Model.Members.Single(n => n.Id == "Main.ProcessOrders").Member!;
+    string Where(string to, int line)
+    {
+      var block = Model.Calls.Single(c => c.From == "Main.ProcessOrders" && c.To == to && c.Line == line).Block;
+      return block is { } id ? process.Blocks[id].Text : "(top)";
+    }
+
+    Assert.Equal("(top)", Where("OrderService.Init", 18));
+    Assert.Equal("(top)", Where("IOrderRepository.LoadAll", 21));                  // For Each's own line
+    Assert.Equal("For Each o In repo.LoadAll", Where("Order.Status[Get]", 22));    // Select Case's own line, in the loop
+    Assert.Equal("Case \"NEW\"", Where("OrderService.Process", 24));
+    Assert.Equal("Case \"HOLD\"", Where("Logger.LogInfo", 26));
+    Assert.Equal("With svc", Where("OrderService.Summarise", 33));
+    Assert.Equal("On error: ErrHandler", Where("Logger.LogError", 41));
+
+    var factorial = Model.Members.Single(n => n.Id == "Main.Factorial").Member!;
+    Assert.Equal("Else", factorial.Blocks[Model.Calls.Single(c => c.From == "Main.Factorial").Block!.Value].Text); // a single-line If's Else
+  }
+
+  [Fact]
   public void Recursion_is_a_call_to_itself_but_assigning_the_result_is_not()
   {
     Assert.Equal([("Main.Factorial", 45)], CallsOf("Main.Factorial"));

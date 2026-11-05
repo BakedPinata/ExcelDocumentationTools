@@ -11,6 +11,11 @@
 // event. A procedure already open higher up the same branch is recursion (↻) and doesn't open again. Calls to items
 // the views don't show (hidden, filtered out, or left out by the Show… choices) are left out and counted, and
 // late-bound calls are leaves showing their expression.
+//
+// The logic around each call (step E3) shows as rows: an If, ElseIf or Else branch, a Select Case and each Case, a
+// loop, a With or an On Error handler holds the calls made inside it, in order, open to begin with. A block with no
+// calls in it isn't shown, and its text is cut to about 60 characters. Turned round, a caller says which block the
+// call is in.
 (function () {
   "use strict";
 
@@ -35,14 +40,23 @@
   // ---- What calls what ----
 
   var callsFrom = new Map();  // procedure -> its calls, in order
-  var callsTo = new Map();    // procedure -> [{ from, line }]
+  var callsTo = new Map();    // procedure -> [{ from, line, block }]
   data.calls.forEach(function (c) {
     if (!callsFrom.has(c.from)) callsFrom.set(c.from, []);
     callsFrom.get(c.from).push(c);
     if (!c.to) return;
     if (!callsTo.has(c.to)) callsTo.set(c.to, []);
-    callsTo.get(c.to).push({ from: c.from, line: c.line });
+    callsTo.get(c.to).push({ from: c.from, line: c.line, block: c.block });
   });
+
+  var blocksOf = new Map();   // procedure -> its blocks, by id
+  data.blocks.forEach(function (b) {
+    if (!blocksOf.has(b.from)) blocksOf.set(b.from, []);
+    blocksOf.get(b.from)[b.id] = b;
+  });
+
+  var BLOCK_TEXT_LENGTH = 60;
+  function cut(text, length) { return text.length > length ? text.slice(0, length - 1) + "…" : text; }
 
   // Interface members and their implementations, events and their WithEvents handlers.
   var implementationsOf = new Map();
@@ -64,8 +78,8 @@
   function shown(id) { return vb.kept(id) && vb.shows(id); }
   function byName(a, b) { var x = nameOf(a).toLowerCase(), y = nameOf(b).toLowerCase(); return x < y ? -1 : x > y ? 1 : 0; }
 
-  // A node's children, turned the way the tree is: { rows, leftOut }. Each row is { id, line, lineIn, relation } or
-  // { lateBound, line, lineIn }; lineIn is the procedure whose line it is.
+  // A node's children, turned the way the tree is: { rows, leftOut }. Each row is { id, line, lineIn, relation, within },
+  // { lateBound, line, lineIn } or a block, { block, line, lineIn, rows }; lineIn is the procedure whose line it is.
   function childrenOf(id) {
     var rows = [];
     var leftOut = 0;
@@ -73,13 +87,30 @@
     if (direction === "calls") {
       (implementationsOf.get(id) || []).slice().sort(byName).forEach(function (impl) { push({ id: impl, relation: "implemented by" }); });
       (handlersOf.get(id) || []).slice().sort(byName).forEach(function (handler) { push({ id: handler, relation: "handled by" }); });
+      // Each call goes in its block's row, made when its first call comes, so blocks are in the order of the code and a
+      // block with no calls shown isn't there at all.
+      var blocks = blocksOf.get(id) || [];
+      var blockRows = new Map();
+      function rowsOf(blockId) {
+        if (blockId === null || blockId === undefined || !blocks[blockId]) return rows;
+        if (blockRows.has(blockId)) return blockRows.get(blockId).rows;
+        var block = blocks[blockId];
+        var row = { block: block, line: block.line, lineIn: id, rows: [] };
+        blockRows.set(blockId, row);
+        rowsOf(block.parent).push(row);
+        return row.rows;
+      }
       (callsFrom.get(id) || []).forEach(function (c) {
-        push(c.to ? { id: c.to, line: c.line, lineIn: id } : { lateBound: c.lateBound, line: c.line, lineIn: id });
+        if (c.to && !shown(c.to)) { leftOut++; return; }
+        rowsOf(c.block).push(c.to ? { id: c.to, line: c.line, lineIn: id } : { lateBound: c.lateBound, line: c.line, lineIn: id });
       });
     } else {
       if (implementedMember.has(id)) push({ id: implementedMember.get(id), relation: "implements" });
       if (handledEvent.has(id)) push({ id: handledEvent.get(id), relation: "handles" });
-      (callsTo.get(id) || []).forEach(function (c) { push({ id: c.from, line: c.line, lineIn: c.from }); });
+      (callsTo.get(id) || []).forEach(function (c) {
+        var block = c.block !== null && c.block !== undefined && blocksOf.has(c.from) ? blocksOf.get(c.from)[c.block] : null;
+        push({ id: c.from, line: c.line, lineIn: c.from, within: block ? block.text : null });
+      });
     }
     return { rows: rows, leftOut: leftOut };
   }
@@ -131,6 +162,14 @@
 
   function rowHtml(row, depth, key, path) {
     var li = "<li role=\"treeitem\" tabindex=\"-1\" aria-level=\"" + (depth + 1) + "\" data-key=\"" + escapeHtml(key) + "\"";
+    if (row.block) {
+      // Open to begin with, as the calls it holds are what it's there for.
+      var blockOpen = !open.has(key + ":closed");
+      return li + " class=\"calls-block" + (blockOpen ? "" : " collapsed") + "\" data-open-first aria-expanded=\"" + blockOpen + "\">" +
+        "<div class=\"tree-row\" style=\"--depth:" + depth + "\"><span class=\"tree-twisty\" aria-hidden=\"true\"></span>" +
+        "<code class=\"tree-label calls-block-text\" title=\"" + escapeHtml(row.block.text) + "\">" + escapeHtml(cut(row.block.text, BLOCK_TEXT_LENGTH)) + "</code>" +
+        lineButton(row) + "</div>" + rowsHtml(row.rows, depth + 1, key, path) + "</li>";
+    }
     if (row.lateBound !== undefined) {
       return li + " class=\"calls-late\"><div class=\"tree-row\" style=\"--depth:" + depth + "\"><span class=\"tree-twisty\"></span>" +
         "<code class=\"tree-label\">" + escapeHtml(row.lateBound) + "</code> <span class=\"tree-detail\" title=\"Called on an Object or Variant, so what it calls can't be known without running the code\">late-bound</span>" +
@@ -148,16 +187,22 @@
       " <span class=\"tree-detail\">" + escapeHtml(kindOf(row.id)) + "</span>" +
       (member && member.role !== "none" && depth === 0 ? " <span class=\"tree-badge\">" + escapeHtml(vb.roleLabel(member.role)) + "</span>" : "") +
       (recursive ? " <span class=\"calls-recursion\" title=\"Already open above, on this branch: recursion\">↻</span>" : "") +
-      lineButton(row) + "</div>";
+      lineButton(row) +
+      (row.within ? " <span class=\"calls-within muted\" title=\"" + escapeHtml("The call is inside " + row.within) + "\">in " +
+        escapeHtml(cut(row.within, 40)) + "</span>" : "") + "</div>";
     if (isOpen) html += childrenHtml(row.id, depth + 1, key, path.concat([row.id]));
     return html + "</li>";
   }
 
+  function rowsHtml(rows, depth, key, path) {
+    return "<ul role=\"group\">" + rows.map(function (row, i) {
+      return rowHtml(row, depth, key + (row.block ? "/b" + row.block.id : "/" + i + ":" + (row.id || "")), path);
+    }).join("") + "</ul>";
+  }
+
   function childrenHtml(id, depth, key, path) {
     var children = childrenOf(id);
-    var html = "<ul role=\"group\">" + children.rows.map(function (row, i) {
-      return rowHtml(row, depth, key + "/" + i + ":" + (row.id || ""), path);
-    }).join("");
+    var html = rowsHtml(children.rows, depth, key, path).slice(0, -"</ul>".length);
     if (children.leftOut > 0) {
       html += "<li class=\"calls-left-out\" role=\"none\"><div class=\"tree-row\" style=\"--depth:" + depth + "\"><span class=\"tree-twisty\"></span>" +
         "<span class=\"muted\">+ " + children.leftOut + (children.leftOut === 1 ? " call" : " calls") + " to items the views don't show (hidden, filtered or left out by Show…)</span></div></li>";
@@ -209,7 +254,7 @@
 
   function setOpen(li, value) {
     var key = li.getAttribute("data-key");
-    if (li.classList.contains("group")) { if (value) open.delete(key + ":closed"); else open.add(key + ":closed"); }
+    if (li.classList.contains("group") || li.hasAttribute("data-open-first")) { if (value) open.delete(key + ":closed"); else open.add(key + ":closed"); }
     else if (value) open.add(key); else open.delete(key);
     var focusedKey = key;
     draw();

@@ -455,6 +455,19 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### The logic around each call (0.24.0, step E3 of the feedback plan)
+
+- **The parser follows block statements** (`BlockTracker`) and gives each statement its innermost block and each
+  procedure its `Blocks`; calls carry their block into the page data (`blocks`, and `block` on each call).
+- **A block's own statement is in the block around it,** since that's where it runs: an If's condition, a For's range,
+  a Select's expression. So a call in a condition is listed just before its block's row.
+- **A single-line If is split into its parts** ("If x Then", the Then statements, "Else", the Else statements), with
+  everything after Then on the logical line belonging to it, colons or not, as in VBA. The parser test that kept one
+  as a single statement now checks the split.
+- **An On Error handler** runs from the label On Error GoTo names to the end of the procedure.
+- **Under #If,** each branch starts from the blocks open at the #If, and the first branch's carry on after #End If.
+- **Unbalanced closers** (an End If with nothing open) are just statements.
+
 ### The Calls tab (0.23.0, step E2 of the feedback plan)
 
 - **Core lists every call in the order of the code** (`DependencyModel.Calls`, `calls` in the page data), recorded by

@@ -74,6 +74,8 @@ html[data-theme="light"] {
 .calls-recursion { flex: none; color: var(--warn); }
 .calls-line { flex: none; font-size: 12px; }
 .calls-late code { font: 12px var(--font-code); color: var(--text-muted); }
+.calls-block-text { font: 12px var(--font-code); color: var(--text-muted); }
+.calls-within { flex: 0 1000 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
 
 /* ---- Dependency graph (graph.js) ---- */
 

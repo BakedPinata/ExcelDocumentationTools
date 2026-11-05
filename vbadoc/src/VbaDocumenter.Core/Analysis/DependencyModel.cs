@@ -66,7 +66,14 @@ public sealed record Edge(string From, string To, EdgeKind Kind, int Count)
 /// <param name="To">The id of what's called, or null for a late-bound call.</param>
 /// <param name="LateBound">For a late-bound call, the expression, such as "legacy.ExportAll"; otherwise null.</param>
 /// <param name="Line">The call's line in the module's file, as for <see cref="Edge.Lines"/>.</param>
-public sealed record Call(string From, string? To, string? LateBound, int Line);
+public sealed record Call(string From, string? To, string? LateBound, int Line)
+{
+  /// <summary>
+  /// The innermost block the call is in (step E3), as its place in the calling procedure's <see cref="Member.Blocks"/>,
+  /// or null at the top of the procedure.
+  /// </summary>
+  public int? Block { get; init; }
+}
 
 /// <summary>A member access on an Object, Variant or untyped value, which can't be resolved without running the code.</summary>
 /// <param name="Expression">e.g. "legacy.ExportAll" or "CreateObject(…).OpenTextFile".</param>

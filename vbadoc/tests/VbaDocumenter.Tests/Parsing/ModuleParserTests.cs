@@ -78,7 +78,7 @@ public class ModuleParserTests
         process.Locals.Select(l => (l.Name, l.Type)));
     Assert.Contains(new Statement("Dim svc As OrderService", 5), process.Body);
     Assert.Contains(new Statement("With svc", 32), process.Body);
-    Assert.Contains(new Statement(".Summarise", 33), process.Body);
+    Assert.Contains(new Statement(".Summarise", 33) { Block = 7 }, process.Body); // inside the With, its eighth block
   }
 
   [Fact]
@@ -97,17 +97,20 @@ public class ModuleParserTests
     var body = Single(Sample("Main.bas"), "ProcessOrders", MemberKind.Sub).Body;
 
     Assert.DoesNotContain(body, s => s.Text.StartsWith("ErrHandler"));
-    Assert.Contains(new Statement("Logger.LogError \"ProcessOrders failed: \" & Err.Description", 41), body);
+    Assert.Contains(new Statement("Logger.LogError \"ProcessOrders failed: \" & Err.Description", 41) { Block = 8 }, body); // the handler
     Assert.DoesNotContain(body, s => s.Text.Contains("nothing"));
-    Assert.Contains(new Statement("Case Else", 27), body);
+    Assert.Contains(new Statement("Case Else", 27) { Block = 3 }, body); // a Case is in its Select Case
   }
 
   [Fact]
-  public void Keeps_a_single_line_If_as_one_statement()
+  public void Splits_a_single_line_If_into_its_branches()
   {
     var factorial = Single(Sample("Main.bas"), "Factorial", MemberKind.Function);
 
-    Assert.Equal("If n <= 1 Then Factorial = 1 Else Factorial = n * Factorial(n - 1)", factorial.Body.Single().Text);
+    Assert.Equal(
+        [("If n <= 1 Then", null), ("Factorial = 1", 0), ("Else", null), ("Factorial = n * Factorial(n - 1)", 1)],
+        factorial.Body.Select(s => (s.Text, s.Block)));
+    Assert.Equal([("if", "If n <= 1 Then", (int?)null), ("else", "Else", null)], factorial.Blocks.Select(b => (b.Kind, b.Text, b.Parent)));
   }
 
   [Fact]

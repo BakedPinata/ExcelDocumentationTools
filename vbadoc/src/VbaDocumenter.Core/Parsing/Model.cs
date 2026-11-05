@@ -39,7 +39,25 @@ public sealed record Statement(string Text, int Line)
 {
   /// <summary>How many more physical lines it runs onto with " _" continuations; 0 for most.</summary>
   public int ContinuedLines { get; init; }
+
+  /// <summary>
+  /// The innermost block it's in, as its place in the procedure's <see cref="Member.Blocks"/>, or null at the top of the
+  /// procedure. A block's own statement (its condition, say) is in the block around it.
+  /// </summary>
+  public int? Block { get; init; }
 }
+
+/// <summary>
+/// A block statement in a procedure (step E3 of the feedback plan): an If, ElseIf or Else branch, a Select Case or one of
+/// its Cases, a For, Do or While loop, a With, or an On Error handler.
+/// </summary>
+/// <param name="Id">Its place in the procedure's <see cref="Member.Blocks"/>.</param>
+/// <param name="Kind">"if", "elseIf", "else", "select", "case", "for", "do", "while", "with" or "onError".</param>
+/// <param name="Text">Its statement as the parser has it, such as <c>If Not ready Then</c> or <c>Case "NEW"</c>; for a
+/// handler, "On error: " and its label.</param>
+/// <param name="Line">Its line.</param>
+/// <param name="Parent">The block it's in, or null at the top of the procedure. ElseIf and Else are beside their If.</param>
+public sealed record CodeBlock(int Id, string Kind, string Text, int Line, int? Parent);
 
 /// <summary>
 /// Anything declared at module level: a procedure, variable, constant, Enum (and each of its values), Type, Event or Declare.
@@ -107,6 +125,9 @@ public sealed class Member
   /// <summary>Procedures only: every statement between the header and the End line, with labels removed.</summary>
   public IReadOnlyList<Statement> Body => BodyList;
 
+  /// <summary>For a procedure: its block statements, in order (see <see cref="CodeBlock"/>).</summary>
+  public IReadOnlyList<CodeBlock> Blocks => BlocksList;
+
   /// <summary>
   /// The types of the member's other versions under #If that differ from <see cref="Type"/> and each other, in source
   /// order; null is no type (Variant). Empty for a member declared once.
@@ -135,6 +156,7 @@ public sealed class Member
   // The parser fills these in as it reads the lines after the declaration.
   internal List<LocalVariable> LocalsList { get; } = [];
   internal List<Statement> BodyList { get; } = [];
+  internal List<CodeBlock> BlocksList { get; } = [];
   internal List<TypeField> FieldsList { get; } = [];
   internal List<string?> AlternativeTypesList { get; } = [];
   internal List<IReadOnlyList<Parameter>> AlternativeParametersList { get; } = [];

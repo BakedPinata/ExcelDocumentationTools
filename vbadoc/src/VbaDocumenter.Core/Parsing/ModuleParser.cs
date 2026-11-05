@@ -121,6 +121,9 @@ public static partial class ModuleParser
     public string? Folder { get; private set; }
 
     Member? _procedure;          // the procedure we're inside, if any
+    readonly Dictionary<Member, BlockTracker> _blocks = []; // each procedure's blocks, followed as its lines are read
+
+    BlockTracker BlocksOf(Member procedure) => _blocks.TryGetValue(procedure, out var tracker) ? tracker : _blocks[procedure] = new BlockTracker(procedure);
     Member? _block;              // the Enum or Type we're inside, if any
     int? _commentBlockStart;    // first line of the run of comment lines directly above the current line
     bool _sawProcedure;          // whether the declarations have ended
@@ -373,12 +376,20 @@ public static partial class ModuleParser
       // Keywords such as "Else:" look like labels but aren't.
       var label = LineLabel().Match(code);
       if (label.Success && !NotLabels.Contains(label.Value.TrimEnd().TrimEnd(':')))
-        code = code[label.Length..];
-      code = LineNumber().Replace(code, "", 1);
-
-      foreach (var statement in LogicalLineReader.SplitStatements(code))
       {
-        proc.BodyList.Add(new Statement(statement, line.FirstLine) { ContinuedLines = line.LastLine - line.FirstLine });
+        BlocksOf(proc).Label(label.Value.TrimEnd().TrimEnd(':'), line.FirstLine);
+        code = code[label.Length..];
+      }
+      var lineNumber = LineNumber().Match(code);
+      if (lineNumber.Success)
+      {
+        BlocksOf(proc).Label(lineNumber.Value.Trim(), line.FirstLine);
+        code = code[lineNumber.Length..];
+      }
+
+      foreach (var (statement, block) in BlocksOf(proc).Statements(code, line.FirstLine))
+      {
+        proc.BodyList.Add(new Statement(statement, line.FirstLine) { ContinuedLines = line.LastLine - line.FirstLine, Block = block });
         var declaration = LocalDeclaration().Match(statement);
         if (declaration.Success) AddLocals(proc, declaration, line.FirstLine);
       }
@@ -495,13 +506,16 @@ public static partial class ModuleParser
       if (DirectiveIf().IsMatch(code))
       {
         _ifs.Add(new IfBlock(line.FirstLine));
+        if (_procedure != null) BlocksOf(_procedure).DirectiveIf();
       }
       else if (DirectiveElse().IsMatch(code))
       {
         if (_ifs.Count > 0) _ifs[^1].Branch++;
+        if (_procedure != null) BlocksOf(_procedure).DirectiveElse();
       }
       else if (DirectiveEndIf().IsMatch(code) && _ifs.Count > 0)
       {
+        if (_procedure != null) BlocksOf(_procedure).DirectiveEndIf();
         var block = _ifs[^1];
         _ifs.RemoveAt(_ifs.Count - 1);
         foreach (var entry in _toEndIf.Where(e => e.Block == block).ToList())
