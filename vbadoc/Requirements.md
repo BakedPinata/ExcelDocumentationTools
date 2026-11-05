@@ -146,7 +146,7 @@ Shared by both views.
 **Interaction:**
 
 - Clicking a node highlights it together with the nodes it depends on and the nodes that depend on it, plus the edges between them. Everything else is greyed out. Clicking the background clears the selection.
-- **Settings** each explain themselves when hovered.
+- **Settings** each explain themselves when hovered. While a node or module is dragged, the rest of the graph rearranges gently around it, without pulling in.
 - A setting (in Settings, as it's seldom changed) switches highlighting between **direct** (one step in each direction) and **transitive** (the full chain in each direction). The default is direct. Focus shows the same neighbourhood.
 - A second toggle chooses which direction is highlighted: **all** (dependencies and dependents, the default), **dependencies only** or **dependents only**.
   - When a module is selected at member level, the edges between its own members always stay highlighted; the toggle only applies to edges leaving or entering the module.

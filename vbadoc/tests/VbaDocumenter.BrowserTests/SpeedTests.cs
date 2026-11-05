@@ -125,4 +125,34 @@ public class SpeedTests(PageFixture fixture)
     Assert.Equal(starting, await Positions(page));
     Assert.Empty(opened.Errors);
   }
+
+  [Fact]
+  public async Task Dragging_a_module_outline_doesnt_pull_the_rest_of_a_large_graph_in()
+  {
+    // Before the drag was made gentler, the rest of this graph pulled in to about 93% of its spread while a module was
+    // dragged, and sprang back once it was let go.
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.UserSizedEmbedded, width: 1600, height: 900,
+        initScript: OpenedPage.WithoutExplorer);
+    var page = opened.Page;
+    await WaitUntilStill(page);
+    await ShowMembers(page);
+    const string spread = @"() => {
+      const ps = [...document.querySelectorAll('#graph-svg g.node')].map(n => window.vbadocGraph.position(n.dataset.id));
+      const cx = ps.reduce((s, p) => s + p.x, 0) / ps.length, cy = ps.reduce((s, p) => s + p.y, 0) / ps.length;
+      return ps.reduce((s, p) => s + Math.hypot(p.x - cx, p.y - cy), 0) / ps.length;
+    }";
+    var before = await page.EvaluateAsync<double>(spread);
+    var outline = (await page.Locator("#graph-svg g.hull-group path.hull").Nth(2).BoundingBoxAsync())!;
+    float x = outline.X + 6, y = outline.Y + outline.Height / 2;
+
+    await page.Mouse.MoveAsync(x, y);
+    await page.Mouse.DownAsync();
+    for (int i = 1; i <= 20; i++) { await page.Mouse.MoveAsync(x + i * 10, y + i * 4); await page.WaitForTimeoutAsync(40); }
+    await page.WaitForTimeoutAsync(300);
+    var during = await page.EvaluateAsync<double>(spread);
+    await page.Mouse.UpAsync();
+
+    Assert.True(during / before > 0.97, $"the graph pulled in to {during / before:P0} of its spread while dragging");
+    Assert.Empty(opened.Errors);
+  }
 }

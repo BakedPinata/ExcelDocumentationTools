@@ -10,7 +10,7 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.26.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.26.1:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
@@ -32,7 +32,8 @@ rather than repeating it.
   (hiding) and D3c (the Show menus in the explorer), all pushed, as are D4 (widely used items and predeclared classes)
   and E1 (Uses / Used by with references). E2 (the Calls tab) is pushed. E3 (the logic around each call) and E4 (a
   query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is pushed; its review's
-  follow-ups (E5a) are done, waiting for review. **Next: G1** (saved views).
+  follow-ups (E5a) are pushed, apart from a gentler drag, which is done, waiting for review. **Next: G1** (saved
+  views).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -42,6 +43,14 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-05: A gentler drag in the graph (E5a)
+
+- On the user's suggestion of weakening the pull while dragging, measured first: the pull-in happened during a drag
+  (a module's outline at member level pulled the rest in to 85% of its spread on the production workbook), not after.
+  Weakening the pull alone blew the module-level graph apart; stirring the layout up less (alpha target 0.1, not 0.3)
+  stopped the pull-in, and the rest of the graph moves less while dragging. vbadoc 0.26.1, on its own branch.
+- A regression test on the 70-module fixture, which fails with the old heat.
 
 ### 2026-11-05: Step E5a, follow-ups after E5's review
 

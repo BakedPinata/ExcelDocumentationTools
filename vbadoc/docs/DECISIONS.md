@@ -464,10 +464,14 @@ Favourites below. Back and Forward stay as they are.
 - **Nothing in the diagram is cut short:** lanes are as wide as the widest message between neighbours or lifeline
   name needs (170 to 380 px), and each frame as wide as its label and whole guard (cut only past 80 characters), with
   frames around it widening to hold it.
-- **Dragging in the graph is as it was:** holding everything but the dragged nodes' neighbours still, and stopping the
-  layout when dropped, was tried and rolled back after review. It stopped the graph pulling in, but froze it, so nodes
-  could overlap. The pull comes from live dragging reheating the whole layout towards the forces' resting places,
-  which are more compact than the layout shown; any other fix should keep the graph free to settle.
+- **Dragging in the graph is gentler** (0.26.1): a drag now stirs the layout up to an alpha target of 0.1 rather than
+  0.3. Measured on the production workbook and the 70-module fixture: dragging a module's outline at member level
+  pulled the rest in to 85–93% of its spread until it was let go, and moved it about 120–134 px on average; now the
+  spread holds (99.7%) and it moves 50–100 px; at module level the rest moves a third to a half as far. Two other fixes were tried:
+  holding everything but the dragged nodes' neighbours still, and stopping the layout when dropped (rolled back after
+  review: it froze the graph, so nodes could overlap); and weakening only the forces that pull nodes together while
+  dragging (at module level, repulsion then has nothing to balance it, and the graph spread to 1.7 times its size). A
+  regression test drags an outline on the 70-module fixture and checks the spread holds.
 - **Every graph setting explains itself** in a tooltip on its label (and control).
 - **The Show… menu has Show nothing, and All / None on each section of boxes,** for picking a few things quickly; radios
   stay as they are. It's the shell's, so pqdoc's menu has them too.

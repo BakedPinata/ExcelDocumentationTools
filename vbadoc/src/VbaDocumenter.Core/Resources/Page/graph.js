@@ -113,7 +113,7 @@
       help: "Draw an outline around each module's members, named after the module. Drag an outline to move the whole module." },
     { section: "Dragging" },
     { key: "live", type: "checkbox", label: "Rearrange while dragging",
-      help: "While you drag, the rest of the graph rearranges around what you're moving, and settles again once you let go, so nothing overlaps. Off, only what you drag moves." },
+      help: "While you drag, the rest of the graph gently rearranges around what you're moving, and settles again once you let go, so nothing overlaps. Off, only what you drag moves." },
     { key: "pinDragged", type: "checkbox", label: "Keep dragged nodes where dropped", note: "double-click a node to release it",
       help: "A node you drag stays pinned where you drop it, so later changes to the layout don't move it. Double-click it, or Release pinned below, to let it move again." },
     { section: "Layout" },
@@ -311,6 +311,9 @@
   // starting layout and whenever a layout setting changes.
 
   var simulation = null;
+
+  // How much a drag stirs the layout up (d3's alpha target) while Rearrange while dragging is on.
+  var DRAG_HEAT = 0.1;
 
   function createSimulation(graph) {
     if (simulation) simulation.stop();
@@ -857,7 +860,9 @@
           hideTooltip();
           svg.classed("dragging", true);
           nodes.forEach(function (n) { n.fx = n.x + pendingX; n.fy = n.y + pendingY; });
-          if (settings.live) simulation.alphaTarget(0.3).restart();
+          // Gently: a hotter layout slides the whole graph about while dragging, and at member level pulls it in
+          // until it's let go. This is warm enough for the rest to make room for what's dragged.
+          if (settings.live) simulation.alphaTarget(DRAG_HEAT).restart();
         } else {
           nodes.forEach(function (n) { n.fx += event.dx; n.fy += event.dy; });
         }
