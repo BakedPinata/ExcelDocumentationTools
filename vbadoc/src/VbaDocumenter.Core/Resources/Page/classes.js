@@ -12,8 +12,8 @@
 // with no relationships are set out in a grid underneath.
 //
 // Boxes can then be dragged. Where they're dropped is remembered per workbook and Show… choice, until
-// "Re-run layout". When the selection is focused (the page's focus on click), the smaller diagram is laid out afresh
-// and moves aren't remembered.
+// "Re-run layout". When the selection is focused (the page's focus on click), the smaller diagram starts from its own
+// layout, and moves in it are remembered while the page is open, for that focus.
 (function () {
   "use strict";
 
@@ -152,13 +152,16 @@
 
   function keyOf(ids) { return ids ? Array.from(ids).sort().join("|") : null; }
 
-  // Where boxes were moved is kept for the diagram unfocused: in the browser for the whole diagram, and while the page
-  // is open (and in saved views) for a filtered one, since each filter makes a different diagram. A focused diagram is
-  // laid out afresh.
+  // Where boxes were moved is kept: in the browser for the whole diagram, and while the page is open (and in saved
+  // views) for a filtered or focused one, since each filter and each focus makes a different diagram.
   var filteredMoves = new Map(); // positionsKey() and the filter -> { id: [x, y] }
+  var focusedMoves = new Map();  // the same, and the modules focus shows -> { id: [x, y] }
 
   function filteredKey() { return positionsKey() + "|" + vb.filterKey(); }
 
+  function focusedKey(focusKey) { return filteredKey() + "|" + focusKey; }
+
+  // The unfocused diagram's moves.
   function loadMoves() { return vb.filterActive() ? filteredMoves.get(filteredKey()) || {} : loadJson(positionsKey()) || {}; }
 
   function storeMoves(moved) {
@@ -166,7 +169,15 @@
     else saveJson(positionsKey(), Object.keys(moved).length > 0 ? moved : null);
   }
 
-  // A saved view keeps the Members switch and where boxes were moved in its diagram.
+  // The moves of the diagram drawn: focused, or not.
+  function loadDrawnMoves() { return state.focusIds ? focusedMoves.get(focusedKey(state.focusKey)) || {} : loadMoves(); }
+
+  function storeDrawnMoves(moved) {
+    if (state.focusIds) focusedMoves.set(focusedKey(state.focusKey), moved); else storeMoves(moved);
+  }
+
+  // A saved view keeps the Members switch, the legend's picks, where boxes were moved in its diagram, and, when it's
+  // focused and boxes were moved in that, those too, with the modules focus showed.
   function cleanMoves(raw) {
     var moved = {};
     if (raw && typeof raw === "object") {
@@ -179,16 +190,34 @@
   }
 
   vb.viewPart("classes", {
-    save: function () { return { members: state.members, positions: loadMoves() }; },
+    save: function () {
+      var value = { members: state.members, positions: loadMoves() };
+      if (state.legend.size > 0) value.legend = Array.from(state.legend).sort();
+      // What focus shows now, which may not be drawn yet.
+      var focus = focusModules();
+      var moved = focus ? focusedMoves.get(focusedKey(keyOf(focus))) : null;
+      if (moved && Object.keys(moved).length > 0) value.focused = { modules: Array.from(focus).sort(), positions: moved };
+      return value;
+    },
     apply: function (value) {
       value = value && typeof value === "object" ? value : {};
       state.members = value.members !== false;
       saveSetting("vbadoc-classes-members", state.members);
       storeMoves(cleanMoves(value.positions));
-      state.legend.clear();
+      focusedMoves.clear();
+      var focused = value.focused && typeof value.focused === "object" ? value.focused : null;
+      if (focused && Array.isArray(focused.modules)) {
+        var modules = focused.modules.filter(function (id) { return typeof id === "string"; });
+        focusedMoves.set(focusedKey(keyOf(modules)), cleanMoves(focused.positions));
+      }
+      state.legend = new Set(Array.isArray(value.legend) ? value.legend.filter(function (key) { return typeof key === "string"; }) : []);
       updateToolbar();
     },
-    ids: function (value) { return Object.keys(cleanMoves(value && value.positions)); }
+    ids: function (value) {
+      var focused = value && value.focused && typeof value.focused === "object" ? value.focused : {};
+      var modules = Array.isArray(focused.modules) ? focused.modules.filter(function (id) { return typeof id === "string"; }) : [];
+      return Object.keys(cleanMoves(value && value.positions)).concat(modules, Object.keys(cleanMoves(focused.positions)));
+    }
   });
 
   // A box's contents and size. Lines keep their member id, for clicks and highlighting.
@@ -428,13 +457,11 @@
       return { from: e.from, to: e.to, kind: e.kind, label: e.label, source: byId.get(e.from), target: byId.get(e.to) };
     });
     layout(boxes, edges);
-    if (!state.focusIds) {
-      var moved = loadMoves();
-      boxes.forEach(function (b) {
-        var p = moved[b.id];
-        if (p && isFinite(p[0]) && isFinite(p[1])) { b.x = p[0]; b.y = p[1]; b.moved = true; }
-      });
-    }
+    var moved = loadDrawnMoves();
+    boxes.forEach(function (b) {
+      var p = moved[b.id];
+      if (p && isFinite(p[0]) && isFinite(p[1])) { b.x = p[0]; b.y = p[1]; b.moved = true; }
+    });
     drawn = { boxes: boxes, byId: byId, edges: edges };
     drawBoxes();
     drawEdges();
@@ -542,14 +569,14 @@
         b.moved = true;
         d3.select(this).attr("transform", "translate(" + b.x + "," + b.y + ")");
         drawEdges();
-        if (!state.focusIds) rememberPositions();
+        rememberPositions();
       });
   }
 
   function rememberPositions() {
-    var moved = loadMoves();
+    var moved = loadDrawnMoves();
     drawn.boxes.forEach(function (b) { if (b.moved) moved[b.id] = [b.x, b.y]; });
-    storeMoves(moved);
+    storeDrawnMoves(moved);
   }
 
   // ---- Zoom ----
@@ -681,7 +708,7 @@
   focusButton.addEventListener("click", function () { vb.setFocusOnClick(!vb.focusOnClick()); });
 
   document.getElementById("classes-relayout").addEventListener("click", function () {
-    if (!state.focusIds) storeMoves({});
+    storeDrawnMoves({});
     state.resetView = true;
     render();
   });

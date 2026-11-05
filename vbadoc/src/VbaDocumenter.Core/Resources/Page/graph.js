@@ -658,7 +658,8 @@
   // Laying out every member takes a moment on a large project, and gives the same picture every time. So the whole
   // graph's positions, and which nodes are pinned, are kept when a focused graph or the other level replaces it, and
   // put back when it returns: clearing a focus or switching back is quick, and nothing dragged is lost. Each level and
-  // set of Show… choices has its own. Re-run layout and Reset to defaults start afresh.
+  // set of Show… choices has its own, and so does each focus, so going back to one finds what was moved in it. Re-run
+  // layout and Reset to defaults start afresh.
   var keptLayouts = new Map();
 
   function layoutKey(level) { return (level || state.level) + "\u0000" + vb.choicesKey() + "\u0000" + vb.shownKey(); }
@@ -686,14 +687,56 @@
 
   // ---- Saved views ----
   //
-  // A saved view keeps the graph's level and, at each level where anything was moved (dragged, let go, or spaced out
-  // differently in the settings), every node's position in the whole graph and which are pinned. A level where
-  // nothing was moved isn't kept: it's laid out afresh, as it would be anyway. Opening a view puts its positions back
-  // when that level is next drawn. Nodes it doesn't know of (the workbook has changed since) are placed beside what
-  // they're linked to, and the layout settles them while the rest is held still.
+  // A saved view keeps the graph's level, Dependencies / Dependents, Path, the legend's picks and the settings (but
+  // not the two about dragging, which are how the person likes to work), and, at each level where anything was moved
+  // (dragged, let go, or spaced out differently in the settings), every node's position in the whole graph and which
+  // are pinned. A level where nothing was moved isn't kept: it's laid out afresh, as it would be anyway. When the graph
+  // shows a focus and something in it was moved, that layout is kept too, with what decided the focus. Opening a view
+  // puts its positions back when that graph is next drawn. Nodes it doesn't know of (the workbook has changed since)
+  // are placed beside what they're linked to, and the layout settles them while the rest is held still.
 
-  var movedLayouts = new Set(); // keys of whole-graph layouts that have been moved
+  var movedLayouts = new Set(); // keys of layouts that have been moved
   var viewLayouts = new Map();  // layout key -> { positions: { id: [x, y] }, pinned: [id] }, from a view, until drawn
+  var viewFocused = null;       // { key, value }: the view's focused layout, until drawn
+  var VIEW_SETTINGS = CONTROLS.filter(function (c) { return c.key && c.key !== "live" && c.key !== "pinDragged"; });
+
+  function viewSettings() {
+    var kept = {};
+    VIEW_SETTINGS.forEach(function (c) { kept[c.key] = settings[c.key]; });
+    return kept;
+  }
+
+  // Takes the settings a view has that are sound; any it doesn't have stay as they are.
+  function applyViewSettings(raw) {
+    if (!raw || typeof raw !== "object") return;
+    var changed = false;
+    VIEW_SETTINGS.forEach(function (c) {
+      var value = raw[c.key];
+      var sound = c.type === "checkbox" ? typeof value === "boolean"
+        : c.type === "range" ? typeof value === "number" && isFinite(value) && value >= c.min && value <= c.max
+          : c.options.some(function (o) { return o[0] === value; });
+      if (sound && settings[c.key] !== value) { settings[c.key] = value; changed = true; }
+    });
+    if (!changed) return;
+    saveSetting("vbadoc-graph-settings", JSON.stringify(settings));
+    buildSettingsMenu();
+  }
+
+  // A focused layout as a view file has it, made sound, or null.
+  function cleanFocused(raw) {
+    var layout = cleanLayout(raw);
+    var focus = raw && raw.focus;
+    if (!layout || !focus || typeof focus !== "object" || typeof focus.reach !== "string") return null;
+    var selection = typeof focus.selection === "string" ? focus.selection : null;
+    var direction = typeof focus.direction === "string" ? focus.direction : null;
+    var favourites = Array.isArray(focus.favourites) ? focus.favourites.filter(function (id) { return typeof id === "string"; }) : [];
+    if (selection === null && favourites.length === 0) return null;
+    return {
+      level: raw.level === "members" ? "members" : "modules",
+      focus: { selection: selection, direction: selection === null ? null : direction, favourites: favourites, reach: focus.reach },
+      layout: layout
+    };
+  }
 
   function markMoved() { if (graph && graph.layoutKey) movedLayouts.add(graph.layoutKey); }
 
@@ -785,17 +828,31 @@
         if (movedLayouts.has(key) && keptLayouts.has(key)) layouts[level] = layoutForView(keptLayouts.get(key));
         else if (viewLayouts.has(key)) layouts[level] = viewLayouts.get(key);
       });
-      return { level: state.level, layouts: layouts };
+      var value = { level: state.level, direction: state.direction, settings: viewSettings(), layouts: layouts };
+      if (state.path) value.path = true;
+      if (state.legend.size > 0) value.legend = Array.from(state.legend).sort();
+      if (graph && state.focused && movedLayouts.has(graph.layoutKey) && keptLayouts.has(graph.layoutKey)) {
+        value.focused = Object.assign({ level: state.level, focus: state.focusState }, layoutForView(keptLayouts.get(graph.layoutKey)));
+      } else if (viewFocused && viewLayouts.has(viewFocused.key)) {
+        value.focused = viewFocused.value;
+      }
+      return value;
     },
     apply: function (value) {
       value = value && typeof value === "object" ? value : {};
       state.level = value.level === "members" ? "members" : "modules";
       saveSetting("vbadoc-graph-level", state.level);
-      state.legend.clear();
-      state.path = false;
+      if (value.direction === "all" || value.direction === "dependencies" || value.direction === "dependents") {
+        state.direction = value.direction;
+        saveSetting("vbadoc-graph-direction", state.direction);
+      }
+      applyViewSettings(value.settings);
+      state.legend = new Set(Array.isArray(value.legend) ? value.legend.filter(function (key) { return typeof key === "string"; }) : []);
+      state.path = value.path === true;
       keptLayouts.clear();
       movedLayouts.clear();
       viewLayouts.clear();
+      viewFocused = null;
       // What's on screen now isn't kept when the view draws over it: kept, it would be put back in place of the view's
       // positions when the filter and choices are the same (after Re-run layout, or a focus, say).
       if (graph) graph.layoutKey = null;
@@ -804,6 +861,12 @@
         var layout = cleanLayout(layouts[level]);
         if (layout) viewLayouts.set(layoutKey(level), layout);
       });
+      var focused = cleanFocused(value.focused);
+      if (focused) {
+        var key = layoutKey(focused.level) + "\u0000" + keyOfFocus(focused.focus);
+        viewLayouts.set(key, focused.layout);
+        viewFocused = { key: key, value: Object.assign({ level: focused.level, focus: focused.focus }, focused.layout) };
+      }
     },
     ids: function (value) {
       var ids = [];
@@ -812,7 +875,8 @@
         var layout = cleanLayout(layouts[level]);
         if (layout) ids = ids.concat(Object.keys(layout.positions));
       });
-      return ids;
+      var focused = cleanFocused(value && value.focused);
+      return focused ? ids.concat(Object.keys(focused.layout.positions)) : ids;
     }
   });
 
@@ -851,10 +915,10 @@
     }
 
     applyStyleSettings();
-    var key = layoutKey();
-    if (state.focused) {
-      initialLayout(graph);
-    } else if (viewLayouts.has(key)) {
+    // A focused graph's layout is kept for its focus, so coming back to the same focus finds what was moved in it.
+    state.focusState = state.focused ? focusState() : null;
+    var key = layoutKey() + (state.focused ? "\u0000" + state.focusKey : "");
+    if (viewLayouts.has(key)) {
       // A view's positions come first: they're what the person opened.
       placeFromView(graph, viewLayouts.get(key));
       viewLayouts.delete(key);
@@ -862,7 +926,7 @@
     } else if (!restoreLayout(graph, key)) {
       initialLayout(graph);
     }
-    graph.layoutKey = state.focused ? null : key; // only the whole graph's layout is kept
+    graph.layoutKey = key;
     svg.classed("members", state.level === "members");
 
     // Module outlines (member level only).
@@ -1418,10 +1482,21 @@
   function focusing() { return (vb.focused() || vb.focusFavourites()) && !state.path; }
 
   // What decides the focused graph, so it's drawn again only when that changes.
-  function focusKey() {
-    if (!focusing()) return "";
-    return [vb.focused() ? vb.selection() + "\u0001" + state.direction : "", vb.focusFavourites() ? vb.favourites().join("|") : "",
-      settings.reach].join("\u0000");
+  function focusKey() { return keyOfFocus(focusState()); }
+
+  // What decides the focused graph, or null when nothing is focused: as a saved view keeps it with a focused layout.
+  function focusState() {
+    if (!focusing()) return null;
+    var on = vb.focused();
+    return {
+      selection: on ? vb.selection() : null, direction: on ? state.direction : null,
+      favourites: vb.focusFavourites() ? vb.favourites().slice() : [], reach: settings.reach
+    };
+  }
+
+  function keyOfFocus(focus) {
+    if (!focus) return "";
+    return [focus.selection !== null ? focus.selection + "\u0001" + focus.direction : "", focus.favourites.join("|"), focus.reach].join("\u0000");
   }
 
   pathButton.addEventListener("click", function () {

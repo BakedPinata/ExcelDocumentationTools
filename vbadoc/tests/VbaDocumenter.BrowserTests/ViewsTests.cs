@@ -443,6 +443,78 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     Assert.Empty(opened.Errors);
   }
 
+  [Fact]
+  public async Task A_view_keeps_the_graphs_direction_settings_legend_and_nodes_moved_while_focused()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    await WaitUntilStill(page);
+    await page.ClickAsync("#graph-svg g.node[data-id='OrderService'] path.shape");
+    await page.ClickAsync("[data-direction='dependencies']");
+    await WaitUntilStill(page);
+    var other = (await GraphNodes(page)).First(id => id != "OrderService");
+    await Drag(page, $"#graph-svg g.node[data-id='{other}'] path.shape", 70, 40);
+    await WaitUntilStill(page);
+    var moved = await Position(page, other);
+    await page.ClickAsync("#graph-settings > summary");
+    await page.UncheckAsync("#graph-settings-menu [data-setting='curvedEdges']");
+    await page.Keyboard.PressAsync("Escape");
+    var legendKey = await page.GetAttributeAsync("#graph-legend [data-legend]", "data-legend");
+    await page.ClickAsync($"#graph-legend [data-legend='{legendKey}']");
+    await SaveAs(page, "Focused");
+    await page.Keyboard.PressAsync("Escape");
+
+    // Another focus, then back to this one: the moved node is where it was left.
+    await page.ClickAsync("#graph-svg g.node[data-id='" + other + "'] path.shape");
+    await WaitUntilStill(page);
+    await opened.SelectAsync("OrderService");
+    await WaitUntilStill(page);
+    Assert.Equal(moved, await Position(page, other));
+
+    await page.ClickAsync("[data-direction='all']");
+    await page.ClickAsync("#graph-settings > summary");
+    await page.CheckAsync("#graph-settings-menu [data-setting='curvedEdges']");
+    await page.Keyboard.PressAsync("Escape");
+    await page.Keyboard.PressAsync("Escape"); // clears the selection
+    await page.EvaluateAsync("() => document.getElementById('graph-relayout').click()");
+    await WaitUntilStill(page);
+
+    await OpenView(page, "Focused");
+    await WaitUntilStill(page);
+    Assert.Equal("OrderService", await page.EvaluateAsync<string?>("() => window.vbadoc.selection()"));
+    Assert.Equal("true", await page.GetAttributeAsync("[data-direction='dependencies']", "aria-checked"));
+    Assert.False(await page.IsCheckedAsync("#graph-settings-menu [data-setting='curvedEdges']"));
+    Assert.Equal("true", await page.GetAttributeAsync($"#graph-legend [data-legend='{legendKey}']", "aria-pressed"));
+    Assert.Equal(moved, await Position(page, other));
+    Assert.Empty(opened.Errors);
+  }
+
+  [Fact]
+  public async Task A_view_keeps_boxes_moved_in_a_focused_class_diagram()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    await page.ClickAsync("#tab-classes");
+    await page.WaitForFunctionAsync("() => window.vbadocClasses.drawn()");
+    await opened.SelectAsync("OrderService"); // focused, as focus on click is on
+    await page.WaitForFunctionAsync("() => window.vbadocClasses.drawn() && !window.vbadocClasses.moving()");
+    var boxes = await page.Locator("#classes-svg g.class-box").CountAsync();
+    Assert.True(boxes < await page.EvaluateAsync<int>("() => window.vbadoc.data.modules.length"));
+    await Drag(page, "#classes-svg g.class-box[data-module='OrderService'] .box-outline", 80, 40);
+    var box = await page.GetAttributeAsync("#classes-svg g.class-box[data-module='OrderService']", "transform");
+    await SaveAs(page, "Order service classes");
+    await page.Keyboard.PressAsync("Escape");
+
+    await page.Keyboard.PressAsync("Escape"); // clears the selection, and the focus
+    await page.WaitForFunctionAsync("() => window.vbadocClasses.drawn()");
+    Assert.True(await page.Locator("#classes-svg g.class-box").CountAsync() > boxes);
+    await OpenView(page, "Order service classes");
+    await page.WaitForFunctionAsync("() => window.vbadocClasses.drawn()");
+    Assert.Equal(boxes, await page.Locator("#classes-svg g.class-box").CountAsync());
+    Assert.Equal(box, await page.GetAttributeAsync("#classes-svg g.class-box[data-module='OrderService']", "transform"));
+    Assert.Empty(opened.Errors);
+  }
+
   // The user's report after G1: moved nodes weren't put back by a view once the graph had been laid out again, or
   // focused and cleared, with the same filter and choices. The graph kept the layout on screen and put that back.
   [Fact]
