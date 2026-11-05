@@ -387,4 +387,35 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     Assert.Equal(box, await page.GetAttributeAsync("#classes-svg g.class-box[data-module='Order']", "transform"));
     Assert.Empty(opened.Errors);
   }
+
+  // The user's report after G1: moved nodes weren't put back by a view once the graph had been laid out again, or
+  // focused and cleared, with the same filter and choices. The graph kept the layout on screen and put that back.
+  [Fact]
+  public async Task Opening_a_view_puts_moved_nodes_back_after_Re_run_layout_or_a_focus()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
+    var page = opened.Page;
+    await WaitUntilStill(page);
+    await Drag(page, "#graph-svg g.node[data-id='Utils'] path.shape", 90, 50);
+    await WaitUntilStill(page);
+    var moved = await Position(page, "Utils");
+    await SaveAs(page, "Moved");
+    await page.Keyboard.PressAsync("Escape");
+
+    await page.EvaluateAsync("() => document.getElementById('graph-relayout').click()");
+    await WaitUntilStill(page);
+    Assert.NotEqual(moved, await Position(page, "Utils"));
+    await OpenView(page, "Moved");
+    await WaitUntilStill(page);
+    Assert.Equal(moved, await Position(page, "Utils"));
+
+    // Focused on a selection, then the view, which has none.
+    await page.ClickAsync("#graph-svg g.node[data-id='Order'] path.shape");
+    await WaitUntilStill(page);
+    Assert.True(await page.EvaluateAsync<bool>("() => window.vbadoc.focused()"));
+    await OpenView(page, "Moved");
+    await WaitUntilStill(page);
+    Assert.Equal(moved, await Position(page, "Utils"));
+    Assert.Empty(opened.Errors);
+  }
 }

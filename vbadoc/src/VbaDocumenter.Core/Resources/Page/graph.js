@@ -796,6 +796,9 @@
       keptLayouts.clear();
       movedLayouts.clear();
       viewLayouts.clear();
+      // What's on screen now isn't kept when the view draws over it: kept, it would be put back in place of the view's
+      // positions when the filter and choices are the same (after Re-run layout, or a focus, say).
+      if (graph) graph.layoutKey = null;
       var layouts = value.layouts && typeof value.layouts === "object" ? value.layouts : {};
       ["modules", "members"].forEach(function (level) {
         var layout = cleanLayout(layouts[level]);
@@ -851,14 +854,13 @@
     var key = layoutKey();
     if (state.focused) {
       initialLayout(graph);
+    } else if (viewLayouts.has(key)) {
+      // A view's positions come first: they're what the person opened.
+      placeFromView(graph, viewLayouts.get(key));
+      viewLayouts.delete(key);
+      movedLayouts.add(key);
     } else if (!restoreLayout(graph, key)) {
-      if (viewLayouts.has(key)) {
-        placeFromView(graph, viewLayouts.get(key));
-        viewLayouts.delete(key);
-        movedLayouts.add(key);
-      } else {
-        initialLayout(graph);
-      }
+      initialLayout(graph);
     }
     graph.layoutKey = state.focused ? null : key; // only the whole graph's layout is kept
     svg.classed("members", state.level === "members");
