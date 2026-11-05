@@ -64,9 +64,9 @@ questions the draft raised.
 | E5a | Follow-ups after E5's review: labels never cut in the diagram, open all below, whole entry points in scope, Show nothing and All / None, explained settings, gentler dragging (one try rolled back) | Claude | Done |
 | G1 | Saved views: named, exported to a file and imported again | Claude | Done |
 | G1a | Follow-ups after G1's review: a view keeps everything the page shows (the selection and its focus, Focus on click, the panels), moved nodes put back after Re-run layout or a focus, Save over any view with Undo, and a check before importing another workbook's views | Claude | Done |
-| G2 | A views file in the output folder is built into the page | Claude | |
-| G3 | Printing a view or every view, with descriptions | Claude, then you on a work machine | |
-| G4 | Optional: copy a view as text, to paste into a chat | Claude | |
+| G2 | A views file in the output folder is built into the page | Claude | Parked after G1a, to come back to; H1 goes first |
+| G3 | Printing a view or every view, with descriptions | Claude, then you on a work machine | Parked after G1a, to come back to |
+| G4 | Optional: copy a view as text, to paste into a chat | Claude | Parked after G1a, to come back to |
 | H1 | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | |
 | H2 | Choosing what to import, with its dependencies, and writing it out as a bundle folder | Claude | |
 | H3 | vbadoc imports into a new workbook or a copy of an existing one, if H1 shows it works | Claude | |

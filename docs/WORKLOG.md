@@ -32,8 +32,9 @@ rather than repeating it.
   (hiding) and D3c (the Show menus in the explorer), all pushed, as are D4 (widely used items and predeclared classes)
   and E1 (Uses / Used by with references). E2 (the Calls tab) is pushed. E3 (the logic around each call) and E4 (a
   query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is pushed, as are its
-  review's follow-ups (E5a) and a gentler drag. G1 (saved views) and its review's follow-ups (G1a) are done on
-  `feedback/g1-saved-views`, waiting for review. **Next: G2** (the views file built into the page).
+  review's follow-ups (E5a) and a gentler drag. G1 (saved views) and its review's follow-ups (G1a) are pushed. The
+  user parked G2–G4 (the views file in the page, printing, copying a view) to come back to later. **Now: H1**, the
+  spike on writing modules and queries into workbooks, on `feedback/h1-import-spike`.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
@@ -45,6 +46,12 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-05: G2–G4 parked, H1 next
+
+- The user rebased G1 and G1a onto main, parked G2–G4 to come back to later, and asked for H1 (the spike on writing
+  into workbooks) next, on its own branch. Their use case: pick out the generic modules, classes and queries in a
+  workbook, with what they depend on, and load them into a new or existing workbook.
 
 ### 2026-11-05: Step G1a, follow-ups after G1's review
 
