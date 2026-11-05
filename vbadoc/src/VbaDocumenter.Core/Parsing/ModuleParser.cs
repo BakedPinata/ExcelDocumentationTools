@@ -105,6 +105,7 @@ public static partial class ModuleParser
       Options = state.Options,
       Folder = state.Folder,
       LineCount = lineCount,
+      SourceLines = LogicalLineReader.PhysicalLines(text),
       Warnings = state.Warnings,
     };
   }
@@ -377,7 +378,7 @@ public static partial class ModuleParser
 
       foreach (var statement in LogicalLineReader.SplitStatements(code))
       {
-        proc.BodyList.Add(new Statement(statement, line.FirstLine));
+        proc.BodyList.Add(new Statement(statement, line.FirstLine) { ContinuedLines = line.LastLine - line.FirstLine });
         var declaration = LocalDeclaration().Match(statement);
         if (declaration.Success) AddLocals(proc, declaration, line.FirstLine);
       }
@@ -449,7 +450,7 @@ public static partial class ModuleParser
       {
         var f = VariableItem().Match(code);
         if (!f.Success || f.Groups["withEvents"].Success) { Warnings.Add($"Line {line.FirstLine}: can't read Type field '{code}'."); return; }
-        block.FieldsList.Add(new TypeField(f.Groups["name"].Value, TypeOrSuffix(f.Groups["type"].Value, f.Groups["suffix"].Value), f.Groups["array"].Success));
+        block.FieldsList.Add(new TypeField(f.Groups["name"].Value, TypeOrSuffix(f.Groups["type"].Value, f.Groups["suffix"].Value), f.Groups["array"].Success, line.FirstLine));
       }
     }
 

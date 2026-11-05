@@ -8,7 +8,7 @@ namespace PowerQueryDocumenter.BrowserTests;
 public sealed class DetailsPanelTests(PageFixture fixture)
 {
   private static async Task<string[]> Listed(OpenedPage opened, string list) =>
-    (await opened.Page.Locator($"#details-{list} li").AllInnerTextsAsync()).ToArray();
+    (await opened.Page.Locator($"#details-{list} a[data-select]").AllInnerTextsAsync()).ToArray();
 
   [Fact]
   public async Task Invites_a_selection_until_there_is_one()

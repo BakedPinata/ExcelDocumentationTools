@@ -43,7 +43,20 @@ public sealed record MemberNode(string Id, ModuleModel Module, Member? Member, M
 }
 
 /// <param name="Count">How many references the edge stands for.</param>
-public sealed record Edge(string From, string To, EdgeKind Kind, int Count);
+public sealed record Edge(string From, string To, EdgeKind Kind, int Count)
+{
+  /// <summary>
+  /// For a member edge, the lines (from 1, in order, each once) of the module's file where the references are, as the
+  /// page shows the file. Empty for module edges, whose references are their member edges'.
+  /// </summary>
+  public IReadOnlyList<int> Lines { get; init; } = [];
+
+  // Equal edges have equal lines, not the same list of them.
+  public bool Equals(Edge? other) =>
+      other is not null && From == other.From && To == other.To && Kind == other.Kind && Count == other.Count && Lines.SequenceEqual(other.Lines);
+
+  public override int GetHashCode() => HashCode.Combine(From, To, Kind, Count);
+}
 
 /// <summary>A member access on an Object, Variant or untyped value, which can't be resolved without running the code.</summary>
 /// <param name="Expression">e.g. "legacy.ExportAll" or "CreateObject(…).OpenTextFile".</param>

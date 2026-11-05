@@ -455,6 +455,23 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Uses / Used by with references (0.22.0, step E1 of the feedback plan)
+
+- **Every member edge has its lines** (`Edge.Lines`, `lines` in the page data): the lines of its module's file, as the
+  page shows it, where its references are, each once and in order. Module edges have none of their own: a module's list
+  gathers its members' references, so choosing a line can select the member that holds it.
+- **The line is the reference's own,** not just its statement's: a statement or declaration continued with " _" puts a
+  reference on the first of its lines that names the target as a word. The parser keeps each statement's number of
+  continued lines and the module's physical lines for this; without them, two references on the production workbook
+  pointed at the line above. Type fields now have their own line too.
+- **Each item once** (the plan's section 5): an item linked in two ways (ProgressReporter uses OrderService and handles
+  its events) is one entry with both tags, and the summary counts items, not links.
+- **The list is the shell's** (see `shared/README.md`), so pqdoc's is the same. vbadoc keeps it inside the collapsible
+  Dependencies section of the source panel's header, as before.
+- **Choosing a line selects what holds it,** which focuses the views on it if Focus on click is on, as any selection
+  does, then scrolls the source to the line and marks it until the next selection.
+- **`Edge` compares its lines by value,** so equal models stay equal.
+
 ### Widely used items and predeclared classes (0.21.0, step D4 of the feedback plan)
 
 - **Core counts, the page decides** (the plan's "worked out in Core ... with the share in the page's settings"):

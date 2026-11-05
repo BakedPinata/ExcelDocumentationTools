@@ -5,19 +5,24 @@ namespace VbaDocumenter.Core.Analysis;
 /// <summary>Counts references between nodes. Several references between the same two nodes become one edge with a count.</summary>
 public sealed class EdgeCollector
 {
-  readonly Dictionary<(string From, string To, EdgeKind Kind), int> _counts = [];
+  readonly Dictionary<(string From, string To, EdgeKind Kind), (int Count, SortedSet<int> Lines)> _edges = [];
 
   /// <summary>
-  /// Adds a reference from a member of <paramref name="fromModule"/>. References to the member's own module node
-  /// (e.g. "Me.Range" in a sheet) are dropped: they say nothing about dependencies.
+  /// Adds a reference from a member of <paramref name="fromModule"/>, on <paramref name="line"/> of its module's file.
+  /// References to the member's own module node (e.g. "Me.Range" in a sheet) are dropped: they say nothing about
+  /// dependencies.
   /// </summary>
-  public void Add(string from, ModuleModel fromModule, string to, EdgeKind kind)
+  public void Add(string from, ModuleModel fromModule, string to, EdgeKind kind, int line)
   {
     if (to.Equals(fromModule.Name, StringComparison.Ordinal)) return;
-    _counts[(from, to, kind)] = _counts.GetValueOrDefault((from, to, kind)) + 1;
+    var key = (from, to, kind);
+    var lines = _edges.TryGetValue(key, out var found) ? found.Lines : [];
+    lines.Add(line);
+    _edges[key] = (found.Count + 1, lines);
   }
 
-  public IEnumerable<Edge> Edges => _counts.Select(c => new Edge(c.Key.From, c.Key.To, c.Key.Kind, c.Value));
+  public IEnumerable<Edge> Edges =>
+      _edges.Select(e => new Edge(e.Key.From, e.Key.To, e.Key.Kind, e.Value.Count) { Lines = e.Value.Lines.ToArray() });
 }
 
 /// <summary>
@@ -32,7 +37,43 @@ public sealed class EdgeCollector
 public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, List<LateBoundReference> lateBound)
 {
   /// <summary>Where a statement or expression lives, and which node its references come from.</summary>
-  sealed record Scope(ModuleModel Module, Member? Procedure, string FromId, int Line);
+  sealed record Scope(ModuleModel Module, Member? Procedure, string FromId, int Line, int LastLine);
+
+  /// <summary>
+  /// The line a reference to <paramref name="name"/> is on: <paramref name="first"/>, or for a statement continued over
+  /// several lines (to <paramref name="last"/>), the first of them that has the name as a word.
+  /// </summary>
+  public static int LineNaming(ModuleModel module, int first, int last, string name)
+  {
+    for (int line = first; line <= last && line <= module.SourceLines.Count && last > first; line++)
+    {
+      var text = module.SourceLines[line - 1];
+      for (int at = text.IndexOf(name, StringComparison.OrdinalIgnoreCase); at >= 0; at = text.IndexOf(name, at + 1, StringComparison.OrdinalIgnoreCase))
+      {
+        bool startsWord = at == 0 || !IsNameChar(text[at - 1]);
+        bool endsWord = at + name.Length == text.Length || !IsNameChar(text[at + name.Length]);
+        if (startsWord && endsWord) return line;
+      }
+    }
+    return first;
+  }
+
+  /// <summary>The last physical line of the logical line starting at <paramref name="line"/>: where its " _" continuations end.</summary>
+  public static int ContinuedTo(ModuleModel module, int line)
+  {
+    while (line < module.SourceLines.Count && IsContinued(module.SourceLines[line - 1])) line++;
+    return line;
+  }
+
+  static bool IsContinued(string text)
+  {
+    var trimmed = text.TrimEnd();
+    return trimmed.EndsWith('_') && (trimmed.Length == 1 || char.IsWhiteSpace(trimmed[^2]));
+  }
+
+  static bool IsNameChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
+  static int LineOf(Scope scope, string name) => LineNaming(scope.Module, scope.Line, scope.LastLine, name);
 
   /// <summary>A name in a chain, with whether it was followed by "(...)".</summary>
   sealed record Segment(string Name, bool HasArguments);
@@ -54,7 +95,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
     var withTypes = new Stack<ResolvedType>();
     foreach (var statement in procedure.Body)
     {
-      var scope = new Scope(module, procedure, index.IdOf(procedure), statement.Line);
+      var scope = new Scope(module, procedure, index.IdOf(procedure), statement.Line, statement.Line + statement.ContinuedLines);
       var tokens = StatementTokeniser.Tokenise(statement.Text);
 
       if (tokens.Count == 2 && tokens[0].IsKeyword("End") && tokens[1].IsKeyword("With"))
@@ -72,7 +113,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
   /// <summary>Resolves an expression outside a procedure body: a constant's value or a parameter's default.</summary>
   public void ResolveExpression(string expression, ModuleModel module, Member member)
   {
-    var scope = new Scope(module, null, index.IdOf(member), member.DeclarationLine);
+    var scope = new Scope(module, null, index.IdOf(member), member.DeclarationLine, ContinuedTo(module, member.DeclarationLine));
     ResolveTokens(StatementTokeniser.Tokenise(expression), scope, new Stack<ResolvedType>());
   }
 
@@ -91,7 +132,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
         {
           var typeName = ReadTypeName(t, i + 1, out int last);
           if (typeName != null && index.TypeTargetId(typeName, scope.Module) is { } target)
-            edges.Add(scope.FromId, scope.Module, target, EdgeKind.Uses);
+            edges.Add(scope.FromId, scope.Module, target, EdgeKind.Uses, LineOf(scope, ProjectIndex.LastSegment(typeName)));
           i = last;
         }
         else if (token.IsKeyword("As"))
@@ -104,7 +145,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
         {
           var name = t[++i].Text;
           var declaration = scope.Module.Members.FirstOrDefault(m => m.Kind == MemberKind.Event && Same(m.Name, name));
-          if (declaration != null) edges.Add(scope.FromId, scope.Module, index.IdOf(declaration), EdgeKind.Events);
+          if (declaration != null) edges.Add(scope.FromId, scope.Module, index.IdOf(declaration), EdgeKind.Events, LineOf(scope, name));
         }
         else if (token.IsKeyword("GoTo") || token.IsKeyword("GoSub") || token.IsKeyword("Resume"))
         {
@@ -178,10 +219,10 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
           if (member == null)
           {
             // Not one of our members (e.g. Sheet1.Range): count it as a use of the module itself.
-            edges.Add(scope.FromId, scope.Module, target.Name, EdgeKind.Uses);
+            edges.Add(scope.FromId, scope.Module, target.Name, EdgeKind.Uses, LineOf(scope, target.Name));
             return (j, ResolvedType.Unknown);
           }
-          edges.Add(scope.FromId, scope.Module, index.IdOf(member), EdgeKind.Uses);
+          edges.Add(scope.FromId, scope.Module, index.IdOf(member), EdgeKind.Uses, LineOf(scope, segment.Name));
           current = TypeOf(member, segmentAccess);
           break;
 
@@ -194,7 +235,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
           var enumDeclaration = current.Declaration!;
           var value = index.OwnerOf(enumDeclaration).Members.FirstOrDefault(m =>
               m.Kind == MemberKind.EnumMember && Same(m.ParentName!, enumDeclaration.Name) && Same(m.Name, segment.Name));
-          if (value != null) edges.Add(scope.FromId, scope.Module, index.IdOf(value), EdgeKind.Uses);
+          if (value != null) edges.Add(scope.FromId, scope.Module, index.IdOf(value), EdgeKind.Uses, LineOf(scope, value.Name));
           return (j, ResolvedType.Unknown);
 
         default:
@@ -233,7 +274,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
     var own = index.FindMember(scope.Module, name, access, includePrivate: true);
     if (own != null)
     {
-      edges.Add(scope.FromId, scope.Module, index.IdOf(own), EdgeKind.Uses);
+      edges.Add(scope.FromId, scope.Module, index.IdOf(own), EdgeKind.Uses, LineOf(scope, name));
       return TypeOf(own, access);
     }
 
@@ -242,14 +283,14 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
     var module = index.FindModule(name);
     if (module != null)
     {
-      if (isAlone) edges.Add(scope.FromId, scope.Module, module.Name, EdgeKind.Uses); // e.g. passing Sheet1 as an argument
+      if (isAlone) edges.Add(scope.FromId, scope.Module, module.Name, EdgeKind.Uses, LineOf(scope, name)); // e.g. passing Sheet1 as an argument
       return new ResolvedType(ResolvedTypeKind.Module, module);
     }
 
     var global = index.FindGlobal(name);
     if (global != null)
     {
-      edges.Add(scope.FromId, scope.Module, index.IdOf(global), EdgeKind.Uses);
+      edges.Add(scope.FromId, scope.Module, index.IdOf(global), EdgeKind.Uses, LineOf(scope, name));
       return TypeOf(global, access);
     }
 

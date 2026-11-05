@@ -116,6 +116,16 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
   fails too, the code is selected for Ctrl+C.
 - **The lock and copy icons are our own,** like the folder (see below).
 
+### Uses / Used by and showing a line (step E1)
+
+- **The list is the shell's** (`shell.references.listHtml(entries, empty)`), each item once: its name selects it, its
+  tags (the tool's: kinds of link, number of references) follow, and opening it lists the lines where it's referenced,
+  with their text when the source is there. A tool keeps its own headings and containers around it.
+- **Choosing a line** selects the item that holds it (an entry's `refs[].in`), then `shell.source.showLine(line)`
+  scrolls the side panel's source to the middle and marks the line until something else is. The tool's code view must
+  be drawn by `codeHtml`, whose lines carry `data-line`.
+- **Line numbers are the file's,** as the page shows it: vbadoc's exported module file, pqdoc's `.m` file.
+
 ### Widely used (step D4)
 
 - **The tool counts, the shell lists:** `items.init`'s `widelyUsed(share)` returns the explorer nodes for what's used

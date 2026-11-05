@@ -89,6 +89,12 @@
 //   shell.source.codeHtml(id, first, last, marked)   lines first to last (default: all) as the numbered, highlighted
 //                                      code view, with a button that copies those lines; lines from marked.first to
 //                                      marked.last are marked
+//   shell.references.listHtml(entries, empty)   a Uses or Used by list: each entry { id, name, detail, tags: [{ label,
+//                                      title, className }], hidden, refs: [{ in, source, line, inName }] } once, its
+//                                      name selecting it, and opening it lists refs: the lines where it's referenced,
+//                                      with their text when source `source` is there. Choosing one selects `in` and
+//                                      shows the line in the side panel's source, marked. empty is the text for none
+//   shell.source.showLine(line)        scrolls the side panel's source to a line and marks it, if it's shown
 //   A button with id "load-folder-prompt" anywhere in the page opens Load folder.
 (function () {
   "use strict";
@@ -287,6 +293,61 @@
         COPY_ICON + DONE_ICON + "<span class=\"copy-label\"></span></button></div>" +
         "<div class=\"code\" role=\"region\" aria-label=\"Source code\">" + html.join("") + "</div></div>";
     }
+
+    // ---- Showing a line ----
+    //
+    // A reference's line, scrolled to the middle of the side panel's source and marked until something else is.
+
+    function showLine(line) {
+      var panelBox = $("side-panel");
+      panelBox.querySelectorAll(".code .line.target").forEach(function (el) { el.classList.remove("target"); });
+      var target = panelBox.querySelector(".code .line[data-line=\"" + line + "\"]");
+      if (!target) return false;
+      target.classList.add("target");
+      target.scrollIntoView({ block: "center" });
+      return true;
+    }
+
+    // ---- Uses / Used by ----
+    //
+    // Each item once, with tags for the kinds of link (the tool's), and the lines where it's referenced inside: the line
+    // number, and its text when the source is there. Choosing a line selects what holds it and shows the line.
+
+    var LINE_TEXT_LENGTH = 120;
+
+    function referenceListHtml(entries, empty) {
+      if (entries.length === 0) return "<p class=\"muted none\">" + escapeHtml(empty || "Nothing") + "</p>";
+      return "<ul class=\"ref-list\">" + entries.map(function (entry) {
+        var head = "<a href=\"#\" data-select=\"" + escapeHtml(entry.id) + "\">" + escapeHtml(entry.name) + "</a>" +
+          (entry.detail ? " <span class=\"muted\">" + escapeHtml(entry.detail) + "</span>" : "") +
+          (entry.tags || []).map(function (tag) {
+            return " <span class=\"" + escapeHtml(tag.className || "ref-tag") + "\"" + (tag.title ? " title=\"" + escapeHtml(tag.title) + "\"" : "") +
+              ">" + escapeHtml(tag.label) + "</span>";
+          }).join("") +
+          (entry.hidden ? " <span class=\"hidden-tag\" title=\"Hidden from the views\">hidden</span>" : "");
+        var refs = entry.refs || [];
+        if (refs.length === 0) return "<li class=\"ref-item\"><div class=\"ref-head\">" + head + "</div></li>";
+        return "<li class=\"ref-item\"><details><summary class=\"ref-head\" title=\"Show where it's referenced\">" + head +
+          " <span class=\"ref-count muted\">" + refs.length + (refs.length === 1 ? " line" : " lines") + "</span></summary>" +
+          "<ol class=\"ref-lines\">" + refs.map(function (ref) {
+            var text = sources.has(ref.source) ? String(sources.get(ref.source)[ref.line - 1] || "").trim() : null;
+            if (text !== null && text.length > LINE_TEXT_LENGTH) text = text.slice(0, LINE_TEXT_LENGTH - 1) + "…";
+            return "<li><button type=\"button\" class=\"ref-line\" data-ref-select=\"" + escapeHtml(ref["in"]) + "\" data-ref-line=\"" +
+              ref.line + "\" title=\"Show line " + ref.line + (ref.inName ? " of " + escapeHtml(ref.inName) : "") + "\">" +
+              "<span class=\"ref-ln\">" + ref.line + "</span>" + (text !== null ? "<code>" + escapeHtml(text) + "</code>" : "") +
+              "</button></li>";
+          }).join("") + "</ol></details></li>";
+      }).join("") + "</ul>";
+    }
+
+    // Choosing a line: select what holds it (which draws its source), then show the line.
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest && event.target.closest("[data-ref-line]");
+      if (!button) return;
+      event.preventDefault();
+      selectItem(button.getAttribute("data-ref-select"), event.ctrlKey || event.metaKey);
+      showLine(parseInt(button.getAttribute("data-ref-line"), 10));
+    });
 
     // ---- Copying the source ----
     //
@@ -1617,7 +1678,11 @@
         init: initSource,
         has: function (id) { return sources.has(id); },
         lines: function (id) { return sources.get(id); },
-        codeHtml: codeHtml
+        codeHtml: codeHtml,
+        showLine: showLine
+      },
+      references: {
+        listHtml: referenceListHtml
       }
     };
   }

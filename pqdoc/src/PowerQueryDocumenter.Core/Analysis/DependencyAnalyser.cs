@@ -148,23 +148,30 @@ public sealed class DependencyAnalyser
     }
 
     var edges = new List<DependencyEdge>();
+    var lines = new Dictionary<DependencyEdge, IReadOnlyList<int>>();
     foreach (var source in sourceList)
     {
       var current = knownQueries[source.Name];
-      var references = FindReferencedQueries(source.Content, current, knownQueries);
+      var references = FindReferences(source.Content, current, knownQueries);
       if (references.Count > 0)
       {
-        logger.Debug("{Query} references {References}", current, references);
+        logger.Debug("{Query} references {References}", current, references.Keys);
       }
 
-      edges.AddRange(references.Select(upstream => new DependencyEdge(upstream, current)));
+      foreach (var (upstream, at) in references)
+      {
+        var edge = new DependencyEdge(upstream, current);
+        edges.Add(edge);
+        lines[edge] = at;
+      }
     }
 
-    return DependencyGraph.Create(knownQueries.Values, edges);
+    return DependencyGraph.Create(knownQueries.Values, edges, lines);
   }
 
   /// <summary>
-  /// Returns the known queries that <paramref name="content"/> refers to.
+  /// Returns the known queries that <paramref name="content"/> refers to, each with the lines (from 1, in order) it's
+  /// named on.
   /// </summary>
   /// <remarks>
   /// Only identifiers that match a known query name count as references, so built-in functions
@@ -173,14 +180,15 @@ public sealed class DependencyAnalyser
   /// (FR-ANA-2). Dotted names such as <c>Table.SelectRows</c> are single identifiers, so they do
   /// not match a query named <c>Table</c>.
   /// </remarks>
-  private static SortedSet<string> FindReferencedQueries(
+  private static SortedDictionary<string, IReadOnlyList<int>> FindReferences(
     string content,
     string currentQueryName,
     Dictionary<string, string> knownQueries)
   {
-    var referenced = new SortedSet<string>(DependencyGraph.NameComparer);
+    var referenced = new SortedDictionary<string, SortedSet<int>>(DependencyGraph.NameComparer);
+    var lineStarts = LineStarts(content);
 
-    foreach (var identifier in ReferenceExtractor.FindFreeIdentifiers(content))
+    foreach (var (identifier, position) in ReferenceExtractor.FindFreeIdentifierUses(MTokeniser.Tokenise(content)))
     {
       if (!knownQueries.TryGetValue(identifier, out var query))
       {
@@ -200,9 +208,47 @@ public sealed class DependencyAnalyser
         continue;
       }
 
-      referenced.Add(query);
+      if (!referenced.TryGetValue(query, out var at))
+      {
+        referenced[query] = at = [];
+      }
+
+      at.Add(LineAt(lineStarts, position));
     }
 
-    return referenced;
+    var result = new SortedDictionary<string, IReadOnlyList<int>>(DependencyGraph.NameComparer);
+    foreach (var (query, at) in referenced)
+    {
+      result[query] = at.ToArray();
+    }
+
+    return result;
+  }
+
+  /// <summary>Where each line starts. CRLF, LF and CR each end a line, as the page splits them.</summary>
+  private static List<int> LineStarts(string text)
+  {
+    var starts = new List<int> { 0 };
+    for (var i = 0; i < text.Length; i++)
+    {
+      if (text[i] == '\r' && i + 1 < text.Length && text[i + 1] == '\n')
+      {
+        i++;
+      }
+
+      if (text[i] is '\r' or '\n')
+      {
+        starts.Add(i + 1);
+      }
+    }
+
+    return starts;
+  }
+
+  /// <summary>The line (from 1) of a character position.</summary>
+  private static int LineAt(List<int> lineStarts, int position)
+  {
+    var found = lineStarts.BinarySearch(position);
+    return found >= 0 ? found + 1 : ~found;
   }
 }

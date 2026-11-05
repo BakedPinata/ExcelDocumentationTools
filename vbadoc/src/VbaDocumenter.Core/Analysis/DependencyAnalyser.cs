@@ -41,9 +41,13 @@ public static class DependencyAnalyser
   static void AddDeclarationReferences(ModuleModel module, Member member, ProjectIndex index, EdgeCollector edges, ReferenceResolver resolver)
   {
     var from = index.IdOf(member);
-    void TypeReference(string? typeName, EdgeKind kind = EdgeKind.Uses)
+    var line = member.DeclarationLine;
+    var lastLine = ReferenceResolver.ContinuedTo(module, line);
+    // On the declaration's own line, or on whichever of its continued lines names the type.
+    void TypeReference(string? typeName, int at, EdgeKind kind = EdgeKind.Uses)
     {
-      if (index.TypeTargetId(typeName, module) is { } target) edges.Add(from, module, target, kind);
+      if (index.TypeTargetId(typeName, module) is { } target)
+        edges.Add(from, module, target, kind, at == line ? ReferenceResolver.LineNaming(module, line, lastLine, ProjectIndex.LastSegment(typeName!)) : at);
     }
 
     switch (member.Kind)
@@ -51,28 +55,28 @@ public static class DependencyAnalyser
       // Every version's types count: a member declared again under #If is used as any of them.
       case MemberKind.Variable:
         // A WithEvents variable links its module to the class whose events it receives.
-        foreach (var type in member.Types) TypeReference(type, member.IsWithEvents ? EdgeKind.Events : EdgeKind.Uses);
+        foreach (var type in member.Types) TypeReference(type, line, member.IsWithEvents ? EdgeKind.Events : EdgeKind.Uses);
         break;
       case MemberKind.Constant:
-        foreach (var type in member.Types) TypeReference(type);
+        foreach (var type in member.Types) TypeReference(type, line);
         resolver.ResolveExpression(member.Value!, module, member);
         break;
       case MemberKind.EnumMember:
         if (member.Value != null) resolver.ResolveExpression(member.Value, module, member);
         break;
       case MemberKind.Type:
-        foreach (var field in member.Fields) TypeReference(field.Type);
+        foreach (var field in member.Fields) TypeReference(field.Type, field.Line);
         break;
       case MemberKind.Enum:
         break;
       default: // procedures, Event, Declare
-        foreach (var type in member.Types) TypeReference(type);
+        foreach (var type in member.Types) TypeReference(type, line);
         foreach (var parameter in member.AlternativeParameters.Prepend(member.Parameters).SelectMany(list => list))
         {
-          TypeReference(parameter.Type);
+          TypeReference(parameter.Type, line);
           if (parameter.DefaultValue != null) resolver.ResolveExpression(parameter.DefaultValue, module, member);
         }
-        foreach (var local in member.Locals) TypeReference(local.Type);
+        foreach (var local in member.Locals) TypeReference(local.Type, local.Line);
         if (member.IsProcedure) resolver.ResolveBody(module, member);
         break;
     }
@@ -96,7 +100,7 @@ public static class DependencyAnalyser
         var memberName = procedure.Name[prefix.Length..];
         var target = iface.Members.FirstOrDefault(m => m.Kind == procedure.Kind && Same(m.Name, memberName))
                      ?? iface.Members.FirstOrDefault(m => m.IsProcedure && Same(m.Name, memberName));
-        edges.Add(index.IdOf(procedure), module, target == null ? iface.Name : index.IdOf(target), EdgeKind.Implements);
+        edges.Add(index.IdOf(procedure), module, target == null ? iface.Name : index.IdOf(target), EdgeKind.Implements, procedure.DeclarationLine);
       }
     }
   }
@@ -113,7 +117,7 @@ public static class DependencyAnalyser
       {
         var eventName = handler.Name[prefix.Length..];
         var declaration = source.Members.FirstOrDefault(m => m.Kind == MemberKind.Event && Same(m.Name, eventName));
-        if (declaration != null) edges.Add(index.IdOf(handler), module, index.IdOf(declaration), EdgeKind.Events);
+        if (declaration != null) edges.Add(index.IdOf(handler), module, index.IdOf(declaration), EdgeKind.Events, handler.DeclarationLine);
       }
     }
   }

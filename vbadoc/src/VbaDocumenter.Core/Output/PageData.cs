@@ -27,7 +27,9 @@ public sealed record PageMember(
     string Id, string Module, string Name, string Kind, string Visibility, string Signature,
     int Start, int End, int Declaration, string Role, bool Unreferenced, string? Parent, PageClassLine? Class, int? UsedBy);
 
-public sealed record PageEdge(string From, string To, string Kind, int Count);
+/// <param name="Lines">For a member edge, the lines of the module's file where the references are (see
+/// <see cref="Edge.Lines"/>); null for module edges.</param>
+public sealed record PageEdge(string From, string To, string Kind, int Count, IReadOnlyList<int>? Lines);
 
 public sealed record PageLateBound(string From, string Expression, int Line);
 
@@ -73,7 +75,7 @@ public sealed record PageData(
         Camel(n.Role), n.IsUnreferenced, n.Member.ParentName,
         classLines[n.Module.Name].GetValueOrDefault(n.Member), UsedBy(n.Id))).ToList();
 
-    PageEdge Edge(Edge e) => new(e.From, e.To, Camel(e.Kind), e.Count);
+    PageEdge Edge(Edge e) => new(e.From, e.To, Camel(e.Kind), e.Count, e.Lines.Count == 0 ? null : e.Lines);
 
     return new PageData(
         new PageProject(title, project.Name, project.CodePage, CodePages.Get(project.CodePage).WebName,

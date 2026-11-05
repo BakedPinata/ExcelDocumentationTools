@@ -431,6 +431,22 @@ button.tree-action[aria-pressed="true"] { border-color: var(--accent); color: va
 .code { margin: 0; padding: 8px 0; font: 12.5px/1.5 var(--font-code); tab-size: 4; min-width: max-content; }
 .code .line { display: flex; white-space: pre; }
 .code .line.marked { background: var(--line-highlight); }
+.code .line.target { background: var(--line-target, rgba(255, 196, 0, 0.22)); box-shadow: inset 3px 0 0 var(--warn); }
+
+/* Uses / Used by: each item once, opening to the lines where it's referenced. */
+.ref-list { margin: 0; padding: 0; list-style: none; }
+.ref-item { margin: 2px 0; }
+.ref-item > details > summary { list-style: none; cursor: pointer; }
+.ref-item > details > summary::-webkit-details-marker { display: none; }
+.ref-item > details > summary::before { content: "\25B8"; display: inline-block; width: 1em; color: var(--text-muted); }
+.ref-item > details[open] > summary::before { content: "\25BE"; }
+.ref-item > .ref-head { padding-left: 1em; }
+.ref-count { font-size: 11px; }
+.ref-lines { margin: 2px 0 6px 1em; padding: 0; list-style: none; }
+.ref-line { display: flex; gap: 8px; width: 100%; padding: 1px 6px; font: inherit; text-align: left; color: var(--text); background: none; border: 0; border-radius: var(--radius); cursor: pointer; }
+.ref-line:hover, .ref-line:focus-visible { background: var(--surface-2); }
+.ref-ln { flex: none; min-width: 3ch; text-align: right; color: var(--text-muted); font: 12px var(--font-code); }
+.ref-line code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 12px var(--font-code); }
 .code .ln {
   flex: none;
   width: 5ch;

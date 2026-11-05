@@ -138,7 +138,8 @@ public sealed class HtmlExporter : IExporter
       graph.Edges.Select(e => new EdgeDocument(
         e.Upstream,
         e.Downstream,
-        cycleGroupOf.TryGetValue(e.Upstream, out var a) && cycleGroupOf.TryGetValue(e.Downstream, out var b) && a == b)).ToArray(),
+        cycleGroupOf.TryGetValue(e.Upstream, out var a) && cycleGroupOf.TryGetValue(e.Downstream, out var b) && a == b,
+        graph.LinesOf(e))).ToArray(),
       graph.Cycles.Select(c => c.Members).ToArray(),
       groups);
 
@@ -229,5 +230,7 @@ public sealed class HtmlExporter : IExporter
   /// <param name="Description">Its description in Excel, or null.</param>
   private sealed record GroupDocument(string Name, int? Parent, string? Description);
 
-  private sealed record EdgeDocument(string From, string To, bool InCycle);
+  /// <param name="Lines">The lines of <paramref name="To"/>'s source that name <paramref name="From"/>, for the details
+  /// panel's links (FR-HTML-19); empty when they aren't known.</param>
+  private sealed record EdgeDocument(string From, string To, bool InCycle, IReadOnlyList<int> Lines);
 }

@@ -21,10 +21,17 @@ public sealed record LogicalLine(string Code, string? Comment, int FirstLine, in
 /// </summary>
 public static class LogicalLineReader
 {
-  public static List<LogicalLine> Read(string text)
+  /// <summary>The text's physical lines, without their line endings.</summary>
+  public static List<string> PhysicalLines(string text)
   {
     var physical = text.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
     if (physical.Count > 0 && physical[^1].Length == 0) physical.RemoveAt(physical.Count - 1); // after the final newline
+    return physical;
+  }
+
+  public static List<LogicalLine> Read(string text)
+  {
+    var physical = PhysicalLines(text);
 
     var result = new List<LogicalLine>();
     var joined = new StringBuilder();

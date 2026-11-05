@@ -46,11 +46,18 @@ public static class ReferenceExtractor
   /// spelled as written (M is case-sensitive). Quoted identifiers are returned unescaped, so
   /// <c>#"Sales Data"</c> becomes <c>Sales Data</c>.
   /// </summary>
-  public static IReadOnlySet<string> FindFreeIdentifiers(IReadOnlyList<MToken> tokens)
+  public static IReadOnlySet<string> FindFreeIdentifiers(IReadOnlyList<MToken> tokens) =>
+    FindFreeIdentifierUses(tokens).Select(use => use.Name).ToHashSet(StringComparer.Ordinal);
+
+  /// <summary>
+  /// Returns each use of a bare or quoted identifier that isn't defined locally, in source order, with its token's
+  /// position, so a reference can be traced to its line.
+  /// </summary>
+  public static IReadOnlyList<(string Name, int Position)> FindFreeIdentifierUses(IReadOnlyList<MToken> tokens)
   {
     ArgumentNullException.ThrowIfNull(tokens);
 
-    var uses = new List<(string Name, Scope Scope)>();
+    var uses = new List<(string Name, int Position, Scope Scope)>();
     var frames = new Stack<Frame>();
     frames.Push(new Frame(FrameKind.Root, new Scope(null), closer: null));
 
@@ -154,21 +161,12 @@ public static class ReferenceExtractor
         frame.ExpectingName = false;
         if (token.IsIdentifier)
         {
-          uses.Add((token.Text, frame.Scope));
+          uses.Add((token.Text, token.Position, frame.Scope));
         }
       }
     }
 
-    var free = new HashSet<string>(StringComparer.Ordinal);
-    foreach (var (name, scope) in uses)
-    {
-      if (!scope.Defines(name))
-      {
-        free.Add(name);
-      }
-    }
-
-    return free;
+    return uses.Where(use => !use.Scope.Defines(use.Name)).Select(use => (use.Name, use.Position)).ToArray();
   }
 
   private static bool IsBodyTerminator(MToken token) =>

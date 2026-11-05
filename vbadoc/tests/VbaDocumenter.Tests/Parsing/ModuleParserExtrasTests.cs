@@ -73,7 +73,7 @@ public class ModuleParserExtrasTests
 
     Assert.Equal((Visibility.Private, 18, 22), (row.Visibility, row.StartLine, row.EndLine));
     Assert.Equal(
-        [new TypeField("Id", "String * 10", false), new TypeField("Amount", "Currency", false), new TypeField("Tags", "String", true)],
+        [new TypeField("Id", "String * 10", false, 19), new TypeField("Amount", "Currency", false, 20), new TypeField("Tags", "String", true, 21)],
         row.Fields);
   }
 

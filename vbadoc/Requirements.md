@@ -112,6 +112,7 @@ Shared by both views.
 
 - It opens when something is selected and closes when the selection is cleared, so the views get the room back. A lock keeps it open, and is remembered. Its button at the right end of the top bar still opens and closes it by hand; closing it by hand also unlocks it. When it opens over what was selected, the view moves that into sight; otherwise the views keep still.
 - A button over the code copies the lines shown to the clipboard as plain text, without line numbers, and stays in view as the code scrolls. If the browser won't allow it, the code is selected for Ctrl+C instead.
+- **Dependencies (Uses / Used by)** lists each item the selection uses, and each that uses it, once, at the selection's level, with tags for kinds of link other than plain use (implements, events) and the number of references when more than one. Opening an item lists every line where it's referenced: the line number and, when the source is there, the line's text. Choosing one selects the member that holds the line, scrolls the source to it and marks it. A reference on a statement continued over several lines is on the line that names what it refers to. Without the source, the line numbers still show.
 - Selecting a module, class, interface or form shows its whole source.
 - Selecting a member shows **only that member's source**: its procedure, or the declaration lines of a `Const`, `Enum`, `Type`, variable, `Event` or `Declare`. Offer a way to see it in the context of the whole module.
 - The source is shown with **VBA syntax highlighting**:

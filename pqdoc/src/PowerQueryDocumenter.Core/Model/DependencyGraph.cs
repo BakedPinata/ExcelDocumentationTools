@@ -23,10 +23,12 @@ public sealed class DependencyGraph
     DependencyEdge[] edges,
     DependencyCycle[] cycles,
     Dictionary<string, string[]> upstreamByName,
-    Dictionary<string, string[]> downstreamByName)
+    Dictionary<string, string[]> downstreamByName,
+    Dictionary<DependencyEdge, IReadOnlyList<int>> referenceLines)
   {
     Nodes = Array.AsReadOnly(nodes);
     Edges = Array.AsReadOnly(edges);
+    ReferenceLines = referenceLines.ToFrozenDictionary();
     Cycles = Array.AsReadOnly(cycles);
     nodesByName = nodes.ToFrozenDictionary(n => n.Name, NameComparer);
     this.upstreamByName = upstreamByName.ToFrozenDictionary(NameComparer);
@@ -39,6 +41,15 @@ public sealed class DependencyGraph
   /// <summary>Every query, sorted by name.</summary>
   public IReadOnlyList<QueryNode> Nodes { get; }
 
+  /// <summary>
+  /// For each edge whose source was read, the lines (from 1, in order) of the downstream query's source that name the
+  /// upstream query. An edge without any (one built by hand, say) isn't listed.
+  /// </summary>
+  public IReadOnlyDictionary<DependencyEdge, IReadOnlyList<int>> ReferenceLines { get; }
+
+  /// <summary>The lines of the downstream query's source that name the upstream query, or none if they aren't known.</summary>
+  public IReadOnlyList<int> LinesOf(DependencyEdge edge) => ReferenceLines.TryGetValue(edge, out var lines) ? lines : [];
+
   /// <summary>Every dependency edge (upstream to downstream), sorted by upstream name then downstream name.</summary>
   public IReadOnlyList<DependencyEdge> Edges { get; }
 
@@ -49,8 +60,14 @@ public sealed class DependencyGraph
   /// Builds a graph. Names that differ only by case are treated as the same query (the first
   /// spelling wins). Self-references are ignored (FR-ANA-4) and duplicate edges are collapsed.
   /// </summary>
+  /// <param name="queryNames">Every query.</param>
+  /// <param name="edges">The dependencies between them.</param>
+  /// <param name="referenceLines">Optionally, where each edge's references are (see <see cref="ReferenceLines"/>).</param>
   /// <exception cref="ArgumentException">A name is blank, or an edge refers to an unknown query.</exception>
-  public static DependencyGraph Create(IEnumerable<string> queryNames, IEnumerable<DependencyEdge> edges)
+  public static DependencyGraph Create(
+    IEnumerable<string> queryNames,
+    IEnumerable<DependencyEdge> edges,
+    IReadOnlyDictionary<DependencyEdge, IReadOnlyList<int>>? referenceLines = null)
   {
     ArgumentNullException.ThrowIfNull(queryNames);
     ArgumentNullException.ThrowIfNull(edges);
@@ -87,6 +104,16 @@ public sealed class DependencyGraph
       .SelectMany(from => downstream[from].Select(to => new DependencyEdge(from, to)))
       .ToArray();
 
+    var lines = new Dictionary<DependencyEdge, IReadOnlyList<int>>();
+    foreach (var (edge, at) in referenceLines ?? new Dictionary<DependencyEdge, IReadOnlyList<int>>())
+    {
+      var key = new DependencyEdge(Canonicalise(edge.Upstream), Canonicalise(edge.Downstream));
+      if (!NameComparer.Equals(key.Upstream, key.Downstream) && at.Count > 0)
+      {
+        lines[key] = lines.TryGetValue(key, out var earlier) ? earlier.Concat(at).Distinct().Order().ToArray() : at;
+      }
+    }
+
     var cycles = CycleDetector.FindCycles(sortedNames, name => downstream[name]);
     var inCycle = cycles.SelectMany(c => c.Members).ToHashSet(NameComparer);
 
@@ -104,7 +131,8 @@ public sealed class DependencyGraph
       edgeArray,
       [.. cycles],
       upstream.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray(), NameComparer),
-      downstream.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray(), NameComparer));
+      downstream.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray(), NameComparer),
+      lines);
 
     string Canonicalise(string name) =>
       canonicalNames.TryGetValue(name, out var canonical)

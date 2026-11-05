@@ -10,11 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-04)
 
-- **vbadoc 0.21.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.22.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.14.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.15.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -29,8 +29,8 @@ rather than repeating it.
   Expand / Collapse all to D3, which moved widely used items to a new D4. D1d (speed) is pushed; the user found it a
   little better on the production workbook, good enough for now. A6 (a name declared again under `#If` is one member)
   is pushed. D2 (favourites) is pushed. D3 is split into D3a (Expand / Collapse all and the views' filter), D3b
-  (hiding) and D3c (the Show menus in the explorer), all pushed. D4 (widely used items and predeclared classes) is
-  done, waiting for review. **Next: E1** (Uses / Used by with references).
+  (hiding) and D3c (the Show menus in the explorer), all pushed. D4 (widely used items and predeclared classes) and
+  E1 (Uses / Used by with references) are done, waiting for review. **Next: E2** (the Calls tab).
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
   source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
   **Never commit it.**
@@ -40,6 +40,18 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-05: Step E1, Uses / Used by with references
+
+- Both analysers record each reference's line: vbadoc on every member edge (`lines`), pqdoc beside each edge
+  (`ReferenceLines`), both in the page data. A reference on a continued statement is on the line that names its
+  target; the production workbook had two such.
+- The shell's Uses / Used by list lists each item once, with tags, and opens to its lines with their text; choosing one
+  selects what holds the line and marks it in the source, which can now scroll to a line.
+- vbadoc's source panel requirements, pqdoc's FR-HTML-19, both decisions and READMEs and the shared README follow.
+  vbadoc 0.22.0, pqdoc 1.15.0.
+- Tests: 5 vbadoc and 6 pqdoc unit tests of the lines; 4 vbadoc and 3 pqdoc browser tests, from embedded source and a
+  loaded folder. On the private workbook all 238 references name their target, and a chosen line is marked.
 
 ### 2026-11-05: Step D4, widely used items and predeclared classes
 

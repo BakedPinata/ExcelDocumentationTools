@@ -30,11 +30,16 @@ public sealed record Parameter(
 public sealed record LocalVariable(string Name, string? Type, bool IsArray, bool IsConstant, int Line);
 
 /// <summary>A field of a user-defined Type.</summary>
-public sealed record TypeField(string Name, string? Type, bool IsArray);
+/// <param name="Line">The field's line, where its type is referred to.</param>
+public sealed record TypeField(string Name, string? Type, bool IsArray, int Line);
 
 /// <summary>One statement inside a procedure, after splitting at ":" separators. Comments are removed.</summary>
 /// <param name="Line">Physical line where the statement's logical line starts.</param>
-public sealed record Statement(string Text, int Line);
+public sealed record Statement(string Text, int Line)
+{
+  /// <summary>How many more physical lines it runs onto with " _" continuations; 0 for most.</summary>
+  public int ContinuedLines { get; init; }
+}
 
 /// <summary>
 /// Anything declared at module level: a procedure, variable, constant, Enum (and each of its values), Type, Event or Declare.
@@ -186,6 +191,9 @@ public sealed class ModuleModel
 
   /// <summary>Number of physical lines in the file.</summary>
   public required int LineCount { get; init; }
+
+  /// <summary>The file's physical lines (line 1 at index 0), to tell which line of a continued statement a reference is on.</summary>
+  public IReadOnlyList<string> SourceLines { get; init; } = [];
 
   /// <summary>Lines the parser didn't understand or that look malformed. Parsing carries on regardless.</summary>
   public required IReadOnlyList<string> Warnings { get; init; }

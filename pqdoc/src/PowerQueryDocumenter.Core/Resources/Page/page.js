@@ -37,9 +37,11 @@
     uses.set(q.id, []);
     usedBy.set(q.id, []);
   });
+  var edgeLines = new Map(); // "from\u0000to" -> the lines of to's source that name from
   data.edges.forEach(function (e) {
     uses.get(e.to).push(e.from);
     usedBy.get(e.from).push(e.to);
+    edgeLines.set(e.from + "\u0000" + e.to, e.lines || []);
   });
 
   // Everything reachable from a query by following `edges`, not counting the query itself.
@@ -138,12 +140,17 @@
     return x < y ? -1 : x > y ? 1 : 0;
   }
 
-  function queryList(ids) {
-    if (ids.length === 0) return "<p class=\"muted none\">None</p>";
-    return "<ul>" + ids.slice().sort(byName).map(function (id) {
-      return "<li><a href=\"#\" data-select=\"" + escapeHtml(id) + "\">" + escapeHtml(id) + "</a>" +
-        (shell.hidden.has(id) ? " <span class=\"hidden-tag\" title=\"Hidden from the graph\">hidden</span>" : "") + "</li>";
-    }).join("") + "</ul>";
+  // What a query uses or what uses it, each with the lines that name the query used: in the selection's source for Uses,
+  // in the other query's for Used by.
+  function queryList(selected, ids, direction) {
+    return shell.references.listHtml(ids.slice().sort(byName).map(function (id) {
+      var holder = direction === "uses" ? selected : id;
+      var lines = edgeLines.get(direction === "uses" ? id + "\u0000" + selected : selected + "\u0000" + id) || [];
+      return {
+        id: id, name: id, hidden: shell.hidden.has(id),
+        refs: lines.map(function (line) { return { "in": holder, source: holder, line: line, inName: holder }; })
+      };
+    }), "None");
   }
 
   // ---- Show… choices ----
@@ -223,9 +230,9 @@
       (query.inCycle ? " Part of a circular dependency." : "") + "</p>" + shell.hidden.noteHtml(query.id, hiddenNear(query.id));
     panelBody.innerHTML =
       "<h3><span class=\"swatch upstream\" aria-hidden=\"true\"></span>Uses (" + uses.get(selection).length + ")</h3>" +
-      "<div id=\"details-uses\">" + queryList(uses.get(selection)) + "</div>" +
+      "<div id=\"details-uses\">" + queryList(selection, uses.get(selection), "uses") + "</div>" +
       "<h3><span class=\"swatch downstream\" aria-hidden=\"true\"></span>Used by (" + usedBy.get(selection).length + ")</h3>" +
-      "<div id=\"details-used-by\">" + queryList(usedBy.get(selection)) + "</div>" +
+      "<div id=\"details-used-by\">" + queryList(selection, usedBy.get(selection), "usedBy") + "</div>" +
       "<p class=\"muted reach\" id=\"details-reach\">Including indirect links, " + countText(upstream) + " feed" + (upstream === 1 ? "s" : "") +
       " this query and " + countText(downstream) + " depend" + (downstream === 1 ? "s" : "") + " on it.</p>" +
       "<div class=\"actions\"><button type=\"button\" class=\"button\" id=\"details-clear\">Clear selection</button></div>" +

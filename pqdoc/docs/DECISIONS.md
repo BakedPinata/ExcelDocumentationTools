@@ -183,6 +183,17 @@ Reading them is step B2 of the feedback plan.
   Anything else counts as a query; a parameter does too, since it isn't a function.
 - **The page data** gains `kind` and `group` per query and `groups` in order (FR-HTML-11).
 
+## Uses / Used by with references (1.15.0, step E1 of the feedback plan)
+
+- **The analyser records where each reference is** (FR-HTML-19): `ReferenceExtractor.FindFreeIdentifierUses` keeps
+  each free identifier's position, and the analyser turns it into a line of the downstream query's text, counting CRLF,
+  LF and CR as one line ending each, as the page splits the source. A query's `.m` file has the same lines as the text
+  analysed, since only its line endings are changed when it's written.
+- **The lines travel beside the edges,** as `DependencyGraph.ReferenceLines` (and `lines` on each edge in the page
+  data), rather than on `DependencyEdge`, which stays a plain pair so graphs built by hand and in tests are unchanged.
+- **The list is the shell's,** as vbadoc's is: each query once, opening to its lines; choosing one selects the query
+  that holds the line and marks it in the source.
+
 ## Widely used queries (1.14.0, step D4 of the feedback plan)
 
 - **The count was already in the page data:** each query's `downstream`, the number of queries that use it directly,

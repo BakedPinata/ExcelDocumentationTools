@@ -309,37 +309,76 @@
     };
   }
 
-  function dependencyList(edges, direction, otherEnd, ownModule) {
-    if (edges.length === 0) return "<p class=\"muted none\">Nothing</p>";
-    var entries = edges.map(function (e) { return { edge: e, id: otherEnd(e), text: nodeText(otherEnd(e), ownModule) }; });
+  // The module a node is in: a member's, or a module node's own.
+  function moduleOfId(id) { var member = membersById.get(id); return member ? member.module : id; }
+
+  // Member edges by the modules at their ends, for a module's references.
+  var memberEdgesByModules = new Map();
+  data.memberEdges.forEach(function (e) {
+    var key = moduleOfId(e.from) + "\u0000" + moduleOfId(e.to);
+    if (!memberEdgesByModules.has(key)) memberEdgesByModules.set(key, []);
+    memberEdgesByModules.get(key).push(e);
+  });
+
+  // Where member edges' references are: each line once, in order, in the member that holds it.
+  function referencesOf(edges) {
+    var seen = new Set();
+    var refs = [];
+    edges.forEach(function (e) {
+      (e.lines || []).forEach(function (line) {
+        var key = e.from + "\u0000" + line;
+        if (seen.has(key)) return;
+        seen.add(key);
+        var member = membersById.get(e.from);
+        refs.push({ "in": e.from, source: moduleOfId(e.from), line: line, inName: member ? member.module + "." + member.name : e.from });
+      });
+    });
+    return refs.sort(function (a, b) { return a.line - b.line; });
+  }
+
+  // One entry per item at the other end, whatever the kinds of link: a tag for each kind other than plain use, how many
+  // references when more than one, and the lines they're on. At module level the lines are its members' references.
+  function dependencyList(id, edges, direction, otherEnd, ownModule) {
+    var byOther = new Map();
+    edges.forEach(function (e) {
+      var other = otherEnd(e);
+      if (!byOther.has(other)) byOther.set(other, []);
+      byOther.get(other).push(e);
+    });
+    var atModuleLevel = ownModule === null;
+    var entries = Array.from(byOther.keys()).map(function (other) {
+      var group = byOther.get(other);
+      var text = nodeText(other, ownModule);
+      var tags = [];
+      var count = group.reduce(function (sum, e) { return sum + (e.kind === "uses" ? e.count : 0); }, 0);
+      if (count > 1) tags.push({ label: "×" + count, title: "Number of references", className: "muted" });
+      group.forEach(function (e) {
+        if (EDGE_TAGS[e.kind]) tags.push({ label: EDGE_TAGS[e.kind][direction], title: EDGE_TITLES[e.kind][direction], className: "edge-tag " + e.kind });
+      });
+      var references = atModuleLevel
+        ? memberEdgesByModules.get(direction === "uses" ? id + "\u0000" + other : other + "\u0000" + id) || []
+        : group;
+      return { id: other, name: text.name, detail: text.detail, tags: tags, hidden: isHidden(other), refs: referencesOf(references) };
+    });
     // Case-insensitive, without localeCompare, so the order is the same in every browser language.
-    function key(entry) { return entry.text.name.toLowerCase() + " | " + entry.id; }
+    function key(entry) { return entry.name.toLowerCase() + " | " + entry.id; }
     entries.sort(function (a, b) { return key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0; });
-    return "<ul>" + entries.map(function (entry) {
-      var e = entry.edge;
-      var tag = EDGE_TAGS[e.kind]
-        ? " <span class=\"edge-tag " + e.kind + "\" title=\"" + EDGE_TITLES[e.kind][direction] + "\">" + EDGE_TAGS[e.kind][direction] + "</span>"
-        : "";
-      var count = e.count > 1 ? " <span class=\"muted\" title=\"Number of references\">×" + e.count + "</span>" : "";
-      var hidden = isHidden(entry.id) ? " <span class=\"hidden-tag\" title=\"Hidden from the views\">hidden</span>" : "";
-      return "<li><a href=\"#\" data-select=\"" + escapeHtml(entry.id) + "\">" + escapeHtml(entry.text.name) + "</a>" +
-        " <span class=\"muted\">" + escapeHtml(entry.text.detail) + "</span>" + tag + count + hidden + "</li>";
-    }).join("") + "</ul>";
+    return { count: entries.length, html: shell.references.listHtml(entries, "Nothing") };
   }
 
   function dependenciesHtml(id, index, ownModule) {
     // Recursion is a self-loop: noted, not listed (selecting the selection does nothing).
     var recursive = false;
     function notSelf(e) { if (e.from === e.to) { recursive = true; return false; } return true; }
-    var uses = (index.uses.get(id) || []).filter(notSelf);
-    var usedBy = (index.usedBy.get(id) || []).filter(notSelf);
+    var uses = dependencyList(id, (index.uses.get(id) || []).filter(notSelf), "uses", function (e) { return e.to; }, ownModule);
+    var usedBy = dependencyList(id, (index.usedBy.get(id) || []).filter(notSelf), "usedBy", function (e) { return e.from; }, ownModule);
     return "<details class=\"dependencies\" id=\"source-dependencies\"" + (dependenciesOpen ? " open" : "") + ">" +
-      "<summary>Dependencies <span class=\"muted\">uses " + uses.length + " · used by " + usedBy.length + "</span></summary>" +
+      "<summary>Dependencies <span class=\"muted\">uses " + uses.count + " · used by " + usedBy.count + "</span></summary>" +
       (recursive ? "<p class=\"muted recursive\">Calls itself (recursion).</p>" : "") +
-      "<h3>Uses (" + uses.length + ")</h3>" +
-      "<div class=\"dependency-list\" data-direction=\"uses\">" + dependencyList(uses, "uses", function (e) { return e.to; }, ownModule) + "</div>" +
-      "<h3>Used by (" + usedBy.length + ")</h3>" +
-      "<div class=\"dependency-list\" data-direction=\"usedBy\">" + dependencyList(usedBy, "usedBy", function (e) { return e.from; }, ownModule) + "</div>" +
+      "<h3>Uses (" + uses.count + ")</h3>" +
+      "<div class=\"dependency-list\" data-direction=\"uses\">" + uses.html + "</div>" +
+      "<h3>Used by (" + usedBy.count + ")</h3>" +
+      "<div class=\"dependency-list\" data-direction=\"usedBy\">" + usedBy.html + "</div>" +
       "</details>";
   }
 
