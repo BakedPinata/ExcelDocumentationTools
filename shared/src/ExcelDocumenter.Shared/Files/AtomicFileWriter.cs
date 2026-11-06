@@ -59,6 +59,30 @@ public static class AtomicFileWriter
     }
   }
 
+  /// <summary>
+  /// Puts <paramref name="content"/> in place of a file that's there, in one step, as a move can't quite do: the file keeps
+  /// its own permissions and creation time, which matter when it's someone's workbook rather than a tool's output.
+  /// </summary>
+  public static void Replace(string destination, ReadOnlySpan<byte> content)
+  {
+    var temporaryPath = TemporaryPathFor(destination);
+
+    try
+    {
+      using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+      {
+        stream.Write(content);
+      }
+
+      File.Replace(temporaryPath, destination, destinationBackupFileName: null);
+    }
+    catch
+    {
+      TryDelete(temporaryPath);
+      throw;
+    }
+  }
+
   /// <summary>A hidden-style name in the destination's folder, so the final move is a rename on the same volume.</summary>
   private static string TemporaryPathFor(string destination)
   {

@@ -5,7 +5,18 @@ using Serilog;
 
 namespace ExcelDocumenter.Shared.Importing;
 
-/// <summary>What's the same in every tool's <c>import</c>: reading the choice, saying what it comes to, writing a bundle.</summary>
+/// <summary>A workbook to be written, for <c>--on-exists</c>.</summary>
+/// <param name="Path">The file.</param>
+public sealed record PlannedWorkbook(string Path) : IPlannedOutput
+{
+  /// <inheritdoc />
+  public string Name => "workbook";
+}
+
+/// <summary>
+/// What's the same in every tool's <c>import</c>: reading the choice, saying what it comes to, and writing a bundle or a
+/// workbook. The source is never changed, and nor is a target unless <c>--in-place</c> says so.
+/// </summary>
 public sealed class ImportRun(ILogger logger, IUserInteraction interaction, string tool)
 {
   /// <summary>The items asked for, and the references to leave out.</summary>
@@ -91,6 +102,98 @@ public sealed class ImportRun(ILogger logger, IUserInteraction interaction, stri
     {
       logger.Error("Could not write to {Folder}: {Reason}", folder, ex.Message);
       return ExitCodes.ExportFailed;
+    }
+  }
+
+  /// <summary>The copy of a target that's written beside it, such as Target-imported.xlsm. Returns the full path.</summary>
+  /// <param name="target">The target.</param>
+  /// <param name="extension">The copy's extension, with its dot.</param>
+  public static string CopyOf(string target, string extension)
+  {
+    ArgumentException.ThrowIfNullOrWhiteSpace(target);
+    return Path.Combine(Path.GetDirectoryName(target) ?? string.Empty, $"{Path.GetFileNameWithoutExtension(target)}-imported{extension}");
+  }
+
+  /// <summary>Writes a new file, unless one's there and the person says not to. Returns the exit code.</summary>
+  /// <param name="path">The file to write.</param>
+  /// <param name="onExists">What to do if it's there.</param>
+  /// <param name="build">Makes the workbook, once it's settled that it's to be written.</param>
+  public int WriteWorkbook(string path, OnExistsBehaviour onExists, Func<byte[]> build)
+  {
+    ArgumentNullException.ThrowIfNull(build);
+    var resolution = new OverwriteResolver(logger, interaction).Resolve([new PlannedWorkbook(path)], onExists);
+    if (resolution.Aborted)
+    {
+      return ExitCodes.OutputRefused;
+    }
+
+    return resolution.ToWrite.Count == 0 ? ExitCodes.Success : Save(path, build, AtomicFileWriter.Write);
+  }
+
+  /// <summary>
+  /// Changes the target itself, if the person says so. It can't be undone, so <c>--force</c> or a yes are the only ways
+  /// on, and nothing happens to the file until the result is finished, when it's replaced in one step. Returns the exit code.
+  /// </summary>
+  /// <param name="path">The target.</param>
+  /// <param name="force">Whether <c>--force</c> answers yes.</param>
+  /// <param name="change">What will change, as a phrase.</param>
+  /// <param name="build">Makes and reads back the workbook.</param>
+  public int ChangeInPlace(string path, bool force, string change, Func<byte[]> build)
+  {
+    ArgumentNullException.ThrowIfNull(build);
+
+    // Said first, so nobody answers a question about something that can't happen.
+    if (WhyNotReplaceable(path) is { } reason)
+    {
+      logger.Error("{Path:l} can't be replaced, so nothing was changed. Is it open in Excel? {Reason:l}", path, reason);
+      return ExitCodes.ExportFailed;
+    }
+
+    var question = $"This changes {Path.GetFileName(path)} itself: {change}. It can't be undone. Are you sure?";
+    if (!force && !interaction.IsInteractive)
+    {
+      logger.Error("This session is not interactive, so the tool cannot ask. Nothing was changed. Re-run with --force (-y) to go ahead");
+      return ExitCodes.OutputRefused;
+    }
+
+    if (!force && !interaction.Confirm(question))
+    {
+      logger.Error("Stopped at your request. Nothing was changed");
+      return ExitCodes.OutputRefused;
+    }
+
+    return Save(path, build, AtomicFileWriter.Replace);
+  }
+
+  private delegate void WriteFile(string path, ReadOnlySpan<byte> content);
+
+  private int Save(string path, Func<byte[]> build, WriteFile write)
+  {
+    var content = build();
+    try
+    {
+      write(path, content);
+      logger.Information("Wrote {Path:l}", path);
+      return ExitCodes.Success;
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+    {
+      logger.Error("Could not write {Path:l}: {Reason:l}", path, ex.Message);
+      return ExitCodes.ExportFailed;
+    }
+  }
+
+  // Excel holds a workbook open, so one that can't be had to ourselves can't be replaced either.
+  private static string? WhyNotReplaceable(string path)
+  {
+    try
+    {
+      using var file = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+      return null;
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+    {
+      return ex.Message;
     }
   }
 }

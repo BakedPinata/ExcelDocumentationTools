@@ -1,4 +1,5 @@
 using ExcelDocumenter.Shared.Files;
+using ExcelDocumenter.Shared.Importing;
 using PowerQueryDocumenter.Core.Configuration;
 
 namespace PowerQueryDocumenter.Tests.TestSupport;
@@ -30,6 +31,12 @@ public sealed class FakeUserInteraction : IUserInteraction
       ? pendingAnswers.Dequeue()
       : throw new InvalidOperationException($"Unexpected prompt for {path}");
   }
+
+  /// <inheritdoc />
+  public ClashAnswer AskClash(ImportClash clash) => throw new InvalidOperationException($"Unexpected prompt for {clash.Item}");
+
+  /// <inheritdoc />
+  public bool Confirm(string question) => throw new InvalidOperationException($"Unexpected question: {question}");
 }
 
 /// <summary>An environment with a chosen current directory and variables.</summary>

@@ -1,3 +1,5 @@
+using ExcelDocumenter.Shared.Importing;
+
 namespace ExcelDocumenter.Shared.Files;
 
 /// <summary>An answer to the "file already exists" prompt.</summary>
@@ -24,4 +26,11 @@ public interface IUserInteraction
 
   /// <summary>Asks whether to overwrite an existing file.</summary>
   OverwriteAnswer AskOverwrite(string path);
+
+  /// <summary>Asks what to do with an item the target already has. Overwrite is only offered if it can be replaced.</summary>
+  ClashAnswer AskClash(ImportClash clash);
+
+  /// <summary>Asks whether to go ahead with something that can't be undone. Anything but yes is no.</summary>
+  /// <param name="question">The question, saying what will happen.</param>
+  bool Confirm(string question);
 }
