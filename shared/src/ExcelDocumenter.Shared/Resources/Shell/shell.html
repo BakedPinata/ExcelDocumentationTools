@@ -121,6 +121,25 @@
        aria-orientation="vertical" aria-label="Resize the explorer" aria-valuemin="10" aria-valuemax="40"
        title="Drag to resize. Double-click to reset."></div>
 {{VIEWS}}
+  <section class="view export-view" id="view-export" role="tabpanel" aria-labelledby="tab-export" hidden>
+    <div class="export-bar" role="toolbar" aria-label="Export options">
+      <button type="button" class="button" id="export-from-filter" disabled>Add what's ticked in the explorer</button>
+      <button type="button" class="button" id="export-clear" disabled title="Take everything out of the choice">Clear</button>
+      <span class="export-bar-gap"></span>
+      <button type="button" class="button" id="export-load" title="Read a choice from a manifest">Load manifest…</button>
+      <button type="button" class="button primary" id="export-download" disabled>Download manifest</button>
+      <input type="file" id="export-file" accept=".json,application/json" hidden>
+    </div>
+    <p class="export-status" id="export-status" role="status"></p>
+    <div class="export-columns">
+      <div class="export-choose">
+        <h2 class="export-heading" id="export-choose-heading">Choose</h2>
+        <input type="search" class="export-filter" id="export-filter" placeholder="Filter" aria-label="Filter the list" autocomplete="off">
+        <ul class="export-tree" id="export-tree" aria-labelledby="export-choose-heading"></ul>
+      </div>
+      <div class="export-plan" id="export-plan"></div>
+    </div>
+  </section>
   <div class="splitter" id="side-panel-splitter" role="separator" tabindex="0" aria-controls="side-panel"
        aria-orientation="vertical" aria-label="Resize the {{PANEL_LABEL}} panel" aria-valuemin="20" aria-valuemax="70"
        title="Drag to resize. Double-click to reset."></div>

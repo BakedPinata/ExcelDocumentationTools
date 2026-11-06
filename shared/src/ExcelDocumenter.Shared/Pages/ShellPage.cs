@@ -21,6 +21,9 @@ public sealed partial record ShellPage
   private static readonly Lazy<string> Template = new(() => EmbeddedResources.ReadText(typeof(ShellPage).Assembly, "Shell/shell.html"));
   private static readonly Lazy<string> ShellStylesheet = new(() => EmbeddedResources.ReadText(typeof(ShellPage).Assembly, "Shell/shell.css"));
 
+  // The shell's own tab, after the tool's: its view is in the template.
+  private static readonly ShellTab ExportTab = new("export", "Export");
+
   /// <summary>
   /// The tool's short name, such as <c>vbadoc</c>. It names the data block (<c>&lt;tool&gt;-data</c>), embedded source
   /// (<c>&lt;tool&gt;-source</c>) and the settings the page remembers (<c>&lt;tool&gt;-…</c>).
@@ -110,7 +113,7 @@ public sealed partial record ShellPage
       ["TITLE"] = PageBuilder.Escape(Title),
       ["FAVICON"] = PageBuilder.FaviconDataUri(FaviconSvg),
       ["STYLE"] = ShellStylesheet.Value.TrimEnd() + "\n\n" + Stylesheet,
-      ["TABS"] = TabsHtml(Tabs),
+      ["TABS"] = TabsHtml([.. Tabs, ExportTab]),
       ["SEARCH"] = SearchHtml.TrimEnd(),
       ["LOAD_FOLDER_HINT"] = PageBuilder.Escape(LoadFolderHint),
       ["SUMMARY"] = SummaryHtml(Summary, WorkbookSaved),

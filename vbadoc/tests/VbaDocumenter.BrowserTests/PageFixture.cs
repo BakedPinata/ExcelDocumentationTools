@@ -46,7 +46,16 @@ public sealed class PageFixture : IAsyncLifetime
     UserSizedEmbedded = Generate(SyntheticWorkbook.Xlsm(UserSizedProject()), "UserSized.xlsm", "user-sized-embedded", embedSource: true);
     PredeclaredEmbedded = Generate(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules().Append(PredeclaredSettings)), "Predeclared.xlsm",
         "predeclared-embedded", embedSource: true);
+    ReferencesEmbedded = Generate(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules(), references:
+        [
+          ("stdole", @"*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\system32\stdole2.tlb#OLE Automation"),
+          ("Scripting", @"*\G{420B2830-E718-11CF-893D-00A0C9054228}#1.0#0#C:\Windows\System32\scrrun.dll#Microsoft Scripting Runtime"),
+          ("ADODB", @"*\G{B691E011-1797-432E-907A-4D8C69339129}#6.1#0#C:\Program Files\Common Files\System\ado\msado15.dll#Microsoft ActiveX Data Objects 6.1 Library"),
+        ]), "References.xlsm", "references-embedded", embedSource: true);
   }
+
+  /// <summary>The sample with library references: one every project has, and two that aren't.</summary>
+  public string ReferencesEmbedded { get; private set; } = "";
 
   /// <summary>
   /// A generated project the size and shape of the user's large one (step D1d of the feedback plan): 70 modules in

@@ -20,9 +20,9 @@ public static class SyntheticWorkbook
   /// <summary>Bytes of fake compiled code put in front of each module's source, as in real files.</summary>
   const int FakePerformanceCacheSize = 37;
 
-  public static byte[] Xlsm(IEnumerable<SyntheticModule> modules, int codePage = 1252, Action<Storage>? tamper = null)
+  public static byte[] Xlsm(IEnumerable<SyntheticModule> modules, int codePage = 1252, Action<Storage>? tamper = null, IReadOnlyList<(string Name, string Libid)>? references = null)
   {
-    var vbaProjectBin = CompoundFile(root => WriteProject(root, modules.ToList(), codePage, tamper));
+    var vbaProjectBin = CompoundFile(root => WriteProject(root, modules.ToList(), codePage, tamper, references));
     using var zipBytes = new MemoryStream();
     using (var zip = new ZipArchive(zipBytes, ZipArchiveMode.Create, leaveOpen: true))
     {
@@ -71,12 +71,12 @@ public static class SyntheticWorkbook
     return output.ToArray();
   }
 
-  static void WriteProject(Storage projectStorage, List<SyntheticModule> modules, int codePage, Action<Storage>? tamper)
+  static void WriteProject(Storage projectStorage, List<SyntheticModule> modules, int codePage, Action<Storage>? tamper, IReadOnlyList<(string Name, string Libid)>? references = null)
   {
     var encoding = CodePages.Get(codePage);
     var vba = projectStorage.CreateStorage("VBA");
 
-    WriteStream(vba, "dir", Compress(DirStream(modules, codePage)));
+    WriteStream(vba, "dir", Compress(DirStream(modules, codePage, references)));
     foreach (var m in modules)
     {
       var source = encoding.GetBytes(m.Source.ReplaceLineEndings("\r\n"));
@@ -101,7 +101,7 @@ public static class SyntheticWorkbook
   }
 
   /// <summary>A minimal dir stream: just the records the reader looks at, plus the PROJECTVERSION quirk.</summary>
-  public static byte[] DirStream(IReadOnlyList<SyntheticModule> modules, int codePage)
+  public static byte[] DirStream(IReadOnlyList<SyntheticModule> modules, int codePage, IReadOnlyList<(string Name, string Libid)>? references = null)
   {
     var encoding = CodePages.Get(codePage);
     var dir = new List<byte>();
@@ -110,6 +110,13 @@ public static class SyntheticWorkbook
     Record(dir, 0x0004, encoding.GetBytes("VBAProject"));             // PROJECTNAME
                                                                       // PROJECTVERSION: the size field says 4, but 6 bytes of data follow.
     Add16(dir, 0x0009); Add32(dir, 4); dir.AddRange(new byte[6]);
+    foreach (var (name, libid) in references ?? [])
+    {
+      Record(dir, 0x0016, encoding.GetBytes(name));                   // REFERENCENAME
+      Record(dir, 0x003E, Encoding.Unicode.GetBytes(name));
+      var id = encoding.GetBytes(libid);
+      Record(dir, 0x000D, [.. BitConverter.GetBytes(id.Length), .. id, 0, 0, 0, 0, 0, 0]); // REFERENCEREGISTERED
+    }
     Record(dir, 0x000F, [(byte)modules.Count, 0]);                    // PROJECTMODULES
     Record(dir, 0x0013, [0xFF, 0xFF]);                                // PROJECTCOOKIE
     foreach (var m in modules)

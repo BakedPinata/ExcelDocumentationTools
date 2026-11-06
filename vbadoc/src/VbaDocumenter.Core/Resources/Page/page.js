@@ -731,6 +731,28 @@
   refreshFilter();
   hiddenNow = new Set(shell.hidden.list());
   shell.explorer.setLayouts(explorerLayouts(), select);
+
+  // The Export tab takes whole modules. Core has worked out which can come and what each relies on.
+  function whyNotTaken(id) {
+    var module = modulesById.get(id);
+    return module ? module.whyNot || null : "Only whole modules can be taken";
+  }
+
+  function modulesLinked(edges, otherEnd) {
+    return Array.from(new Set((edges || []).map(otherEnd))).filter(function (id) { return !whyNotTaken(id); });
+  }
+
+  shell.exports.init({
+    what: "modules and classes",
+    whyNot: whyNotTaken,
+    uses: function (id) { return modulesLinked(moduleEdges.uses.get(id), function (e) { return e.to; }); },
+    needs: function (id) { return modulesById.get(id).needs || []; },
+    offers: function (id) {
+      return modulesLinked((moduleEdges.usedBy.get(id) || []).filter(function (e) { return e.kind === "implements"; }), function (e) { return e.from; });
+    },
+    pickFor: moduleOfId,
+    references: data.project.references
+  });
   shell.start();
   // The views read the selection when they first draw, so an address's selection is made before they do.
   if (idFromAddress() !== null) followAddress();

@@ -423,6 +423,17 @@
     describeFilter: function (ids) { return ids.length + " of " + countText(data.queries.length); }
   });
   shell.explorer.setLayouts(explorerLayouts(), select);
+
+  // Every query can be taken, and Core has worked out what each relies on.
+  shell.exports.init({
+    what: "queries",
+    whyNot: function () { return null; },
+    uses: function (id) { return uses.get(id); },
+    needs: function (id) { return queriesById.get(id).needs; },
+    offers: function () { return []; },
+    pickFor: function (id) { return id; },
+    references: []
+  });
   shell.start();
   renderDetails();
 })();

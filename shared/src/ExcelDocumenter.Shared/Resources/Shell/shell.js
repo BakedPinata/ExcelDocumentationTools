@@ -106,6 +106,12 @@
 //                                      tool draws its views once. The shell has already taken the selection, its focus
 //                                      and the panels as the view has them, so the tool takes it as its own without
 //                                      calling selectionChanged. Then onViewChange tells of the view's tab
+//   shell.exports.init({ what, whyNot(id), uses(id), needs(id), offers(id), pickFor(id), references })   the Export tab,
+//                                      which lists the explorer's items: what they are ("modules and classes"), why an
+//                                      item can't be picked (null when it can), the items it uses that can come, what
+//                                      it relies on that can't ([{ what, why }]), what may be wanted with it, the item
+//                                      a tick in the explorer stands for, and the library references to offer ([{ name,
+//                                      description }]). Call it after explorer.setLayouts and before start
 //   A button with id "load-folder-prompt" anywhere in the page opens Load folder.
 (function () {
   "use strict";
@@ -771,6 +777,8 @@
       applyFilter();
       updateChecks();
       reveal(revealedId);
+      renderExportTree();
+      updateExport();
     }
 
     // ---- Favourites ----
@@ -1359,6 +1367,7 @@
         note.firstChild.textContent = text;
       });
       updateChecks();
+      updateExportFromFilter();
     }
 
     // Items in the tree directly under a row: its child items, or for a group, the first item on each branch.
@@ -2120,18 +2129,23 @@
 
     // ---- Export and Import ----
 
-    // The workbook's name goes in the file, so an import into another workbook's page can say so first.
-    function exportViews() {
-      var file = { formatVersion: VIEWS_FORMAT, tool: tool, views: savedViews };
-      if (favouriteSource) file.workbook = favouriteSource.workbook;
-      var text = JSON.stringify(sortedKeys(file), null, 2) + "\n";
+    // Downloads a JSON file, which works in a page opened from disk, written so its diffs are small.
+    function downloadJson(fileName, value) {
+      var text = JSON.stringify(sortedKeys(value), null, 2) + "\n";
       var link = document.createElement("a");
       link.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-      link.download = tool + "-views.json";
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.setTimeout(function () { URL.revokeObjectURL(link.href); }, 60000);
+    }
+
+    // The workbook's name goes in the file, so an import into another workbook's page can say so first.
+    function exportViews() {
+      var file = { formatVersion: VIEWS_FORMAT, tool: tool, views: savedViews };
+      if (favouriteSource) file.workbook = favouriteSource.workbook;
+      downloadJson(tool + "-views.json", file);
       setViewsStatus("Exported " + viewsText(savedViews.length) + " as " + tool + "-views.json.", false);
     }
 
@@ -2238,6 +2252,336 @@
       viewParts.push({ name: name, save: part.save, apply: part.apply, ids: part.ids });
     }
 
+    // ---- The Export tab ----
+    //
+    // Choosing what to take out of the workbook, for the tool's import command. It lists everything, whatever the
+    // filter, hiding and focus are doing in the views, so its picks are its own, remembered per workbook as
+    // <tool>-export|<workbook>; it isn't a view of the workbook, so it has no notes about them. As the picks change it
+    // shows what they come to: the same plan the command works out (ImportPlan in the shared library), from what the
+    // tool gives it, including rules Core has already applied. A manifest, <tool>-export.json, holds the picks and the
+    // references to leave out, not what the picks bring, so running it again later picks up new dependencies.
+
+    var EXPORT_FORMAT = 1;
+    var exportSource = null;
+    var exportPicks = [];        // ids, in the order picked
+    var exportLeaveOut = [];     // names of references left out
+    var exportUndo = null;       // the picks as they were, while Undo is offered
+    var exportTree = $("export-tree");
+    var exportPlanBox = $("export-plan");
+    var exportStatus = $("export-status");
+    var exportFilterBox = $("export-filter");
+    var exportFile = $("export-file");
+
+    function exportKey() { return "export|" + favouriteSource.workbook; }
+
+    function byLowerName(a, b) {
+      var x = a.toLowerCase();
+      var y = b.toLowerCase();
+      return x < y ? -1 : x > y ? 1 : 0;
+    }
+
+    function canPick(id) { return favouriteSource.exists(id) && !exportSource.whyNot(id); }
+
+    function initExport(config) {
+      exportSource = config;
+      var stored = null;
+      try { stored = JSON.parse(settings.load(exportKey()) || "null"); } catch (e) { stored = null; }
+      if (stored && typeof stored === "object") {
+        exportPicks = stringList(stored.items).filter(canPick);
+        exportLeaveOut = stringList(stored.leaveOutReferences);
+      }
+      exportTree.addEventListener("change", exportTreeChanged);
+      renderExportTree();
+      updateExport();
+    }
+
+    function saveExport() {
+      settings.save(exportKey(), JSON.stringify({ items: exportPicks, leaveOutReferences: exportLeaveOut }));
+    }
+
+    // What the picks come to: as ImportPlan.Build in the shared library.
+    function exportPlan() {
+      var taken = new Set(exportPicks);
+      var usedBy = new Map();
+      var waiting = exportPicks.slice();
+      while (waiting.length > 0) {
+        var item = waiting.shift();
+        exportSource.uses(item).forEach(function (used) {
+          if (used === item) return;
+          if (!usedBy.has(used)) usedBy.set(used, []);
+          usedBy.get(used).push(item);
+          if (!taken.has(used)) { taken.add(used); waiting.push(used); }
+        });
+      }
+      var brought = Array.from(taken).filter(function (id) { return exportPicks.indexOf(id) < 0; }).sort(byLowerName)
+        .map(function (id) { return { id: id, usedBy: usedBy.get(id).sort(byLowerName) }; });
+
+      var needs = new Map();
+      taken.forEach(function (id) {
+        exportSource.needs(id).forEach(function (need) {
+          var key = need.what + "\u0000" + need.why;
+          if (!needs.has(key)) needs.set(key, { what: need.what, why: need.why, usedBy: [] });
+          needs.get(key).usedBy.push(id);
+        });
+      });
+
+      var offers = [];
+      taken.forEach(function (id) {
+        exportSource.offers(id).forEach(function (offered) {
+          if (!taken.has(offered)) offers.push({ id: offered, goesWith: id });
+        });
+      });
+
+      return {
+        taken: taken,
+        brought: brought,
+        needs: Array.from(needs.values()).sort(function (a, b) { return byLowerName(a.what, b.what); }),
+        offers: offers.sort(function (a, b) { return byLowerName(a.goesWith, b.goesWith) || byLowerName(a.id, b.id); })
+      };
+    }
+
+    // The explorer's layout showing, without what's inside an item: whole items are what can be picked.
+    function exportNodes(nodes) {
+      var result = [];
+      nodes.forEach(function (node) {
+        if (node.id !== undefined && node.id !== null) {
+          result.push({ id: node.id, label: node.label, detail: node.detail, why: exportSource.whyNot(node.id) });
+          return;
+        }
+        var children = exportNodes(node.children || []);
+        if (children.length > 0) result.push({ label: node.label, children: children });
+      });
+      return result;
+    }
+
+    function exportRowHtml(node) {
+      if (node.children) {
+        return "<li class=\"export-group\"><label class=\"export-row\"><input type=\"checkbox\" data-export-group>" +
+          "<span class=\"export-name\">" + escapeHtml(node.label) + "</span></label><ul>" + node.children.map(exportRowHtml).join("") + "</ul></li>";
+      }
+      return "<li data-export-id=\"" + escapeHtml(node.id) + "\"><label class=\"export-row" + (node.why ? " unavailable" : "") + "\"" +
+        (node.why ? " title=\"" + escapeHtml(node.why) + "\"" : "") + "><input type=\"checkbox\" data-export-item=\"" + escapeHtml(node.id) + "\"" +
+        (node.why ? " disabled" : "") + "><span class=\"export-name\">" + escapeHtml(node.label) + "</span>" +
+        (node.detail ? "<span class=\"export-detail\">" + escapeHtml(node.detail) + "</span>" : "") +
+        "<span class=\"export-tag\" hidden>comes along</span></label></li>";
+    }
+
+    function renderExportTree() {
+      if (!exportSource) return;
+      var layout = layouts.filter(function (l) { return l.name === activeLayout; })[0];
+      exportTree.innerHTML = layout ? exportNodes(layout.nodes).map(exportRowHtml).join("") : "";
+      filterExportTree();
+    }
+
+    function filterExportTree() {
+      var wanted = exportFilterBox.value.trim().toLowerCase();
+      exportTree.querySelectorAll("li[data-export-id]").forEach(function (li) {
+        li.hidden = wanted !== "" && li.textContent.toLowerCase().indexOf(wanted) < 0;
+      });
+      Array.prototype.slice.call(exportTree.querySelectorAll("li.export-group")).reverse().forEach(function (li) {
+        li.hidden = wanted !== "" && !li.querySelector("li[data-export-id]:not([hidden])");
+      });
+    }
+
+    function exportTreeChanged(event) {
+      var box = event.target;
+      if (box.hasAttribute("data-export-item")) {
+        pickForExport([box.getAttribute("data-export-item")], box.checked);
+      } else if (box.hasAttribute("data-export-group")) {
+        var inside = box.closest("li").querySelectorAll("input[data-export-item]:not(:disabled)");
+        pickForExport(Array.prototype.map.call(inside, function (i) { return i.getAttribute("data-export-item"); }), box.checked);
+      }
+    }
+
+    function pickForExport(ids, on) {
+      setExportStatus("");
+      if (on) ids.forEach(function (id) { if (exportPicks.indexOf(id) < 0) exportPicks.push(id); });
+      else exportPicks = exportPicks.filter(function (id) { return ids.indexOf(id) < 0; });
+      saveExport();
+      updateExport();
+    }
+
+    function exportListHtml(title, items) {
+      return items.length === 0 ? "" : "<h2 class=\"export-heading\">" + escapeHtml(title) + " (" + items.length + ")</h2><ul class=\"export-list\">" + items.join("") + "</ul>";
+    }
+
+    function exportLink(id) { return "<button type=\"button\" class=\"link-button\" data-export-select=\"" + escapeHtml(id) + "\">" + escapeHtml(id) + "</button>"; }
+
+    function renderExportPlan(plan) {
+      if (exportPicks.length === 0) {
+        exportPlanBox.innerHTML = "<p class=\"muted\">Tick the " + escapeHtml(exportSource.what) + " you want to take. This shows what they bring with them and what they rely on, and the manifest you download is what the import command reads.</p>";
+        return;
+      }
+      var chosen = exportPicks.slice().sort(byLowerName).map(function (id) {
+        return "<li>" + exportLink(id) + " <button type=\"button\" class=\"link-button\" data-export-remove=\"" + escapeHtml(id) + "\" title=\"Take it out of the choice\">Remove</button></li>";
+      });
+      var brought = plan.brought.map(function (b) {
+        return "<li>" + exportLink(b.id) + " <span class=\"muted\">used by " + escapeHtml(b.usedBy.join(", ")) + "</span></li>";
+      });
+      var offers = plan.offers.map(function (o) {
+        return "<li>" + exportLink(o.id) + " <span class=\"muted\">goes with " + escapeHtml(o.goesWith) + "</span> <button type=\"button\" class=\"link-button\" data-export-add=\"" + escapeHtml(o.id) + "\">Add</button></li>";
+      });
+      var needs = plan.needs.map(function (n) {
+        return "<li><strong>" + escapeHtml(n.what) + "</strong>: " + escapeHtml(n.why) + ". <span class=\"muted\">Used by " + escapeHtml(n.usedBy.sort(byLowerName).join(", ")) + ".</span></li>";
+      });
+      var references = (exportSource.references || []).map(function (r) {
+        var on = exportLeaveOut.indexOf(r.name) < 0;
+        return "<li><label class=\"export-reference\"><input type=\"checkbox\" data-export-reference=\"" + escapeHtml(r.name) + "\"" + (on ? " checked" : "") + ">" +
+          "<span>" + escapeHtml(r.description) + " <span class=\"muted\">" + escapeHtml(r.name) + "</span></span></label></li>";
+      });
+      var workbook = favouriteSource.workbook;
+      exportPlanBox.innerHTML =
+        exportListHtml("Chosen", chosen) +
+        exportListHtml("Comes along", brought) +
+        exportListHtml("You may want these too", offers) +
+        exportListHtml("To check in the target", needs) +
+        exportListHtml("Library references", references) +
+        "<h2 class=\"export-heading\">Then run</h2><code class=\"export-command\" id=\"export-command\">" +
+        escapeHtml(tool + " import \"" + workbook + "\" --manifest " + tool + "-export.json --bundle Shared") + "</code>";
+    }
+
+    // Everything that follows from the picks: the ticks, the plan and the buttons.
+    function updateExport() {
+      if (!exportSource) return;
+      var plan = exportPlan();
+      exportTree.querySelectorAll("li[data-export-id]").forEach(function (li) {
+        var id = li.getAttribute("data-export-id");
+        var picked = exportPicks.indexOf(id) >= 0;
+        li.querySelector("input").checked = picked;
+        li.querySelector(".export-tag").hidden = picked || !plan.taken.has(id);
+      });
+      exportTree.querySelectorAll("li.export-group").forEach(function (li) {
+        var items = Array.prototype.slice.call(li.querySelectorAll("input[data-export-item]:not(:disabled)"));
+        var ticked = items.filter(function (i) { return i.checked; }).length;
+        var box = li.querySelector("input[data-export-group]");
+        box.checked = items.length > 0 && ticked === items.length;
+        box.indeterminate = ticked > 0 && ticked < items.length;
+        box.disabled = items.length === 0;
+      });
+      renderExportPlan(plan);
+      $("export-download").disabled = exportPicks.length === 0;
+      $("export-download").title = exportPicks.length === 0 ? "Choose something first" : "Download the choice as " + tool + "-export.json";
+      $("export-clear").disabled = exportPicks.length === 0;
+      updateExportFromFilter();
+    }
+
+    function exportFromFilter() {
+      var found = [];
+      ticked.forEach(function (id) {
+        var item = exportSource.pickFor(id);
+        if (item && canPick(item) && found.indexOf(item) < 0) found.push(item);
+      });
+      return found;
+    }
+
+    function updateExportFromFilter() {
+      if (!exportSource) return;
+      var button = $("export-from-filter");
+      button.disabled = exportFromFilter().length === 0;
+      button.title = button.disabled ? "Nothing that can be taken is ticked in the explorer" : "Add the items ticked in the explorer to the choice";
+    }
+
+    function setExportStatus(text, isWarning, undo) {
+      exportUndo = undo || null;
+      exportStatus.textContent = text;
+      exportStatus.classList.toggle("warning", !!isWarning);
+      if (!undo) return;
+      exportStatus.appendChild(document.createTextNode(" "));
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "link-button";
+      button.id = "export-undo";
+      button.textContent = "Undo";
+      exportStatus.appendChild(button);
+    }
+
+    exportFilterBox.addEventListener("input", filterExportTree);
+
+    exportPlanBox.addEventListener("click", function (event) {
+      var select = event.target.closest("[data-export-select]");
+      var remove = event.target.closest("[data-export-remove]");
+      var add = event.target.closest("[data-export-add]");
+      if (select) selectItem(select.getAttribute("data-export-select"));
+      else if (remove) pickForExport([remove.getAttribute("data-export-remove")], false);
+      else if (add) pickForExport([add.getAttribute("data-export-add")], true);
+    });
+
+    exportPlanBox.addEventListener("change", function (event) {
+      var name = event.target.getAttribute("data-export-reference");
+      if (name === null) return;
+      exportLeaveOut = exportLeaveOut.filter(function (n) { return n !== name; });
+      if (!event.target.checked) exportLeaveOut.push(name);
+      saveExport();
+    });
+
+    $("export-from-filter").addEventListener("click", function () { pickForExport(exportFromFilter(), true); });
+
+    $("export-clear").addEventListener("click", function () {
+      var before = { picks: exportPicks, leaveOut: exportLeaveOut };
+      exportPicks = [];
+      saveExport();
+      updateExport();
+      setExportStatus("Cleared the choice.", false, before);
+    });
+
+    exportStatus.addEventListener("click", function (event) {
+      if (!event.target.closest("#export-undo") || !exportUndo) return;
+      exportPicks = exportUndo.picks;
+      exportLeaveOut = exportUndo.leaveOut;
+      saveExport();
+      updateExport();
+      setExportStatus("Put the choice back.");
+    });
+
+    $("export-download").addEventListener("click", function () {
+      if (exportPicks.length === 0) return;
+      downloadJson(tool + "-export.json", {
+        formatVersion: EXPORT_FORMAT, tool: tool, workbook: favouriteSource.workbook,
+        items: exportPicks.slice().sort(byLowerName), leaveOutReferences: exportLeaveOut.slice().sort(byLowerName)
+      });
+      setExportStatus("Downloaded " + tool + "-export.json.");
+    });
+
+    $("export-load").addEventListener("click", function () { exportFile.click(); });
+
+    exportFile.addEventListener("change", function () {
+      var file = exportFile.files && exportFile.files[0];
+      if (!file) return;
+      var reading = file.text ? file.text() : new Response(file).text();
+      reading.then(function (text) { loadManifest(text, file.name); }, function () {
+        setExportStatus("Couldn't read " + file.name + ".", true);
+      }).then(function () { exportFile.value = ""; }); // so the same file can be read again
+    });
+
+    // A manifest replaces the choice, and Undo puts it back. What this workbook can't give is left out and listed.
+    function loadManifest(text, fileName) {
+      var file;
+      try { file = JSON.parse(text); } catch (e) { file = null; }
+      if (!file || typeof file !== "object" || !Array.isArray(file.items) || typeof file.formatVersion !== "number" || file.formatVersion < 1) {
+        setExportStatus(fileName + " isn't an export manifest.", true);
+        return;
+      }
+      if (file.tool !== tool) {
+        setExportStatus(fileName + " holds " + (typeof file.tool === "string" ? file.tool + "'s" : "another tool's") + " choices, not " + tool + "'s.", true);
+        return;
+      }
+      if (file.formatVersion > EXPORT_FORMAT) {
+        setExportStatus(fileName + " was written by a newer " + tool + " than the one that made this page. Run " + tool + " again to read it.", true);
+        return;
+      }
+      var items = stringList(file.items);
+      var missing = items.filter(function (id) { return !canPick(id); });
+      var before = { picks: exportPicks, leaveOut: exportLeaveOut };
+      exportPicks = items.filter(canPick);
+      exportLeaveOut = stringList(file.leaveOutReferences);
+      saveExport();
+      updateExport();
+      var other = typeof file.workbook === "string" && file.workbook !== favouriteSource.workbook ? " It was made from " + file.workbook + "." : "";
+      setExportStatus("Loaded " + itemsText(exportPicks.length) + " from " + fileName + "." + other +
+        (missing.length > 0 ? " " + itemsText(missing.length) + " this workbook can't give " + (missing.length === 1 ? "was" : "were") + " left out: " + listOf(missing) + "." : ""),
+        missing.length > 0 || other !== "", before);
+    }
+
     // ---- Tabs ----
 
     var tabs = Array.prototype.slice.call(document.querySelectorAll(".tabs [role=\"tab\"]"));
@@ -2335,6 +2679,7 @@
       onChoicesChange: function (fn) { listeners.choices.push(fn); },
       views: { part: addViewPart },
       onViewApplied: function (fn) { listeners.applied.push(fn); },
+      exports: { init: initExport },
       source: {
         init: initSource,
         has: function (id) { return sources.has(id); },
