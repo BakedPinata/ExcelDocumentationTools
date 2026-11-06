@@ -62,6 +62,7 @@ questions the draft raised.
 | E4 | pqdoc: a query's steps, in order | Claude | Done |
 | E5 | Optional: a sequence diagram of the expanded calls | Claude | Done |
 | E5a | Follow-ups after E5's review: labels never cut in the diagram, open all below, whole entry points in scope, Show nothing and All / None, explained settings, gentler dragging (one try rolled back) | Claude | Done |
+| E5b | Follow-ups from using the Calls tab: Ifs that seem to be missing, and the participants staying in view in the sequence diagram (raised during H1; not needed by importing, so whenever suits) | Claude | |
 | G1 | Saved views: named, exported to a file and imported again | Claude | Done |
 | G1a | Follow-ups after G1's review: a view keeps everything the page shows (the selection and its focus, Focus on click, the panels), moved nodes put back after Re-run layout or a focus, Save over any view with Undo, and a check before importing another workbook's views | Claude | Done |
 | G2 | A views file in the output folder is built into the page | Claude | |
@@ -902,6 +903,35 @@ This can be dropped without affecting anything after it.
 
 - Draw the open part of the Calls tree as a sequence diagram, as section 5 describes, in a switch on the Calls tab.
 - Browser tests, and screenshots in both themes.
+
+### Step E5b: Follow-ups from using the Calls tab
+
+Raised while H1 was under way, and noted for later on `feedback/e5b-calls-follow-ups`, which has only this note so far.
+Importing doesn't need either: the first is how the Calls tab shows calls, and H2 follows the dependency edges, which
+are right (see below).
+
+- **Ifs with `Or` or `And` conditions seem not to show up, only the Else or ElseIf after them.** Looked at, not yet
+  fixed. The parser reads every form of these (on one line, or continued with `_`), each block is right, and every call
+  and dependency edge is found, so nothing is lost. The likely cause is in what the tab draws: a call in a condition
+  belongs to the block around the If (`BlockTracker`: "a block's own statement is in the block around it"), and a block
+  row is drawn only when its body holds a call (`childrenOf` in `calls.js`). So for this code, the tree shows IsA and
+  IsB loose above the Else row, with no If row at all, and the same goes for a condition with one call:
+
+  ```vb
+  If Helper.IsA(1) Or Helper.IsB(2) Then
+      x = 1
+  Else
+      Helper.DoB
+  End If
+  ```
+
+  Conditions that make calls are also where `Or` and `And` are most noticeable, which may be why they stood out.
+  First check this against the user's real example, in case there's another cause. The likely fix: draw an If or ElseIf
+  row when its condition makes a call, with those calls shown as the condition's, in the tree and the sequence diagram.
+- **Keep the participants row in view while scrolling down the sequence diagram,** since on a large diagram it's easy
+  to lose track of which lifeline is which. Each entry point is its own diagram with its own participants, so the row
+  showing has to be that of the diagram being scrolled through, and it has to move sideways with the diagram.
+- Unit tests for the condition's calls, browser tests for both, and screenshots in both themes.
 
 ### Step G1: Saved views
 
