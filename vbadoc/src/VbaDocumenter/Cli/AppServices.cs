@@ -1,6 +1,8 @@
 using ExcelDocumenter.Shared.CommandLine;
 using ExcelDocumenter.Shared.Files;
 using Serilog;
+using VbaDocumenter.Core.Extraction;
+using VbaDocumenter.Core.Importing;
 using VbaDocumenter.Logging;
 
 namespace VbaDocumenter.Cli;
@@ -19,6 +21,9 @@ sealed class AppServices
 
   /// <summary>Asks whether to overwrite the page, when the session can.</summary>
   public required IUserInteraction Interaction { get; init; }
+
+  /// <summary>Whether what a library reference points at is on this machine, or null if it can't be told.</summary>
+  public Func<VbaReference, bool?> IsLibraryInstalled { get; init; } = ReferenceChoice.IsInstalled;
 
   public static AppServices CreateDefault() => new()
   {

@@ -53,15 +53,24 @@ public sealed partial record VbaReference(string Name, string Description, strin
   // Every project has these two, so there's nothing to bring or to tick: OLE Automation and the Office library.
   static readonly string[] EveryProjectHas = ["{00020430-0000-0000-C000-000000000046}", "{2DF8D04C-5BFA-101B-BDE5-00AA0044DE52}"];
 
+  /// <summary>Its libid, which says where the library is.</summary>
+  public string Libid { get; init; } = "";
+
+  /// <summary>Its records in the project's dir stream, as they stand, so any kind can be copied to another project.</summary>
+  public byte[] Records { get; init; } = [];
+
   /// <summary>Whether it's one Excel gives every project.</summary>
   public bool IsStandard => Guid is not null && EveryProjectHas.Contains(Guid, StringComparer.OrdinalIgnoreCase);
+
+  /// <summary>The file a reference to another VBA project points at, or null for any other kind.</summary>
+  public string? ProjectPath => Kind == VbaReferenceKind.Project && Libid.StartsWith(@"*\", StringComparison.Ordinal) && Libid.Length > 3 ? Libid[3..] : null;
 
   /// <summary>A reference from its name and libid, such as <c>*\G{…}#1.0#0#C:\…\scrrun.dll#Microsoft Scripting Runtime</c>.</summary>
   public static VbaReference From(string name, string libid, VbaReferenceKind kind)
   {
     var description = libid[(libid.LastIndexOf('#') + 1)..];
     var guid = GuidInLibid().Match(libid);
-    return new VbaReference(name, description.Length > 0 ? description : name, guid.Success ? guid.Value.ToUpperInvariant() : null, kind);
+    return new VbaReference(name, description.Length > 0 ? description : name, guid.Success ? guid.Value.ToUpperInvariant() : null, kind) { Libid = libid };
   }
 
   [System.Text.RegularExpressions.GeneratedRegex(@"\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}")]

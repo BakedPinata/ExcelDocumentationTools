@@ -29,7 +29,9 @@ public static class DirStreamParser
   const ushort ReferenceRegistered = 0x000D;
   const ushort ReferenceProject = 0x000E;
   const ushort ReferenceName = 0x0016;
+  const ushort ReferenceControl = 0x002F;
   const ushort ReferenceControlExtended = 0x0030;
+  const ushort ReferenceOriginal = 0x0033;
   const ushort ReferenceNameUnicode = 0x003E;
   const ushort Terminator = 0x0010;
   const ushort ModuleName = 0x0019;
@@ -47,6 +49,7 @@ public static class DirStreamParser
     var modules = new List<DirModule>();
     var references = new List<VbaReference>();
     string? referenceName = null; // a control reference can name itself twice, so the first name stands
+    int referenceStart = -1;      // where the reference being read starts
     ModuleBuilder? current = null;
     int pos = 0;
 
@@ -54,8 +57,11 @@ public static class DirStreamParser
     void AddReference(ReadOnlySpan<byte> data, VbaReferenceKind kind)
     {
       int length = BinaryPrimitives.ReadInt32LittleEndian(data);
-      references.Add(VbaReference.From(referenceName ?? "", CodePages.Get(codePage).GetString(data.Slice(4, length)), kind));
+      var reference = VbaReference.From(referenceName ?? "", CodePages.Get(codePage).GetString(data.Slice(4, length)), kind);
+      if (kind == VbaReferenceKind.Control) reference = reference with { Guid = OriginalTypeLib(data, length) ?? reference.Guid };
+      references.Add(reference with { Records = dir[referenceStart..(pos + data.Length)] });
       referenceName = null;
+      referenceStart = -1;
     }
 
     while (pos + 6 <= dir.Length)
@@ -67,6 +73,8 @@ public static class DirStreamParser
       if (size < 0 || pos + size > dir.Length)
         throw new InvalidDataException($"dir record 0x{id:X4} at offset {pos - 6} runs past the end of the stream.");
       var data = dir.AsSpan(pos, size);
+      if (referenceStart < 0 && id is ReferenceName or ReferenceNameUnicode or ReferenceOriginal or ReferenceControl or ReferenceRegistered or ReferenceProject or ReferenceControlExtended)
+        referenceStart = pos - 6;
 
       switch (id)
       {
@@ -121,6 +129,14 @@ public static class DirStreamParser
     }
 
     throw new InvalidDataException("The dir stream ended without its terminator record.");
+  }
+
+  // A control reference's libid names a cache made on each machine (MSForms.exd), with a GUID of its own. The library it
+  // was made from comes after the libid and 6 reserved bytes, so that's what says which library this is.
+  static string? OriginalTypeLib(ReadOnlySpan<byte> extended, int libidLength)
+  {
+    int at = 4 + libidLength + 6;
+    return extended.Length >= at + 16 ? new Guid(extended.Slice(at, 16)).ToString("B").ToUpperInvariant() : null;
   }
 
   sealed class ModuleBuilder

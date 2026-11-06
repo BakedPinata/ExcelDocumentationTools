@@ -4,12 +4,10 @@ using System.CommandLine.Invocation;
 using ExcelDocumenter.Shared;
 using ExcelDocumenter.Shared.CommandLine;
 using ExcelDocumenter.Shared.Files;
-using ExcelDocumenter.Shared.Importing;
 using ExcelDocumenter.Shared.Workbooks;
 using Serilog;
 using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Extraction;
-using VbaDocumenter.Core.Importing;
 using VbaDocumenter.Core.Output;
 using VbaDocumenter.Core.Parsing;
 
@@ -45,7 +43,11 @@ static class CliRunner
 
       if (parseResult.CommandResult.Command == cli.Import.Command)
       {
-        return Import(cli.Import.Bind(parseResult), parseResult.GetValue(cli.NoReferences), logger, services.Interaction);
+        return new ImportCommand(logger, services).Run(
+            cli.Import.Bind(parseResult),
+            cli.ImportTarget.Bind(parseResult),
+            parseResult.GetValue(cli.NoReferences),
+            parseResult.GetValue(cli.DropSignature));
       }
 
       var binding = OptionsBinder.Bind(parseResult, cli);
@@ -144,49 +146,6 @@ static class CliRunner
 
     logger.Debug("Finished in {Milliseconds} ms", total.ElapsedMilliseconds);
     return ExitCodes.Success;
-  }
-
-  /// <summary>
-  /// Takes chosen modules, with what they use, out of a workbook: says what that comes to, and writes it as a bundle if
-  /// asked. What it reads comes first, so a choice that can't be met changes nothing on disk.
-  /// </summary>
-  static int Import(ImportRequest request, bool noReferences, ILogger logger, IUserInteraction interaction)
-  {
-    var run = new ImportRun(logger, interaction, CliDefinition.ToolName);
-    var workbook = Path.GetFileName(request.Source);
-    var project = WorkbookReader.Read(request.Source);
-    var (items, leaveOut) = run.ReadChoice(request, workbook);
-    var import = new ModuleImport(DependencyAnalyser.Analyse(ProjectParser.Parse(project)));
-
-    var unknown = items.Where(item => import.Find(item) is null).ToList();
-    if (unknown.Count > 0)
-    {
-      logger.Error("{Workbook:l} has no module called {Items:l}", workbook, string.Join(", ", unknown));
-      return ExitCodes.InputError;
-    }
-
-    var picks = items.Select(item => import.Find(item)!).ToList();
-    var refused = picks.Where(id => import.WhyNot(id) is not null).ToList();
-    if (refused.Count > 0)
-    {
-      foreach (var id in refused) logger.Error("{Module:l} can't be taken: {Reason:l}", id, import.WhyNot(id));
-      return ExitCodes.InputError;
-    }
-
-    var plan = import.Plan(picks);
-    run.Report(plan);
-    var references = noReferences ? [] : project.References
-        .Where(r => !r.IsStandard && !leaveOut.Contains(r.Name, StringComparer.OrdinalIgnoreCase)).ToList();
-    foreach (var reference in references) logger.Information("Library reference: {Reference:l} ({Name:l})", reference.Description, reference.Name);
-
-    if (request.Bundle is null)
-    {
-      logger.Information("Nothing was written. Add --bundle <folder> to write them out");
-      return ExitCodes.Success;
-    }
-
-    return run.WriteBundle(request, ModuleBundle.Files(project, plan), ModuleBundle.Readme(workbook, project, plan, references),
-        ProjectExporter.ModuleExtensions.ToList(), ProjectExporter.GitAttributesContent);
   }
 
   /// <summary>Runs one step of the export, and logs how long it took (shown with --verbose).</summary>

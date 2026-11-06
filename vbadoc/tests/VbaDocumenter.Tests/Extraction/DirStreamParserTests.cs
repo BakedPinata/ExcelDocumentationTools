@@ -1,4 +1,5 @@
 using VbaDocumenter.Core.Extraction;
+using VbaDocumenter.Core.Importing;
 using VbaDocumenter.Tests.Support;
 
 namespace VbaDocumenter.Tests.Extraction;
@@ -49,6 +50,37 @@ public class DirStreamParserTests
     Assert.Equal(2, project.References.Count);
     Assert.Equal(VbaReferenceKind.Control, project.References[0].Kind);
     Assert.Equal(VbaReferenceKind.Registered, project.References[1].Kind);
+  }
+
+  [Fact]
+  public void A_control_reference_is_known_by_the_library_its_cache_was_made_from()
+  {
+    var reference = WorkbookReader.Read(Fixtures.Workbook("suffix-generator.xlsm")).References[0];
+
+    Assert.Equal("MSForms", reference.Name);
+    Assert.Equal("{0D452EE1-E08F-101A-852E-02608C4D0BB4}", reference.Guid);
+    Assert.Contains("{93114339-5326-214C-A2D2-EAF4B5B60F6F}", reference.Libid); // the cache's, made on one machine
+  }
+
+  [Fact]
+  public void A_reference_keeps_its_records_as_they_stand_so_it_can_be_copied()
+  {
+    var references = WorkbookReader.Read(Fixtures.Workbook("suffix-generator.xlsm")).References;
+
+    var control = DirRecords.Read(references[0].Records).Select(r => r.Id).ToList();
+    Assert.Equal(0x0016, control[0]);
+    Assert.Contains((ushort)0x0033, control);
+    Assert.Contains((ushort)0x002F, control);
+    Assert.Equal(0x0030, control[^1]);
+
+    Assert.Equal([0x0016, 0x003E, 0x000D], DirRecords.Read(references[1].Records).Select(r => (int)r.Id));
+  }
+
+  [Fact]
+  public void A_reference_to_another_VBA_project_points_at_a_file()
+  {
+    Assert.Equal(@"C:\Libs\Tools.xlam", VbaReference.From("Tools", @"*\CC:\Libs\Tools.xlam", VbaReferenceKind.Project).ProjectPath);
+    Assert.Null(VbaReference.From("Scripting", @"*\G{420B2830-E718-11CF-893D-00A0C9054228}#1.0#0#scrrun.dll#Scripting", VbaReferenceKind.Registered).ProjectPath);
   }
 
   [Fact]

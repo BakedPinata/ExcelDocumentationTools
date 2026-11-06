@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
+using ExcelDocumenter.Shared.Workbooks;
 using OpenMcdf;
 using VbaDocumenter.Core.Extraction;
 
@@ -30,6 +31,35 @@ public static class SyntheticWorkbook
       WriteZipEntry(zip, "xl/vbaProject.bin", vbaProjectBin);
     }
     return zipBytes.ToArray();
+  }
+
+  /// <summary>
+  /// A whole package with a VBA project, as a target has to be: <see cref="Xlsm"/> has only what the reader looks at.
+  /// </summary>
+  /// <param name="modules">The project's modules.</param>
+  /// <param name="codePage">Its code page.</param>
+  /// <param name="references">Its library references.</param>
+  /// <param name="protection">Lines to put among its properties, such as CMG.</param>
+  /// <param name="change">Anything else to do to the package.</param>
+  public static byte[] Package(IEnumerable<SyntheticModule> modules, int codePage = 1252, IReadOnlyList<(string Name, string Libid)>? references = null, string? protection = null, Action<OpcPackage>? change = null)
+  {
+    var package = BlankWorkbook.Build(macroEnabled: true);
+    package.Set("xl/vbaProject.bin", CompoundFile(root => WriteProject(root, modules.ToList(), codePage, null, references, protection)));
+    package.AddRelationship("xl/workbook.xml", "http://schemas.microsoft.com/office/2006/relationships/vbaProject", "vbaProject.bin");
+    package.SetOverride("xl/vbaProject.bin", "application/vnd.ms-office.vbaProject");
+    change?.Invoke(package);
+    return package.Write();
+  }
+
+  /// <summary>An .xlsb in outline: what matters here is that its workbook part isn't XML, so its code names can't be read.</summary>
+  public static byte[] Binary()
+  {
+    var package = new OpcPackage();
+    package.SetXml(OpcPackage.ContentTypesPart, new System.Xml.Linq.XDocument(new System.Xml.Linq.XElement(OpcPackage.ContentTypes + "Types")));
+    package.SetOverride("xl/workbook.bin", "application/vnd.ms-excel.sheet.binary.macroEnabled.main");
+    package.Set("xl/workbook.bin", [1, 2, 3]);
+    package.AddRelationship("", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument", "xl/workbook.bin");
+    return package.Write();
   }
 
   public static byte[] Xls(IEnumerable<SyntheticModule> modules, int codePage = 1252)
@@ -71,7 +101,7 @@ public static class SyntheticWorkbook
     return output.ToArray();
   }
 
-  static void WriteProject(Storage projectStorage, List<SyntheticModule> modules, int codePage, Action<Storage>? tamper, IReadOnlyList<(string Name, string Libid)>? references = null)
+  static void WriteProject(Storage projectStorage, List<SyntheticModule> modules, int codePage, Action<Storage>? tamper, IReadOnlyList<(string Name, string Libid)>? references = null, string? protection = null)
   {
     var encoding = CodePages.Get(codePage);
     var vba = projectStorage.CreateStorage("VBA");
@@ -94,7 +124,8 @@ public static class SyntheticWorkbook
         _ => $"Document={m.Name}/&H00000000\r\n",
       });
     }
-    project.Append("Name=\"VBAProject\"\r\n\r\n[Host Extender Info]\r\n&H00000001={3832D640-CF90-11CF-8E43-00A0C911005A};VBE;&H00000000\r\n");
+    project.Append($"Name=\"VBAProject\"\r\n{protection}\r\n[Host Extender Info]\r\n&H00000001={{3832D640-CF90-11CF-8E43-00A0C911005A}};VBE;&H00000000\r\n\r\n[Workspace]\r\n");
+    foreach (var m in modules) project.Append($"{m.Name}=0, 0, 0, 0, C\r\n");
     WriteStream(projectStorage, "PROJECT", encoding.GetBytes(project.ToString()));
 
     tamper?.Invoke(vba);

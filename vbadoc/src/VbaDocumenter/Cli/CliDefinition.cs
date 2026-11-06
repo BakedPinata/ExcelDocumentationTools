@@ -59,6 +59,19 @@ sealed class CliDefinition
       Description = "Leave out the source's library references.",
     };
     Import.Command.Options.Add(NoReferences);
+    ImportTarget = new ImportTargetOptions(Import, "modules and classes", "It has to be an .xlsm.");
+    DropSignature = new Option<bool>("--drop-signature")
+    {
+      Description = "With --into, go ahead though the target's VBA project is signed, removing the signature the change would break.",
+    };
+    Import.Command.Options.Add(DropSignature);
+    Import.Command.Validators.Add(result =>
+    {
+      if (result.GetValue(DropSignature) && result.GetValue(ImportTarget.Into) is null)
+      {
+        result.AddError("--drop-signature is about the target given with --into, so it needs one.");
+      }
+    });
 
     RootCommand = new RootCommand(
         "Exports the VBA from a macro-enabled Excel workbook into text files and generates a self-contained HTML page "
@@ -87,6 +100,12 @@ sealed class CliDefinition
 
   /// <summary><c>--no-references</c> on <c>import</c>.</summary>
   public Option<bool> NoReferences { get; }
+
+  /// <summary><c>--new</c>, <c>--into</c>, <c>--in-place</c> and <c>--on-clash</c> on <c>import</c>.</summary>
+  public ImportTargetOptions ImportTarget { get; }
+
+  /// <summary><c>--drop-signature</c> on <c>import</c>.</summary>
+  public Option<bool> DropSignature { get; }
 
   public Argument<string> Workbook { get; }
 
