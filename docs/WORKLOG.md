@@ -34,7 +34,9 @@ rather than repeating it.
   query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is pushed, as are its
   review's follow-ups (E5a) and a gentler drag. G1 (saved views) and its review's follow-ups (G1a) are pushed. The
   user parked G2–G4 (the views file in the page, printing, copying a view) to come back to later. **Now: H1**, the
-  spike on writing modules and queries into workbooks, on `feedback/h1-import-spike`.
+  spike on writing modules and queries into workbooks, on `feedback/h1-import-spike`. Excel accepts what it writes, at
+  home and at work; library references are the last thing to try. E5b (Calls tab follow-ups) is noted on
+  `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
@@ -46,6 +48,17 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-06: H1's findings, and library references to try
+
+- A real workbook saved at work has a metadata-only label. A copy with VBA and queries added kept the label, opened
+  and saved without asking, and everything in it worked. So H3 and H4 go ahead, with no template for new workbooks, and
+  `.xlsb` as a target. The findings are in both tools' decisions and the plan's "After H1".
+- The user's idea of generic (not tied to the workbook's purpose: logging, files, paths) means nothing should try to
+  detect it, and that relying on `ThisWorkbook` isn't a reason to leave something out; the plan says so.
+- They asked to try library references, with a way to opt out. The spike copies them from a source project (R
+  workbooks), and a `copy` command tries it on real modules, following what they use. For the user to check in Excel.
+- To settle before H2: an Export tab and a manifest of its own, proposed in place of the views file.
 
 ### 2026-11-06: H1 worked in Excel; labelled workbooks next
 

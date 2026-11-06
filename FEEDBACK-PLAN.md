@@ -67,7 +67,7 @@ questions the draft raised.
 | G2 | A views file in the output folder is built into the page | Claude | Parked after G1a, to come back to; H1 goes first |
 | G3 | Printing a view or every view, with descriptions | Claude, then you on a work machine | Parked after G1a, to come back to |
 | G4 | Optional: copy a view as text, to paste into a chat | Claude | Parked after G1a, to come back to |
-| H1 | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | Excel accepted all eleven workbooks, at home and at work; workbooks with a sensitivity label to come |
+| H1 | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | Yes, at home and at work, and a label comes through; library references still to try |
 | H2 | Choosing what to import, with its dependencies, and writing it out as a bundle folder | Claude | |
 | H3 | vbadoc imports into a new workbook or a copy of an existing one, if H1 shows it works | Claude | |
 | H4 | pqdoc imports into a new workbook or a copy of an existing one, if H1 shows it works | Claude | |
@@ -565,7 +565,8 @@ The user tried G1 and asked for these; they come in G1a, before G2.
 
 ### Importing into a workbook
 
-H1 is a spike, so these are the starting position. H1's findings confirm or change them before H2 begins.
+H1 is a spike, so these are the starting position. H1's findings confirm or change them before H2 begins: see "After
+H1" below, which wins where the two differ.
 
 - **What to import is chosen in the page,** by ticking items in the explorer or saving them as a view, and the views
   file carries the choice to the command line. The command also takes names directly.
@@ -592,6 +593,44 @@ H1 is a spike, so these are the starting position. H1's findings confirm or chan
 - **Signed VBA projects:** a change breaks the signature, so the tool refuses unless told to go ahead.
 - **Macro security:** a workbook written by the tool is unsigned. Machines that only run signed macros, or macros from
   trusted locations, block it until it's signed or moved. The README says so.
+
+### After H1
+
+Excel accepted everything the spike wrote, at home and on a work machine. The detail is in each tool's decisions.
+
+- **H3 and H4 go ahead:** both tools write straight into workbooks. Bundles stay for a target that can't be written,
+  such as an encrypted one.
+- **A new workbook is built by the tool,** with no template made in Excel, which is simpler than the plan assumed.
+- **`.xlsx`, `.xlsm` and `.xlsb` are all targets.** An `.xlsx` that gains modules is written as `.xlsm`.
+- **Sensitivity labels:** a target's label comes through unchanged, since it's only metadata, and Excel keeps showing
+  it. A workbook with a label that encrypts can't be a source or a target. A new workbook has no label, so Excel asks
+  for one at work, which is what should happen: the person writing it is the one to choose.
+
+The user's use case settles what "generic" means, which changes the plan's idea of what can't come along:
+
+- **Generic means not tied to the source workbook's purpose,** such as logging, file and folder handling, and choosing
+  paths by a strategy pattern. That's the person's judgement, so nothing tries to detect it: they choose, and the tools
+  bring what the choice depends on. Such modules often depend on each other, so dependencies matter more than anything
+  else here.
+- **Depending on the workbook isn't a reason to leave something out.** `ThisWorkbook` and `Excel.CurrentWorkbook()` are
+  fine: they'll simply mean the new workbook. Only what the target may not have is worth saying, and it's listed, never
+  a block: a sheet's code name, a procedure of the source's own on ThisWorkbook or a sheet, or a named table.
+- **An interface doesn't bring its implementations,** because nothing uses them: picking `IFilePath` brings none of the
+  classes that implement it, while picking a class brings its interface. So the page offers an interface's
+  implementations when it's picked.
+- **Whole modules and classes first.** Individual procedures are wanted now and then, but need more: writing part of a
+  module, with the declarations it uses, and deciding what happens if the target has that module. Proposed as a later,
+  optional step, once whole modules work.
+- **Library references are copied, with a way to opt out,** in place of the plan's "can't come along". They're records
+  in the project, copied as they stand, and a module's text doesn't say which library a name comes from, so all the
+  source's go, apart from any the target has. Excel still has to confirm this; the spike's R workbooks test it, including
+  what a reference to a library that isn't installed does.
+
+**To settle before H2:** how the choice reaches the command. The starting position was the views file. The proposal is
+an Export tab in the page and a small manifest file of its own, because a view says how the page looks and an export
+says what to take: a view's ticks are a filter, and it carries positions and panels that mean nothing to an import. A
+manifest would list only what was picked, not what it brings, so running it again after the modules change picks up any
+new dependencies, and it can be kept in git beside the shared code.
 
 ## 6. Steps
 

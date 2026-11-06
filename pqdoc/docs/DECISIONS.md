@@ -147,6 +147,25 @@ Reading them is step B2 of the feedback plan.
 - **Checked by hand on the private workbook:** its query's file has the same name and text as the user's hand export,
   apart from line endings, with no byte order mark.
 
+## Writing into workbooks: what step H1 found
+
+The spike is `spikes/h1-import`, which holds the code and the workbooks' list. Excel accepted all of this, at home and
+on a work machine, in `.xlsx`, `.xlsm` and `.xlsb` files, and in a workbook the spike built itself.
+
+- **A query needs three things:** its M in `Formulas/Section1.m`, an item in the Metadata as a connection-only query,
+  and, as Excel has for every query, a connection in `xl/connections.xml`. Excel listed queries that had no connection
+  too, which is how an `.xlsb` has to take them, since its connections are in a binary part.
+- **A workbook without queries** gets a new DataMashup part: `customXml/itemN.xml`, UTF-16 with a byte order mark as
+  Excel writes it, its properties part, and a relationship from the workbook. The Metadata ends with an empty content
+  zip, 22 bytes.
+- **Permission Bindings can't be remade.** They're a check of the package and permissions, protected with the Windows
+  user's own key (DPAPI). An existing one is kept, which no longer matches, and a new mashup has none. Excel accepted both,
+  and refreshed the spike's queries, which use no data source. What this means for a query with a real source, whose
+  privacy level was set, is still to see.
+- **Sensitivity labels:** a label without encryption is only metadata, so a changed copy keeps it, byte for byte, and
+  Excel showed the same label and saved without asking. A label with encryption can't be read or changed, as with any
+  encrypted workbook. A workbook without a label asks for one at work, as any unlabelled workbook does.
+
 ## Source in the page (1.5.0, step B4)
 
 - **Copied from vbadoc's source panel, under the same names**, so step C2 can merge them: `--embed-source`, hidden

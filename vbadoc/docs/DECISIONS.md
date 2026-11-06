@@ -97,6 +97,38 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
   generator tag says vbadoc wrote it: `index.html` from before 0.8.0, or a renamed workbook's page. Pages written by
   hand or by pqdoc are left alone. It reads only each file's first 2 KB, where the tag is.
 
+## Writing into workbooks: what step H1 found
+
+The spike is `spikes/h1-import`, which holds the code and the workbooks' list. Excel accepted all of this, at home and
+on a work machine.
+
+- **A project can be written as source only.** MS-OVBA's rule for writers does it: `_VBA_PROJECT` holds only its 7-byte
+  header, with version `0xFFFF`, so Excel ignores any compiled code and compiles every module from source on opening.
+  The `__SRP_` streams, which are the same kind of cache, are deleted. A new module is a stream of compressed source at
+  offset 0, its `dir` records, a line in `PROJECT` and an entry in `PROJECTwm`. Everything else in an existing project
+  stays, protection included.
+- **Compression has to be the real thing.** Literal tokens alone, as the tests' `SyntheticWorkbook` writes, break the
+  format's rule that every chunk but the last decompresses to exactly 4096 bytes.
+- **A new project needs no template.** The tool can write a whole workbook and project itself, so nothing made in Excel
+  has to be embedded, as the plan had assumed. CMG, DPB and GC are encrypted with a key that's the low byte of the sum
+  of the project ID's bytes, braces included, which `SimpleMacro.xlsm`'s confirm. Unprotected, they hold `00000000`,
+  `00` and `FF`. A new project gets Excel's two references (OLE Automation and Office), written as `SimpleMacro.xlsm`
+  has them, with an Office 14 path, which Excel finds by GUID.
+- **A workbook without a project** gets a document module for itself and each sheet, tied by code names in
+  `workbook.xml` and the sheets; a new code name mustn't clash with one a sheet already has. An `.xlsx` becomes
+  macro-enabled, with its content type changed and the file named `.xlsm`.
+- **An `.xlsb` needs no code names:** they're in its binary parts, but Excel added ThisWorkbook and the sheets' modules
+  itself to a project that had none.
+- **An exported class has to be turned back:** its `VERSION 1.0 CLASS` block goes, and the attributes an export leaves
+  out come back (`VB_Base`, `VB_TemplateDerived`, `VB_Customizable`). Copying from a project needs none of that, as the
+  stored source is already right.
+- **Replacing a module** works by removing its records, stream and lines, then adding it again.
+- **Sensitivity labels:** a label without encryption is only metadata, so a changed copy keeps it, byte for byte, and
+  Excel showed the same label and saved without asking. A label with encryption can't be read or changed, as with any
+  encrypted workbook. A workbook without a label asks for one at work, as any unlabelled workbook does.
+- **Library references** are records in the `dir` stream, so they can be copied as they stand, whatever their kind (a
+  control reference is several records, and can hold a name of its own). Whether Excel accepts them is still to try.
+
 ## Speed (step A2 of the feedback plan)
 
 - **`--verbose` shows how long each step took:** reading, parsing, analysing, building the page, writing the module
