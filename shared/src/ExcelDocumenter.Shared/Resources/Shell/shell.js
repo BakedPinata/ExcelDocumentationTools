@@ -106,12 +106,14 @@
 //                                      tool draws its views once. The shell has already taken the selection, its focus
 //                                      and the panels as the view has them, so the tool takes it as its own without
 //                                      calling selectionChanged. Then onViewChange tells of the view's tab
-//   shell.exports.init({ what, whyNot(id), uses(id), needs(id), offers(id), pickFor(id), references })   the Export tab,
+//   shell.exports.init({ what, whyNot(id), uses(id), needs(id), offers(id), pickFor(id), references, writeTo })   the Export tab,
 //                                      which lists the explorer's items: what they are ("modules and classes"), why an
 //                                      item can't be picked (null when it can), the items it uses that can come, what
 //                                      it relies on that can't ([{ what, why }]), what may be wanted with it, the item
-//                                      a tick in the explorer stands for, and the library references to offer ([{ name,
-//                                      description }]). Call it after explorer.setLayouts and before start
+//                                      a tick in the explorer stands for, the library references to offer ([{ name,
+//                                      description }]), and what to show the command writing to, such as "--new
+//                                      Shared.xlsm", or nothing for a bundle. Call it after explorer.setLayouts and
+//                                      before start
 //   A button with id "load-folder-prompt" anywhere in the page opens Load folder.
 (function () {
   "use strict";
@@ -2437,7 +2439,7 @@
         exportListHtml("To check in the target", needs) +
         exportListHtml("Library references", references) +
         "<h2 class=\"export-heading\">Then run</h2><code class=\"export-command\" id=\"export-command\">" +
-        escapeHtml(tool + " import \"" + workbook + "\" --manifest " + tool + "-export.json --bundle Shared") + "</code>";
+        escapeHtml(tool + " import \"" + workbook + "\" --manifest " + tool + "-export.json " + (exportSource.writeTo || "--bundle Shared")) + "</code>";
     }
 
     // Everything that follows from the picks: the ticks, the plan and the buttons.

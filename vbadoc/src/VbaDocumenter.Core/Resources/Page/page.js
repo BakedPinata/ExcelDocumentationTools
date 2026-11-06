@@ -751,7 +751,8 @@
       return modulesLinked((moduleEdges.usedBy.get(id) || []).filter(function (e) { return e.kind === "implements"; }), function (e) { return e.from; });
     },
     pickFor: moduleOfId,
-    references: data.project.references
+    references: data.project.references,
+    writeTo: "--new Shared.xlsm"
   });
   shell.start();
   // The views read the selection when they first draw, so an address's selection is made before they do.

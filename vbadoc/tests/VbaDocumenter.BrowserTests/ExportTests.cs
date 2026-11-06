@@ -231,7 +231,7 @@ public sealed class ExportTests(PageFixture fixture) : IDisposable
       Assert.NotEmpty(await Listed(page, "Comes along"));
       path = await Download(page);
       Assert.Equal("Downloaded vbadoc-export.json.", await page.InnerTextAsync("#export-status"));
-      Assert.Contains("vbadoc import \"SampleVba.xlsm\" --manifest vbadoc-export.json", await page.InnerTextAsync("#export-command"));
+      Assert.Equal("vbadoc import \"SampleVba.xlsm\" --manifest vbadoc-export.json --new Shared.xlsm", await page.InnerTextAsync("#export-command"));
       Assert.Empty(opened.Errors);
     }
 
