@@ -178,6 +178,17 @@ pqdoc C:\queries -f svg,png --plantuml-server https://plantuml.example.com --for
 | FR-SRC-3 | After Load folder, the page MUST say how many files it loaded, name any that are missing, and warn when a file's hash doesn't match the one taken when the page was made. Files MUST be read as UTF-8 unless they start with a UTF-16 byte order mark. |
 | FR-SRC-4 | A button over the M code MUST copy it to the clipboard as plain text, without line numbers, and stay in view as the code scrolls. If the browser won't allow it, the code is selected for Ctrl+C instead. |
 
+### 4.11 Choosing What to Import
+
+| ID | Requirement |
+|----|-------------|
+| FR-IMP-1 | The page's Export tab MUST list every query, in the explorer's layout, whatever the filter, hiding and Show… choices are doing. Ticking a group picks all that's in it, and it can start from what's ticked in the explorer. The choice MUST be remembered per workbook, apart from the explorer's filter. |
+| FR-IMP-2 | As the choice changes, the tab MUST show what was chosen, what comes along because something chosen uses it (functions and parameters are queries, so they come too), and what to check in the target. |
+| FR-IMP-3 | What to check MUST list what doesn't come along, and never block anything: a table or named range `Excel.CurrentWorkbook()` reads, and each function that reaches a data source, by its name only, as a query's server names and paths stay out of the page (FR-SRC-2). |
+| FR-IMP-4 | The manifest, `pqdoc-export.json`, MUST be downloaded from the tab and loadable back into it. It holds what was picked and the workbook's name. A manifest for another tool, or from a newer pqdoc, MUST be refused, saying why. |
+| FR-IMP-5 | `pqdoc import <input>` MUST take what to take from `--manifest <file>` or `--items A,B`, one or the other, from a workbook or a folder of `.m` files, and say what it comes to, as the tab does. A query the input doesn't have MUST stop it with exit code 3; a manifest made from another workbook is only mentioned. |
+| FR-IMP-6 | `--bundle <folder>` MUST write the queries' `.m` files with a `README.md` on bringing them in by hand, each query after those it uses. Without it, nothing is written. A bundle MUST go only into an empty folder or an earlier bundle, and a folder of other files MUST stop it with exit code 4. Replacing an earlier bundle that would change follows `--on-exists` and `--force`. |
+
 ## 5. Non-Functional Requirements
 
 ### 5.1 Logging (Console UX)

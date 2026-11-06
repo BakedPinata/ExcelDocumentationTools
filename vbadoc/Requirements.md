@@ -198,5 +198,21 @@ Shared by both views.
 - **Views are kept per workbook in the browser.** **Export** downloads them as `vbadoc-views.json`, and **Import** reads such a file back with a file picker, adding its views and replacing any of the same name. Both work offline, in a page opened from disk. The file is JSON with a format version and the workbook's name, using the page's names, written with sorted keys and 2-space indentation so its diffs are small. A file for another tool, or from a newer vbadoc, is refused, saying why. A file from another workbook, or that mentions items this one doesn't have, says so before anything is imported, with the views it would replace, and is imported only if the person goes on.
 - **A view that mentions items the workbook no longer has still opens:** they're left out, and listed in a note across the page and on the browser's console; it's never an error. Nodes it has no position for are placed beside what they're linked to.
 
+### Export tab
+
+- **The Export tab** chooses modules and classes to take out of the workbook, for `vbadoc import`. It lists every module, in the explorer's layout, whatever the filter, hiding and Show… choices are doing. Ticking a folder picks all that's in it, and it can start from what's ticked in the explorer. The choice is remembered per workbook, and is apart from the explorer's filter.
+- **Only whole standard modules and classes can be picked.** Document modules and forms can't, and say why.
+- **As the choice changes, it shows what it comes to:** what was chosen, what comes along because something chosen uses it (following Uses, Implements and Events), an interface's implementations, offered because nothing uses them, what to check in the target, and the library references.
+- **To check in the target** lists what doesn't come along, and never blocks anything: a sheet's code name, a procedure of the source's own on ThisWorkbook, a form, a procedure run by name (`Application.Run`, `CallByName`, `OnAction`), and late-bound calls. Plain `ThisWorkbook` isn't listed, as it simply means the target's own.
+- **Library references** are listed to untick, apart from the two every project has.
+- **The manifest,** `vbadoc-export.json`, is downloaded from the tab and can be loaded back into it. It holds what was picked, the references to leave out and the workbook's name. A manifest for another tool, or from a newer vbadoc, is refused, saying why.
+
+## Importing
+
+`vbadoc import <source>` takes chosen modules and classes out of a workbook.
+
+- **What to take** comes from `--manifest <file>` or `--items A,B`, one or the other. It says what that comes to, as the Export tab does. A module the workbook doesn't have, or that can't be taken, stops it with exit code 3; a manifest made from another workbook is only mentioned.
+- **`--bundle <folder>`** writes the modules as the VBA editor imports them, with a `README.md` on importing them by hand: what's there and why, the references to tick, and what to check. Without it, nothing is written. A bundle goes only into an empty folder or an earlier bundle, and a folder of other files stops it with exit code 4. Replacing an earlier bundle that would change follows `--on-exists` and `--force`. `--no-references` leaves the references out of it.
+
 ## Out of scope
 

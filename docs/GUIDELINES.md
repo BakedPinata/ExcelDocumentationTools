@@ -23,8 +23,8 @@ Classes keep names that describe what they do, such as `DependencyAnalyser`.
 **Documentation files are named after what they document**, the workbook's name (or a folder's) and a suffix for the
 tool, because a file that's emailed or printed loses its folder. `#` and `%` become `_` in file names only, and titles
 show the real name. Each tool deletes older files it wrote under another name from a folder it owns, recognising them
-by the generator tag every page carries, and leaves everything else alone. Settings files, such as saved views, keep
-fixed names.
+by the generator tag every page carries, and leaves everything else alone. Settings files, such as saved views and the
+export manifest, keep fixed names.
 
 ## Spelling
 
@@ -131,6 +131,10 @@ of generated pages, because changing one changes every page.
   following the selection, hiding and resizing, Expand / Collapse all, favourites, listed at its top, the views'
   filter, ticked on its rows, widely used and hidden items, listed at its foot, and the Show… menu, one for the tree
   and every view).
+- **The Export tab is the shell's,** in both pages: it chooses what to take out of the workbook, shows what that comes to,
+  and writes the manifest the tool's `import` command reads. It isn't a view of the workbook, so it lists everything,
+  whatever the filter, hiding, the Show… choices and focus are doing. What can be picked and what an item relies on are
+  the tool's Core's to say, and the page gets them as data, so the page and the command can't disagree.
 - **Nothing leaves the views silently:** whatever limits what they show (the Show… choices, the filter, hidden items,
   Focus on favourites) is said in every view's toolbar, with a way back.
 - **Focus on click, Ctrl+click and Esc work the same in every view of both tools:** one Focus on click setting for the

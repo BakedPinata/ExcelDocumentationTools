@@ -135,6 +135,25 @@ on a work machine.
   it. `HKEY_CLASSES_ROOT\TypeLib\{GUID}` says whether one is installed; only the GUID counts, as a project can name an
   older version than the machine has (Office `#2.0` where the machine has 2.6 to 2.8).
 
+## Choosing what to import (0.29.0, step H2 of the feedback plan)
+
+The Export tab, the manifest and bundles are mostly the shell's and `shared/`'s: see `shared/README.md`.
+
+- **`ModuleImport` holds the rules,** and the page gets their results as data (`whyNot` and `needs` on each module), so
+  the tab and the command can't disagree about them. Only following what uses what is written twice.
+- **A dependency on a document module or form never comes along.** A sheet's code name is listed, since the target needs a
+  sheet called that. Plain `ThisWorkbook` isn't, since it just means the target's own: the user's view of generic is that
+  relying on the workbook is fine. A procedure of the source's own on ThisWorkbook is listed, as it won't be there. The
+  workbook's module is known by its `VB_Base`, so a renamed one still counts.
+- **`Application.Run`, `CallByName` and `OnAction` are found in the statements' text,** and listed once per module with
+  late-bound calls, as what can't be followed. Text in the source is enough: this only has to prompt a look.
+- **Picking an interface offers its implementations,** and so does anything that brings an interface, since an interface
+  is little use without something implementing it. The module edges give them; nothing uses an implementation, so
+  following what uses what never would. This is the shape of the user's path classes.
+- **Library references are read from the `dir` stream** (`VbaProject.References`), and the page lists those that aren't
+  the two every project has. Each is known by its name in the manifest, as that's what the VBA editor shows.
+- **`--no-references` is vbadoc's alone,** on `import`, since pqdoc has none.
+
 ## Speed (step A2 of the feedback plan)
 
 - **`--verbose` shows how long each step took:** reading, parsing, analysing, building the page, writing the module

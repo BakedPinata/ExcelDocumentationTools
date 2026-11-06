@@ -166,6 +166,23 @@ on a work machine, in `.xlsx`, `.xlsm` and `.xlsb` files, and in a workbook the 
   Excel showed the same label and saved without asking. A label with encryption can't be read or changed, as with any
   encrypted workbook. A workbook without a label asks for one at work, as any unlabelled workbook does.
 
+## Choosing what to import (1.20.0, step H2 of the feedback plan)
+
+The Export tab, the manifest and bundles are mostly the shell's and `shared/`'s: see `shared/README.md`.
+
+- **`QueryImport` holds the rules,** and the page gets their results as data (`needs` on each query), so the tab and the
+  command can't disagree about them.
+- **Every query can come,** functions and parameters included, as they're queries too. It comes as connection-only in
+  the end (H4), as where a query loads to belongs to the workbook it was in.
+- **`Excel.CurrentWorkbook()` isn't a reason to leave a query out,** as it just means the new workbook. What's listed is
+  the table or named range it reads, found in the tokens of `Excel.CurrentWorkbook(){[Name="Sales"]}`, or the call
+  itself if it isn't written that way.
+- **A data source is listed by its function only,** such as `Web.Contents`, never what it points at: a query's server
+  names and paths stay out of the page unless `--embed-source` asks for them (FR-SRC-2). The list holds the functions
+  that reach outside the workbook; those that read what another gives them, such as `Csv.Document`, aren't on it, as
+  `File.Contents` beside them is the source.
+- **A bundle's README puts each query after those it uses,** as they're brought in by hand one at a time.
+
 ## Source in the page (1.5.0, step B4)
 
 - **Copied from vbadoc's source panel, under the same names**, so step C2 can merge them: `--embed-source`, hidden

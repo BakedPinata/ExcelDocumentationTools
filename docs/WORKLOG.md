@@ -10,11 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-05)
 
-- **vbadoc 0.28.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.29.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.19.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.20.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -34,9 +34,10 @@ rather than repeating it.
   query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is pushed, as are its
   review's follow-ups (E5a) and a gentler drag. G1 (saved views) and its review's follow-ups (G1a) are pushed. The
   user parked G2–G4 (the views file in the page, printing, copying a view) to come back to later. H1 (the spike on
-  writing modules and queries into workbooks) is done on `feedback/h1-import-spike`, waiting for review: Excel accepts
-  what it writes, at home and at work. **Next: H2** (the Export tab, the manifest and bundles), then H3 and H4, as the
-  plan's "After H1" sets out. E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
+  writing modules and queries into workbooks) is on main, not yet pushed: Excel accepts what it writes, at home and at
+  work. H2 (the Export tab, the manifest and bundles) is done on `feedback/h2-export-tab`, waiting for review. **Next: H3
+  and H4**, writing into workbooks, as the plan's "After H1" sets out. E5b (Calls tab follow-ups) is noted on
+  `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
@@ -48,6 +49,20 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-06: Step H2, the Export tab and bundles
+
+- The page has an Export tab, the shell's, in both tools: pick whole modules, classes or queries, and it shows what comes
+  along, what may be wanted too (an interface's implementations), what to check in the target, and the library
+  references. Its picks are its own, remembered per workbook, and it lists everything, whatever the views are filtered to.
+- A manifest (`<tool>-export.json`) holds the picks, not what they bring, so running it again picks up new dependencies.
+- `vbadoc import` and `pqdoc import` take a manifest or names, say what that comes to, and with `--bundle` write the files
+  with a README on importing them by hand. A bundle only goes into an empty folder or an earlier bundle.
+- The rules are in Core (`ModuleImport`, `QueryImport`) and reach the page as data; a browser test compares the two for
+  every module in the sample. vbadoc now reads a project's library references.
+- Also agreed: `--in-place`, to change the target itself, opt-in, asking first and with `--force` for unattended runs. That
+  and writing into workbooks are for H3 and H4.
+- vbadoc 0.29.0, pqdoc 1.20.0. The user's check of a bundle by hand in Excel is still to come.
 
 ### 2026-11-06: H1 done; H2 to H4 settled
 

@@ -68,7 +68,7 @@ questions the draft raised.
 | G3 | Printing a view or every view, with descriptions | Claude, then you on a work machine | Parked after G1a, to come back to |
 | G4 | Optional: copy a view as text, to paste into a chat | Claude | Parked after G1a, to come back to |
 | H1 | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | Done: yes, at home and at work, with labels and references |
-| H2 | The Export tab and manifest: choosing what to import, with what it brings; bundle folders | Claude | |
+| H2 | The Export tab and manifest: choosing what to import, with what it brings; bundle folders | Claude, then you in Excel | Done; your check of a bundle by hand to come |
 | H3 | vbadoc imports into a new workbook or a copy of an existing one, with references, asking about name clashes | Claude, then you in Excel | |
 | H4 | pqdoc imports into a new workbook or a copy of an existing one, asking about name clashes | Claude, then you in Excel | |
 

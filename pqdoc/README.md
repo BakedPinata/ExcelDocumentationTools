@@ -241,6 +241,22 @@ Each request times out after 30 seconds. If the server reports a diagram error, 
 status, returns nothing, or returns something that is not the requested format, that format fails
 with a message and the other outputs are still produced.
 
+## Taking queries out of a workbook
+
+To reuse queries that aren't tied to one workbook, choose them on the page's **Export** tab. It shows what they bring
+with them and what to check in the target, such as a table a query reads or a data source. **Download manifest** saves
+the choice as `pqdoc-export.json`, for `pqdoc import`:
+
+```bash
+pqdoc import Sales.xlsx --manifest pqdoc-export.json                  # says what would come
+pqdoc import Sales.xlsx --manifest pqdoc-export.json --bundle Shared  # writes them to a folder
+pqdoc import Sales.xlsx --items "Sales Report,fnClean"                # by name, without a manifest
+```
+
+A bundle holds each query's `.m` file and a `README.md` on bringing them in by hand, each after the queries it uses. It
+only goes into an empty folder or an earlier bundle, so it can't delete your own files. The manifest lists what you
+picked and not what that brings, so running it again later picks up any new dependencies.
+
 ## Existing output files
 
 Every output path is checked before anything is written, so a refused overwrite never leaves a

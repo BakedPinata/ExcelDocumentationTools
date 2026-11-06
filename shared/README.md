@@ -11,7 +11,8 @@ build stamps. See "Structure" in [docs/GUIDELINES.md](../docs/GUIDELINES.md) for
 | (root) | `ExitCodes`, the codes every tool returns; `ToolVersion`, the build stamp read from a tool's own assembly | both |
 | `Workbooks/` | `WorkbookFile`: reading a workbook while Excel has it open, telling zip-based from compound files, spotting encryption; `ExtractionException`, exit code 3 | both readers |
 | `Files/` | `AtomicFileWriter`: write to a temporary file, then move it into place; `SourceFolderWriter`: keep a folder of source files in step with a workbook; `OverwriteResolver` and `OnExistsBehaviour`: what to do when an output already exists, asking through `IUserInteraction` | vbadoc's module files and page; pqdoc's `.m` files and outputs |
-| `CommandLine/` | `OverwriteOptions`: `--on-exists` and `--force` (`-y`), checked and bound the same way in both tools; `ConsoleUserInteraction`: the yes / no / all / quit prompt, on standard error | both command lines |
+| `CommandLine/` | `OverwriteOptions`: `--on-exists` and `--force` (`-y`), checked and bound the same way in both tools; `ImportOptions`: the `import` command; `ConsoleUserInteraction`: the yes / no / all / quit prompt, on standard error | both command lines |
+| `Importing/` | `ImportPlan`: what a choice comes to; `ExportManifest`: the file the Export tab writes; `BundleFolder`: a folder of chosen files with a README; `ImportRun`: the steps of `import` both tools share | both `import` commands |
 | `Pages/` | `ShellPage`: a page built on the shell, from the parts a tool brings; `PageBuilder`: filling a template's placeholders, inlining scripts after d3 and the shell's, escaping text and JSON, the favicon; `EmbeddedResources`; `VendoredScripts` | both pages |
 | `Resources/Shell/` | The page shell: `shell.html` (the template), `shell.css` (the frame and shared colour tokens) and `shell.js` (theme, settings, tabs, the explorer, the side panel, their splitters, Load folder, source view; its interface is at the top) | both pages |
 | `Resources/Vendor/` | d3 and its licence, byte-for-byte as published (see its README) | both pages |
@@ -115,6 +116,34 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
   live region (`#announcer`). Without the clipboard API, or if it's refused, the older copy command is tried; if that
   fails too, the code is selected for Ctrl+C.
 - **The lock and copy icons are our own,** like the folder (see below).
+
+### The Export tab and importing (step H2)
+
+- **The Export tab is the shell's,** added after the tool's tabs by `ShellPage`, with its view in the template. The tool
+  gives it what it needs through `shell.exports.init`. It lists the explorer's layout, down to whole items: what's inside
+  an item, such as a module's members, can't be picked.
+- **Its picks are its own,** remembered per workbook as `<tool>-export|<workbook>`, and apart from the explorer's filter,
+  which says what the views show, not what to take. *Add what's ticked in the explorer* starts from it, and a tick on
+  something inside an item stands for the item (`pickFor`).
+- **It isn't a view of the workbook,** so it lists everything, whatever the filter, hiding, the Show… choices and focus
+  are doing, and has no notes about them. That's why it has no `.view-toolbar`, which is what gets those notes.
+- **The rules are Core's, and the page gets them as data:** what can't be picked and why, and what each item relies on.
+  The page and `ImportPlan` only follow what uses what, which is short enough to have twice, and a vbadoc browser test
+  compares the two for every module in the sample.
+- **`ImportPlan`:** what was picked, what that brings (each with what uses it), what it relies on that can't come
+  (`ImportNeed`: what it is and why, listed once with everything that relies on it), and what may be wanted too, such as
+  an interface's implementations, which nothing uses and so nothing brings.
+- **The manifest** is `<tool>-export.json`: `{ "formatVersion": 1, "items": [...], "leaveOutReferences": [...], "tool":
+  "<tool>", "workbook": "<name>" }`, written as a views file is. It holds what was picked, not what that brings, so
+  running it again after the source changes picks up new dependencies. A manifest loaded into the page replaces the
+  choice, with Undo; what the workbook can't give is left out and listed. Another tool's, or a newer format, is refused
+  with the reason, by the page and by `ExportManifest`.
+- **A bundle** is a folder of the chosen files and a `README.md`, whose first line marks the folder as a bundle.
+  `BundleFolder` only writes into an empty folder or an earlier bundle of the same tool, because `SourceFolderWriter`
+  deletes the tool's other files, and someone's own modules mustn't be at risk from a mistyped path. `--on-exists` and
+  `--force` apply to replacing an earlier bundle that would change.
+- **`import` is a subcommand,** so the root command has an empty action: a command with subcommands otherwise has to be
+  given one. `CliRunner` tells that action from `--help` and `--version`, and `--verbose` and `--quiet` are recursive.
 
 ### Saved views (step G1)
 

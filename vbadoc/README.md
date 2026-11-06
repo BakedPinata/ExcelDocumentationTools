@@ -94,6 +94,22 @@ asked about: they always follow the workbook.
 When nobody can be asked, such as in a script or a scheduled task, vbadoc stops with exit code 4 instead. Add `--force`
 (`-y`) to overwrite, or choose with `--on-exists overwrite`, `skip` or `fail`.
 
+### Taking modules out of a workbook
+
+To reuse modules and classes that aren't tied to one workbook, such as logging or file handling, choose them on the
+page's **Export** tab. It shows what they bring with them, what to check in the target, and which library references
+come too. **Download manifest** saves the choice as `vbadoc-export.json`, for `vbadoc import`:
+
+```bash
+vbadoc import Sales.xlsm --manifest vbadoc-export.json                  # says what would come
+vbadoc import Sales.xlsm --manifest vbadoc-export.json --bundle Shared  # writes them to a folder
+vbadoc import Sales.xlsm --items Logger,FilePathFromDialog              # by name, without a manifest
+```
+
+A bundle holds the modules, ready for **File > Import File** in the VBA editor, and a `README.md` saying how. It only goes
+into an empty folder or an earlier bundle, so it can't delete your own modules. The manifest lists what you picked and
+not what that brings, so running it again later picks up any new dependencies.
+
 ### Changes in 0.9.0
 
 - vbadoc asks before overwriting a page that would change (see above), and a script must now say what it wants with
