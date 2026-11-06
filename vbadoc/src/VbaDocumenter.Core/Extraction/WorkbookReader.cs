@@ -37,7 +37,7 @@ public static class WorkbookReader
 
   // The saved time is only for the page's summary, so reading it fails safe (WorkbookFile.LastSaved).
   static VbaProject WithSaved(VbaProject project, byte[] fileBytes) =>
-      new() { Name = project.Name, CodePage = project.CodePage, Modules = project.Modules, Saved = WorkbookFile.LastSaved(fileBytes) };
+      new() { Name = project.Name, CodePage = project.CodePage, Modules = project.Modules, References = project.References, Saved = WorkbookFile.LastSaved(fileBytes) };
 
   static VbaProject ReadZipBased(byte[] fileBytes)
   {
@@ -119,6 +119,7 @@ public static class WorkbookReader
     {
       Name = dir.ProjectName,
       CodePage = dir.CodePage,
+      References = dir.References,
       Modules = modules
             .OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(m => m.Name, StringComparer.Ordinal)

@@ -5,6 +5,52 @@ namespace VbaDocumenter.Tests.Extraction;
 
 public class DirStreamParserTests
 {
+  static byte[] Record(ushort id, byte[] data) => [.. BitConverter.GetBytes(id), .. BitConverter.GetBytes(data.Length), .. data];
+
+  static byte[] Libid(string text) => [.. BitConverter.GetBytes(text.Length), .. System.Text.Encoding.ASCII.GetBytes(text), 0, 0, 0, 0, 0, 0];
+
+  [Fact]
+  public void Reads_library_references_with_what_the_editor_calls_them()
+  {
+    const string Scripting = @"*\G{420b2830-e718-11cf-893d-00a0c9054228}#1.0#0#C:\Windows\System32\scrrun.dll#Microsoft Scripting Runtime";
+    byte[] dir =
+    [
+      .. Record(0x0003, [0xE4, 0x04]),
+      .. Record(0x0016, "Scripting"u8.ToArray()),
+      .. Record(0x003E, System.Text.Encoding.Unicode.GetBytes("Scripting")),
+      .. Record(0x000D, Libid(Scripting)),
+      .. Record(0x000F, [0, 0]),
+      .. Record(0x0010, []),
+    ];
+
+    var reference = Assert.Single(DirStreamParser.Parse(dir).References);
+
+    Assert.Equal("Scripting", reference.Name);
+    Assert.Equal("Microsoft Scripting Runtime", reference.Description);
+    Assert.Equal("{420B2830-E718-11CF-893D-00A0C9054228}", reference.Guid);
+    Assert.Equal(VbaReferenceKind.Registered, reference.Kind);
+    Assert.False(reference.IsStandard);
+  }
+
+  [Fact]
+  public void The_references_every_project_has_are_known_as_such()
+  {
+    var project = WorkbookReader.Read(Fixtures.Workbook("SimpleMacro.xlsm"));
+
+    Assert.Equal(["stdole", "Office"], project.References.Select(r => r.Name));
+    Assert.All(project.References, r => Assert.True(r.IsStandard));
+  }
+
+  [Fact]
+  public void A_control_reference_spread_over_several_records_is_one_reference()
+  {
+    var project = WorkbookReader.Read(Fixtures.Workbook("suffix-generator.xlsm"));
+
+    Assert.Equal(2, project.References.Count);
+    Assert.Equal(VbaReferenceKind.Control, project.References[0].Kind);
+    Assert.Equal(VbaReferenceKind.Registered, project.References[1].Kind);
+  }
+
   [Fact]
   public void Reads_project_name_code_page_and_modules()
   {

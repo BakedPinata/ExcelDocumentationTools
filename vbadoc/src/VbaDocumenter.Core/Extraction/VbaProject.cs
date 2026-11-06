@@ -33,6 +33,41 @@ public sealed class VbaModule
   public required string Source { get; init; }
 }
 
+/// <summary>What a library reference points at, which says how it can be found.</summary>
+public enum VbaReferenceKind
+{
+  /// <summary>A type library registered on the machine.</summary>
+  Registered,
+  /// <summary>Another VBA project, such as an add-in, found by its path.</summary>
+  Project,
+  /// <summary>A library of controls, as forms use.</summary>
+  Control,
+}
+
+/// <summary>A library reference (Tools > References in the VBA editor).</summary>
+/// <param name="Name">The reference's name, such as "Scripting".</param>
+/// <param name="Description">What the VBA editor calls it, such as "Microsoft Scripting Runtime".</param>
+/// <param name="Guid">The GUID in its libid, with braces, or null if it has none.</param>
+public sealed partial record VbaReference(string Name, string Description, string? Guid, VbaReferenceKind Kind)
+{
+  // Every project has these two, so there's nothing to bring or to tick: OLE Automation and the Office library.
+  static readonly string[] EveryProjectHas = ["{00020430-0000-0000-C000-000000000046}", "{2DF8D04C-5BFA-101B-BDE5-00AA0044DE52}"];
+
+  /// <summary>Whether it's one Excel gives every project.</summary>
+  public bool IsStandard => Guid is not null && EveryProjectHas.Contains(Guid, StringComparer.OrdinalIgnoreCase);
+
+  /// <summary>A reference from its name and libid, such as <c>*\G{…}#1.0#0#C:\…\scrrun.dll#Microsoft Scripting Runtime</c>.</summary>
+  public static VbaReference From(string name, string libid, VbaReferenceKind kind)
+  {
+    var description = libid[(libid.LastIndexOf('#') + 1)..];
+    var guid = GuidInLibid().Match(libid);
+    return new VbaReference(name, description.Length > 0 ? description : name, guid.Success ? guid.Value.ToUpperInvariant() : null, kind);
+  }
+
+  [System.Text.RegularExpressions.GeneratedRegex(@"\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}")]
+  private static partial System.Text.RegularExpressions.Regex GuidInLibid();
+}
+
 /// <summary>Everything read from a workbook's VBA project.</summary>
 public sealed class VbaProject
 {
@@ -47,4 +82,7 @@ public sealed class VbaProject
 
   /// <summary>When the workbook was last saved, from its own document properties, or null when it doesn't say.</summary>
   public DateTimeOffset? Saved { get; init; }
+
+  /// <summary>The project's library references, in order.</summary>
+  public IReadOnlyList<VbaReference> References { get; init; } = [];
 }

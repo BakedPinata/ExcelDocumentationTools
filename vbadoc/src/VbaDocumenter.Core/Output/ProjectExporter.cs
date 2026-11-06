@@ -18,9 +18,9 @@ public static class ProjectExporter
   public const string ClassHeader = "VERSION 1.0 CLASS\r\nBEGIN\r\n  MultiUse = -1  'True\r\nEND\r\n";
 
   /// <summary>File types the tool owns. Any other file in the output folder is never touched.</summary>
-  static readonly string[] ModuleExtensions = [".bas", ".cls", ".frm"];
+  public static readonly IReadOnlyList<string> ModuleExtensions = [".bas", ".cls", ".frm"];
 
-  const string GitAttributesContent =
+  public const string GitAttributesContent =
       "# Created by vbadoc. Keep exported VBA exactly as the VBA editor expects it:\n" +
       "# CRLF line endings and the project's code page, with no conversion by git.\n" +
       "# (\"-text\" turns conversion off; \"diff\" keeps line-by-line diffs.)\n" +

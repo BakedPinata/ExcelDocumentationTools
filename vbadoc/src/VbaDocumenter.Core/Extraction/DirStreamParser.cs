@@ -7,7 +7,11 @@ namespace VbaDocumenter.Core.Extraction;
 public sealed record DirModule(string Name, string StreamName, uint TextOffset, bool IsProcedural);
 
 /// <summary>What the dir stream tells us about the project.</summary>
-public sealed record DirInfo(string ProjectName, int CodePage, IReadOnlyList<DirModule> Modules);
+public sealed record DirInfo(string ProjectName, int CodePage, IReadOnlyList<DirModule> Modules)
+{
+  /// <summary>The project's library references, in order.</summary>
+  public IReadOnlyList<VbaReference> References { get; init; } = [];
+}
 
 /// <summary>
 /// Parses the decompressed "VBA/dir" stream (MS-OVBA section 2.3.4.2).
@@ -22,6 +26,11 @@ public static class DirStreamParser
   const ushort ProjectCodePage = 0x0003;
   const ushort ProjectName = 0x0004;
   const ushort ProjectVersion = 0x0009;
+  const ushort ReferenceRegistered = 0x000D;
+  const ushort ReferenceProject = 0x000E;
+  const ushort ReferenceName = 0x0016;
+  const ushort ReferenceControlExtended = 0x0030;
+  const ushort ReferenceNameUnicode = 0x003E;
   const ushort Terminator = 0x0010;
   const ushort ModuleName = 0x0019;
   const ushort ModuleStreamName = 0x001A;
@@ -36,8 +45,18 @@ public static class DirStreamParser
     string projectName = "";
     int codePage = 1252;
     var modules = new List<DirModule>();
+    var references = new List<VbaReference>();
+    string? referenceName = null; // a control reference can name itself twice, so the first name stands
     ModuleBuilder? current = null;
     int pos = 0;
+
+    // A reference ends with the record that says what it is, which starts with its libid's length.
+    void AddReference(ReadOnlySpan<byte> data, VbaReferenceKind kind)
+    {
+      int length = BinaryPrimitives.ReadInt32LittleEndian(data);
+      references.Add(VbaReference.From(referenceName ?? "", CodePages.Get(codePage).GetString(data.Slice(4, length)), kind));
+      referenceName = null;
+    }
 
     while (pos + 6 <= dir.Length)
     {
@@ -56,6 +75,21 @@ public static class DirStreamParser
           break;
         case ProjectName:
           projectName = CodePages.Get(codePage).GetString(data);
+          break;
+        case ReferenceName:
+          referenceName ??= CodePages.Get(codePage).GetString(data);
+          break;
+        case ReferenceNameUnicode when data.Length > 0:
+          referenceName = Encoding.Unicode.GetString(data);
+          break;
+        case ReferenceRegistered:
+          AddReference(data, VbaReferenceKind.Registered);
+          break;
+        case ReferenceProject:
+          AddReference(data, VbaReferenceKind.Project);
+          break;
+        case ReferenceControlExtended:
+          AddReference(data, VbaReferenceKind.Control);
           break;
         case ModuleName:
           // The probe decoded this as Latin-1; the spec says it uses the project's code page.
@@ -81,7 +115,7 @@ public static class DirStreamParser
           current = null;
           break;
         case Terminator:
-          return new DirInfo(projectName, codePage, modules);
+          return new DirInfo(projectName, codePage, modules) { References = references };
       }
       pos += size;
     }

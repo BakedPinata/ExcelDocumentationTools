@@ -2,15 +2,24 @@ using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ExcelDocumenter.Shared.Importing;
 using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Extraction;
+using VbaDocumenter.Core.Importing;
 
 namespace VbaDocumenter.Core.Output;
 
 // The data the page's JavaScript works from. These records exist only to give the JSON a clear, stable shape;
 // property names become camelCase in the JSON.
 
-public sealed record PageProject(string Title, string Name, int CodePage, string Encoding, string SourceMode);
+/// <param name="References">The project's library references, apart from the two every project has, for the Export tab.</param>
+public sealed record PageProject(string Title, string Name, int CodePage, string Encoding, string SourceMode, IReadOnlyList<PageReference> References);
+
+/// <summary>A library reference (see <see cref="VbaReference"/>).</summary>
+public sealed record PageReference(string Name, string Description);
+
+/// <summary>What a module relies on that doesn't come with it (see <see cref="ImportNeed"/>).</summary>
+public sealed record PageNeed(string What, string Why);
 
 /// <param name="Hash">First 16 hex digits of the SHA-256 of the exported file, so the page can tell whether a
 /// loaded folder still matches.</param>
@@ -18,8 +27,11 @@ public sealed record PageProject(string Title, string Name, int CodePage, string
 /// <param name="UsedBy">How many other modules use it, or null for none (see <see cref="Usage"/>).</param>
 /// <param name="Predeclared">True for a class with <c>VB_PredeclaredId = True</c>, used by its name like a standard module;
 /// null otherwise.</param>
+/// <param name="WhyNot">Why the Export tab can't pick it, or null when it can (see <see cref="ModuleImport"/>).</param>
+/// <param name="Needs">What it relies on that doesn't come with it, or null for nothing.</param>
 public sealed record PageModule(
-    string Id, string Kind, string File, bool IsInterface, int Lines, string Hash, string? Folder, int? UsedBy, bool? Predeclared);
+    string Id, string Kind, string File, bool IsInterface, int Lines, string Hash, string? Folder, int? UsedBy, bool? Predeclared,
+    string? WhyNot, IReadOnlyList<PageNeed>? Needs);
 
 /// <param name="Class">The member's line in the class diagram, or null if it isn't shown there.</param>
 /// <param name="UsedBy">How many other modules use it, or null for none (see <see cref="Usage"/>).</param>
@@ -67,14 +79,17 @@ public sealed record PageData(
     string Camel(Enum value) => JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
     var usedBy = Usage.UsedByOtherModules(model);
     int? UsedBy(string id) => usedBy.TryGetValue(id, out var count) ? count : null;
+    var import = new ModuleImport(model);
 
     var modules = model.Modules.Select(node =>
     {
       var content = ProjectExporter.FileContent(filesByName[node.Id]);
+      var needs = import.Needs(node.Id).Select(n => new PageNeed(n.What, n.Why)).ToList();
       return new PageModule(node.Id, Camel(node.Module.Kind), ProjectExporter.FileNameFor(filesByName[node.Id]),
               node.IsInterface, node.Module.LineCount, Convert.ToHexStringLower(SHA256.HashData(content))[..16],
               string.IsNullOrEmpty(node.Module.Folder) ? null : node.Module.Folder, UsedBy(node.Id),
-              node.Module.Kind == VbaModuleKind.Class && !node.IsInterface && node.Module.HasPredeclaredId ? true : null);
+              node.Module.Kind == VbaModuleKind.Class && !node.IsInterface && node.Module.HasPredeclaredId ? true : null,
+              import.WhyNot(node.Id), needs.Count > 0 ? needs : null);
     }).ToList();
 
     var classLines = model.Modules.ToDictionary(m => m.Id, m => ClassDiagram.Lines(m.Module));
@@ -89,7 +104,8 @@ public sealed record PageData(
 
     return new PageData(
         new PageProject(title, project.Name, project.CodePage, CodePages.Get(project.CodePage).WebName,
-            embedSource ? "embedded" : "folder"),
+            embedSource ? "embedded" : "folder",
+            project.References.Where(r => !r.IsStandard).Select(r => new PageReference(r.Name, r.Description)).ToList()),
         modules,
         members,
         model.ModuleEdges.Select(Edge).ToList(),

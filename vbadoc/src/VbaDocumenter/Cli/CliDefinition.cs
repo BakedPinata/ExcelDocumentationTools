@@ -40,15 +40,25 @@ sealed class CliDefinition
     // --on-exists and --force, the same in every tool. Only the page is asked about: the module files follow the workbook.
     Overwrite = new OverwriteOptions("the page", "an existing page");
 
+    // Recursive, so they work on import too.
     Verbose = new Option<bool>("--verbose", "-v")
     {
       Description = "List every member found in each module, with its line range, and show debug-level log output.",
+      Recursive = true,
     };
 
     Quiet = new Option<bool>("--quiet", "-q")
     {
       Description = "Show warnings and errors only.",
+      Recursive = true,
     };
+
+    Import = new ImportOptions(".xlsm, .xlsb, .xlam, .xls or .xla file to take them from.", "modules and classes");
+    NoReferences = new Option<bool>("--no-references")
+    {
+      Description = "Leave out the source's library references.",
+    };
+    Import.Command.Options.Add(NoReferences);
 
     RootCommand = new RootCommand(
         "Exports the VBA from a macro-enabled Excel workbook into text files and generates a self-contained HTML page "
@@ -62,12 +72,21 @@ sealed class CliDefinition
       Overwrite.Force,
       Verbose,
       Quiet,
+      Import.Command,
     };
 
+    // CliRunner does the work. A command with subcommands is only allowed to run on its own if it has an action.
+    RootCommand.SetAction(_ => { });
     RootCommand.Validators.Add(Validate);
   }
 
   public RootCommand RootCommand { get; }
+
+  /// <summary>The <c>import</c> command.</summary>
+  public ImportOptions Import { get; }
+
+  /// <summary><c>--no-references</c> on <c>import</c>.</summary>
+  public Option<bool> NoReferences { get; }
 
   public Argument<string> Workbook { get; }
 
