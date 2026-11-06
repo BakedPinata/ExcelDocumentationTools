@@ -2,7 +2,7 @@
 
 Step H1 of the feedback plan (`FEEDBACK-PLAN.md`): can vbadoc and pqdoc write chosen modules and queries straight into a
 workbook that Excel accepts, without Excel? This is throwaway code, kept out of the tools and their solutions. Its
-findings go in each tool's `docs/DECISIONS.md`, and it's deleted once H2 starts.
+findings go in each tool's `docs/DECISIONS.md`, and it's deleted once H3 and H4 have taken what they need.
 
 ```bash
 dotnet run --project spikes/h1-import                        # writes the workbooks below into spikes/h1-import/out/
@@ -48,7 +48,10 @@ The user tried the V, P and B workbooks below at home and on a work machine, and
   workbook does. A real workbook saved at work had a metadata-only label: a copy made with `add` opened with no repair
   message and the same label, its VBA and queries worked, and it saved without asking for a label.
 
-Library references are still to try: see below.
+- **Library references:** R4's plain procedure failed with "Can't find project or library": a reference to a library
+  that isn't installed stops the whole project compiling, even code that needs no library. The user reported nothing
+  wrong with R0 to R3. Their own modules, with what they depend on, copied across and worked. Not every clash was tried
+  (a module or a dependency already in the target), which H3 and H4 test.
 
 ## Trying library references
 

@@ -67,10 +67,10 @@ questions the draft raised.
 | G2 | A views file in the output folder is built into the page | Claude | Parked after G1a, to come back to; H1 goes first |
 | G3 | Printing a view or every view, with descriptions | Claude, then you on a work machine | Parked after G1a, to come back to |
 | G4 | Optional: copy a view as text, to paste into a chat | Claude | Parked after G1a, to come back to |
-| H1 | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | Yes, at home and at work, and a label comes through; library references still to try |
-| H2 | Choosing what to import, with its dependencies, and writing it out as a bundle folder | Claude | |
-| H3 | vbadoc imports into a new workbook or a copy of an existing one, if H1 shows it works | Claude | |
-| H4 | pqdoc imports into a new workbook or a copy of an existing one, if H1 shows it works | Claude | |
+| H1 | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | Done: yes, at home and at work, with labels and references |
+| H2 | The Export tab and manifest: choosing what to import, with what it brings; bundle folders | Claude | |
+| H3 | vbadoc imports into a new workbook or a copy of an existing one, with references, asking about name clashes | Claude, then you in Excel | |
+| H4 | pqdoc imports into a new workbook or a copy of an existing one, asking about name clashes | Claude, then you in Excel | |
 
 ## 1. Questions settled
 
@@ -618,19 +618,63 @@ The user's use case settles what "generic" means, which changes the plan's idea 
 - **An interface doesn't bring its implementations,** because nothing uses them: picking `IFilePath` brings none of the
   classes that implement it, while picking a class brings its interface. So the page offers an interface's
   implementations when it's picked.
-- **Whole modules and classes first.** Individual procedures are wanted now and then, but need more: writing part of a
-  module, with the declarations it uses, and deciding what happens if the target has that module. Proposed as a later,
-  optional step, once whole modules work.
-- **Library references are copied, with a way to opt out,** in place of the plan's "can't come along". They're records
-  in the project, copied as they stand, and a module's text doesn't say which library a name comes from, so all the
-  source's go, apart from any the target has. Excel still has to confirm this; the spike's R workbooks test it, including
-  what a reference to a library that isn't installed does.
+- **Whole modules, classes and queries only, for now.** Individual procedures are wanted now and then, but need more:
+  writing part of a module, with the declarations it uses, and deciding what happens if the target has that module.
+  They wait (section 9).
 
-**To settle before H2:** how the choice reaches the command. The starting position was the views file. The proposal is
-an Export tab in the page and a small manifest file of its own, because a view says how the page looks and an export
-says what to take: a view's ticks are a filter, and it carries positions and panels that mean nothing to an import. A
-manifest would list only what was picked, not what it brings, so running it again after the modules change picks up any
-new dependencies, and it can be kept in git beside the shared code.
+**Library references are copied, with a way to opt out,** in place of the plan's "can't come along":
+
+- **They're records in the project,** copied as they stand. A module's text doesn't say which library a name comes from,
+  so all the source's go, apart from any the target has (known by GUID) and any left out. The user's own modules, with
+  what they depend on, copied across and worked.
+- **A reference to a library that isn't installed stops the whole project compiling,** even code that needs no library
+  at all: R4's plain procedure failed with "Can't find project or library". Leaving a needed one out only stops what
+  needs it, at the line that does. So one that can't be found is left out and listed, never copied. The tool looks it up
+  by GUID in the Windows registry (`HKEY_CLASSES_ROOT\TypeLib`), which tried out well; by GUID alone, as a project can
+  name an older version than the machine has.
+- **The Export tab lists them to untick,** and `--no-references` leaves them all out.
+- **Only references to registered libraries have been tried.** Control references (several records) and references to
+  other VBA projects (a path) are for H3 to try, or to list as left out.
+
+**The choice reaches the command through an Export tab and a manifest,** not the views file, agreed with the user. A view
+says how the page looks and an export says what to take: a view's ticks are a filter, and it carries positions and
+panels that mean nothing to an import.
+
+- **The Export tab** is the shell's, so both pages have it. Its picks are its own, apart from the explorer's filter, and
+  it can start from what's ticked there; ticking a folder or group picks all that's in it. As picks change, it shows
+  what they bring along, what stays behind and why, the references, and what the target may lack, and offers an
+  interface's implementations.
+- **The manifest** is a small JSON file, downloaded from the tab and read back into it, with a format version, written
+  with sorted keys and 2-space indentation like a views file. It lists only what was picked, not what that brings, so
+  running it again after the modules change picks up new dependencies. It names the workbook it came from, says which
+  references to leave out, and can be kept in git beside the shared code.
+
+```json
+{ "formatVersion": 1, "tool": "vbadoc", "workbook": "Sales.xlsm",
+  "items": ["ILogger", "FilePathFromDialog", "FilePathFromString"], "leaveOutReferences": [] }
+```
+
+**The command** is the same in both tools, in place of H1's open question. `--items A,B` takes the place of a manifest.
+
+```bash
+vbadoc import Sales.xlsm --manifest shared.json --new Toolkit.xlsm    # a new workbook
+vbadoc import Sales.xlsm --manifest shared.json --into Target.xlsx    # writes Target-imported.xlsm, beside it
+vbadoc import Sales.xlsm --manifest shared.json --bundle Shared       # a folder, to import by hand
+```
+
+Neither workbook is ever changed. The shared `--on-exists` and `--force` apply to the file written, as they do to pages.
+
+**When the target already has a module or query of that name,** the tool asks about each one, in place of the plan's
+exit code 4 (the user's choice):
+
+- **Skip, Overwrite, Skip All or Overwrite All,** with Quit, as the shared prompt has, to stop with nothing written. Every
+  answer comes before anything is written.
+- **An identical one is left alone without asking,** and counted.
+- **It says what's at stake:** Overwrite means what else in the target uses that module, and Skip means the chosen items
+  use the target's version, which may differ.
+- **When nobody can answer** (not interactive), it stops with exit code 4, unless `--on-clash overwrite|skip` says what
+  to do. That's a separate option from `--on-exists`, which is about the file written.
+- **A Merge choice,** bringing in what's missing, may come later (section 9).
 
 ## 6. Steps
 
@@ -990,24 +1034,31 @@ Throwaway code, kept out of the tools. The findings go in each tool's `DECISIONS
 - Recommend, for each tool, whether H3 and H4 write straight into workbooks or stop at bundles. Settle the command's
   shape (for example an `import` subcommand), how the new file is named, and whether `.xlsb` is supported.
 
-### Step H2: Choosing what to import, and bundles
+### Step H2: The Export tab, the manifest and bundles
 
-- Core works out the full set for a choice of items, as section 5 describes, with what can't come along and why. Unit
-  tests on the fixtures: interfaces, events, Enums and Types in standard modules, cycles, Power Query functions and
-  parameters.
-- The page shows the full set for what's ticked in the explorer or saved in a view, before anything is exported.
-- The command writes a bundle folder for a view or a list of names, with its `README.md`.
+- Core works out the full set for a choice of items, with what stays behind and why, and what the target may lack, as
+  "After H1" in section 5 describes. Unit tests on the fixtures: interfaces, events, Enums and Types in standard modules,
+  cycles, Power Query functions and parameters.
+- Add the Export tab to the shell, and each tool's part of it. Browser tests: picking, a folder or group, starting from
+  the explorer's ticks, what's brought along, an interface's implementations, the references, and the manifest out and
+  back in. Screenshots in both themes.
+- Add the `import` command with `--manifest`, `--items` and `--bundle`, which writes a bundle folder with its `README.md`.
 - Acceptance: importing a bundle by hand into a blank workbook gives a project that compiles, and queries that refresh,
   for the fixtures.
 
 ### Steps H3 and H4: Importing into a workbook
 
-Only if H1 recommends it. Otherwise the bundle from H2 is the import, and these steps are dropped.
+H1 showed this works, so H3 (vbadoc) and H4 (pqdoc) write H2's set with `--new` and `--into`, as "After H1" describes,
+taking the writing code from `spikes/h1-import`. What both need, such as the package code and the prompt, goes in
+`shared/`, which gains a Skip All answer. The spike is deleted once they've taken what they need.
 
-- H3 (vbadoc) and H4 (pqdoc) write H2's set into a new workbook, or into a new copy of an existing one, following
-  section 5 and H1's findings.
-- Tests: a new workbook, a copy of an existing one, identical and differing name clashes, a signed project refused,
-  and the workbook read left byte-for-byte unchanged.
+- H3 also brings the references, with the registry check, and tries control references and references to other VBA
+  projects. It keeps compression real, and keeps a target's label and protection.
+- H4 replaces a query's text for Overwrite, which the spike didn't try, and sees what the Permission Bindings no longer
+  matching means for a query with a real data source.
+- Tests: a new workbook, a copy of each kind of workbook, a label kept, a signed project refused, an encrypted workbook
+  refused, and both workbooks left byte-for-byte unchanged. Every clash: identical, different, a dependency already
+  there, a different kind of module, and a name taken by a sheet's code name, with each answer, and with no one to ask.
 - You check the results in Excel at home and on a work machine.
 
 ## 7. Changes to existing documents
@@ -1027,6 +1078,7 @@ Approving this plan covers the changes below. Anything else still needs asking.
 | `vbadoc/Requirements.md`, `vbadoc/docs/DECISIONS.md`, `vbadoc/README.md`, `docs/GUIDELINES.md` | `--on-exists` and `--force`; asking before overwriting the page; exit code 4 | A5 |
 | `vbadoc/Requirements.md`, `vbadoc/docs/DECISIONS.md` | A name declared again under `#If` is one member, replacing "both branches are parsed" as separate members | A6 |
 | `docs/GUIDELINES.md` | HTML pages: the shell, the explorer, views files | C2, G2 |
+| `docs/GUIDELINES.md` | HTML pages: the Export tab. Naming: the manifest | H2 |
 | `docs/GUIDELINES.md` | Dependencies: Mermaid removed | F1 |
 | Both `Requirements.md`s, `DECISIONS.md`s and `README.md`s | Documentation file names; vbadoc's `--output-name` | A4 |
 | Both `Requirements.md`s and `DECISIONS.md`s | Importing: what's chosen, dependencies, bundles, writing workbooks | H1–H4 |
@@ -1057,3 +1109,7 @@ Left out to keep this plan to what the feedback asked for:
   such as `FillLastUpdated` and `FillCount`, or every refresh changes the page.
 - **Make names inside the source view links,** in both tools.
 - **Read Power BI files.**
+- **Import individual procedures,** not only whole modules: writing part of a module, with the declarations it uses.
+- **A Merge choice when the target has a module of that name,** bringing in what's missing, or something else to settle.
+- **Import UserForms.** A text export has no `.frx`, but copying from project to project could bring the form's designer
+  storage too. Not tried; forms are seldom used.

@@ -127,7 +127,13 @@ on a work machine.
   Excel showed the same label and saved without asking. A label with encryption can't be read or changed, as with any
   encrypted workbook. A workbook without a label asks for one at work, as any unlabelled workbook does.
 - **Library references** are records in the `dir` stream, so they can be copied as they stand, whatever their kind (a
-  control reference is several records, and can hold a name of its own). Whether Excel accepts them is still to try.
+  control reference is several records, and can hold a name of its own). A reference ends with the record that says what
+  it is, not at the next name. Excel accepted registered ones, and the user's own modules worked after being copied with
+  what they depend on, which vbadoc's module edges found.
+- **A reference to a library that isn't installed stops the whole project compiling,** with "Can't find project or
+  library", even in a procedure that needs no library. So the tool has to leave such a reference out rather than copy
+  it. `HKEY_CLASSES_ROOT\TypeLib\{GUID}` says whether one is installed; only the GUID counts, as a project can name an
+  older version than the machine has (Office `#2.0` where the machine has 2.6 to 2.8).
 
 ## Speed (step A2 of the feedback plan)
 

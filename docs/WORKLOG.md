@@ -33,10 +33,10 @@ rather than repeating it.
   and E1 (Uses / Used by with references). E2 (the Calls tab) is pushed. E3 (the logic around each call) and E4 (a
   query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is pushed, as are its
   review's follow-ups (E5a) and a gentler drag. G1 (saved views) and its review's follow-ups (G1a) are pushed. The
-  user parked G2–G4 (the views file in the page, printing, copying a view) to come back to later. **Now: H1**, the
-  spike on writing modules and queries into workbooks, on `feedback/h1-import-spike`. Excel accepts what it writes, at
-  home and at work; library references are the last thing to try. E5b (Calls tab follow-ups) is noted on
-  `feedback/e5b-calls-follow-ups`, for later.
+  user parked G2–G4 (the views file in the page, printing, copying a view) to come back to later. H1 (the spike on
+  writing modules and queries into workbooks) is done on `feedback/h1-import-spike`, waiting for review: Excel accepts
+  what it writes, at home and at work. **Next: H2** (the Export tab, the manifest and bundles), then H3 and H4, as the
+  plan's "After H1" sets out. E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
@@ -48,6 +48,16 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-06: H1 done; H2 to H4 settled
+
+- A reference to a library that isn't installed stopped the whole project compiling, even code needing no library, so
+  the tool will leave such a reference out, finding it by GUID in the registry. The user's own modules, with what they
+  depend on, copied across and worked.
+- Agreed with the user: an Export tab and a manifest carry the choice, not the views file; whole modules only for now;
+  and a name already in the target is asked about, each time: Skip, Overwrite, Skip All or Overwrite All.
+- The plan's "After H1" has all of this, with the `import` command, and H2 to H4 are rewritten to match. Individual
+  procedures, a Merge choice and UserForms are in its Later section.
 
 ### 2026-11-06: H1's findings, and library references to try
 
