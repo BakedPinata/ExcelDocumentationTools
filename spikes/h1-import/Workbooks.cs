@@ -19,10 +19,8 @@ static class Workbooks
   public static void AddModules(OpcPackage package, IReadOnlyList<ModuleToWrite> modules, IReadOnlyCollection<string>? replace = null)
   {
     var workbook = package.WorkbookPart;
-    var existing = package.RelationshipsOf(workbook).FirstOrDefault(r => r.Type == VbaProjectType).Target;
-    if (existing is not null)
+    if (VbaProjectPart(package) is { } part)
     {
-      var part = Resolve(workbook, existing);
       package.Set(part, VbaProjectWriter.Edit(package.Get(part), modules, replace ?? []));
       return;
     }
@@ -33,6 +31,13 @@ static class Workbooks
     package.SetOverride("xl/vbaProject.bin", VbaProjectContentType);
     // An .xlsb's workbook part is already macro-enabled; an .xlsx's has to say so (and the file be named .xlsm).
     if (workbook.EndsWith(".xml", StringComparison.Ordinal)) package.SetOverride(workbook, MacroEnabledWorkbook);
+  }
+
+  /// <summary>The part holding the workbook's VBA project, or null when it has none.</summary>
+  public static string? VbaProjectPart(OpcPackage package)
+  {
+    var target = package.RelationshipsOf(package.WorkbookPart).FirstOrDefault(r => r.Type == VbaProjectType).Target;
+    return target is null ? null : Resolve(package.WorkbookPart, target);
   }
 
   /// <summary>
@@ -59,12 +64,17 @@ static class Workbooks
 
     var rels = package.RelationshipsOf(workbook).Where(r => r.Type == WorksheetType).ToList();
     var relIds = package.Xml(OpcPackage.RelsOf(workbook)).Root!.Elements().ToDictionary(e => (string)e.Attribute("Id")!, e => (string)e.Attribute("Target")!);
+    var sheets = doc.Root.Element(main + "sheets")!.Elements(main + "sheet")
+      .Select(sheet => relIds.GetValueOrDefault((string)sheet.Attribute(OpcPackage.R + "id")!))
+      .Where(target => target is not null && rels.Any(r => r.Target == target)) // not a chart sheet, say
+      .Select(target => Resolve(workbook, target!)).ToList();
+
+    // Some sheets may have code names already, so a new one mustn't clash with any of them.
+    string? CodeNameOf(string part) => (string?)package.Xml(part).Root!.Element(main + "sheetPr")?.Attribute("codeName");
+    var taken = sheets.Select(CodeNameOf).OfType<string>().Append(bookName).ToHashSet(StringComparer.OrdinalIgnoreCase);
     int n = 1;
-    foreach (var sheet in doc.Root.Element(main + "sheets")!.Elements(main + "sheet"))
+    foreach (var part in sheets)
     {
-      var target = relIds.GetValueOrDefault((string)sheet.Attribute(OpcPackage.R + "id")!);
-      if (target is null || !rels.Any(r => r.Target == target)) continue; // a chart sheet, say
-      var part = Resolve(workbook, target);
       var sheetDoc = package.Xml(part);
       var sheetPr = sheetDoc.Root!.Element(main + "sheetPr");
       if (sheetPr is null)
@@ -72,11 +82,15 @@ static class Workbooks
         sheetPr = new XElement(main + "sheetPr");
         sheetDoc.Root.AddFirst(sheetPr); // sheetPr comes first
       }
-      var name = (string?)sheetPr.Attribute("codeName") ?? "Sheet" + n;
-      sheetPr.SetAttributeValue("codeName", name);
-      package.SetXml(part, sheetDoc);
+      var name = (string?)sheetPr.Attribute("codeName");
+      if (name is null)
+      {
+        while (!taken.Add("Sheet" + n)) n++;
+        name = "Sheet" + n;
+        sheetPr.SetAttributeValue("codeName", name);
+        package.SetXml(part, sheetDoc);
+      }
       documents.Add(ModuleFiles.Document(name, isWorkbook: false));
-      n++;
     }
     return documents;
   }

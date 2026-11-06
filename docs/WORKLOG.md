@@ -47,6 +47,18 @@ rather than repeating it.
 
 Newest first.
 
+### 2026-11-06: H1 worked in Excel; labelled workbooks next
+
+- The user tried the spike's eleven workbooks at home and at work, and they all worked: modules compiled and ran, and
+  queries loaded, in existing and new workbooks.
+- Work requires a sensitivity label before editing and saving, and none of those workbooks had one, so the spike gained
+  `inspect` (is a workbook's label only metadata, or encrypted?) and `add` (a copy of any workbook with the modules and
+  queries added, saying whether the label's parts came through). On a stand-in with made-up ids they come through byte
+  for byte; a real label is for the user to try at work.
+- Also noted for later, on `feedback/e5b-calls-follow-ups`: step E5b (Ifs that seem to be missing from the Calls tab, and
+  keeping the sequence diagram's participants in view). Every call and dependency in such Ifs is found, so importing
+  doesn't need it.
+
 ### 2026-11-05: G2–G4 parked, H1 next
 
 - The user rebased G1 and G1a onto main, parked G2–G4 to come back to later, and asked for H1 (the spike on writing

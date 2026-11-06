@@ -5,8 +5,10 @@ workbook that Excel accepts, without Excel? This is throwaway code, kept out of 
 findings go in each tool's `docs/DECISIONS.md`, and it's deleted once H2 starts.
 
 ```bash
-dotnet run --project spikes/h1-import                     # writes the workbooks below into spikes/h1-import/out/
-dotnet run --project spikes/h1-import -- dump <workbook>  # prints a workbook's VBA project, to compare with Excel's
+dotnet run --project spikes/h1-import                        # writes the workbooks below into spikes/h1-import/out/
+dotnet run --project spikes/h1-import -- inspect "<workbook>"  # what a workbook is: labels, encryption, VBA, queries
+dotnet run --project spikes/h1-import -- add "<workbook>"    # a copy of it with the modules and queries added
+dotnet run --project spikes/h1-import -- dump "<workbook>"   # its VBA project, to compare with Excel's
 ```
 
 It reads the files in `inputs/`, which are shaped like the bundle H2 would write (`.bas` and `.cls` as vbadoc and the
@@ -35,6 +37,46 @@ which no longer matches; a new mashup has none. MS-QDEFF says Excel then ignores
 new project needs decrypt back to "not protected", "no password" and "visible", with the key worked out from the
 project's ID as Excel's own do (`SimpleMacro.xlsm`'s confirm the key covers the ID with its braces).
 
+## Results so far
+
+The user tried the workbooks below at home and on a work machine, and they worked on both (2026-11-06). Still to
+settle: whether Excel added the document modules itself in V5, and whether it listed the queries in P2 and P5, which
+have no connections. Workbooks that were saved at work with a sensitivity label are still to try, as below.
+
+## Trying a workbook of your own, with a sensitivity label
+
+A label comes in two kinds, and which one a workbook has decides everything:
+
+- **A label without encryption is only metadata:** `docMetadata/LabelInfo.xml`, or `MSIP_Label_` properties in
+  `docProps/custom.xml`. The file stays an ordinary zip, so the tools can change a copy, and the label should come
+  through as long as those parts do. Nothing in them checks the rest of the file.
+- **A label with encryption wraps the whole file** in a compound file with an `EncryptedPackage` stream, which only
+  Excel can open. Nothing outside Excel can read or change it, so vbadoc and pqdoc refuse it already, and so does this.
+
+A throwaway workbook is the best start: make one at work, apply the label, add a sheet or two, and save it. Every
+label your work uses may differ, so `inspect` one workbook of each. Then, from the repository root:
+
+```bash
+dotnet run --project spikes/h1-import -- inspect "C:\path\to\Labelled.xlsx"
+dotnet run --project spikes/h1-import -- add "C:\path\to\Labelled.xlsx"
+```
+
+`inspect` says which kind of label it is. It prints counts and yes or no, never label names, ids or anything in the
+workbook, so it's safe to paste into a chat. `add` only reads the workbook, and writes a copy beside it, named
+`Labelled-spike.xlsm` (`.xlsx` becomes `.xlsm`, as it gains macros; `--output <folder>` puts it elsewhere). It reads the
+copy back and says which parts changed, ending with whether the label's parts came through byte for byte. Use
+`--vba-only` or `--queries-only` to add one or the other. The copy holds what the original holds, so treat it the same.
+
+Then open the copy in Excel:
+
+1. Does it open with no message about repairing, and **no request to choose a label**?
+2. Is the **same label showing** (Home > Sensitivity)?
+3. Work through the lists below: SpikeHello runs, and the queries load and refresh.
+4. Change a cell and **save**. Does it save without asking for a label, or complain about the label?
+5. Close it and run `inspect` on it again: is the label still there, and is it still not encrypted?
+
+If `inspect` says the workbook is encrypted, that label can't work with the tools at all, whichever way they import.
+
 ## What to check in Excel
 
 Open each workbook from `out/`. A message that Excel "found a problem with some content", or that it repaired
@@ -54,19 +96,19 @@ And for the workbooks with queries (P, B):
 3. **Data > Refresh All**: any error, or a question about privacy levels?
 4. **Save**, close, open again: are they still there? Does a query open in the Power Query editor?
 
-| Workbook | Starts from | Adds | Also check | Home | Work |
-|---|---|---|---|---|---|
-| `V1-SimpleMacro-plus-modules.xlsm` | An `.xlsm` made by Excel, with a module | The three modules | TestMacro (Module1) still runs | | |
-| `V2-SimpleMacro-Module1-replaced.xlsm` | The same | Module1 replaced, and the three modules | TestMacro now says Module1 was replaced | | |
-| `V3-Queries-xlsx-plus-modules.xlsm` | `Queries.xlsx`, no VBA | A new project with the three modules | The workbook's own queries still refresh | | |
-| `V4-new-workbook-modules.xlsm` | Nothing: built by the spike | A new project with the three modules | Ctrl+Alt+F9: B1 shows 42 | | |
-| `V5-Queries-xlsb-plus-modules.xlsb` | `Queries.xlsb`, no VBA | A new project, but no document modules (an `.xlsb`'s code names are binary) | Does Excel add ThisWorkbook and the sheets' modules itself? | | |
-| `P1-Queries-plus-queries.xlsx` | `Queries.xlsx`, 14 queries | The three queries, with connections | The workbook's own queries still refresh | | |
-| `P2-Queries-plus-queries-no-connections.xlsx` | The same | The three queries, without connections | Are they listed at all? | | |
-| `P3-SimpleMacro-plus-queries.xlsm` | An `.xlsm` without queries | A new DataMashup with the three queries | TestMacro still runs | | |
-| `P4-new-workbook-queries.xlsx` | Nothing: built by the spike | A new DataMashup with the three queries | | | |
-| `P5-Queries-xlsb-plus-queries.xlsb` | `Queries.xlsb`, 14 queries | The three queries, without connections (an `.xlsb`'s are binary) | Are they listed at all? | | |
-| `B1-new-workbook-modules-and-queries.xlsm` | Nothing: built by the spike | Both | Ctrl+Alt+F9: B1 shows 42 | | |
+| Workbook | Starts from | Adds | Also check |
+|---|---|---|---|
+| `V1-SimpleMacro-plus-modules.xlsm` | An `.xlsm` made by Excel, with a module | The three modules | TestMacro (Module1) still runs |
+| `V2-SimpleMacro-Module1-replaced.xlsm` | The same | Module1 replaced, and the three modules | TestMacro now says Module1 was replaced |
+| `V3-Queries-xlsx-plus-modules.xlsm` | `Queries.xlsx`, no VBA | A new project with the three modules | The workbook's own queries still refresh |
+| `V4-new-workbook-modules.xlsm` | Nothing: built by the spike | A new project with the three modules | Ctrl+Alt+F9: B1 shows 42 |
+| `V5-Queries-xlsb-plus-modules.xlsb` | `Queries.xlsb`, no VBA | A new project, but no document modules (an `.xlsb`'s code names are binary) | Does Excel add ThisWorkbook and the sheets' modules itself? |
+| `P1-Queries-plus-queries.xlsx` | `Queries.xlsx`, 14 queries | The three queries, with connections | The workbook's own queries still refresh |
+| `P2-Queries-plus-queries-no-connections.xlsx` | The same | The three queries, without connections | Are they listed at all? |
+| `P3-SimpleMacro-plus-queries.xlsm` | An `.xlsm` without queries | A new DataMashup with the three queries | TestMacro still runs |
+| `P4-new-workbook-queries.xlsx` | Nothing: built by the spike | A new DataMashup with the three queries | |
+| `P5-Queries-xlsb-plus-queries.xlsb` | `Queries.xlsb`, 14 queries | The three queries, without connections (an `.xlsb`'s are binary) | Are they listed at all? |
+| `B1-new-workbook-modules-and-queries.xlsm` | Nothing: built by the spike | Both | Ctrl+Alt+F9: B1 shows 42 |
 
 On a work machine, note too what macro security does with them: a workbook written by a tool is unsigned, so policies
 that allow only signed macros, or macros from trusted locations, should block it.

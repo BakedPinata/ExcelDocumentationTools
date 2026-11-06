@@ -67,7 +67,7 @@ questions the draft raised.
 | G2 | A views file in the output folder is built into the page | Claude | Parked after G1a, to come back to; H1 goes first |
 | G3 | Printing a view or every view, with descriptions | Claude, then you on a work machine | Parked after G1a, to come back to |
 | G4 | Optional: copy a view as text, to paste into a chat | Claude | Parked after G1a, to come back to |
-| H1 | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | |
+| H1 | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | Excel accepted all eleven workbooks, at home and at work; workbooks with a sensitivity label to come |
 | H2 | Choosing what to import, with its dependencies, and writing it out as a bundle folder | Claude | |
 | H3 | vbadoc imports into a new workbook or a copy of an existing one, if H1 shows it works | Claude | |
 | H4 | pqdoc imports into a new workbook or a copy of an existing one, if H1 shows it works | Claude | |

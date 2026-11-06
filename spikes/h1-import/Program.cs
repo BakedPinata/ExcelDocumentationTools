@@ -1,3 +1,4 @@
+using ExcelDocumenter.Shared.Workbooks;
 using ImportSpike;
 using PqReader = PowerQueryDocumenter.Core.Extraction.WorkbookReader;
 using VbaReader = VbaDocumenter.Core.Extraction.WorkbookReader;
@@ -6,24 +7,48 @@ using VbaReader = VbaDocumenter.Core.Extraction.WorkbookReader;
 // experiment writes one workbook into out/, from the modules and queries in inputs/, then reads it back with vbadoc's
 // and pqdoc's own readers. Whether Excel accepts it is for Excel to say: see README.md for what to check.
 //
-// Run from the repository root:  dotnet run --project spikes/h1-import [-- dump <workbook>]
+// Run from the repository root:
+//   dotnet run --project spikes/h1-import                            every experiment, into out/
+//   dotnet run --project spikes/h1-import -- inspect <workbook>      what a workbook is, labels included
+//   dotnet run --project spikes/h1-import -- add <workbook> [--vba-only | --queries-only] [--output <folder>]
+//                                                                    a copy of it with the modules and queries added
+//   dotnet run --project spikes/h1-import -- dump <workbook>         its VBA project, to compare with Excel's
 
 var repo = FindRepository();
-if (args.Length == 2 && args[0] == "dump")
+var spike = Path.Combine(repo, "spikes", "h1-import");
+var inputs = Path.Combine(spike, "inputs");
+var modules = Directory.GetFiles(inputs, "*.*").Where(f => f.EndsWith(".bas") || f.EndsWith(".cls")).Order().Select(ModuleFiles.Read).ToList();
+var queries = Directory.GetFiles(inputs, "*.m").Order().Select(Mashup.ReadQuery).ToList();
+
+if (args.Length >= 2)
 {
-  Dump.VbaProject(args[1]);
-  return;
+  try
+  {
+    switch (args[0])
+    {
+      case "dump":
+        Dump.VbaProject(args[1]);
+        return 0;
+      case "inspect":
+        return SpecificWorkbook.Inspect(args[1]) ? 0 : 1;
+      case "add":
+        int at = Array.IndexOf(args, "--output");
+        return SpecificWorkbook.Add(args[1], args.Contains("--queries-only") ? [] : modules, args.Contains("--vba-only") ? [] : queries,
+          at >= 0 && at + 1 < args.Length ? args[at + 1] : null) is null ? 1 : 0;
+    }
+  }
+  catch (Exception ex) when (ex is ExtractionException or InvalidOperationException or InvalidDataException or NullReferenceException)
+  {
+    Console.WriteLine($"Couldn't: {ex.GetType().Name}: {ex.Message}");
+    return 1;
+  }
 }
 
-var spike = Path.Combine(repo, "spikes", "h1-import");
 var output = Directory.CreateDirectory(Path.Combine(spike, "out")).FullName;
-var inputs = Path.Combine(spike, "inputs");
 var vbaFixtures = Path.Combine(repo, "vbadoc", "tests", "VbaDocumenter.Tests", "Fixtures", "Workbooks");
 var pqFixtures = Path.Combine(repo, "pqdoc", "tests", "PowerQueryDocumenter.Tests", "Fixtures", "Workbooks");
 
 Dump.CheckCompression();
-var modules = Directory.GetFiles(inputs, "*.*").Where(f => f.EndsWith(".bas") || f.EndsWith(".cls")).Order().Select(ModuleFiles.Read).ToList();
-var queries = Directory.GetFiles(inputs, "*.m").Order().Select(Mashup.ReadQuery).ToList();
 var module1 = new ModuleToWrite("Module1", ModuleKind.Standard,
   "Attribute VB_Name = \"Module1\"\r\nSub TestMacro()\r\n    MsgBox \"Module1 was replaced by the H1 spike.\", vbInformation, \"H1 spike\"\r\nEnd Sub\r\n");
 (string Cell, string? Text, string? Formula)[] checkCells =
@@ -47,7 +72,26 @@ Experiment("B1-new-workbook-modules-and-queries.xlsm", Workbooks.New(macroEnable
   Workbooks.AddModules(p, modules);
   Mashup.AddQueries(p, queries, withConnections: true);
 });
+
+// What inspect and add do with a label, on a stand-in with made-up ids, and with a file that's encrypted.
+var labelled = Path.Combine(output, "L1-labelled-stand-in.xlsx");
+SpecificWorkbook.WriteLabelledSample(Path.Combine(pqFixtures, "Queries.xlsx"), labelled);
+foreach (var old in Directory.GetFiles(output, "L1-labelled-stand-in-spike*")) File.Delete(old);
+Console.WriteLine("\nL1-labelled-stand-in.xlsx");
+SpecificWorkbook.Inspect(labelled);
+Console.WriteLine();
+var withLabel = SpecificWorkbook.Add(labelled, modules, queries, null)!;
+var sheetModules = VbaReader.Read(File.ReadAllBytes(withLabel)).Modules.Where(m => m.Kind == VbaDocumenter.Core.Extraction.VbaModuleKind.Document).Select(m => m.Name).ToList();
+if (sheetModules.Distinct(StringComparer.OrdinalIgnoreCase).Count() != 5) throw new InvalidOperationException("Document modules clash: " + string.Join(", ", sheetModules));
+Console.WriteLine("Document modules: " + string.Join(", ", sheetModules));
+Console.WriteLine();
+SpecificWorkbook.Inspect(withLabel);
+Console.WriteLine("\nprotected_passtika.xlsb");
+SpecificWorkbook.Inspect(Path.Combine(vbaFixtures, "protected_passtika.xlsb"));
+SpecificWorkbook.Add(Path.Combine(vbaFixtures, "protected_passtika.xlsb"), modules, queries, output);
+
 Console.WriteLine($"\nWrote the workbooks to {output}. README.md says what to check in Excel.");
+return 0;
 
 void Experiment(string name, OpcPackage package, Action<OpcPackage> change)
 {
