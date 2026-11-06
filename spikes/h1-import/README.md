@@ -49,8 +49,8 @@ The user tried the V, P and B workbooks below at home and on a work machine, and
   message and the same label, its VBA and queries worked, and it saved without asking for a label.
 
 - **Library references:** R4's plain procedure failed with "Can't find project or library": a reference to a library
-  that isn't installed stops the whole project compiling, even code that needs no library. The user reported nothing
-  wrong with R0 to R3. Their own modules, with what they depend on, copied across and worked. Not every clash was tried
+  that isn't installed stops the whole project compiling, even code that needs no library. R0 to R3 behaved as expected.
+  Their own modules, with what they depend on, copied across and worked. Not every clash was tried
   (a module or a dependency already in the target), which H3 and H4 test.
 
 ## Trying library references

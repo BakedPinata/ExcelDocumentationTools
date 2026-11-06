@@ -183,8 +183,8 @@ The notes behind this plan are kept out of the repository. This section is what 
 
 - Running code, or fully parsing VBA or M. The call tree is built from the code as written, so calls made through
   `Application.Run`, a button's `OnAction` text or late binding can't be followed. The page says so.
-- Changing a workbook in place. Importing writes a new workbook, or a changed copy of an existing one, and never
-  touches the workbook it reads from.
+- Changing a workbook in place by default. Importing writes a new workbook, or a changed copy of an existing one, and
+  never touches the workbook it reads from. Changing the target itself is opt-in (`--in-place`, see "After H1").
 - Driving Excel itself. Importing works on the files, not through Excel's automation.
 - Anything that needs the network, an install or admin rights, on either the developer's machine or a reader's.
 - Power BI files (`.pbix`, `.pbit`).
@@ -662,7 +662,24 @@ vbadoc import Sales.xlsm --manifest shared.json --into Target.xlsx    # writes T
 vbadoc import Sales.xlsm --manifest shared.json --bundle Shared       # a folder, to import by hand
 ```
 
-Neither workbook is ever changed. The shared `--on-exists` and `--force` apply to the file written, as they do to pages.
+The source is never changed. Nor, by default, is the target: the shared `--on-exists` and `--force` apply to the file
+written, as they do to pages.
+
+**Changing the target itself is opt-in,** at the user's request, with `--in-place`. It can't be undone if it breaks
+something, so:
+
+```bash
+vbadoc import Sales.xlsm --manifest shared.json --into Target.xlsm --in-place           # asks "are you sure?"
+vbadoc import Sales.xlsm --manifest shared.json --into Target.xlsm --in-place --force   # doesn't, for unattended runs
+```
+
+- **It asks first,** saying what will change. `--force` (`-y`), which already means "don't ask" in both tools, answers
+  yes. With nobody to ask and no `--force`, it stops with exit code 4 and changes nothing.
+- **`--force` doesn't answer name clashes.** `--on-clash` does, so an unattended run says what it wants done with each.
+- **The target is replaced only once the result is finished and read back,** in one step, so a failure part-way leaves it
+  as it was. A workbook open in Excel can't be replaced, and the run says so.
+- **An `.xlsx` can't gain modules in place,** since it would have to become an `.xlsm`: that's refused, with the reason.
+  Queries can go into one.
 
 **When the target already has a module or query of that name,** the tool asks about each one, in place of the plan's
 exit code 4 (the user's choice):
@@ -1059,6 +1076,7 @@ taking the writing code from `spikes/h1-import`. What both need, such as the pac
 - Tests: a new workbook, a copy of each kind of workbook, a label kept, a signed project refused, an encrypted workbook
   refused, and both workbooks left byte-for-byte unchanged. Every clash: identical, different, a dependency already
   there, a different kind of module, and a name taken by a sheet's code name, with each answer, and with no one to ask.
+  `--in-place`: answered yes and no, `--force`, no one to ask, a failure leaving the target as it was, and an `.xlsx`.
 - You check the results in Excel at home and on a work machine.
 
 ## 7. Changes to existing documents
