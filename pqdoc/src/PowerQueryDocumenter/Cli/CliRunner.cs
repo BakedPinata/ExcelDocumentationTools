@@ -33,7 +33,7 @@ internal static class CliRunner
     }
 
     // --help and --version: let System.CommandLine print them (exit code 0).
-    if (parseResult.Action is not null and not ParseErrorAction)
+    if (parseResult.Action is not null and not ParseErrorAction && parseResult.Action != cli.RootCommand.Action)
     {
       var configuration = new InvocationConfiguration
       {
@@ -52,6 +52,11 @@ internal static class CliRunner
       if (parseResult.Errors.Count > 0)
       {
         return ReportInvalidArguments(parseResult.Errors.Select(e => e.Message));
+      }
+
+      if (parseResult.CommandResult.Command == cli.Import.Command)
+      {
+        return await new ImportApp(logger, services).RunAsync(cli.Import.Bind(parseResult), cancellationToken).ConfigureAwait(false);
       }
 
       var binding = await OptionsBinder

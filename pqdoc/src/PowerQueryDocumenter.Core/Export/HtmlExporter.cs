@@ -6,6 +6,7 @@ using ExcelDocumenter.Shared;
 using ExcelDocumenter.Shared.Pages;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Core.Extraction;
+using PowerQueryDocumenter.Core.Importing;
 using PowerQueryDocumenter.Core.Model;
 
 namespace PowerQueryDocumenter.Core.Export;
@@ -135,7 +136,8 @@ public sealed class HtmlExporter : IExporter
         files.GetValueOrDefault(n.Name)?.FileName, files.GetValueOrDefault(n.Name)?.Hash,
         details.GetValueOrDefault(n.Name)?.IsFunction == true ? "function" : "query",
         details.GetValueOrDefault(n.Name)?.Group is { } group ? groupIndex[group] : null,
-        graph.StepsOf(n.Name).Select(s => new StepDocument(s.Name, s.Line, s.Uses)).ToArray())).ToArray(),
+        graph.StepsOf(n.Name).Select(s => new StepDocument(s.Name, s.Line, s.Uses)).ToArray(),
+        files.GetValueOrDefault(n.Name) is { } file ? QueryImport.NeedsOf(file.Text).Select(need => new NeedDocument(need.What, need.Why)).ToArray() : [])).ToArray(),
       graph.Edges.Select(e => new EdgeDocument(
         e.Upstream,
         e.Downstream,
@@ -225,9 +227,13 @@ public sealed class HtmlExporter : IExporter
   /// <param name="Kind">"function" or "query".</param>
   /// <param name="Group">Its Excel query group, as its place in <see cref="GraphDocument.Groups"/>, or null.</param>
   /// <param name="Steps">Its <c>let</c> steps, then its <c>in</c> expression (FR-HTML-20); empty without <c>let</c>.</param>
+  /// <param name="Needs">What it relies on that doesn't come with it, for the Export tab (see <see cref="QueryImport"/>).</param>
   private sealed record QueryDocument(
     string Id, string Role, bool InCycle, int Upstream, int Downstream, string? File, string? Hash, string Kind, int? Group,
-    IReadOnlyList<StepDocument> Steps);
+    IReadOnlyList<StepDocument> Steps, IReadOnlyList<NeedDocument> Needs);
+
+  /// <summary>What a query relies on that doesn't come with it.</summary>
+  private sealed record NeedDocument(string What, string Why);
 
   /// <param name="Name">The step's name, or null for the <c>in</c> expression.</param>
   private sealed record StepDocument(string? Name, int Line, IReadOnlyList<string> Uses);

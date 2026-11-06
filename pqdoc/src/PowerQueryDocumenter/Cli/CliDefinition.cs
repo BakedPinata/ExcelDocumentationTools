@@ -74,15 +74,20 @@ internal sealed class CliDefinition
     // --on-exists and --force, the same in every tool.
     Overwrite = new OverwriteOptions("an output file", "existing output files");
 
+    // Recursive, so they work on import too.
     Verbose = new Option<bool>("--verbose", "-v")
     {
       Description = "Show debug-level log output.",
+      Recursive = true,
     };
 
     Quiet = new Option<bool>("--quiet", "-q")
     {
       Description = "Show warnings and errors only.",
+      Recursive = true,
     };
+
+    Import = new ImportOptions("An Excel workbook (.xlsx, .xlsm or .xlsb), or a folder of .m files, to take them from.", "queries");
 
     RootCommand = new RootCommand(
       "Analyses the dependencies between the Power Query queries in an Excel workbook, or in a folder of exported .m "
@@ -99,13 +104,19 @@ internal sealed class CliDefinition
       Force,
       Verbose,
       Quiet,
+      Import.Command,
     };
 
+    // CliRunner does the work. A command with subcommands is only allowed to run on its own if it has an action.
+    RootCommand.SetAction(_ => { });
     RootCommand.Validators.Add(Validate);
   }
 
   /// <summary>The root command.</summary>
   public RootCommand RootCommand { get; }
+
+  /// <summary>The <c>import</c> command.</summary>
+  public ImportOptions Import { get; }
 
   /// <summary>The required input: a workbook or a folder.</summary>
   public Argument<string> Input { get; }
