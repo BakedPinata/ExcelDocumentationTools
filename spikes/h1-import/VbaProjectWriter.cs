@@ -1,9 +1,16 @@
 using System.Buffers.Binary;
 using System.Text;
+using System.Text.RegularExpressions;
 using OpenMcdf;
 using VbaDocumenter.Core.Extraction;
 
 namespace ImportSpike;
+
+/// <summary>
+/// A library reference from a project's dir stream, as its records stand, so any kind can be copied to another project.
+/// It's known by the GUID in its libid, or by its name if it has none (a reference to another VBA project).
+/// </summary>
+sealed record ProjectReference(string Name, string Key, string Kind, IReadOnlyList<Ovba.Record> Records);
 
 /// <summary>
 /// Writes modules into a VBA project (vbaProject.bin) as source only, with no compiled code, so that Excel compiles
@@ -11,7 +18,7 @@ namespace ImportSpike;
 /// its 7-byte header, with version 0xFFFF, so Excel can't use any compiled code it finds, and reads every module's
 /// source instead. Each new module's stream is its compressed source, at offset 0.
 /// </summary>
-static class VbaProjectWriter
+static partial class VbaProjectWriter
 {
   static readonly byte[] ResetPerformanceCache = [0xCC, 0x61, 0xFF, 0xFF, 0x00, 0x00, 0x00];
 
@@ -19,11 +26,63 @@ static class VbaProjectWriter
   const ushort CodePageId = 0x0003, ModulesCount = 0x000F, Terminator = 0x0010;
   const ushort ModuleName = 0x0019, ModuleNameUnicode = 0x0047, ModuleStreamName = 0x001A, ModuleEnd = 0x002B;
 
+  /// <summary>The library references of a project, in order.</summary>
+  public static List<ProjectReference> ReferencesOf(byte[] vbaProjectBin)
+  {
+    using var root = RootStorage.Open(new MemoryStream(vbaProjectBin));
+    var dir = Ovba.ReadDir(OvbaDecompressor.Decompress(Dump.Read(root.OpenStorage("VBA"), "dir")));
+    return ReferencesIn(dir, CodePages.Get(BinaryPrimitives.ReadUInt16LittleEndian(dir.First(r => r.Id == CodePageId).Data)));
+  }
+
+  // They run from the first reference record to PROJECTMODULES. Each ends with the record that says what it is: a control
+  // reference is several records, and can hold a name of its own, so a name record doesn't always start a new one.
+  static List<ProjectReference> ReferencesIn(List<Ovba.Record> dir, Encoding encoding)
+  {
+    var references = new List<ProjectReference>();
+    int end = dir.FindIndex(r => r.Id == ModulesCount);
+    int start = dir.FindIndex(r => r.Id is 0x0016 or 0x0033 or 0x002F or 0x000D or 0x000E);
+    if (start < 0 || start > end) return references;
+    var records = new List<Ovba.Record>();
+    for (int i = start; i < end; i++)
+    {
+      records.Add(dir[i]);
+      if (dir[i].Id is not (0x000D or 0x000E or 0x0030)) continue;
+      var name = records.FirstOrDefault(r => r.Id == 0x0016) is { } n ? encoding.GetString(n.Data) : "(no name)";
+      var guid = Guid().Match(string.Concat(records.Select(r => Encoding.Latin1.GetString(r.Data))));
+      references.Add(new(name, guid.Success ? guid.Value.ToUpperInvariant() : name,
+        dir[i].Id switch { 0x000D => "registered", 0x000E => "another VBA project", _ => "control" }, records));
+      records = [];
+    }
+    return references;
+  }
+
+  /// <summary>A reference to a registered type library, as Excel writes one.</summary>
+  public static ProjectReference Registered(string name, string libid, Encoding encoding)
+  {
+    var id = encoding.GetBytes(libid);
+    List<Ovba.Record> records =
+    [
+      new(0x0016, encoding.GetBytes(name)),                 // REFERENCENAME
+      new(0x003E, Encoding.Unicode.GetBytes(name)),
+      new(0x000D, [.. BitConverter.GetBytes(id.Length), .. id, 0, 0, 0, 0, 0, 0]), // REFERENCEREGISTERED
+    ];
+    return ReferencesIn([.. records, new(ModulesCount, [])], encoding)[0];
+  }
+
+  // Adds the references the project doesn't have yet, after those it has, and says which were new.
+  static List<ProjectReference> AddReferences(List<Ovba.Record> dir, IEnumerable<ProjectReference> references, Encoding encoding)
+  {
+    var have = ReferencesIn(dir, encoding).Select(r => r.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    var added = references.Where(r => have.Add(r.Key)).ToList();
+    foreach (var r in added) dir.InsertRange(dir.FindIndex(x => x.Id == ModulesCount), r.Records);
+    return added;
+  }
+
   /// <summary>
-  /// Adds modules to an existing project, first taking out the modules named in <paramref name="replace"/>. Everything
-  /// else (other modules, references, protection) is kept as it is.
+  /// Adds modules to an existing project, first taking out the modules named in <paramref name="replace"/>, and any
+  /// <paramref name="references"/> it doesn't have. Everything else (other modules, references, protection) is kept.
   /// </summary>
-  public static byte[] Edit(byte[] vbaProjectBin, IReadOnlyList<ModuleToWrite> add, IReadOnlyCollection<string> replace)
+  public static byte[] Edit(byte[] vbaProjectBin, IReadOnlyList<ModuleToWrite> add, IReadOnlyCollection<string> replace, IReadOnlyList<ProjectReference>? references = null)
   {
     var buffer = new MemoryStream();
     buffer.Write(vbaProjectBin);
@@ -55,6 +114,7 @@ static class VbaProjectWriter
         nameMap.Add(m.Name);
       }
 
+      AddReferences(dir, references ?? [], encoding);
       int count = dir.Count(r => r.Id == ModuleName);
       dir.First(r => r.Id == ModulesCount).Data = BitConverter.GetBytes((ushort)count);
       Write(vba, "dir", Ovba.Compress(Ovba.WriteDir(dir)));
@@ -72,9 +132,9 @@ static class VbaProjectWriter
 
   /// <summary>
   /// A new project holding <paramref name="modules"/>, document modules included, with the references Excel gives a
-  /// new project (OLE Automation and the Office library), no protection, and code page 1252.
+  /// new project (OLE Automation and the Office library) and any others asked for, no protection, and code page 1252.
   /// </summary>
-  public static byte[] Create(IReadOnlyList<ModuleToWrite> modules)
+  public static byte[] Create(IReadOnlyList<ModuleToWrite> modules, IReadOnlyList<ProjectReference>? references = null)
   {
     const int CodePage = 1252;
     var encoding = CodePages.Get(CodePage);
@@ -83,10 +143,12 @@ static class VbaProjectWriter
     {
       var vba = root.CreateStorage("VBA");
       Write(vba, "_VBA_PROJECT", ResetPerformanceCache);
-      Write(vba, "dir", Ovba.Compress(Ovba.WriteDir(NewDir(modules, encoding, CodePage))));
+      var dir = NewDir(modules, encoding, CodePage);
+      AddReferences(dir, references ?? [], encoding);
+      Write(vba, "dir", Ovba.Compress(Ovba.WriteDir(dir)));
       foreach (var m in modules) Write(vba, m.Name, Ovba.Compress(encoding.GetBytes(m.Source)));
 
-      var id = "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}";
+      var id = "{" + System.Guid.NewGuid().ToString().ToUpperInvariant() + "}";
       byte key = Ovba.ProjectKey(id);
       var seeds = new byte[3];
       Random.Shared.NextBytes(seeds);
@@ -121,21 +183,13 @@ static class VbaProjectWriter
       new(0x000C, []), new(0x003C, []),                   // PROJECTCONSTANTS
     };
     // The references Excel gives a new project, as SimpleMacro.xlsm has them; Excel finds each by its GUID.
-    AddReference(dir, "stdole", @"*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\system32\stdole2.tlb#OLE Automation", encoding);
-    AddReference(dir, "Office", @"*\G{2DF8D04C-5BFA-101B-BDE5-00AA0044DE52}#2.0#0#C:\Program Files\Common Files\Microsoft Shared\OFFICE14\MSO.DLL#Microsoft Office 14.0 Object Library", encoding);
+    dir.AddRange(Registered("stdole", @"*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\system32\stdole2.tlb#OLE Automation", encoding).Records);
+    dir.AddRange(Registered("Office", @"*\G{2DF8D04C-5BFA-101B-BDE5-00AA0044DE52}#2.0#0#C:\Program Files\Common Files\Microsoft Shared\OFFICE14\MSO.DLL#Microsoft Office 14.0 Object Library", encoding).Records);
     dir.Add(new(ModulesCount, BitConverter.GetBytes((ushort)modules.Count)));
     dir.Add(new(0x0013, [0xFF, 0xFF]));                    // PROJECTCOOKIE
     foreach (var m in modules) dir.AddRange(ModuleRecords(m, encoding));
     dir.Add(new(Terminator, []));
     return dir;
-  }
-
-  static void AddReference(List<Ovba.Record> dir, string name, string libid, Encoding encoding)
-  {
-    dir.Add(new(0x0016, encoding.GetBytes(name)));       // REFERENCENAME
-    dir.Add(new(0x003E, Encoding.Unicode.GetBytes(name)));
-    var id = encoding.GetBytes(libid);
-    dir.Add(new(0x000D, [.. BitConverter.GetBytes(id.Length), .. id, 0, 0, 0, 0, 0, 0])); // REFERENCEREGISTERED
   }
 
   // A module's records, in the order Excel writes them (MS-OVBA 2.3.4.2.3.2), with its source at offset 0.
@@ -198,4 +252,7 @@ static class VbaProjectWriter
     using var stream = storage.CreateStream(name);
     stream.Write(data);
   }
+
+  [GeneratedRegex(@"\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}")]
+  private static partial Regex Guid();
 }

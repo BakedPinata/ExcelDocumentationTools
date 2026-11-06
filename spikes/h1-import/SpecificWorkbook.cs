@@ -4,7 +4,9 @@ using System.Xml;
 using System.Xml.Linq;
 using ExcelDocumenter.Shared.Workbooks;
 using OpenMcdf;
+using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Extraction;
+using VbaDocumenter.Core.Parsing;
 using PqReader = PowerQueryDocumenter.Core.Extraction.WorkbookReader;
 using VbaReader = VbaDocumenter.Core.Extraction.WorkbookReader;
 
@@ -53,8 +55,107 @@ static class SpecificWorkbook
   /// </summary>
   public static string? Add(string path, IReadOnlyList<ModuleToWrite> modules, IReadOnlyList<QueryToWrite> queries, string? outputFolder)
   {
-    var extension = Path.GetExtension(path).ToLowerInvariant();
     var bytes = WorkbookFile.ReadAllBytes(path);
+    if (Target(path, bytes, modules, queries) is not { } package) return null;
+
+    if (modules.Count > 0) Workbooks.AddModules(package, modules);
+    // An .xlsb's connections are in a binary part, so its queries go in without them, as in P5.
+    if (queries.Count > 0) Mashup.AddQueries(package, queries, withConnections: package.WorkbookPart.EndsWith(".xml", StringComparison.Ordinal));
+
+    var written = WriteCopy(package, path, modules.Count > 0, outputFolder);
+    var output = File.ReadAllBytes(written);
+    Check(output, modules, queries);
+    Compare(OpcPackage.Read(bytes), OpcPackage.Read(output));
+    return written;
+  }
+
+  /// <summary>
+  /// Takes the named modules out of a source workbook, with everything they use and its library references, and writes
+  /// them into a copy of a target workbook, or a new one. This is H2's choice and H3's writing in miniature, on real
+  /// code, chiefly to try references: copied as the source has them, unless they're left out.
+  /// </summary>
+  public static string? Copy(string sourcePath, IReadOnlyList<string> names, string? intoPath, string? newPath, bool withReferences)
+  {
+    var source = WorkbookFile.ReadAllBytes(sourcePath);
+    if (WorkbookFile.ContainerOf(source) != WorkbookContainer.Zip)
+    {
+      Console.WriteLine("Can't read the source: it's " + NotAZip(source));
+      return null;
+    }
+    var (modules, references) = Take(source, names, withReferences);
+
+    if (newPath is not null)
+    {
+      var package = Workbooks.New(macroEnabled: true, []);
+      Workbooks.AddModules(package, modules, references: references);
+      var written = FreeName(Path.GetDirectoryName(Path.GetFullPath(newPath))!, Path.GetFileNameWithoutExtension(newPath), ".xlsm");
+      var output = package.Write();
+      using (var file = new FileStream(written, FileMode.CreateNew, FileAccess.Write)) file.Write(output);
+      Console.WriteLine($"Wrote {written}");
+      Check(output, modules, []);
+      SayReferences(package);
+      return written;
+    }
+
+    var target = WorkbookFile.ReadAllBytes(intoPath!);
+    if (Target(intoPath!, target, modules, []) is not { } changed) return null;
+    Workbooks.AddModules(changed, modules, references: references);
+    var copy = WriteCopy(changed, intoPath!, true, null);
+    var bytes = File.ReadAllBytes(copy);
+    Check(bytes, modules, []);
+    SayReferences(changed);
+    Compare(OpcPackage.Read(target), OpcPackage.Read(bytes));
+    return copy;
+  }
+
+  /// <summary>
+  /// The named modules and all they use, as the source stores them, and the source's references (all of them: a module's
+  /// text doesn't say which library each name comes from). Document modules and forms stay behind, and it says so.
+  /// </summary>
+  public static (List<ModuleToWrite> Modules, List<ProjectReference> References) Take(byte[] source, IReadOnlyList<string> names, bool withReferences)
+  {
+    var project = VbaReader.Read(source);
+    var byName = project.Modules.ToDictionary(m => m.Name, StringComparer.OrdinalIgnoreCase);
+    var unknown = names.Where(n => !byName.ContainsKey(n)).ToList();
+    if (unknown.Count > 0) throw new InvalidOperationException($"The source has no module {string.Join(", ", unknown)}.");
+
+    var edges = DependencyAnalyser.Analyse(ProjectParser.Parse(project)).ModuleEdges.ToLookup(e => e.From, StringComparer.OrdinalIgnoreCase);
+    bool Portable(VbaModule m) => m.Kind is VbaModuleKind.Standard or VbaModuleKind.Class;
+    var picked = names.Select(n => byName[n]).ToList();
+    var taking = new HashSet<string>(picked.Where(Portable).Select(m => m.Name), StringComparer.OrdinalIgnoreCase);
+    var stays = new SortedSet<string>(picked.Where(m => !Portable(m)).Select(m => m.Name), StringComparer.OrdinalIgnoreCase);
+    var waiting = new Queue<string>(taking);
+    while (waiting.TryDequeue(out var name))
+    {
+      foreach (var edge in edges[name])
+      {
+        var used = byName[edge.To];
+        if (!Portable(used)) stays.Add(used.Name);
+        else if (taking.Add(used.Name)) waiting.Enqueue(used.Name);
+      }
+    }
+
+    var brought = taking.Except(names, StringComparer.OrdinalIgnoreCase).Order().ToList();
+    Console.WriteLine($"Taking: {string.Join(", ", taking.Intersect(names, StringComparer.OrdinalIgnoreCase).Order())}");
+    Console.WriteLine($"Brought along: {(brought.Count == 0 ? "nothing else" : string.Join(", ", brought))}");
+    if (stays.Count > 0) Console.WriteLine($"Staying behind, though they use them: {string.Join(", ", stays)} (document modules and forms). The target's own are used, if it has any by those names.");
+
+    var modules = project.Modules.Where(m => taking.Contains(m.Name))
+      .Select(m => new ModuleToWrite(m.Name, m.Kind == VbaModuleKind.Class ? ModuleKind.Class : ModuleKind.Standard, m.Source)).ToList();
+    var package = OpcPackage.Read(source);
+    return (modules, withReferences ? VbaProjectWriter.ReferencesOf(package.Get(Workbooks.VbaProjectPart(package)!)) : []);
+  }
+
+  static void SayReferences(OpcPackage package)
+  {
+    var references = VbaProjectWriter.ReferencesOf(package.Get(Workbooks.VbaProjectPart(package)!));
+    Console.WriteLine("References now: " + string.Join(", ", references.Select(r => $"{r.Name} ({r.Kind})")));
+  }
+
+  // The workbook to change, unless there's a reason not to.
+  static OpcPackage? Target(string path, byte[] bytes, IReadOnlyList<ModuleToWrite> modules, IReadOnlyList<QueryToWrite> queries)
+  {
+    var extension = Path.GetExtension(path).ToLowerInvariant();
     if (WorkbookFile.ContainerOf(bytes) != WorkbookContainer.Zip)
     {
       Console.WriteLine("Can't change this workbook: it's " + NotAZip(bytes));
@@ -80,20 +181,18 @@ static class SpecificWorkbook
       Console.WriteLine($"It already has {string.Join(", ", clashes)}. Run the spike on the original workbook, not on a copy it wrote.");
       return null;
     }
+    return package;
+  }
 
-    if (modules.Count > 0) Workbooks.AddModules(package, modules);
-    // An .xlsb's connections are in a binary part, so its queries go in without them, as in P5.
-    if (queries.Count > 0) Mashup.AddQueries(package, queries, withConnections: package.WorkbookPart.EndsWith(".xml", StringComparison.Ordinal));
-
-    var outputExtension = modules.Count > 0 && extension == ".xlsx" ? ".xlsm" : extension;
+  // Beside the workbook unless told otherwise, and never over anything.
+  static string WriteCopy(OpcPackage package, string path, bool gainedModules, string? outputFolder)
+  {
+    var extension = Path.GetExtension(path).ToLowerInvariant();
+    var outputExtension = gainedModules && extension == ".xlsx" ? ".xlsm" : extension;
     var written = FreeName(outputFolder ?? Path.GetDirectoryName(Path.GetFullPath(path))!, Path.GetFileNameWithoutExtension(path) + "-spike", outputExtension);
-    var output = package.Write();
-    using (var file = new FileStream(written, FileMode.CreateNew, FileAccess.Write)) file.Write(output);
+    using (var file = new FileStream(written, FileMode.CreateNew, FileAccess.Write)) file.Write(package.Write());
     Console.WriteLine($"Wrote {written}");
-    Console.WriteLine($"The original was only read, and is unchanged.");
-
-    Check(output, modules, queries);
-    Compare(OpcPackage.Read(bytes), OpcPackage.Read(output));
+    Console.WriteLine("The original was only read, and is unchanged.");
     return written;
   }
 

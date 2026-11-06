@@ -16,17 +16,18 @@ static class Workbooks
   /// with a document module for the workbook and each sheet, named after their code names (given to them if they
   /// have none), and becomes macro-enabled.
   /// </summary>
-  public static void AddModules(OpcPackage package, IReadOnlyList<ModuleToWrite> modules, IReadOnlyCollection<string>? replace = null)
+  public static void AddModules(OpcPackage package, IReadOnlyList<ModuleToWrite> modules, IReadOnlyCollection<string>? replace = null,
+    IReadOnlyList<ProjectReference>? references = null)
   {
     var workbook = package.WorkbookPart;
     if (VbaProjectPart(package) is { } part)
     {
-      package.Set(part, VbaProjectWriter.Edit(package.Get(part), modules, replace ?? []));
+      package.Set(part, VbaProjectWriter.Edit(package.Get(part), modules, replace ?? [], references));
       return;
     }
 
     var documents = workbook.EndsWith(".xml", StringComparison.Ordinal) ? GiveCodeNames(package, workbook) : [];
-    package.Set("xl/vbaProject.bin", VbaProjectWriter.Create([.. documents, .. modules]));
+    package.Set("xl/vbaProject.bin", VbaProjectWriter.Create([.. documents, .. modules], references));
     package.AddRelationship(workbook, VbaProjectType, "vbaProject.bin");
     package.SetOverride("xl/vbaProject.bin", VbaProjectContentType);
     // An .xlsb's workbook part is already macro-enabled; an .xlsx's has to say so (and the file be named .xlsm).

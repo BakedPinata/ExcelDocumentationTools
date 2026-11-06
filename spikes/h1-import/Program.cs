@@ -12,6 +12,8 @@ using VbaReader = VbaDocumenter.Core.Extraction.WorkbookReader;
 //   dotnet run --project spikes/h1-import -- inspect <workbook>      what a workbook is, labels included
 //   dotnet run --project spikes/h1-import -- add <workbook> [--vba-only | --queries-only] [--output <folder>]
 //                                                                    a copy of it with the modules and queries added
+//   dotnet run --project spikes/h1-import -- copy <source> --modules A,B (--into <target> | --new <file>) [--no-references]
+//                                                                    modules, what they use and their references
 //   dotnet run --project spikes/h1-import -- dump <workbook>         its VBA project, to compare with Excel's
 
 var repo = FindRepository();
@@ -32,9 +34,15 @@ if (args.Length >= 2)
       case "inspect":
         return SpecificWorkbook.Inspect(args[1]) ? 0 : 1;
       case "add":
-        int at = Array.IndexOf(args, "--output");
-        return SpecificWorkbook.Add(args[1], args.Contains("--queries-only") ? [] : modules, args.Contains("--vba-only") ? [] : queries,
-          at >= 0 && at + 1 < args.Length ? args[at + 1] : null) is null ? 1 : 0;
+        return SpecificWorkbook.Add(args[1], args.Contains("--queries-only") ? [] : modules, args.Contains("--vba-only") ? [] : queries, Option("--output")) is null ? 1 : 0;
+      case "copy":
+        if (Option("--modules") is not { } names || (Option("--into") is null) == (Option("--new") is null))
+        {
+          Console.WriteLine("copy needs --modules A,B and one of --into <target> or --new <file>.");
+          return 1;
+        }
+        return SpecificWorkbook.Copy(args[1], names.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries), Option("--into"), Option("--new"),
+          withReferences: !args.Contains("--no-references")) is null ? 1 : 0;
     }
   }
   catch (Exception ex) when (ex is ExtractionException or InvalidOperationException or InvalidDataException or NullReferenceException)
@@ -72,6 +80,31 @@ Experiment("B1-new-workbook-modules-and-queries.xlsm", Workbooks.New(macroEnable
   Workbooks.AddModules(p, modules);
   Mashup.AddQueries(p, queries, withConnections: true);
 });
+
+// Library references: a source that needs one, and copying modules out of it, as the source has them.
+var encoding = VbaDocumenter.Core.Extraction.CodePages.Get(1252);
+var scripting = VbaProjectWriter.Registered("Scripting", @"*\G{420B2830-E718-11CF-893D-00A0C9054228}#1.0#0#C:\Windows\System32\scrrun.dll#Microsoft Scripting Runtime", encoding);
+var absent = VbaProjectWriter.Registered("SpikeAbsent", @"*\G{0A1B2C3D-1111-2222-3333-444455556666}#1.0#0#C:\Windows\System32\spike-absent.tlb#H1 Spike Library That Is Not Installed", encoding);
+var libraryModules = Directory.GetFiles(Path.Combine(inputs, "references"), "*.bas").Order().Select(ModuleFiles.Read).ToList();
+Experiment("R0-source-with-reference.xlsm", Workbooks.New(macroEnabled: true, []), p => Workbooks.AddModules(p, libraryModules, references: [scripting]));
+var source = File.ReadAllBytes(Path.Combine(output, "R0-source-with-reference.xlsm"));
+Experiment("R1-new-workbook-reference-copied.xlsm", Workbooks.New(macroEnabled: true, []), p =>
+{
+  var (taken, references) = SpecificWorkbook.Take(source, ["SpikeLibrary"], withReferences: true);
+  Workbooks.AddModules(p, taken, references: references);
+});
+Experiment("R2-SimpleMacro-reference-copied.xlsm", Fixture(vbaFixtures, "SimpleMacro.xlsm"), p =>
+{
+  var (taken, references) = SpecificWorkbook.Take(source, ["SpikeLibrary"], withReferences: true);
+  Workbooks.AddModules(p, taken, references: references);
+});
+Experiment("R3-reference-left-out.xlsm", Workbooks.New(macroEnabled: true, []), p =>
+{
+  var (taken, references) = SpecificWorkbook.Take(source, ["SpikeLibrary"], withReferences: false);
+  Workbooks.AddModules(p, taken, references: references);
+});
+Experiment("R4-reference-not-installed.xlsm", Workbooks.New(macroEnabled: true, []), p =>
+  Workbooks.AddModules(p, libraryModules.Where(m => m.Name == "SpikePlain").ToList(), references: [absent]));
 
 // What inspect and add do with a label, on a stand-in with made-up ids, and with a file that's encrypted.
 var labelled = Path.Combine(output, "L1-labelled-stand-in.xlsx");
@@ -121,6 +154,12 @@ void Experiment(string name, OpcPackage package, Action<OpcPackage> change)
       if (back.Expression.ReplaceLineEndings("\r\n") != q.Expression) throw new InvalidOperationException($"{q.Name} reads back differently.");
     }
   }
+}
+
+string? Option(string name)
+{
+  int at = Array.IndexOf(args, name);
+  return at >= 0 && at + 1 < args.Length ? args[at + 1] : null;
 }
 
 static OpcPackage Fixture(string folder, string name) => OpcPackage.Read(File.ReadAllBytes(Path.Combine(folder, name)));

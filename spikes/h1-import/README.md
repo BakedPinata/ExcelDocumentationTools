@@ -8,6 +8,7 @@ findings go in each tool's `docs/DECISIONS.md`, and it's deleted once H2 starts.
 dotnet run --project spikes/h1-import                        # writes the workbooks below into spikes/h1-import/out/
 dotnet run --project spikes/h1-import -- inspect "<workbook>"  # what a workbook is: labels, encryption, VBA, queries
 dotnet run --project spikes/h1-import -- add "<workbook>"    # a copy of it with the modules and queries added
+dotnet run --project spikes/h1-import -- copy "<source>" --modules A,B --new "<file>"  # modules, what they use, references
 dotnet run --project spikes/h1-import -- dump "<workbook>"   # its VBA project, to compare with Excel's
 ```
 
@@ -39,9 +40,44 @@ project's ID as Excel's own do (`SimpleMacro.xlsm`'s confirm the key covers the 
 
 ## Results so far
 
-The user tried the workbooks below at home and on a work machine, and they worked on both (2026-11-06). Still to
-settle: whether Excel added the document modules itself in V5, and whether it listed the queries in P2 and P5, which
-have no connections. Workbooks that were saved at work with a sensitivity label are still to try, as below.
+The user tried the V, P and B workbooks below at home and on a work machine, and they all worked (2026-11-06):
+
+- **V5:** Excel added ThisWorkbook and the sheets' modules itself, so an `.xlsb` needs no code names from us.
+- **P2 and P5:** the queries were listed without any connections.
+- **A label:** every workbook built or changed here that had no label asked for one at work, as any unlabelled
+  workbook does. A real workbook saved at work had a metadata-only label: a copy made with `add` opened with no repair
+  message and the same label, its VBA and queries worked, and it saved without asking for a label.
+
+Library references are still to try: see below.
+
+## Trying library references
+
+The plan assumed references couldn't come along, but they're only records in the project's `dir` stream. So the spike
+copies them from the source project as they stand, whatever their kind, skipping any the target has (known by the GUID
+in the libid). It copies all of the source's, because a module's text doesn't say which library each name comes from.
+
+In `out/`, for each of these: **Enable Content**, **Debug > Compile VBAProject**, and **Tools > References**.
+
+| Workbook | What it is | What to expect |
+|---|---|---|
+| `R0-source-with-reference.xlsm` | A source: SpikeLibrary needs the Microsoft Scripting Runtime, and the reference is written here | Compiles; **SpikeReferences** says the dictionary holds 2 items; the runtime is ticked in References |
+| `R1-new-workbook-reference-copied.xlsm` | SpikeLibrary copied out of R0 into a new workbook, with its reference | The same |
+| `R2-SimpleMacro-reference-copied.xlsm` | The same into an existing project, which has its own references | The same, TestMacro still runs, and no reference appears twice |
+| `R3-reference-left-out.xlsm` | The same with the reference left out, to show the test means something | **Compile error** on `Scripting.Dictionary`: "User-defined type not defined" |
+| `R4-reference-not-installed.xlsm` | SpikePlain, which needs no library, with a reference to one that isn't installed | The question: is it marked MISSING? Does the project still compile? Does **SpikeNoLibrary** run? |
+
+Then the test that counts, on your own modules. `copy` takes the modules you name, follows what they use with vbadoc's
+analyser, and writes them with the source's references into a new workbook, or a copy of one:
+
+```bash
+dotnet run --project spikes/h1-import -- copy "C:\path\to\Source.xlsm" --modules Logger,FilePathFromDialog --new "C:\path\to\Toolkit.xlsm"
+dotnet run --project spikes/h1-import -- copy "C:\path\to\Source.xlsm" --modules Logger --into "C:\path\to\Target.xlsx"
+```
+
+It says what it took, what came along, what stayed behind (document modules and forms), and the references the result
+has. `--no-references` leaves them out. Neither the source nor the target is changed: `--into` writes `Target-spike.xlsm`
+beside the target. Its output names your modules and libraries, unlike `inspect`'s. Then in Excel: does the project
+compile, and do the modules work?
 
 ## Trying a workbook of your own, with a sensitivity label
 
