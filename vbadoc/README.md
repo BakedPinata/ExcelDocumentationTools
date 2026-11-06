@@ -101,14 +101,48 @@ page's **Export** tab. It shows what they bring with them, what to check in the 
 come too. **Download manifest** saves the choice as `vbadoc-export.json`, for `vbadoc import`:
 
 ```bash
-vbadoc import Sales.xlsm --manifest vbadoc-export.json                  # says what would come
-vbadoc import Sales.xlsm --manifest vbadoc-export.json --bundle Shared  # writes them to a folder
-vbadoc import Sales.xlsm --items Logger,FilePathFromDialog              # by name, without a manifest
+vbadoc import Sales.xlsm --manifest vbadoc-export.json                       # says what would come
+vbadoc import Sales.xlsm --manifest vbadoc-export.json --new Toolkit.xlsm    # a new workbook
+vbadoc import Sales.xlsm --manifest vbadoc-export.json --into Target.xlsx    # writes Target-imported.xlsm, beside it
+vbadoc import Sales.xlsm --manifest vbadoc-export.json --bundle Shared       # a folder, to import by hand
+vbadoc import Sales.xlsm --items Logger,FilePathFromDialog --new Toolkit.xlsm  # by name, without a manifest
 ```
 
-A bundle holds the modules, ready for **File > Import File** in the VBA editor, and a `README.md` saying how. It only goes
-into an empty folder or an earlier bundle, so it can't delete your own modules. The manifest lists what you picked and
-not what that brings, so running it again later picks up any new dependencies.
+The manifest lists what you picked and not what that brings, so running it again later picks up any new dependencies.
+
+**Neither workbook is changed.** `--into` takes `.xlsx`, `.xlsm` and `.xlsb` files and writes a copy beside the target,
+with the modules added and the target's sensitivity label, if it has one, as it was. An `.xlsx` is written as an `.xlsm`,
+as only that can hold modules. `--on-exists` and `--force` apply to the file written. A new workbook has no label, so
+Excel asks for one where your organisation requires it. A workbook with a label that encrypts can't be read or written.
+
+**When the target already has a module of that name,** an identical one is left alone, and otherwise it asks about each,
+saying what's at stake, before anything is written: skip, overwrite, skip all, overwrite all, or quit. Without anyone to
+ask, it stops unless `--on-clash overwrite` or `--on-clash skip` says what to do. A sheet's or the workbook's module, or a
+UserForm, can't be overwritten, only skipped.
+
+**To change the target itself,** which can't be undone, add `--in-place`. It says what will change and asks first:
+
+```bash
+vbadoc import Sales.xlsm --manifest shared.json --into Target.xlsm --in-place           # asks "are you sure?"
+vbadoc import Sales.xlsm --manifest shared.json --into Target.xlsm --in-place --force   # doesn't, for unattended runs
+```
+
+`--force` answers that question and no other: an unattended run also needs `--on-clash` if the target might have any of
+the modules. With nobody to ask and no `--force`, it stops and changes nothing. The target is replaced in one step, once
+the result is finished and read back, so a failure leaves it as it was. A workbook open in Excel can't be replaced, and it
+says so. An `.xlsx` can't gain modules in place.
+
+**Library references** come too, apart from those you unticked or `--no-references`, and any the target has. One that
+can't be found on this machine is left out and listed, because it would stop the whole project compiling, even code that
+doesn't need it. The check is of the machine running vbadoc, so run it where the workbook will be used.
+
+**Modules are written as source, and Excel compiles them on opening.** The result isn't signed, so a machine that only
+runs signed macros, or macros from trusted locations, blocks it until it's signed or moved. A target whose VBA project is
+signed is refused, as the change would break the signature, unless `--drop-signature` says to remove it.
+
+A bundle holds the modules, ready for **File > Import File** in the VBA editor, and a `README.md` saying how, for a target
+that can't be written, such as an encrypted one. It only goes into an empty folder or an earlier bundle, so it can't
+delete your own modules.
 
 ### Changes in 0.9.0
 

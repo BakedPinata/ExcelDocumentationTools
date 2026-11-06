@@ -154,6 +154,44 @@ The Export tab, the manifest and bundles are mostly the shell's and `shared/`'s:
   the two every project has. Each is known by its name in the manifest, as that's what the VBA editor shows.
 - **`--no-references` is vbadoc's alone,** on `import`, since pqdoc has none.
 
+## Writing into workbooks (0.30.0, step H3 of the feedback plan)
+
+The commands and what they promise are in Requirements.md. What both tools need is in `shared/`: see its README.
+
+- **Checked against what Excel accepted.** Excel can't be run here, so `--new` and `--into` were compared with the spike's
+  R1 and R2, which Excel accepted, on the same input. `--into` matched in every part, `dir` record and stream. `--new`
+  differed only in a wide first column the spike gave its sheet for its own test text.
+- **The spike's writing, with what it got wrong put right:**
+  - A module called `Name` or `ID` took the project's own line with it when replaced, as a `[Workspace]` line looks like
+    one. Lines are now removed by section.
+  - A module called `Dir` collided with the `dir` stream, as names in a compound file ignore case. A stream's name is
+    separate from its module's, so such a module gets a free one.
+  - A project with no `PROJECTwm` gained a partial one. It's now left without.
+  - A last chunk that wouldn't compress was an error. It's stored raw and padded, as MS-OVBA says, which the read-back
+    then catches for source. Text always compresses, so this is for the format's sake.
+- **A control reference is known by the library it came from.** Its libid names a cache made on each machine
+  (`MSForms.exd`), with a GUID of its own, so `suffix-generator.xlsm`'s `{93114339-…}` means nothing on another machine.
+  The library's GUID is `OriginalTypeLib`, after the libid in the extended record. Without this, MSForms would read as
+  not installed, and as different in two projects that both have it.
+- **A reference keeps its records as they stand** (`VbaReference.Records`), which the reader takes from the `dir` stream,
+  so any kind can be copied, from any kind of workbook, `.xls` included. Control references and references to other VBA
+  projects are copied like any other, once they can be found: their records have only been read back here, so whether
+  Excel accepts them is for the user's check. If it doesn't, they should be left out and listed instead.
+- **A new project takes the source's code page,** so its bytes needn't change. Into a project in another code page,
+  source is converted strictly: a character that can't be held stops the run, as a question mark in a string would be a
+  silent change to what the code does. The same code page keeps the bytes as they are, which don't always decode.
+- **A target's code names count as names taken** when it has no project, and a code name the tool gives keeps clear of
+  the modules coming in (`Sheet2`, `ThisWorkbook1`). An `.xlsb`'s are in binary parts, so they can't be seen, and Excel
+  sorts those out itself.
+- **Identical ignores only what ends a module,** since the VBA editor keeps or drops a last line as it likes. Anything
+  else is a difference, even in an attribute, as that's what the person is being asked about.
+- **`.xlam` and `.xltm` aren't targets,** as only `.xlsx`, `.xlsm` and `.xlsb` have been tried in Excel.
+- **`--drop-signature` is how a signed target goes ahead,** as the plan's "told to go ahead". It removes the signature's
+  parts, relationships and types, rather than leave one that no longer matches. No real signed workbook has been tried.
+- **A reference is added even if every module was skipped or identical,** as those modules may need it.
+- **Where the library is looked up is this machine,** which may not be where the workbook is used. There's no better
+  place to look, so the README says to run it where the workbook will be used.
+
 ## Speed (step A2 of the feedback plan)
 
 - **`--verbose` shows how long each step took:** reading, parsing, analysing, building the page, writing the module

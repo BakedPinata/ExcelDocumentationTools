@@ -8,9 +8,9 @@ rather than repeating it.
 - **Updating it:** at the end of each stage, and after any session that changes direction, update *Current state* and
   add an entry at the top of the log. Give the date, what changed and why, and commits, in a few lines.
 
-## Current state (2026-11-05)
+## Current state (2026-11-06)
 
-- **vbadoc 0.29.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.30.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
@@ -34,10 +34,11 @@ rather than repeating it.
   query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is pushed, as are its
   review's follow-ups (E5a) and a gentler drag. G1 (saved views) and its review's follow-ups (G1a) are pushed. The
   user parked G2–G4 (the views file in the page, printing, copying a view) to come back to later. H1 (the spike on
-  writing modules and queries into workbooks) is on main, not yet pushed: Excel accepts what it writes, at home and at
-  work. H2 (the Export tab, the manifest and bundles) is done on `feedback/h2-export-tab`, waiting for review. **Next: H3
-  and H4**, writing into workbooks, as the plan's "After H1" sets out. E5b (Calls tab follow-ups) is noted on
-  `feedback/e5b-calls-follow-ups`, for later.
+  writing modules and queries into workbooks) and H2 (the Export tab, the manifest and bundles) are on main, ahead of
+  origin: Excel accepts what the spike writes, at home and at work. H3 (vbadoc writing into workbooks) is done on
+  `feedback/h3-import-vba`, waiting for review and the user's check in Excel, which also settles control references and
+  references to other VBA projects. **Next: H4**, pqdoc writing into workbooks, after which `spikes/h1-import` is deleted.
+  E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
@@ -49,6 +50,20 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-06: Step H3, vbadoc writing into workbooks
+
+- `vbadoc import` writes a new workbook (`--new`) or a copy of a target (`--into`), with what the choice brings and its
+  library references. A name already in the target is asked about before anything is written, and `--on-clash` answers for
+  an unattended run. `--in-place` changes the target itself, opt-in, asking first, with `--force` to answer yes.
+- What pqdoc will need too is in `shared/`: `OpcPackage`, `BlankWorkbook`, `ClashResolver`, `ImportTargetOptions` and the
+  prompts, with Skip All. The spike stays until H4 has what it needs.
+- Excel can't be run here, so the tool's output was compared with the spike's R1 and R2, which Excel accepted: `--into`
+  matched exactly, and `--new` but for a column width the spike set for itself.
+- Real fixtures showed what synthetic ones wouldn't: a control reference's libid names a per-machine cache, so it's now
+  known by the library it was made from. The spike's writer had faults with modules called `Name` or `Dir`, now fixed.
+- `--drop-signature` is how a signed target goes ahead, which the plan left to be named.
+- vbadoc 0.30.0. The user's check in Excel is still to come.
 
 ### 2026-11-06: Step H2, the Export tab and bundles
 

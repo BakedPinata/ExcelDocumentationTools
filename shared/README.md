@@ -9,10 +9,10 @@ build stamps. See "Structure" in [docs/GUIDELINES.md](../docs/GUIDELINES.md) for
 | Folder | What | Used by |
 |---|---|---|
 | (root) | `ExitCodes`, the codes every tool returns; `ToolVersion`, the build stamp read from a tool's own assembly | both |
-| `Workbooks/` | `WorkbookFile`: reading a workbook while Excel has it open, telling zip-based from compound files, spotting encryption; `ExtractionException`, exit code 3 | both readers |
-| `Files/` | `AtomicFileWriter`: write to a temporary file, then move it into place; `SourceFolderWriter`: keep a folder of source files in step with a workbook; `OverwriteResolver` and `OnExistsBehaviour`: what to do when an output already exists, asking through `IUserInteraction` | vbadoc's module files and page; pqdoc's `.m` files and outputs |
-| `CommandLine/` | `OverwriteOptions`: `--on-exists` and `--force` (`-y`), checked and bound the same way in both tools; `ImportOptions`: the `import` command; `ConsoleUserInteraction`: the yes / no / all / quit prompt, on standard error | both command lines |
-| `Importing/` | `ImportPlan`: what a choice comes to; `ExportManifest`: the file the Export tab writes; `BundleFolder`: a folder of chosen files with a README; `ImportRun`: the steps of `import` both tools share | both `import` commands |
+| `Workbooks/` | `WorkbookFile`: reading a workbook while Excel has it open, telling zip-based from compound files, spotting encryption; `ExtractionException`, exit code 3; `OpcPackage`: a workbook's parts in memory, to change some and keep the rest; `BlankWorkbook`: a new workbook with one sheet | both readers; writing workbooks (vbadoc so far) |
+| `Files/` | `AtomicFileWriter`: write to a temporary file, then move it into place, or replace a file keeping its permissions; `SourceFolderWriter`: keep a folder of source files in step with a workbook; `OverwriteResolver` and `OnExistsBehaviour`: what to do when an output already exists, asking through `IUserInteraction` | vbadoc's module files and page; pqdoc's `.m` files and outputs |
+| `CommandLine/` | `OverwriteOptions`: `--on-exists` and `--force` (`-y`), checked and bound the same way in both tools; `ImportOptions`: the `import` command; `ImportTargetOptions`: `--new`, `--into`, `--in-place` and `--on-clash`; `ConsoleUserInteraction`: the prompts, on standard error | both command lines; `ImportTargetOptions` in vbadoc so far |
+| `Importing/` | `ImportPlan`: what a choice comes to; `ExportManifest`: the file the Export tab writes; `BundleFolder`: a folder of chosen files with a README; `ImportClash` and `ClashResolver`: what's in the target already, and what to do about it; `ImportRun`: the steps of `import` both tools share | both `import` commands |
 | `Pages/` | `ShellPage`: a page built on the shell, from the parts a tool brings; `PageBuilder`: filling a template's placeholders, inlining scripts after d3 and the shell's, escaping text and JSON, the favicon; `EmbeddedResources`; `VendoredScripts` | both pages |
 | `Resources/Shell/` | The page shell: `shell.html` (the template), `shell.css` (the frame and shared colour tokens) and `shell.js` (theme, settings, tabs, the explorer, the side panel, their splitters, Load folder, source view; its interface is at the top) | both pages |
 | `Resources/Vendor/` | d3 and its licence, byte-for-byte as published (see its README) | both pages |
@@ -144,6 +144,25 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
   `--force` apply to replacing an earlier bundle that would change.
 - **`import` is a subcommand,** so the root command has an empty action: a command with subcommands otherwise has to be
   given one. `CliRunner` tells that action from `--help` and `--version`, and `--verbose` and `--quiet` are recursive.
+
+### Writing into workbooks (step H3)
+
+- **`OpcPackage` holds parts as bytes** and parses only what it's asked to, so a part nobody touched goes back byte for
+  byte, which is what keeps a label. XML is read with its whitespace kept, as a cell can hold nothing else, and saved as
+  Excel does.
+- **`ImportTargetOptions` adds itself to the command** rather than being part of `ImportOptions`, so a tool gets the
+  options when it can write workbooks. It takes over the help text of `--bundle` and `--force`, which say more once there's
+  a workbook to write. `shell.exports.init`'s `writeTo` is the same step in the page: the hint is a bundle without it.
+- **`--on-exists` and `--on-clash` are separate questions,** one about the file written and the other about the items in it,
+  so `--force` answers only the first, and `--in-place`'s are-you-sure, which is about the file too. `--on-exists` can't be
+  given with `--in-place`, so it can't stand in for that answer: only `--force` or a person can give it.
+- **`ClashResolver` stops rather than skips what can't be replaced** for `--on-clash overwrite`: asked to replace
+  everything, leaving something out unasked would be the wrong surprise. Overwrite All goes on asking about those, as
+  it's the only answer that has to.
+- **`ImportRun.ChangeInPlace` says a target can't be replaced before it asks,** by opening it for itself alone, so nobody
+  answers a question about what can't happen. The build happens after every answer, and only its finished, read-back
+  result reaches `AtomicFileWriter.Replace`, which uses `File.Replace` so the file keeps its permissions and creation
+  time. A move would give it the folder's.
 
 ### Saved views (step G1)
 

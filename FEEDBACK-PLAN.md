@@ -69,7 +69,7 @@ questions the draft raised.
 | G4 | Optional: copy a view as text, to paste into a chat | Claude | Parked after G1a, to come back to |
 | H1 | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | Done: yes, at home and at work, with labels and references |
 | H2 | The Export tab and manifest: choosing what to import, with what it brings; bundle folders | Claude, then you in Excel | Done; your check of a bundle by hand to come |
-| H3 | vbadoc imports into a new workbook or a copy of an existing one, with references, asking about name clashes | Claude, then you in Excel | |
+| H3 | vbadoc imports into a new workbook or a copy of an existing one, with references, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
 | H4 | pqdoc imports into a new workbook or a copy of an existing one, asking about name clashes | Claude, then you in Excel | |
 
 ## 1. Questions settled
@@ -634,7 +634,8 @@ The user's use case settles what "generic" means, which changes the plan's idea 
   name an older version than the machine has.
 - **The Export tab lists them to untick,** and `--no-references` leaves them all out.
 - **Only references to registered libraries have been tried.** Control references (several records) and references to
-  other VBA projects (a path) are for H3 to try, or to list as left out.
+  other VBA projects (a path) are for H3 to try, or to list as left out. H3 copies them, once what they point at can be
+  found, for the user's check in Excel to settle.
 
 **The choice reaches the command through an Export tab and a manifest,** not the views file, agreed with the user. A view
 says how the page looks and an export says what to take: a view's ticks are a filter, and it carries positions and
@@ -692,6 +693,8 @@ exit code 4 (the user's choice):
 - **When nobody can answer** (not interactive), it stops with exit code 4, unless `--on-clash overwrite|skip` says what
   to do. That's a separate option from `--on-exists`, which is about the file written.
 - **A Merge choice,** bringing in what's missing, may come later (section 9).
+- **What can't be replaced isn't offered:** a sheet's or the workbook's module, or a UserForm, can only be skipped, and
+  `--on-clash overwrite` stops at one. (Added in H3.)
 
 ## 6. Steps
 

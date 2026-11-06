@@ -92,7 +92,7 @@ of generated pages, because changing one changes every page.
   | 1 | Unexpected error |
   | 2 | Invalid arguments or configuration |
   | 3 | Input problem (missing or unreadable input) |
-  | 4 | Output refused (an output exists and overwriting was refused) |
+  | 4 | Output refused (an output exists and overwriting was refused, or an import wasn't told what to do) |
   | 5 | One or more outputs failed (others may have succeeded) |
   | 130 | Cancelled with Ctrl+C |
 
