@@ -248,14 +248,45 @@ with them and what to check in the target, such as a table a query reads or a da
 the choice as `pqdoc-export.json`, for `pqdoc import`:
 
 ```bash
-pqdoc import Sales.xlsx --manifest pqdoc-export.json                  # says what would come
-pqdoc import Sales.xlsx --manifest pqdoc-export.json --bundle Shared  # writes them to a folder
-pqdoc import Sales.xlsx --items "Sales Report,fnClean"                # by name, without a manifest
+pqdoc import Sales.xlsx --manifest pqdoc-export.json                       # says what would come
+pqdoc import Sales.xlsx --manifest pqdoc-export.json --new Toolkit.xlsx    # a new workbook
+pqdoc import Sales.xlsx --manifest pqdoc-export.json --into Target.xlsx    # writes Target-imported.xlsx, beside it
+pqdoc import Sales.xlsx --manifest pqdoc-export.json --bundle Shared       # a folder, to bring in by hand
+pqdoc import Sales.xlsx --items "Sales Report,fnClean" --new Toolkit.xlsx  # by name, without a manifest
 ```
 
-A bundle holds each query's `.m` file and a `README.md` on bringing them in by hand, each after the queries it uses. It
-only goes into an empty folder or an earlier bundle, so it can't delete your own files. The manifest lists what you
-picked and not what that brings, so running it again later picks up any new dependencies.
+The manifest lists what you picked and not what that brings, so running it again later picks up any new dependencies.
+
+**What's written.** Neither workbook you name is changed: `--into` writes a copy beside the target. `--new` builds an
+`.xlsx` or `.xlsm`, and the target can be an `.xlsx`, `.xlsm` or `.xlsb`, with its sensitivity label kept if the label
+only marks it. One with a label that encrypts it can't be used. Each new query comes as connection only, with its
+description; choose where it loads to in Excel. Query groups don't come along. A new workbook has no label, so at work
+Excel asks for one.
+
+**Before you rely on one,** open it in Excel and refresh. Credentials and privacy levels belong to you and your machine,
+not the workbook, so Excel may ask for them. A workbook set to ignore privacy levels may go back to using them, and the
+command warns when it might.
+
+**A bundle** holds each query's `.m` file and a `README.md` on bringing them in by hand, each after the queries it uses,
+for a target that can't be written, such as an encrypted one. It only goes into an empty folder or an earlier bundle, so
+it can't delete your own files.
+
+**When the target already has a query of that name,** an identical one is left alone, and otherwise it asks about each,
+saying what's at stake, before anything is written: skip, overwrite, skip all, overwrite all, or quit. Without anyone to
+ask, it stops unless `--on-clash overwrite` or `--on-clash skip` says what to do. Overwrite replaces the query's M and
+description. It keeps the target's spelling of the name, where the query loads to, and its connection.
+
+**To change the target itself,** which can't be undone, add `--in-place`. It says what will change and asks first:
+
+```bash
+pqdoc import Sales.xlsx --manifest shared.json --into Target.xlsx --in-place           # asks "are you sure?"
+pqdoc import Sales.xlsx --manifest shared.json --into Target.xlsx --in-place --force   # doesn't, for unattended runs
+```
+
+`--force` answers that question and no other: an unattended run also needs `--on-clash` if the target might have any of
+the queries. With nobody to ask and no `--force`, it stops and changes nothing. The target is replaced in one step, once
+the result is finished and read back, so a failure leaves it as it was. A workbook open in Excel can't be replaced, and it
+says so.
 
 ## Existing output files
 

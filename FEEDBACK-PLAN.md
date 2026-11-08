@@ -70,7 +70,7 @@ questions the draft raised.
 | H1 | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | Done: yes, at home and at work, with labels and references |
 | H2 | The Export tab and manifest: choosing what to import, with what it brings; bundle folders | Claude, then you in Excel | Done; your check of a bundle by hand to come |
 | H3 | vbadoc imports into a new workbook or a copy of an existing one, with references, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
-| H4 | pqdoc imports into a new workbook or a copy of an existing one, asking about name clashes | Claude, then you in Excel | |
+| H4 | pqdoc imports into a new workbook or a copy of an existing one, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
 | I1 | Spike: a desktop window, published as one file, that runs on a work machine (added after H3) | Claude, then you on a work machine | |
 | I2 | Both tools' command lines can be run by another program, with no change to the console tools | Claude | |
 | I3 | The desktop app: documenting a workbook with either tool | Claude | |
@@ -1081,8 +1081,8 @@ Throwaway code, kept out of the tools. The findings go in each tool's `DECISIONS
 ### Steps H3 and H4: Importing into a workbook
 
 H1 showed this works, so H3 (vbadoc) and H4 (pqdoc) write H2's set with `--new` and `--into`, as "After H1" describes,
-taking the writing code from `spikes/h1-import`. What both need, such as the package code and the prompt, goes in
-`shared/`, which gains a Skip All answer. The spike is deleted once they've taken what they need.
+taking the writing code from the spike. What both need, such as the package code and the prompt, goes in `shared/`, which
+gains a Skip All answer. The spike was deleted once they'd taken what they need.
 
 - H3 also brings the references, with the registry check, and tries control references and references to other VBA
   projects. It keeps compression real, and keeps a target's label and protection.
@@ -1228,5 +1228,6 @@ Left out to keep this plan to what the feedback asked for:
 - **Read Power BI files.**
 - **Import individual procedures,** not only whole modules: writing part of a module, with the declarations it uses.
 - **A Merge choice when the target has a module of that name,** bringing in what's missing, or something else to settle.
+- **Bring a query's group along,** merging it into the target's groups. H4 brings each query in with no group.
 - **Import UserForms.** A text export has no `.frx`, but copying from project to project could bring the form's designer
   storage too. Not tried; forms are seldom used.

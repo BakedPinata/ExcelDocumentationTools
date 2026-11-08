@@ -149,8 +149,9 @@ Reading them is step B2 of the feedback plan.
 
 ## Writing into workbooks: what step H1 found
 
-The spike is `spikes/h1-import`, which holds the code and the workbooks' list. Excel accepted all of this, at home and
-on a work machine, in `.xlsx`, `.xlsm` and `.xlsb` files, and in a workbook the spike built itself.
+The spike was `spikes/h1-import`, deleted after H4 and still in the repository's history, with the workbooks' list. Excel
+accepted all of this, at home and on a work machine, in `.xlsx`, `.xlsm` and `.xlsb` files, and in a workbook the spike
+built itself.
 
 - **A query needs three things:** its M in `Formulas/Section1.m`, an item in the Metadata as a connection-only query,
   and, as Excel has for every query, a connection in `xl/connections.xml`. Excel listed queries that had no connection
@@ -182,6 +183,34 @@ The Export tab, the manifest and bundles are mostly the shell's and `shared/`'s:
   that reach outside the workbook; those that read what another gives them, such as `Csv.Document`, aren't on it, as
   `File.Contents` beside them is the source.
 - **A bundle's README puts each query after those it uses,** as they're brought in by hand one at a time.
+
+## Writing into workbooks (1.21.0, step H4 of the feedback plan)
+
+The commands and what they promise are in Requirements.md (FR-IMP-7 to FR-IMP-16). What both tools need is in `shared/`.
+
+- **Checked against what Excel accepted.** Excel can't be run here, so `--new` and `--into` were compared with the spike's
+  P1, P3, P4 and P5, the files the user tried, on the same input. `Formulas/Section1.m`, the Permissions, the Metadata
+  and the bindings matched in all four, GUIDs aside. Elsewhere there's a line break after some parts' XML declarations,
+  which Excel's own files have and `OpcPackage` keeps, and P4's wide first column, which was the spike's own.
+- **Overwrite hasn't been tried in Excel,** as the spike didn't try it. It's for the user's check, with what a stale
+  Permission Binding means for a query with a real data source.
+- **Overwrite replaces the member, from its attributes to its `;`,** found through the tokeniser. The rest of the section
+  stays as it was, comments included. What belongs to the target stays too: the spelling of the name, as its queries use
+  it, the `QueryID`, where it loads to, and its connection. `ResultType` follows the new text. The items for its old steps
+  (`Section1/Name/Step`) go, since they name steps it may no longer have; a query added from outside has none either.
+- **A query from a workbook goes across as stored.** Excel keeps some with CRLF and some with LF, and normalising them
+  would change text that didn't need to change. An `.m` file gets CRLF outside text literals, as pqdoc writes them, and
+  identical means the same text once both have been treated that way.
+- **M's names are case-sensitive and Excel's aren't,** so a query spelled differently in the target is a clash even with
+  the same text: what's coming wouldn't find it by that spelling, and the clash says so.
+- **Fixed from the spike:** a query named like a keyword (`let`) is quoted, and a query ending in a line comment puts its
+  `;` on the next line, as Excel writes it, or the comment would swallow it. A connection name that's taken gets a number,
+  as Excel gives one, which covers one left behind by a deleted query. The custom XML part is found as the reader finds it.
+- **A description comes along and a group doesn't.** A description is in the M. A group is a binary list in the metadata
+  that would have to be merged with the target's, which is in the plan's Later section.
+- **The Permission Binding is kept though it no longer matches,** as Excel accepted in the spike. Excel then ignores the
+  Permissions section, according to MS-QDEFF, so only a target whose settings differ from the defaults loses anything:
+  in practice, one set to ignore privacy levels, which is the case the command warns about.
 
 ## Source in the page (1.5.0, step B4)
 

@@ -14,7 +14,7 @@ rather than repeating it.
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.20.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.21.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -34,11 +34,11 @@ rather than repeating it.
   query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is pushed, as are its
   review's follow-ups (E5a) and a gentler drag. G1 (saved views) and its review's follow-ups (G1a) are pushed. The
   user parked G2–G4 (the views file in the page, printing, copying a view) to come back to later. H1 (the spike on
-  writing modules and queries into workbooks) and H2 (the Export tab, the manifest and bundles) are on main, ahead of
-  origin: Excel accepts what the spike writes, at home and at work. H3 (vbadoc writing into workbooks) is done on
-  `feedback/h3-import-vba`, waiting for review and the user's check in Excel, which also settles control references and
-  references to other VBA projects. **Next: H4**, pqdoc writing into workbooks, after which `spikes/h1-import` is deleted.
-  E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
+  writing modules and queries into workbooks), H2 (the Export tab, the manifest and bundles) and H3 (vbadoc writing into
+  workbooks) are pushed: Excel accepts what the spike wrote, at home and at work. H4 (pqdoc writing into workbooks) is
+  done on `feedback/h4-import-queries`, waiting for review. **Next: I1**, the first of the desktop app's steps, which the
+  user added after H3. The user's checks of what's built so far come after phase I; the plan lists them. E5b (Calls tab
+  follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
@@ -50,6 +50,18 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-08: Step H4, pqdoc writing into workbooks
+
+- `pqdoc import` writes a new workbook (`--new`, `.xlsx` or `.xlsm`) or a copy of a target (`--into`), with `--in-place` and
+  `--on-clash` as vbadoc has them. New queries come as connection only, with their descriptions. Overwrite replaces a
+  query's M and description, and keeps where it loads to, its connection and the target's spelling of its name.
+- Excel can't be run here, so the output was compared with the spike's P1, P3, P4 and P5, the files the user tried: the M,
+  permissions, metadata and bindings match, GUIDs aside. Overwrite is new, and is for the user's check in Excel.
+- Comparing found one fault before it mattered: Excel stores some queries with LF, and they're now written as stored.
+- The Export tab now suggests `--new Shared.xlsx`. `TargetFile`, `TargetComparison` and the wording of Skip and Overwrite
+  moved to `shared/`. `spikes/h1-import` is deleted, as planned; its `out/` folder is untracked and still on disk.
+- pqdoc 1.21.0. The user's check in Excel is still to come.
 
 ### 2026-11-08: A desktop app added to the plan
 

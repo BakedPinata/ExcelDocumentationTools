@@ -9,9 +9,9 @@ build stamps. See "Structure" in [docs/GUIDELINES.md](../docs/GUIDELINES.md) for
 | Folder | What | Used by |
 |---|---|---|
 | (root) | `ExitCodes`, the codes every tool returns; `ToolVersion`, the build stamp read from a tool's own assembly | both |
-| `Workbooks/` | `WorkbookFile`: reading a workbook while Excel has it open, telling zip-based from compound files, spotting encryption; `ExtractionException`, exit code 3; `OpcPackage`: a workbook's parts in memory, to change some and keep the rest; `BlankWorkbook`: a new workbook with one sheet | both readers; writing workbooks (vbadoc so far) |
+| `Workbooks/` | `WorkbookFile`: reading a workbook while Excel has it open, telling zip-based from compound files, spotting encryption; `ExtractionException`, exit code 3; `OpcPackage`: a workbook's parts in memory, to change some and keep the rest; `BlankWorkbook`: a new workbook with one sheet; `TargetFile`: what can be written into, and why anything else can't | both readers; writing workbooks |
 | `Files/` | `AtomicFileWriter`: write to a temporary file, then move it into place, or replace a file keeping its permissions; `SourceFolderWriter`: keep a folder of source files in step with a workbook; `OverwriteResolver` and `OnExistsBehaviour`: what to do when an output already exists, asking through `IUserInteraction` | vbadoc's module files and page; pqdoc's `.m` files and outputs |
-| `CommandLine/` | `OverwriteOptions`: `--on-exists` and `--force` (`-y`), checked and bound the same way in both tools; `ImportOptions`: the `import` command; `ImportTargetOptions`: `--new`, `--into`, `--in-place` and `--on-clash`; `ConsoleUserInteraction`: the prompts, on standard error | both command lines; `ImportTargetOptions` in vbadoc so far |
+| `CommandLine/` | `OverwriteOptions`: `--on-exists` and `--force` (`-y`), checked and bound the same way in both tools; `ImportOptions`: the `import` command; `ImportTargetOptions`: `--new`, `--into`, `--in-place` and `--on-clash`; `ConsoleUserInteraction`: the prompts, on standard error | both command lines |
 | `Importing/` | `ImportPlan`: what a choice comes to; `ExportManifest`: the file the Export tab writes; `BundleFolder`: a folder of chosen files with a README; `ImportClash` and `ClashResolver`: what's in the target already, and what to do about it; `ImportRun`: the steps of `import` both tools share | both `import` commands |
 | `Pages/` | `ShellPage`: a page built on the shell, from the parts a tool brings; `PageBuilder`: filling a template's placeholders, inlining scripts after d3 and the shell's, escaping text and JSON, the favicon; `EmbeddedResources`; `VendoredScripts` | both pages |
 | `Resources/Shell/` | The page shell: `shell.html` (the template), `shell.css` (the frame and shared colour tokens) and `shell.js` (theme, settings, tabs, the explorer, the side panel, their splitters, Load folder, source view; its interface is at the top) | both pages |
@@ -145,7 +145,7 @@ dotnet test --solution ExcelDocumentationTools.sln                # everything, 
 - **`import` is a subcommand,** so the root command has an empty action: a command with subcommands otherwise has to be
   given one. `CliRunner` tells that action from `--help` and `--version`, and `--verbose` and `--quiet` are recursive.
 
-### Writing into workbooks (step H3)
+### Writing into workbooks (steps H3 and H4)
 
 - **`OpcPackage` holds parts as bytes** and parses only what it's asked to, so a part nobody touched goes back byte for
   byte, which is what keeps a label. XML is read with its whitespace kept, as a cell can hold nothing else, and saved as

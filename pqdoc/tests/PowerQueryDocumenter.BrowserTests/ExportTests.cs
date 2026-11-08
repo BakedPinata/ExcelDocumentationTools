@@ -44,7 +44,7 @@ public sealed class ExportTests(PageFixture fixture) : IDisposable
     var manifest = ExportManifest.Parse(File.ReadAllText(path), "pqdoc-export.json", "pqdoc");
     Assert.Equal(["Chain_E"], manifest.Items);
     Assert.Equal("Queries.xlsx", manifest.Workbook);
-    Assert.Equal("pqdoc import \"Queries.xlsx\" --manifest pqdoc-export.json --bundle Shared", await page.InnerTextAsync("#export-command"));
+    Assert.Equal("pqdoc import \"Queries.xlsx\" --manifest pqdoc-export.json --new Shared.xlsx", await page.InnerTextAsync("#export-command"));
     Assert.Empty(opened.Errors);
   }
 

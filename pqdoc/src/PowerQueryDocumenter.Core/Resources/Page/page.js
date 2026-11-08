@@ -432,7 +432,8 @@
     needs: function (id) { return queriesById.get(id).needs; },
     offers: function () { return []; },
     pickFor: function (id) { return id; },
-    references: []
+    references: [],
+    writeTo: "--new Shared.xlsx"
   });
   shell.start();
   renderDetails();

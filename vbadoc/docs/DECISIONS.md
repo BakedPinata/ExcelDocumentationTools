@@ -99,7 +99,7 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 
 ## Writing into workbooks: what step H1 found
 
-The spike is `spikes/h1-import`, which holds the code and the workbooks' list. Excel accepted all of this, at home and
+The spike was `spikes/h1-import`, deleted after H4 and still in the repository's history, with the workbooks' list. Excel accepted all of this, at home and
 on a work machine.
 
 - **A project can be written as source only.** MS-OVBA's rule for writers does it: `_VBA_PROJECT` holds only its 7-byte
