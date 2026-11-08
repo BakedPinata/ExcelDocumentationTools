@@ -20,7 +20,7 @@ rather than repeating it.
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
 - **`shared/`** (`ExcelDocumenter.Shared`): the code both tools use, since step C1, and the page shell both pages are
   built on, since C2. See its README.
-- **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–H4. The user's build, test and
+- **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–I4. The user's build, test and
   publish of A0 on the work machine is still to come. A0–A5, F1, B1–B4, C1 and C2 are pushed and reviewed. D1 is done.
   The user's review of D1 added steps D1a to D1d, before D2, now settled (see the plan's "After D1's review"). D1b is
   pushed; the user's check of the workbook with 20 groups is still to come. D1a (with the copy button the user asked
@@ -50,6 +50,14 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-08: A desktop app added to the plan
+
+- The user finds the commands' flags too long to type, and asked for a self-contained desktop app over them, as well as
+  the command line. Added as steps I1 to I4, after H4: a spike to see it runs on a work machine, the tools' command lines
+  made callable, then a Document tab and an Import tab. It runs the tools' own commands inside the app.
+- To settle when H4 is reviewed: what it's built with (Windows Forms recommended) and its name.
+- The user's checks of what's built so far wait until after phase I; the plan lists them.
 
 ### 2026-11-06: Step H3, vbadoc writing into workbooks
 

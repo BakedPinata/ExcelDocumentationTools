@@ -4,9 +4,9 @@ This plan acts on the first round of feedback from using vbadoc and pqdoc on rea
 tool plan (`COMBINED-TOOL-PLAN.md`, in the repository's history). pqdoc still learns to read workbooks, and the two
 pages still move onto one shared shell. One executable, a combined page and links from VBA to queries move to
 [Later](#9-later), because the workbooks in use rarely hold both and never link them. Most of the plan is about
-helping someone understand a workbook and leave documentation behind. Its last phase imports chosen modules or queries,
-with what they depend on, into a new or existing workbook. It is written to be handed to a fresh Claude Code session
-(or a developer) to carry out.
+helping someone understand a workbook and leave documentation behind. Phase H imports chosen modules or queries, with
+what they depend on, into a new or existing workbook, and phase I puts a desktop app over both command lines. It is
+written to be handed to a fresh Claude Code session (or a developer) to carry out.
 
 **Status: agreed on 2026-11-03.** The progress table shows how far it has got. Section 1 records the answers to the
 questions the draft raised.
@@ -71,6 +71,14 @@ questions the draft raised.
 | H2 | The Export tab and manifest: choosing what to import, with what it brings; bundle folders | Claude, then you in Excel | Done; your check of a bundle by hand to come |
 | H3 | vbadoc imports into a new workbook or a copy of an existing one, with references, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
 | H4 | pqdoc imports into a new workbook or a copy of an existing one, asking about name clashes | Claude, then you in Excel | |
+| I1 | Spike: a desktop window, published as one file, that runs on a work machine (added after H3) | Claude, then you on a work machine | |
+| I2 | Both tools' command lines can be run by another program, with no change to the console tools | Claude | |
+| I3 | The desktop app: documenting a workbook with either tool | Claude | |
+| I4 | The desktop app: importing, with the tools' questions asked in dialogs | Claude | |
+
+**Checks still to come, after phase I** (the user's choice, after H3): A0 on a work machine, D1b's workbook with 20 groups,
+a bundle brought in by hand (H2), and H3 and H4 in Excel, which also settle control references, references to other VBA
+projects, and what a stale Permission Binding means for a query with a real data source.
 
 ## 1. Questions settled
 
@@ -159,6 +167,7 @@ The notes behind this plan are kept out of the repository. This section is what 
 | Documentation for future developers and users | G2, G3 |
 | AI help is a chat window with no access to the project | G4 (optional) |
 | Import chosen files into a new or existing workbook, with what they depend on (raised after the notes) | H1–H4 |
+| The commands' flags and parameters are getting long and cumbersome to type; a self-contained desktop app over them, as well as the command line (raised after H3) | I1–I4 |
 | draw.io? | Later: export a view as a `.drawio` file |
 | The VBA editor shows every module in one window | Later: open a module's source in its own window |
 | Shared code and conventions drift between workbooks | Later: a third tool, with its own plan |
@@ -178,8 +187,11 @@ The notes behind this plan are kept out of the repository. This section is what 
 7. Save arrangements as named views, keep them in git beside the source, and print them as documentation.
 8. Import chosen modules or queries into a new or existing workbook, bringing what they depend on, and saying what
    couldn't come.
+9. Run both tools from a desktop app, so nobody has to remember or type their options.
 
 **Non-goals**
+
+- Replacing the command line. The desktop app is a layer over it, and scripts keep using the console tools.
 
 - Running code, or fully parsing VBA or M. The call tree is built from the code as written, so calls made through
   `Application.Run`, a button's `OnAction` text or late binding can't be followed. The page says so.
@@ -1082,6 +1094,88 @@ taking the writing code from `spikes/h1-import`. What both need, such as the pac
   `--in-place`: answered yes and no, `--force`, no one to ask, a failure leaving the target as it was, and an `.xlsx`.
 - You check the results in Excel at home and on a work machine.
 
+### Steps I1 to I4: A desktop app
+
+Added after H3. The commands have grown too many options to type comfortably, `import` above all. A desktop app gives
+them a window, in addition to the command line, which stays as it is and stays the way to script the tools. H4 comes
+first, then these steps, and then the checks listed under the progress table.
+
+**How it works.** The app holds no logic of its own, and runs the same commands:
+
+- **Each form builds a command's arguments** and hands them to the tool's own `CliRunner`, so parsing, validation, messages
+  and exit codes are the console tool's. Nothing is implemented twice, and the two can't disagree.
+- **The window shows the command it's about to run,** with a Copy button, so anything set up there can go in a script.
+- **It runs the tools inside the app,** rather than starting `vbadoc.exe` and `pqdoc.exe`. That makes it one file, needing
+  nothing beside it. It's also what lets the tools ask their questions: a child process with its streams redirected isn't
+  interactive, so it would stop with exit code 4 at the first name clash.
+- **The tools' questions become dialogs.** They already ask through `IUserInteraction` (overwrite, name clash, are you
+  sure), so the app supplies its own, and `IsInteractive` is true.
+- **The log is a pane in the window,** from a Serilog sink, and the exit code is said in words. A run happens off the
+  window's thread, and a Cancel button uses the cancellation token that Ctrl+C does.
+
+```
++------------------------------------------------------------------------------------+
+| [Document]  [Import]                                                               |
++------------------------------------------------------------------------------------+
+| Workbook   [C:\Work\Sales.xlsm                                         ] [Browse…] |
+| Tools      [x] VBA (vbadoc)      [x] Power Query (pqdoc)                           |
+| Output     [beside the workbook                                        ] [Browse…] |
+| Options    [ ] Put the source in the page     If a file exists: [Ask          v]   |
+|                                                                                    |
+| vbadoc "C:\Work\Sales.xlsm" --embed-source                                 [Copy]  |
+|                                                               [Run]    [Cancel]    |
++------------------------------------------------------------------------------------+
+| Reading C:\Work\Sales.xlsm                                                         |
+| Wrote Sales-vba.html                                              [Open the page]  |
++------------------------------------------------------------------------------------+
+```
+
+**To settle when H4 is reviewed.** The recommendation comes first in each:
+
+1. **What it's built with.** Windows Forms: it comes with .NET, under MIT, so it adds no package; it needs no designer,
+   which matters as the work machine can only build from the command line; and these are plain forms. WPF is the
+   alternative, with better layout and theming but more to publish. Avalonia and a WebView2 page add a dependency or a
+   runtime that a locked-down machine may not have. I1 tests the choice before anything is built on it.
+2. **Its name.** `xldocui`, in a folder of that name, with `ExcelDocumenter.Desktop` for the code, keeping `xldoc` for the
+   combined tool in section 9.
+3. **Windows only.** It's the only platform the tools are used on, and the project would target `net10.0-windows`.
+
+### Step I1: Spike on the desktop window
+
+Throwaway code in `spikes/`, deleted after the step. The question is whether a desktop program can run where it has to.
+
+- A small window with a file picker, a dialog and a log pane, published self-contained as a single file with the same
+  publish profile as the tools.
+- Find out how big it is, how quickly it starts, and whether anything is unpacked at start-up or left beside the
+  executable. A library unpacked into a temporary folder is what application control is likely to stop.
+- You run it on a work machine, from the folder the tools are published to. Recommend going ahead, or what to try next.
+
+### Step I2: The tools' command lines, runnable by another program
+
+- Move each console app's command-line code (`Cli/`, and vbadoc's `AppServices`) into a library the console app and the
+  desktop app can both use, leaving the console app its `Program.cs`. The rule that a console app only parses, prints and
+  sets the exit code becomes one about that library, in the guidelines.
+- No change in behaviour, checked as C1 was: output, logs and exit codes from every fixture, before and after.
+
+### Step I3: Documenting a workbook
+
+- The new tool's folder, solution, documents and publish profile, so `publish.ps1` picks it up. Its build stamp follows
+  `vbadoc/` and `pqdoc/` too, since it's built from them.
+- The window, the command shown with Copy, the log pane, Cancel, and a Document tab with every option of both tools'
+  main commands. Only what applies is shown: pqdoc's formats, say. Drop a workbook on the window to choose it.
+- Opens the page when it's written. Remembers the last settings for each tool and recent workbooks, per user.
+- Tests, with no window: what each form builds parses with no errors in the real `CliDefinition`, and every option of a
+  command has a control or is listed as deliberately left out, so a new option can't be forgotten.
+
+### Step I4: Importing
+
+- An Import tab: the source; what to take, from a manifest or ticked in a list read from the source; and where it goes (a
+  new workbook, a copy of a target, the target itself, or a bundle), with `--on-clash` and each tool's own options.
+- A Preview button runs the command with nowhere to write, which already says what the choice comes to.
+- Dialogs for the tools' questions: a clash shows what's in the way and what Skip and Overwrite each mean, with Skip,
+  Overwrite, Skip All, Overwrite All and Quit, as the console prompt has. `--in-place` asks as it does there.
+- Tests of the dialogs' answers with a stand-in for the windows, and of what the tab builds, as in I3.
+
 ## 7. Changes to existing documents
 
 The rule is to ask before changing a tool's `Requirements.md` or `DECISIONS.md`, or going against the guidelines.
@@ -1104,6 +1198,8 @@ Approving this plan covers the changes below. Anything else still needs asking.
 | Both `Requirements.md`s, `DECISIONS.md`s and `README.md`s | Documentation file names; vbadoc's `--output-name` | A4 |
 | Both `Requirements.md`s and `DECISIONS.md`s | Importing: what's chosen, dependencies, bundles, writing workbooks | H1–H4 |
 | Both `README.md`s | Usage and features | A3, B2–H4 |
+| `docs/GUIDELINES.md` | Naming: the desktop app. Platform: a `-windows` target for it alone. Structure: the command-line library | I2, I3 |
+| Root `README.md`, `CLAUDE.md` | The desktop app, how to build and run it | I3 |
 | Both `Requirements.md`s (pqdoc's FR-HTML-8 without the generation time, FR-HTML-11 and new ids), both `DECISIONS.md`s and `README.md`s, `docs/GUIDELINES.md` (HTML pages) | Panel controls, the side panel following the selection, the copy button, explorer layouts, nested query groups, focus on click and Esc, both pages' summary, speed, the Show menus in the explorer, the explorer's filter, Expand and Collapse all | D1a–D1e, D3a–D3c, D4 |
 
 ## 8. When the plan is finished
