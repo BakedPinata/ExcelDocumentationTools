@@ -71,7 +71,7 @@ questions the draft raised.
 | H2 | The Export tab and manifest: choosing what to import, with what it brings; bundle folders | Claude, then you in Excel | Done; your check of a bundle by hand to come |
 | H3 | vbadoc imports into a new workbook or a copy of an existing one, with references, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
 | H4 | pqdoc imports into a new workbook or a copy of an existing one, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
-| I1 | Spike: a desktop window, published as one file, that runs on a work machine (added after H3) | Claude, then you on a work machine | |
+| I1 | Spike: a desktop window, published as one file, that runs on a work machine (added after H3) | Claude, then you on a work machine | Spike built and works at home; your run on a work machine to come |
 | I2 | Both tools' command lines can be run by another program, with no change to the console tools | Claude | |
 | I3 | The desktop app: documenting a workbook with either tool | Claude | |
 | I4 | The desktop app: importing, with the tools' questions asked in dialogs | Claude | |
@@ -1149,6 +1149,16 @@ Throwaway code in `spikes/`, deleted after the step. The question is whether a d
 - Find out how big it is, how quickly it starts, and whether anything is unpacked at start-up or left beside the
   executable. A library unpacked into a temporary folder is what application control is likely to stop.
 - You run it on a work machine, from the folder the tools are published to. Recommend going ahead, or what to try next.
+
+**Found at home,** with the steps for the work machine in `spikes/i1-desktop/README.md`. Published as the tools are, it's
+one 110.7 MB file (plus its `.pdb`) that reaches its window in about 0.26 s, or 0.6 s on its first run (x64 under emulation
+on an Arm machine, so the work machine's times will differ). Nothing is unpacked
+and nothing is loaded from outside Windows. The one thing written is a randomly named file in the temporary folder, there
+and gone during start-up, which only appears with visual styles on and is almost certainly their manifest. The file picker,
+a five-answer dialog asked from off the window's thread, and Cancel all work. Compression makes it 49.3 MB for about 0.1 s
+more at start-up, which I3 can decide. **The recommendation is to go ahead,** subject to the work machine: it's the only
+place that can say whether application control allows the window, and whether NuGet there has the Windows desktop runtime
+pack that publishing it needs.
 
 ### Step I2: The tools' command lines, runnable by another program
 
