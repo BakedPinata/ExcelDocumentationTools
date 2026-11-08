@@ -58,7 +58,8 @@ Newest first.
   query's M and description, and keeps where it loads to, its connection and the target's spelling of its name.
 - Excel can't be run here, so the output was compared with the spike's P1, P3, P4 and P5, the files the user tried: the M,
   permissions, metadata and bindings match, GUIDs aside. Overwrite is new, and is for the user's check in Excel.
-- Comparing found one fault before it mattered: Excel stores some queries with LF, and they're now written as stored.
+- A test on the real sample workbook caught a fault: Excel stores some queries with LF, and the writer was changing them
+  to CRLF. They're now written as stored.
 - The Export tab now suggests `--new Shared.xlsx`. `TargetFile`, `TargetComparison` and the wording of Skip and Overwrite
   moved to `shared/`. `spikes/h1-import` is deleted, as planned; its `out/` folder is untracked and still on disk.
 - pqdoc 1.21.0. The user's check in Excel is still to come.
