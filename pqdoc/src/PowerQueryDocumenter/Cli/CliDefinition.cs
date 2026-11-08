@@ -88,6 +88,7 @@ internal sealed class CliDefinition
     };
 
     Import = new ImportOptions("An Excel workbook (.xlsx, .xlsm or .xlsb), or a folder of .m files, to take them from.", "queries");
+    ImportTarget = new ImportTargetOptions(Import, "queries", "It has to be an .xlsx or .xlsm.");
 
     RootCommand = new RootCommand(
       "Analyses the dependencies between the Power Query queries in an Excel workbook, or in a folder of exported .m "
@@ -117,6 +118,9 @@ internal sealed class CliDefinition
 
   /// <summary>The <c>import</c> command.</summary>
   public ImportOptions Import { get; }
+
+  /// <summary><c>--new</c>, <c>--into</c>, <c>--in-place</c> and <c>--on-clash</c>.</summary>
+  public ImportTargetOptions ImportTarget { get; }
 
   /// <summary>The required input: a workbook or a folder.</summary>
   public Argument<string> Input { get; }

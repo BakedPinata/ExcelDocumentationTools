@@ -84,22 +84,36 @@ public static partial class WorkbookReader
       throw new ExtractionException($"The workbook is damaged: it isn't a valid zip file ({ex.Message}).", ex);
     }
 
-    byte[] data;
+    var queries = QueriesOf(SectionsOf(base64), logger);
+    if (queries.Count == 0)
+    {
+      throw new ExtractionException("The workbook has no Power Query queries (its DataMashup part holds none).");
+    }
+
+    return queries;
+  }
+
+  /// <summary>Whether a package part could hold the DataMashup, which is found by what it is rather than by its name.</summary>
+  internal static bool IsCustomXmlPart(string partName) => CustomXmlPart().IsMatch(partName);
+
+  /// <summary>The sections of a DataMashup element's text, in order.</summary>
+  /// <exception cref="ExtractionException">They can't be read.</exception>
+  internal static byte[][] SectionsOf(string base64)
+  {
     try
     {
-      data = Convert.FromBase64String(base64);
+      return Sections(Convert.FromBase64String(base64));
     }
     catch (FormatException ex)
     {
       throw Damaged("its DataMashup part isn't valid base64", ex);
     }
+  }
 
-    var sections = Sections(data);
+  /// <summary>The queries in a DataMashup's sections, with what the metadata says of them. There may be none.</summary>
+  internal static IReadOnlyList<WorkbookQuery> QueriesOf(byte[][] sections, ILogger? logger)
+  {
     var queries = SectionSplitter.Split(ReadSection(sections[0]));
-    if (queries.Count == 0)
-    {
-      throw new ExtractionException("The workbook has no Power Query queries (its DataMashup part holds none).");
-    }
 
     // Groups and result types come from the Metadata section, which fails safe: without it they're simply missing.
     var metadata = QueryMetadata.Read(sections[2], logger);
@@ -107,6 +121,10 @@ public static partial class WorkbookReader
       .Select(q => metadata.TryGetValue(q.Name, out var entry) ? q with { Group = entry.Group, ResultType = entry.ResultType } : q)
       .ToArray();
   }
+
+  /// <summary>Says the workbook's Power Query data is damaged.</summary>
+  internal static ExtractionException Damaged(string detail, Exception? inner = null) =>
+    new($"The workbook's Power Query data is damaged: {detail}.", inner);
 
   /// <summary>
   /// Finds the DataMashup by what it is, not where it is: the first custom XML part whose root is a
@@ -216,9 +234,6 @@ public static partial class WorkbookReader
       throw Damaged($"{FormulasPart} isn't valid UTF-8", ex);
     }
   }
-
-  private static ExtractionException Damaged(string detail, Exception? inner = null) =>
-    new($"The workbook's Power Query data is damaged: {detail}.", inner);
 
   [GeneratedRegex(@"^customXml/item\d+\.xml$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
   private static partial Regex CustomXmlPart();

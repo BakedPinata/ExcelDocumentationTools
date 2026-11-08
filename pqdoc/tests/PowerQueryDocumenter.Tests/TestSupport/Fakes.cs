@@ -32,11 +32,32 @@ public sealed class FakeUserInteraction : IUserInteraction
       : throw new InvalidOperationException($"Unexpected prompt for {path}");
   }
 
-  /// <inheritdoc />
-  public ClashAnswer AskClash(ImportClash clash) => throw new InvalidOperationException($"Unexpected prompt for {clash.Item}");
+  /// <summary>Answers to the clash prompt, in order.</summary>
+  public Queue<ClashAnswer> ClashAnswers { get; } = [];
+
+  /// <summary>The clashes that were asked about, in order.</summary>
+  public List<ImportClash> ClashesAsked { get; } = [];
+
+  /// <summary>Answers to <see cref="Confirm"/>, in order.</summary>
+  public Queue<bool> Confirmations { get; } = [];
+
+  /// <summary>The questions that were asked, in order.</summary>
+  public List<string> Questions { get; } = [];
 
   /// <inheritdoc />
-  public bool Confirm(string question) => throw new InvalidOperationException($"Unexpected question: {question}");
+  public ClashAnswer AskClash(ImportClash clash)
+  {
+    ArgumentNullException.ThrowIfNull(clash);
+    ClashesAsked.Add(clash);
+    return ClashAnswers.Count > 0 ? ClashAnswers.Dequeue() : throw new InvalidOperationException($"Unexpected prompt for {clash.Item}");
+  }
+
+  /// <inheritdoc />
+  public bool Confirm(string question)
+  {
+    Questions.Add(question);
+    return Confirmations.Count > 0 ? Confirmations.Dequeue() : throw new InvalidOperationException($"Unexpected question: {question}");
+  }
 }
 
 /// <summary>An environment with a chosen current directory and variables.</summary>

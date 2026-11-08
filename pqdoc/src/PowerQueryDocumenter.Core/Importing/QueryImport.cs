@@ -34,6 +34,9 @@ public sealed class QueryImport(DependencyGraph graph, IReadOnlyDictionary<strin
   /// <summary>The query's name as the workbook spells it, or null if it hasn't one by that name.</summary>
   public string? Find(string name) => graph.TryGetNode(name, out var node) ? node.Name : null;
 
+  /// <summary>The queries a query uses directly.</summary>
+  public IReadOnlyList<string> Uses(string name) => graph.GetUpstream(name);
+
   /// <summary>What a choice of queries comes to.</summary>
   public ImportPlan Plan(IEnumerable<string> picks) =>
     ImportPlan.Build(picks, graph.GetUpstream, id => sources.TryGetValue(id, out var text) ? NeedsOf(text) : []);

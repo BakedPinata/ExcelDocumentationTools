@@ -56,7 +56,9 @@ internal static class CliRunner
 
       if (parseResult.CommandResult.Command == cli.Import.Command)
       {
-        return await new ImportApp(logger, services).RunAsync(cli.Import.Bind(parseResult), cancellationToken).ConfigureAwait(false);
+        return await new ImportApp(logger, services)
+          .RunAsync(cli.Import.Bind(parseResult), cli.ImportTarget.Bind(parseResult), cancellationToken)
+          .ConfigureAwait(false);
       }
 
       var binding = await OptionsBinder
