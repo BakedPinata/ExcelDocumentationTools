@@ -44,7 +44,36 @@ public sealed record ImportClash(string Item, string Problem, string? IfOverwrit
 {
   /// <summary>Whether the target's can be replaced. A sheet's module can't be, as it belongs to the sheet.</summary>
   public bool CanOverwrite => IfOverwritten is not null;
+
+  /// <summary>What Overwrite means.</summary>
+  /// <param name="usedInTarget">What else in the target uses the item.</param>
+  public static string Overwriting(IReadOnlyCollection<string> usedInTarget)
+  {
+    ArgumentNullException.ThrowIfNull(usedInTarget);
+    return usedInTarget.Count == 0
+      ? "Replaces the target's version, which nothing else there uses."
+      : $"Replaces the target's version, used there by {Names(usedInTarget)}.";
+  }
+
+  /// <summary>What Skip means.</summary>
+  /// <param name="comingUsers">What's coming that uses the item.</param>
+  public static string Skipping(IReadOnlyCollection<string> comingUsers)
+  {
+    ArgumentNullException.ThrowIfNull(comingUsers);
+    return comingUsers.Count == 0
+      ? "Keeps the target's version."
+      : $"Keeps the target's version, which may differ, for {Names(comingUsers)} to use.";
+  }
+
+  /// <summary>Names as a list in a sentence, in name order, ignoring case.</summary>
+  public static string Names(IEnumerable<string> names) => string.Join(", ", names.Order(StringComparer.OrdinalIgnoreCase));
 }
+
+/// <summary>How a choice of items compares with what a target has.</summary>
+/// <param name="New">The items it doesn't have.</param>
+/// <param name="Identical">The items it has, word for word, which are left alone without asking.</param>
+/// <param name="Clashes">The names it has for something else.</param>
+public sealed record TargetComparison(IReadOnlyList<string> New, IReadOnlyList<string> Identical, IReadOnlyList<ImportClash> Clashes);
 
 /// <summary>The decision for every clash.</summary>
 /// <param name="Overwrite">The items to replace.</param>

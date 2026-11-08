@@ -26,8 +26,6 @@ public sealed class TargetWorkbook
   const string WorkbookBase = "\"0{00020819-0000-0000-C000-000000000046}\"";
   const string WorksheetBase = "\"0{00020820-0000-0000-C000-000000000046}\"";
 
-  static readonly string[] Extensions = [".xlsx", ".xlsm", ".xlsb"];
-
   readonly OpcPackage _package;
   readonly string? _projectPart;
 
@@ -60,19 +58,7 @@ public sealed class TargetWorkbook
   /// <exception cref="ExtractionException">It can't be a target, and says why.</exception>
   public static TargetWorkbook Read(string path)
   {
-    var bytes = WorkbookFile.ReadAllBytes(path);
-    var name = Path.GetFileName(path);
-    switch (WorkbookFile.ContainerOf(bytes))
-    {
-      case WorkbookContainer.CompoundFile:
-        throw new ExtractionException(WhyNotCompoundFile(bytes, name));
-      case WorkbookContainer.Unknown:
-        throw new ExtractionException($"{name} is not an Excel workbook.");
-    }
-
-    if (!Extensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
-      throw new ExtractionException($"{name} can't be a target: modules can only be written into {string.Join(", ", Extensions)} files.");
-
+    var bytes = TargetFile.ReadBytes(path, "modules", ".xlsm");
     var package = OpcPackage.Read(bytes);
     var part = ProjectPartOf(package);
     return new TargetWorkbook(package, part, part is null ? null : WorkbookReader.Read(bytes));
@@ -131,21 +117,6 @@ public sealed class TargetWorkbook
     {
       throw new ExtractionException(
         $"{module.Name} has a character the target's VBA project can't hold, as it's in code page {targetCodePage} and the source in {sourceCodePage}. Nothing was written.", ex);
-    }
-  }
-
-  static string WhyNotCompoundFile(byte[] bytes, string name)
-  {
-    try
-    {
-      using var root = RootStorage.Open(new MemoryStream(bytes));
-      return WorkbookFile.IsEncrypted(root)
-        ? $"{name} is encrypted (password, IRM or sensitivity label), so nothing can be written into it. Save a copy without encryption and use that."
-        : $"{name} is an older .xls workbook, which modules can't be written into. Save it as .xlsm and use that.";
-    }
-    catch (OpenMcdf.FileFormatException ex)
-    {
-      return $"{name} is damaged: {ex.Message}";
     }
   }
 

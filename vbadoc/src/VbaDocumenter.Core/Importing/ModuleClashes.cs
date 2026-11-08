@@ -5,12 +5,6 @@ using VbaDocumenter.Core.Parsing;
 
 namespace VbaDocumenter.Core.Importing;
 
-/// <summary>How a choice of modules compares with what a target has.</summary>
-/// <param name="New">The modules it doesn't have.</param>
-/// <param name="Identical">The modules it has, word for word, which are left alone without asking.</param>
-/// <param name="Clashes">The names it has for something else.</param>
-public sealed record TargetComparison(IReadOnlyList<string> New, IReadOnlyList<string> Identical, IReadOnlyList<ImportClash> Clashes);
-
 /// <summary>
 /// Finds what's in the way of a choice of modules, and says what's at stake with each: what else in the target uses
 /// what would be replaced, and what's coming that would use the target's version instead.
@@ -63,7 +57,7 @@ public static class ModuleClashes
         var problem = existing.Kind == module.Kind
           ? $"The target already has {id}, and it differs from the one in {sourceName}."
           : $"The target's {id} is {KindOf(existing.Kind)}, and the one in {sourceName} is {KindOf(module.Kind)}.";
-        clashes.Add(new ImportClash(id, problem, IfOverwritten(usedInTarget.Value[id].ToList()), IfSkipped(comingUsers)));
+        clashes.Add(new ImportClash(id, problem, ImportClash.Overwriting(usedInTarget.Value[id].ToList()), ImportClash.Skipping(comingUsers)));
       }
     }
 
@@ -83,17 +77,7 @@ public static class ModuleClashes
     id,
     $"{id} is {what} in the target, which can't be replaced.",
     null,
-    comingUsers.Count == 0 ? "Leaves this one out." : $"Leaves this one out, so {Names(comingUsers)} will find the target's {id} instead.");
-
-  static string IfOverwritten(List<string> users) => users.Count == 0
-    ? "Replaces the target's version, which nothing else there uses."
-    : $"Replaces the target's version, used there by {Names(users)}.";
-
-  static string IfSkipped(List<string> comingUsers) => comingUsers.Count == 0
-    ? "Keeps the target's version."
-    : $"Keeps the target's version, which may differ, for {Names(comingUsers)} to use.";
-
-  static string Names(IEnumerable<string> names) => string.Join(", ", names.Order(StringComparer.OrdinalIgnoreCase));
+    comingUsers.Count == 0 ? "Leaves this one out." : $"Leaves this one out, so {ImportClash.Names(comingUsers)} will find the target's {id} instead.");
 
   static string KindOf(VbaModuleKind kind) => kind switch
   {
