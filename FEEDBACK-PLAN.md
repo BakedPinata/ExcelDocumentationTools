@@ -1130,15 +1130,15 @@ first, then these steps, and then the checks listed under the progress table.
 +------------------------------------------------------------------------------------+
 ```
 
-**To settle when H4 is reviewed.** The recommendation comes first in each:
+**Settled when H4 was reviewed:**
 
 1. **What it's built with.** Windows Forms: it comes with .NET, under MIT, so it adds no package; it needs no designer,
-   which matters as the work machine can only build from the command line; and these are plain forms. WPF is the
-   alternative, with better layout and theming but more to publish. Avalonia and a WebView2 page add a dependency or a
-   runtime that a locked-down machine may not have. I1 tests the choice before anything is built on it.
+   which matters as the work machine can only build from the command line; and these are plain forms. I1 tests the choice
+   before anything is built on it.
 2. **Its name.** `xldocui`, in a folder of that name, with `ExcelDocumenter.Desktop` for the code, keeping `xldoc` for the
    combined tool in section 9.
-3. **Windows only.** It's the only platform the tools are used on, and the project would target `net10.0-windows`.
+3. **Windows only,** which comes with Windows Forms. It's the only platform the tools are used on, and the project targets
+   `net10.0-windows`.
 
 ### Step I1: Spike on the desktop window
 
