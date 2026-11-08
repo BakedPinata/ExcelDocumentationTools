@@ -7,18 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Serilog" />
-    <PackageReference Include="Serilog.Sinks.Console" />
-    <PackageReference Include="System.CommandLine" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\PowerQueryDocumenter.Core\PowerQueryDocumenter.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Lets the tests check command-line parsing without making it public. -->
-    <InternalsVisibleTo Include="PowerQueryDocumenter.Tests" />
+    <ProjectReference Include="..\PowerQueryDocumenter.Cli\PowerQueryDocumenter.Cli.csproj" />
   </ItemGroup>
 
 </Project>

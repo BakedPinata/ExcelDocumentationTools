@@ -12,7 +12,7 @@ namespace PowerQueryDocumenter.Cli;
 /// arguments themselves are enforced here as parse errors; rules that need the environment
 /// (such as finding a PlantUML server) are applied afterwards by <see cref="OptionsBinder"/>.
 /// </summary>
-internal sealed class CliDefinition
+public sealed class CliDefinition
 {
   /// <summary>The tool's name as shown in usage text.</summary>
   public const string ToolName = "pqdoc";

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The command line, as a library, so the desktop app can run it too. The console app is only its Program.cs. -->
+  <PropertyGroup>
+    <RootNamespace>PowerQueryDocumenter.Cli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PowerQueryDocumenter.Core\PowerQueryDocumenter.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Lets the tests reach what stays internal, such as binding the options. -->
+    <InternalsVisibleTo Include="PowerQueryDocumenter.Tests" />
+  </ItemGroup>
+
+</Project>

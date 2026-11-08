@@ -1,5 +1,5 @@
 using PowerQueryDocumenter.Core.Configuration;
-using PowerQueryDocumenter.Logging;
+using PowerQueryDocumenter.Cli.Logging;
 using PowerQueryDocumenter.Tests.TestSupport;
 using Serilog.Events;
 

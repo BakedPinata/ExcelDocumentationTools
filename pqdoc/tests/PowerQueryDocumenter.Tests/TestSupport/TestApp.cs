@@ -4,7 +4,7 @@ using PowerQueryDocumenter.Core.Application;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Core.Export;
 using PowerQueryDocumenter.Core.Output;
-using PowerQueryDocumenter.Logging;
+using PowerQueryDocumenter.Cli.Logging;
 
 namespace PowerQueryDocumenter.Tests.TestSupport;
 

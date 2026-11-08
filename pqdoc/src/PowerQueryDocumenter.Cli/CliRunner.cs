@@ -8,9 +8,9 @@ namespace PowerQueryDocumenter.Cli;
 
 /// <summary>
 /// The top-level flow: parse, validate, run, and map every outcome to an exit code (section 5.3).
-/// Kept separate from <see cref="Program"/> so the whole flow can be tested with fakes.
+/// Kept separate from Program so the whole flow can be tested with fakes.
 /// </summary>
-internal static class CliRunner
+public static class CliRunner
 {
   /// <summary>Runs the tool and returns the process exit code.</summary>
   public static async Task<int> RunAsync(IReadOnlyList<string> args, AppServices services, CancellationToken cancellationToken)

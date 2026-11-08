@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelDocumenter.Shared.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VbaDocumenter.Cli", "vbadoc\src\VbaDocumenter.Cli\VbaDocumenter.Cli.csproj", "{398865DF-0C84-4969-AA39-5E2A19AA0BBA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerQueryDocumenter.Cli", "pqdoc\src\PowerQueryDocumenter.Cli\PowerQueryDocumenter.Cli.csproj", "{40FD96C2-F894-4FED-A608-A82EF62365F4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -173,6 +175,18 @@ Global
 		{398865DF-0C84-4969-AA39-5E2A19AA0BBA}.Release|x64.Build.0 = Release|Any CPU
 		{398865DF-0C84-4969-AA39-5E2A19AA0BBA}.Release|x86.ActiveCfg = Release|Any CPU
 		{398865DF-0C84-4969-AA39-5E2A19AA0BBA}.Release|x86.Build.0 = Release|Any CPU
+		{40FD96C2-F894-4FED-A608-A82EF62365F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40FD96C2-F894-4FED-A608-A82EF62365F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40FD96C2-F894-4FED-A608-A82EF62365F4}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{40FD96C2-F894-4FED-A608-A82EF62365F4}.Debug|x64.Build.0 = Debug|Any CPU
+		{40FD96C2-F894-4FED-A608-A82EF62365F4}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{40FD96C2-F894-4FED-A608-A82EF62365F4}.Debug|x86.Build.0 = Debug|Any CPU
+		{40FD96C2-F894-4FED-A608-A82EF62365F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40FD96C2-F894-4FED-A608-A82EF62365F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40FD96C2-F894-4FED-A608-A82EF62365F4}.Release|x64.ActiveCfg = Release|Any CPU
+		{40FD96C2-F894-4FED-A608-A82EF62365F4}.Release|x64.Build.0 = Release|Any CPU
+		{40FD96C2-F894-4FED-A608-A82EF62365F4}.Release|x86.ActiveCfg = Release|Any CPU
+		{40FD96C2-F894-4FED-A608-A82EF62365F4}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -189,5 +203,6 @@ Global
 		{0292B2EB-A2F7-43D4-A463-209ED59EEA49} = {4F52FD11-658E-A102-6CD3-7D7C16FFA15B}
 		{C1461DB0-0362-4D6A-9740-823755A758C2} = {4F52FD11-658E-A102-6CD3-7D7C16FFA15B}
 		{398865DF-0C84-4969-AA39-5E2A19AA0BBA} = {41F2DAE3-1ED9-537F-0AB9-45CA0074D379}
+		{40FD96C2-F894-4FED-A608-A82EF62365F4} = {FB79FE65-DB46-266C-3231-182652450076}
 	EndGlobalSection
 EndGlobal

@@ -1,13 +1,13 @@
 using ExcelDocumenter.Shared.CommandLine;
 using PowerQueryDocumenter.Core.Application;
 using PowerQueryDocumenter.Core.Configuration;
-using PowerQueryDocumenter.Logging;
+using PowerQueryDocumenter.Cli.Logging;
 using Serilog;
 
 namespace PowerQueryDocumenter.Cli;
 
-/// <summary>The real console, environment and clock, for <see cref="Program"/>.</summary>
-internal static class DefaultServices
+/// <summary>The real console, environment and clock, for the console app.</summary>
+public static class DefaultServices
 {
   /// <summary>Creates the services a normal run uses.</summary>
   public static AppServices Create(HttpClient httpClient)
