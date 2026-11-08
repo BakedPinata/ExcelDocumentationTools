@@ -17,7 +17,7 @@ namespace VbaDocumenter.Cli;
 /// The top-level flow: parse, validate, run, and map every outcome to an exit code. Kept separate from Program so the
 /// whole flow can be tested.
 /// </summary>
-static class CliRunner
+public static class CliRunner
 {
   public static int Run(IReadOnlyList<string> args, AppServices services, CancellationToken cancellationToken)
   {

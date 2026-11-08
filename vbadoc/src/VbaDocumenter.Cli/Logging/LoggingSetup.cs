@@ -4,10 +4,10 @@ using Serilog.Core;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
 
-namespace VbaDocumenter.Logging;
+namespace VbaDocumenter.Cli.Logging;
 
 /// <summary>How much the tool reports.</summary>
-enum LogVerbosity
+public enum LogVerbosity
 {
   Normal,
   Verbose,
@@ -15,7 +15,7 @@ enum LogVerbosity
 }
 
 /// <summary>Serilog configuration for console output, the same as pqdoc's.</summary>
-static class LoggingSetup
+public static class LoggingSetup
 {
   /// <summary>Concise template used by default: level and message only.</summary>
   public const string OutputTemplate = "[{Level:u3}] {Message:lj}{NewLine}{Exception}";

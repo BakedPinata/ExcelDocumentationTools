@@ -2,7 +2,7 @@ using System.CommandLine.Help;
 using System.CommandLine.Invocation;
 using ExcelDocumenter.Shared.Files;
 using VbaDocumenter.Cli;
-using VbaDocumenter.Logging;
+using VbaDocumenter.Cli.Logging;
 
 namespace VbaDocumenter.Tests.Cli;
 

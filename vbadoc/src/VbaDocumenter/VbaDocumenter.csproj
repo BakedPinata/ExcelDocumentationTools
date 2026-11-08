@@ -1,18 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="Serilog" />
-    <PackageReference Include="Serilog.Sinks.Console" />
-    <PackageReference Include="System.CommandLine" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\VbaDocumenter.Core\VbaDocumenter.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Lets the tests check command-line parsing without making it public. -->
-    <InternalsVisibleTo Include="VbaDocumenter.Tests" />
+    <ProjectReference Include="..\VbaDocumenter.Cli\VbaDocumenter.Cli.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

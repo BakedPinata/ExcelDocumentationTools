@@ -1,6 +1,6 @@
 using System.CommandLine;
 using VbaDocumenter.Core.Output;
-using VbaDocumenter.Logging;
+using VbaDocumenter.Cli.Logging;
 
 namespace VbaDocumenter.Cli;
 

@@ -5,7 +5,7 @@ using ExcelDocumenter.Shared.Workbooks;
 using Serilog.Events;
 using VbaDocumenter.Cli;
 using VbaDocumenter.Core.Extraction;
-using VbaDocumenter.Logging;
+using VbaDocumenter.Cli.Logging;
 using VbaDocumenter.Tests.Support;
 
 namespace VbaDocumenter.Tests.Cli;

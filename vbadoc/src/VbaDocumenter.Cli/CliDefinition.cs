@@ -8,7 +8,7 @@ namespace VbaDocumenter.Cli;
 /// The command line, built with System.CommandLine so that help, version and parse errors work the same way as in
 /// pqdoc. Rules that only involve the arguments are parse errors here; paths are resolved by <see cref="OptionsBinder"/>.
 /// </summary>
-sealed class CliDefinition
+public sealed class CliDefinition
 {
   /// <summary>The tool's name as shown in usage text.</summary>
   public const string ToolName = "vbadoc";

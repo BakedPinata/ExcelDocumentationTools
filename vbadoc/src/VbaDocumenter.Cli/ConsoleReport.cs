@@ -4,7 +4,7 @@ using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Output;
 using VbaDocumenter.Core.Parsing;
 
-namespace VbaDocumenter;
+namespace VbaDocumenter.Cli;
 
 /// <summary>Reports the parsed project and its dependencies through the logger. Detail is at Debug level, so --verbose shows it.</summary>
 static class ConsoleReport

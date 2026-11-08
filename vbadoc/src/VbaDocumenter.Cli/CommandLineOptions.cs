@@ -1,7 +1,7 @@
 using ExcelDocumenter.Shared.Files;
-using VbaDocumenter.Logging;
+using VbaDocumenter.Cli.Logging;
 
-namespace VbaDocumenter;
+namespace VbaDocumenter.Cli;
 
 /// <summary>The bound command line: paths are absolute, and the output folder and page name are always set.</summary>
 /// <param name="OutputName">The page's name without ".html": the workbook's name and "-vba", or <c>--output-name</c>.</param>

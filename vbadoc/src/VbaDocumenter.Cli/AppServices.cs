@@ -3,12 +3,12 @@ using ExcelDocumenter.Shared.Files;
 using Serilog;
 using VbaDocumenter.Core.Extraction;
 using VbaDocumenter.Core.Importing;
-using VbaDocumenter.Logging;
+using VbaDocumenter.Cli.Logging;
 
 namespace VbaDocumenter.Cli;
 
 /// <summary>What the tool needs from the outside world. Program uses the real console; tests capture it.</summary>
-sealed class AppServices
+public sealed class AppServices
 {
   /// <summary>Creates the logger once the requested verbosity is known.</summary>
   public required Func<LogVerbosity, ILogger> CreateLogger { get; init; }
