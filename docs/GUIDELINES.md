@@ -16,7 +16,7 @@ Decisions that belong to one tool are in its own `docs/DECISIONS.md`.
 | Page JavaScript global and browser storage keys | `window.vbadoc`, `vbadoc-…` | `window.pqdoc`, `pqdoc-…` |
 | Documentation files, for `Sales.xlsm` (`--output-name` overrides) | `Sales-vba.html` | `Sales-powerquery.html`, `.csv`, `.puml` |
 | Solution | `vbadoc/VbaDocumenter.sln` | `pqdoc/PowerQueryDocumenter.sln` |
-| Projects and namespaces | `VbaDocumenter`, `VbaDocumenter.Core`, `VbaDocumenter.Tests`, `VbaDocumenter.BrowserTests` | `PowerQueryDocumenter`, `PowerQueryDocumenter.Core`, `PowerQueryDocumenter.Tests`, `PowerQueryDocumenter.BrowserTests` |
+| Projects and namespaces | `VbaDocumenter`, `VbaDocumenter.Cli`, `VbaDocumenter.Core`, `VbaDocumenter.Tests`, `VbaDocumenter.BrowserTests` | `PowerQueryDocumenter`, `PowerQueryDocumenter.Cli`, `PowerQueryDocumenter.Core`, `PowerQueryDocumenter.Tests`, `PowerQueryDocumenter.BrowserTests` |
 
 Classes keep names that describe what they do, such as `DependencyAnalyser`.
 
@@ -63,8 +63,10 @@ of generated pages, because changing one changes every page.
 
 ## Structure
 
-- Each tool has a **Core library** holding all the logic, and a console app that only parses arguments, prints and
-  sets the exit code.
+- Each tool has a **Core library** holding all the logic, a **command-line library** (`<Tool>.Cli`) that only parses
+  arguments, prints and works out the exit code, and a console app that's only its `Program.cs`. Another program runs a
+  tool through its command-line library, with its own logger and its own way of asking questions (`IUserInteraction`).
+  What that needs is public; the rest stays internal, and the tests reach it through `InternalsVisibleTo`.
 - Each tool's folder has a `README.md`, `Requirements.md`, `CLAUDE.md`, `docs/PLAN.md`, `docs/DECISIONS.md`, its
   solution, `src/` and `tests/`.
 - **Code both tools need lives once, in `shared/`** (`ExcelDocumenter.Shared`, with `ExcelDocumenter.Shared.Tests` and

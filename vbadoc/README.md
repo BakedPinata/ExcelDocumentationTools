@@ -258,7 +258,8 @@ default `VBAProject` folder, so give one of them `--output`.
 ## Project layout
 
 ```
-src/VbaDocumenter/          console app (command line, output, exit codes)
+src/VbaDocumenter/          console app: only Program.cs
+src/VbaDocumenter.Cli/      the command line as a library (options, running, logging, exit codes)
 src/VbaDocumenter.Core/     all the logic
   Extraction/               reading the VBA project out of the workbook (MS-OVBA)
   Parsing/                  lightweight VBA parser: declarations, line ranges, procedure bodies

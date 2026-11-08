@@ -72,7 +72,7 @@ questions the draft raised.
 | H3 | vbadoc imports into a new workbook or a copy of an existing one, with references, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
 | H4 | pqdoc imports into a new workbook or a copy of an existing one, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
 | I1 | Spike: a desktop window, published as one file, that runs on a work machine (added after H3) | Claude, then you on a work machine | Spike built and works at home; your run on a work machine to come |
-| I2 | Both tools' command lines can be run by another program, with no change to the console tools | Claude | |
+| I2 | Both tools' command lines can be run by another program, with no change to the console tools | Claude | Done |
 | I3 | The desktop app: documenting a workbook with either tool | Claude | |
 | I4 | The desktop app: importing, with the tools' questions asked in dialogs | Claude | |
 
@@ -1166,6 +1166,17 @@ pack that publishing it needs.
   desktop app can both use, leaving the console app its `Program.cs`. The rule that a console app only parses, prints and
   sets the exit code becomes one about that library, in the guidelines.
 - No change in behaviour, checked as C1 was: output, logs and exit codes from every fixture, before and after.
+
+**Done.** `VbaDocumenter.Cli` and `PowerQueryDocumenter.Cli` hold the command lines, and each console app is its
+`Program.cs`. 171 cases covered every fixture, the error paths, and importing to a bundle, a new workbook, a copy and in
+place, and every option but rendering through a PlantUML server, reading a valid manifest and `--drop-signature` on a signed
+project. Of 37,283 outputs, none changed but the build stamp and the source paths in `--verbose`'s stack traces, leaving
+aside 10 entries in new workbooks that hold random IDs and so differ between two runs of the old build too. A throwaway
+program using only the public API ran both tools in one process, with its own logger and answers, and with each page
+stamped by its own tool.
+
+**For I3:** `--help` and `--version` describe the program that's running (`System.CommandLine` asks the entry assembly), so
+through the app they'd name the app, not the tool. The app shouldn't send them to `CliRunner`.
 
 ### Step I3: Documenting a workbook
 

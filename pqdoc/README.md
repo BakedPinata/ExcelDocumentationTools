@@ -328,7 +328,8 @@ written, skipped or failed is logged at the end.
 ```
 src/PowerQueryDocumenter/          The console app
   Program.cs              Composition root: shared HttpClient, Ctrl+C handling, log flushing
-  Cli/                    System.CommandLine definition, option binding, top-level runner, console prompts
+src/PowerQueryDocumenter.Cli/      The command line, as a library
+                          System.CommandLine definition, option binding, top-level runner, the real services
   Logging/                Serilog console configuration
 src/PowerQueryDocumenter.Core/     All the logic
   Configuration/          Options record, formats, .env reader, PlantUML server resolution

@@ -37,9 +37,10 @@ rather than repeating it.
   writing modules and queries into workbooks), H2 (the Export tab, the manifest and bundles) and H3 (vbadoc writing into
   workbooks) are pushed: Excel accepts what the spike wrote, at home and at work. H4 (pqdoc writing into workbooks) is
   done and rebased onto main. I1, the first of the desktop app's steps (`xldocui`, in Windows Forms), is on
-  `feedback/i1-desktop-spike`: the spike works at home and waits for the user's run on a work machine. **Next: I2**, after
-  review. The user's checks of what's built so far come after phase I; the plan lists them. E5b (Calls tab follow-ups) is
-  noted on `feedback/e5b-calls-follow-ups`, for later.
+  `feedback/i1-desktop-spike`: the spike works at home and waits for the user's run on a work machine. I2 (each tool's
+  command line as a library) is on `feedback/i2-cli-library`, on top of I1, waiting for review. **Next: I3**, after the
+  user's run of the spike at work. The user's other checks of what's built so far come after phase I; the plan lists them.
+  E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
 - **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
@@ -51,6 +52,15 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-08: Step I2, the command lines as libraries
+
+- `VbaDocumenter.Cli` and `PowerQueryDocumenter.Cli` now hold what was in each console app, which is only its `Program.cs`.
+  `CliRunner`, `CliDefinition`, the logging setup and the services are public, for the desktop app; the rest stays internal.
+- Checked as C1 was, with the old build run twice so anything random could be told apart: 171 cases and 37,283 outputs,
+  with no difference but the build stamp and the source paths in `--verbose`'s stack traces. Both tools also ran in one
+  process from a throwaway program that could only see the public API.
+- `--help` and `--version` describe whichever program is running, so the desktop app shouldn't send them to `CliRunner`.
 
 ### 2026-11-08: Step I1, the desktop window spike
 
