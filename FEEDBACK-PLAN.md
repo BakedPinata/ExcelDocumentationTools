@@ -71,7 +71,7 @@ questions the draft raised.
 | H2 | The Export tab and manifest: choosing what to import, with what it brings; bundle folders | Claude, then you in Excel | Done; your check of a bundle by hand to come |
 | H3 | vbadoc imports into a new workbook or a copy of an existing one, with references, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
 | H4 | pqdoc imports into a new workbook or a copy of an existing one, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
-| I1 | Spike: a desktop window, published as one file, that runs on a work machine (added after H3) | Claude, then you on a work machine | Spike built and works at home; your run on a work machine to come |
+| I1 | Spike: a desktop window, published as one file, that runs on a work machine (added after H3) | Claude, then you on a work machine | Done: works at home and on a work machine |
 | I2 | Both tools' command lines can be run by another program, with no change to the console tools | Claude | Done |
 | I3 | The desktop app: documenting a workbook with either tool | Claude | |
 | I4 | The desktop app: importing, with the tools' questions asked in dialogs | Claude | |
@@ -1159,6 +1159,9 @@ a five-answer dialog asked from off the window's thread, and Cancel all work. Co
 more at start-up, which I3 can decide. **The recommendation is to go ahead,** subject to the work machine: it's the only
 place that can say whether application control allows the window, and whether NuGet there has the Windows desktop runtime
 pack that publishing it needs.
+
+**On a work machine** (2026-11-11), you ran it and it worked as expected, so I3 goes ahead. The spike is deleted; its code
+is in the repository's history for I3 and I4 to take from.
 
 ### Step I2: The tools' command lines, runnable by another program
 

@@ -8,7 +8,7 @@ rather than repeating it.
 - **Updating it:** at the end of each stage, and after any session that changes direction, update *Current state* and
   add an entry at the top of the log. Give the date, what changed and why, and commits, in a few lines.
 
-## Current state (2026-11-08)
+## Current state (2026-11-11)
 
 - **vbadoc 0.30.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
@@ -36,10 +36,10 @@ rather than repeating it.
   user parked G2–G4 (the views file in the page, printing, copying a view) to come back to later. H1 (the spike on
   writing modules and queries into workbooks), H2 (the Export tab, the manifest and bundles) and H3 (vbadoc writing into
   workbooks) are pushed: Excel accepts what the spike wrote, at home and at work. H4 (pqdoc writing into workbooks) is
-  done and rebased onto main. I1, the first of the desktop app's steps (`xldocui`, in Windows Forms), is on
-  `feedback/i1-desktop-spike`: the spike works at home and waits for the user's run on a work machine. I2 (each tool's
-  command line as a library) is on `feedback/i2-cli-library`, on top of I1, waiting for review. **Next: I3**, after the
-  user's run of the spike at work. The user's other checks of what's built so far come after phase I; the plan lists them.
+  pushed. I1, the first of the desktop app's steps (`xldocui`, in Windows Forms), is on `feedback/i1-desktop-spike`: the
+  spike worked at home and on a work machine, and is deleted. I2 (each tool's command line as a library) is reviewed, on
+  `feedback/i2-cli-library`, on top of I1. **Next: I3.** The user's other checks of what's built so far come after
+  phase I; the plan lists them.
   E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
@@ -52,6 +52,12 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-11: I1 on a work machine, and I2's review
+
+- The user ran the I1 spike on a work machine, and it worked as expected, so I3 goes ahead. The spike is deleted, as
+  planned; I3 and I4 can take its code from the history.
+- On reviewing I2, the user approved saying in both tools' decisions that the command line is in the `.Cli` library.
 
 ### 2026-11-08: Step I2, the command lines as libraries
 
