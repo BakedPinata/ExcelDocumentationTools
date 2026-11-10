@@ -45,7 +45,7 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 ## Command line and logging (stage 5e)
 
 - **System.CommandLine and Serilog** replaced the hand-written parser and console writes, set up the same way as
-  pqdoc's. The code is parallel, not shared. It stays in the console app, because Core only reports through what it
+  pqdoc's. The code is parallel, not shared. It's in `VbaDocumenter.Cli`, because Core only reports through what it
   returns.
 - **Breaking changes in 0.6.0:** `--out` became `--output`/`-o`, with no alias. Exit codes moved to the scheme shared
   with pqdoc: bad arguments 1 → 2, workbook problems 2 → 3, unexpected errors 3 → 1. The report moved from standard
