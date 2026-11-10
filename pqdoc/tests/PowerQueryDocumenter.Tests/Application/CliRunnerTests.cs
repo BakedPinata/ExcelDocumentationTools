@@ -571,6 +571,24 @@ public sealed class CliRunnerTests : IDisposable
     Assert.Contains(app.Log.Messages(LogEventLevel.Error), m => m.Contains("Broken.m", StringComparison.Ordinal));
   }
 
+  [Theory]
+  [InlineData("--nope")]                                // was taken for the input's name: exit 3
+  [InlineData("--nope", "{queries}")]                   // was "Unrecognized command or argument" naming the input
+  [InlineData("{queries}", "--nope")]
+  [InlineData("--nope", "{queries}", "-v", "-q")]       // the parse's own errors wait until it's fixed
+  [InlineData("import", "--nope", "--items", "Orders")]
+  public async Task An_unknown_option_is_named_wherever_it_is_and_exits_with_2(params string[] args)
+  {
+    using var app = App();
+
+    var exitCode = await app.RunAsync(args.Select(a => a == "{queries}" ? Queries : a).ToArray());
+
+    Assert.Equal(ExitCodes.InvalidArguments, exitCode);
+    Assert.Contains("Unknown option '--nope'.", Assert.Single(app.Log.Messages(LogEventLevel.Error)), StringComparison.Ordinal);
+    Assert.Contains("Usage: pqdoc <input>", app.Error.ToString(), StringComparison.Ordinal);
+    Assert.Empty(OutputFiles());
+  }
+
   [Fact]
   public async Task Help_and_version_exit_with_0()
   {

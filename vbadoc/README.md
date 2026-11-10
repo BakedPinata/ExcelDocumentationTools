@@ -68,6 +68,9 @@ dotnet run --project src/VbaDocumenter -- <workbook> [--output <folder>] [--outp
 | `--help` | `-h`, `-?` | Show help |
 | `--version` | | Show the version and git commit of this build of vbadoc, and nothing else |
 
+An option vbadoc doesn't have, such as a mistyped `--embed-sources`, is an invalid argument (exit code 2), wherever it's
+written. A workbook whose name starts with `-` would be taken for one, so write it as a path, such as `.\-draft.xlsm`.
+
 Progress and results are logged to standard error, in colour when it's a terminal and `NO_COLOR` isn't set. Standard
 output is only used by `--help` and `--version`.
 

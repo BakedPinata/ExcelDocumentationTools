@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using ExcelDocumenter.Shared;
+using ExcelDocumenter.Shared.CommandLine;
 using PowerQueryDocumenter.Core.Application;
 using PowerQueryDocumenter.Core.Configuration;
 
@@ -48,7 +49,14 @@ public static class CliRunner
 
     try
     {
-      // Validation errors: name the problem and the option, show brief usage, exit 2 (FR-CLI-3).
+      // Validation errors: name the problem and the option, show brief usage, exit 2 (FR-CLI-3). A word that looks like
+      // an option but isn't one comes first, since the parse's own errors may be about the wrong word.
+      var unknownOptions = UnknownOptions.Find(parseResult);
+      if (unknownOptions.Count > 0)
+      {
+        return ReportInvalidArguments(unknownOptions);
+      }
+
       if (parseResult.Errors.Count > 0)
       {
         return ReportInvalidArguments(parseResult.Errors.Select(e => e.Message));

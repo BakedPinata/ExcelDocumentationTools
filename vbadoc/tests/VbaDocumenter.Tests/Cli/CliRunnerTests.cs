@@ -152,6 +152,28 @@ public sealed class CliRunnerTests : IDisposable
     Assert.Contains("Usage: vbadoc <workbook>", _error.ToString());
   }
 
+  // {out} is the test's output folder.
+  public static TheoryData<string[]> UnknownOptionCases => new()
+  {
+    new[] { "--nope" },                                              // was taken for the workbook's name: exit 3
+    new[] { "--nope", Workbook, "--output", "{out}" },               // was "Unrecognized command or argument" naming the workbook
+    new[] { Workbook, "--output", "{out}", "--nope" },
+    new[] { "--nope", Workbook, "--output", "{out}", "-v", "-q" },   // the parse's own errors wait until it's fixed
+    new[] { "import", "--nope", "--items", "Module1" },
+    new[] { "import", "--nope", Workbook, "--items", "Module1" },
+  };
+
+  [Theory]
+  [MemberData(nameof(UnknownOptionCases))]
+  public void An_unknown_option_is_named_wherever_it_is_and_exits_with_2(string[] args)
+  {
+    Assert.Equal(ExitCodes.InvalidArguments, Run(args.Select(a => a == "{out}" ? Output : a).ToArray()));
+
+    Assert.Contains("Unknown option '--nope'.", Assert.Single(_log.Messages(LogEventLevel.Error)));
+    Assert.Contains("Usage: vbadoc <workbook>", _error.ToString());
+    Assert.False(Directory.Exists(Output));
+  }
+
   // ---- An existing page: asked about only when it would change; the module files never are ----
 
   /// <summary>Exports once, then leaves a page a new run would change, and a module file a new run would write.</summary>

@@ -74,6 +74,9 @@ renamed workbook's page. In a folder of `.m` files it only mentions them.
 | `--help` | `-h`, `-?` | | | Show help. |
 | `--version` | | | | Show the version and git commit of this build. |
 
+An option pqdoc doesn't have, such as a mistyped `--embed-sources`, is an invalid argument (exit code 2), wherever it's
+written. An input whose name starts with `-` would be taken for one, so write it as a path, such as `.\-draft.xlsx`.
+
 ### Examples
 
 ```

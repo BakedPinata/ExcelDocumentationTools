@@ -39,6 +39,8 @@ public static class CliRunner
 
     try
     {
+      var unknownOptions = UnknownOptions.Find(parseResult);
+      if (unknownOptions.Count > 0) return ReportInvalidArguments(unknownOptions);
       if (parseResult.Errors.Count > 0) return ReportInvalidArguments(parseResult.Errors.Select(e => e.Message));
 
       if (parseResult.CommandResult.Command == cli.Import.Command)
