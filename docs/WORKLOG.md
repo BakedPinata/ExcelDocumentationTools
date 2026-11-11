@@ -10,11 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-11)
 
-- **vbadoc 0.30.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+- **vbadoc 0.30.1:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the feedback plan.
-- **pqdoc 1.21.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.21.1**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -38,8 +38,9 @@ rather than repeating it.
   workbooks) are pushed: Excel accepts what the spike wrote, at home and at work. H4 (pqdoc writing into workbooks) is
   pushed. I1, the first of the desktop app's steps (`xldocui`, in Windows Forms), is on `feedback/i1-desktop-spike`: the
   spike worked at home and on a work machine, and is deleted. I2 (each tool's command line as a library) is reviewed, on
-  `feedback/i2-cli-library`, on top of I1. **Next: I3.** The user's other checks of what's built so far come after
-  phase I; the plan lists them.
+  `feedback/i2-cli-library`, on top of I1. I2a (an unknown option is a usage error, asked for in I2's review) is on
+  `feedback/i2a-unknown-options`, on top of I2, waiting for review. **Next: I3.** The user's other checks of what's built
+  so far come after phase I; the plan lists them.
   E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
@@ -52,6 +53,14 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-11: Step I2a, unknown options
+
+- An unknown option written before the workbook was taken for its name (`vbadoc --nope`: exit code 3), or left the
+  workbook over with a message naming it; so was a bundle like `-vx`, read as `-v` and `x`. Both tools now name the
+  unknown option and exit with 2, wherever it's written (`UnknownOptions`, in `shared/`). An option's value may still
+  start with a dash, and anything after `--` is an argument.
+- vbadoc 0.30.1, pqdoc 1.21.1.
 
 ### 2026-11-11: I1 on a work machine, and I2's review
 

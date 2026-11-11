@@ -73,6 +73,7 @@ questions the draft raised.
 | H4 | pqdoc imports into a new workbook or a copy of an existing one, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
 | I1 | Spike: a desktop window, published as one file, that runs on a work machine (added after H3) | Claude, then you on a work machine | Done: works at home and on a work machine |
 | I2 | Both tools' command lines can be run by another program, with no change to the console tools | Claude | Done |
+| I2a | Follow-up after I2's review: an unknown option is a usage error wherever it's written, rather than taken for the workbook | Claude | Done |
 | I3 | The desktop app: documenting a workbook with either tool | Claude | |
 | I4 | The desktop app: importing, with the tools' questions asked in dialogs | Claude | |
 
@@ -1180,6 +1181,14 @@ stamped by its own tool.
 
 **For I3:** `--help` and `--version` describe the program that's running (`System.CommandLine` asks the entry assembly), so
 through the app they'd name the app, not the tool. The app shouldn't send them to `CliRunner`.
+
+**I2a, after the review.** System.CommandLine takes a word that looks like an option but isn't one for an argument. Before
+the workbook, it became the workbook's name (`vbadoc --nope` looked for a file called `--nope`, exit code 3), or left the
+workbook over, with a message naming the workbook. A bundle of short options with an unknown letter did the same: `-vx` is
+`-v` and an argument `x`. Both tools now say `Unknown option '--nope'.` or `Unknown option '-x' in '-vx'.`, wherever it's
+written, and exit with 2, as for any other invalid argument. `UnknownOptions` in `shared/` finds them. An option's value
+can still start with a dash (`-o -drafts`), and anything after `--` is an argument. A workbook whose name starts with `-`
+is written as a path, such as `.\-draft.xlsm`, as the READMEs say. vbadoc 0.30.1, pqdoc 1.21.1.
 
 ### Step I3: Documenting a workbook
 
