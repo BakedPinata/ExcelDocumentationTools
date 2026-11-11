@@ -55,7 +55,7 @@ public static class CliRunner
       var binding = OptionsBinder.Bind(parseResult, cli);
       if (binding.Options is null) return ReportInvalidArguments(binding.Errors);
 
-      return Export(binding.Options, logger, services.Interaction, cancellationToken);
+      return Export(binding.Options, logger, services, cancellationToken);
     }
     catch (ExtractionException ex)
     {
@@ -87,8 +87,9 @@ public static class CliRunner
   /// Core's work is synchronous and quick, so Ctrl+C is honoured between steps. Writing, once started, always finishes:
   /// half an export would be worse than waiting a moment for all of it.
   /// </summary>
-  static int Export(CommandLineOptions options, ILogger logger, IUserInteraction interaction, CancellationToken cancellationToken)
+  static int Export(CommandLineOptions options, ILogger logger, AppServices services, CancellationToken cancellationToken)
   {
+    var interaction = services.Interaction;
     var total = Stopwatch.StartNew();
     logger.Information("Reading {Workbook}", options.WorkbookPath);
     var project = Timed(logger, "Reading", () => WorkbookReader.Read(options.WorkbookPath));
@@ -133,6 +134,7 @@ public static class CliRunner
             pageFile,
             pageWritten ? "written" : "unchanged",
             options.EmbedSource ? "(source embedded)" : "(open it and use Load folder to see source)");
+        services.PageWritten?.Invoke(pagePath);
       }
 
       // Only once the new page is safely written, so there's always a page.

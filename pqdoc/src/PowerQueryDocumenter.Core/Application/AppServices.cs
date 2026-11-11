@@ -32,4 +32,10 @@ public sealed class AppServices
 
   /// <summary>Creates the exporters for a run. Defaults to <see cref="ExporterRegistry.CreateDefault"/>.</summary>
   public Func<AnalyserOptions, ExporterRegistry>? CreateExporters { get; init; }
+
+  /// <summary>
+  /// Told the HTML page's full path once it's written, so the desktop app can open it. Not told about a page that was
+  /// skipped or failed, or when the page wasn't asked for. The console doesn't use it.
+  /// </summary>
+  public Action<string>? PageWritten { get; init; }
 }

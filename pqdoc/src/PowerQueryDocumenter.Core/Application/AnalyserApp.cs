@@ -128,6 +128,10 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     }
 
     LogSummary(graph, analysis, outcomes, options.OutputFolder);
+    if (outcomes.FirstOrDefault(o => o.Format == OutputFormat.Html && o.Status == ExportStatus.Written) is { } page)
+    {
+      services.PageWritten?.Invoke(page.Path);
+    }
 
     if (failed)
     {

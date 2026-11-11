@@ -25,6 +25,12 @@ public sealed class AppServices
   /// <summary>Whether what a library reference points at is on this machine, or null if it can't be told.</summary>
   public Func<VbaReference, bool?> IsLibraryInstalled { get; init; } = ReferenceChoice.IsInstalled;
 
+  /// <summary>
+  /// Told the page's full path once it's in place, written or already up to date, so the desktop app can open it. Not
+  /// told about a page that was skipped. The console doesn't use it.
+  /// </summary>
+  public Action<string>? PageWritten { get; init; }
+
   public static AppServices CreateDefault() => new()
   {
     Output = Console.Out,

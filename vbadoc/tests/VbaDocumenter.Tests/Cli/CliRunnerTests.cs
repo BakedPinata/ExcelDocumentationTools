@@ -34,12 +34,16 @@ public sealed class CliRunnerTests : IDisposable
   // Like a script: nobody to ask. Tests that answer the prompt set their own.
   IUserInteraction _interaction = new FakeUserInteraction(isInteractive: false);
 
+  // The pages the tool said it put in place, for the desktop app.
+  readonly List<string> _pages = [];
+
   AppServices Services(Func<LogVerbosity, ILogger>? createLogger = null) => new()
   {
     Output = _output,
     Error = _error,
     Interaction = _interaction,
     CreateLogger = createLogger ?? (verbosity => _log.CreateLogger(LoggingSetup.MinimumLevel(verbosity))),
+    PageWritten = _pages.Add,
   };
 
   int Run(params string[] args) => CliRunner.Run(args, Services(), TestContext.Current.CancellationToken);
@@ -279,6 +283,20 @@ public sealed class CliRunnerTests : IDisposable
 
     Assert.Equal("an older page", File.ReadAllText(Page));
     Assert.False(File.Exists(moduleFile));
+  }
+
+  [Fact]
+  public void The_page_is_reported_once_it_is_written_or_up_to_date_but_not_when_skipped()
+  {
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output));
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output)); // unchanged
+    Assert.Equal(new[] { Page, Page }, _pages);
+
+    PageThatWouldChange();
+    _pages.Clear();
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output, "--on-exists", "skip"));
+
+    Assert.Empty(_pages);
   }
 
   [Fact]

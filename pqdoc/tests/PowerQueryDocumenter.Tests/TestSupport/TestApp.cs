@@ -49,6 +49,9 @@ public sealed class TestApp : IDisposable
   /// <summary>Optional replacement for the exporter set.</summary>
   public Func<AnalyserOptions, ExporterRegistry>? CreateExporters { get; init; }
 
+  /// <summary>The pages the tool said it wrote, for the desktop app.</summary>
+  public List<string> Pages { get; } = [];
+
   /// <summary>Runs the tool with the given arguments.</summary>
   public Task<int> RunAsync(params string[] args) => RunWithCancellationAsync(TestContext.Current.CancellationToken, args);
 
@@ -64,6 +67,7 @@ public sealed class TestApp : IDisposable
       Error = Error,
       CreateLogger = verbosity => Log.CreateLogger(LoggingSetup.MinimumLevel(verbosity)),
       CreateExporters = CreateExporters,
+      PageWritten = Pages.Add,
     };
 
     return CliRunner.RunAsync(args, services, cancellationToken);

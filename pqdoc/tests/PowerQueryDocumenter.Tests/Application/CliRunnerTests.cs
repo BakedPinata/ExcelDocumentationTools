@@ -282,6 +282,23 @@ public sealed class CliRunnerTests : IDisposable
   }
 
   [Fact]
+  public async Task The_page_is_reported_once_written_but_not_when_skipped_or_not_asked_for()
+  {
+    var page = QueryFile("queries-powerquery.html");
+    using var app = App();
+
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(Queries, "-f", "csv,html"));
+    Assert.Equal(new[] { page }, app.Pages);
+
+    app.Pages.Clear();
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(Queries, "-f", "csv"));
+    await File.WriteAllTextAsync(page, "an older page", TestContext.Current.CancellationToken);
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(Queries, "--on-exists", "skip"));
+
+    Assert.Empty(app.Pages);
+  }
+
+  [Fact]
   public async Task When_everything_is_skipped_no_success_message_is_shown()
   {
     await File.WriteAllTextAsync(QueryFile("queries-powerquery.html"), "original", TestContext.Current.CancellationToken);
