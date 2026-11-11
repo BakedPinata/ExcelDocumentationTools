@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- xldocui: a window over vbadoc's and pqdoc's command lines, which it runs in-process. See ../../README.md. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>xldocui</AssemblyName>
+    <RootNamespace>ExcelDocumenter.Desktop</RootNamespace>
+    <!-- Read by ApplicationConfiguration.Initialize(): sharp text on every screen, with the system's look. -->
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationVisualStyles>true</ApplicationVisualStyles>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Serilog" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\vbadoc\src\VbaDocumenter.Cli\VbaDocumenter.Cli.csproj" />
+    <ProjectReference Include="..\..\..\pqdoc\src\PowerQueryDocumenter.Cli\PowerQueryDocumenter.Cli.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Lets the tests reach the logic, which is internal: nothing else uses this program's types. -->
+    <InternalsVisibleTo Include="ExcelDocumenter.Desktop.Tests" />
+  </ItemGroup>
+
+</Project>
