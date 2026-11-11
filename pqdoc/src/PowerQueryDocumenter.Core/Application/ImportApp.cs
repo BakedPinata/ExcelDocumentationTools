@@ -44,7 +44,7 @@ public sealed class ImportApp(ILogger logger, AppServices services)
     var run = new ImportRun(logger, services.Interaction, "pqdoc");
     var name = Path.GetFileName(request.Source.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
 
-    var source = await ReadAsync(request.Source, cancellationToken).ConfigureAwait(false);
+    var source = await ReadAsync(request.Source, logger, cancellationToken).ConfigureAwait(false);
     var (items, _) = run.ReadChoice(request, name);
 
     var import = new QueryImport(source.Graph, source.Queries.ToDictionary(q => q.Key, q => q.Value.Expression, DependencyGraph.NameComparer));
@@ -192,8 +192,25 @@ public sealed class ImportApp(ILogger logger, AppServices services)
 
   private static string Count(int count) => count == 1 ? "1 query" : $"{count} queries";
 
+  /// <summary>Every query a workbook or folder has, in name order, each a query or a function. Any of them can be taken.</summary>
+  /// <param name="source">A workbook, or a folder of .m files.</param>
+  /// <param name="logger">Takes what reading it finds to warn about.</param>
+  /// <param name="cancellationToken">Stops the reading of a folder.</param>
+  /// <exception cref="ExtractionException">The workbook can't be read, or has no queries.</exception>
+  public static async Task<IReadOnlyList<ImportableItem>> ItemsAsync(string source, ILogger logger, CancellationToken cancellationToken)
+  {
+    ArgumentException.ThrowIfNullOrWhiteSpace(source);
+    var read = await ReadAsync(Path.GetFullPath(source), logger, cancellationToken).ConfigureAwait(false);
+    return
+    [
+      .. read.Queries.Values
+        .OrderBy(query => query.Name, StringComparer.OrdinalIgnoreCase)
+        .Select(query => new ImportableItem(query.Name, query.ResultType == "Function" ? "function" : "query", null)),
+    ];
+  }
+
   // The queries of a workbook, or of a folder of .m files, with each one's file and text.
-  private async Task<Source> ReadAsync(string source, CancellationToken cancellationToken)
+  private static async Task<Source> ReadAsync(string source, ILogger logger, CancellationToken cancellationToken)
   {
     var files = new Dictionary<string, QueryBundleFile>(DependencyGraph.NameComparer);
     var queries = new Dictionary<string, QueryToWrite>(DependencyGraph.NameComparer);

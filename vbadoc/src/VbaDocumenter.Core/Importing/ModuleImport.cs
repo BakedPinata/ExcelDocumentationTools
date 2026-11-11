@@ -79,6 +79,22 @@ public sealed partial class ModuleImport
     return needs.Distinct().ToList();
   }
 
+  /// <summary>Every module, in name order, with what it is and why it can't be taken if it can't.</summary>
+  public IReadOnlyList<ImportableItem> Items() =>
+  [
+    .. _modules.Values
+      .OrderBy(node => node.Id, StringComparer.OrdinalIgnoreCase)
+      .Select(node => new ImportableItem(node.Id, KindOf(node.Module.Kind), WhyNot(node.Id))),
+  ];
+
+  static string KindOf(VbaModuleKind kind) => kind switch
+  {
+    VbaModuleKind.Standard => "module",
+    VbaModuleKind.Class => "class",
+    VbaModuleKind.Form => "UserForm",
+    _ => "document module",
+  };
+
   /// <summary>What a choice of modules comes to. Each pick must be one that <see cref="WhyNot"/> allows.</summary>
   public ImportPlan Plan(IEnumerable<string> picks) => ImportPlan.Build(picks, Uses, Needs, Implementations);
 
