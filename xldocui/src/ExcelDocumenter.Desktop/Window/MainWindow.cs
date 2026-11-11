@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using ExcelDocumenter.Desktop.Asking;
 using ExcelDocumenter.Desktop.Documenting;
 using ExcelDocumenter.Desktop.Running;
 using ExcelDocumenter.Desktop.Settings;
@@ -58,7 +59,7 @@ internal sealed class MainWindow : Form
     this.settingsPath = settingsPath;
     settings = SettingsStore.Load(settingsPath);
     runner = new ToolRunner(plantUmlClient);
-    interaction = new DialogInteraction(this);
+    interaction = new DialogInteraction(new TaskDialogAsk(this));
 
     SuspendLayout();
     AutoScaleDimensions = new SizeF(96F, 96F);

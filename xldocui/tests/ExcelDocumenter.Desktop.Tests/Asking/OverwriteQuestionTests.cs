@@ -1,7 +1,7 @@
-using ExcelDocumenter.Desktop.Window;
+using ExcelDocumenter.Desktop.Asking;
 using ExcelDocumenter.Shared.Files;
 
-namespace ExcelDocumenter.Desktop.Tests.Window;
+namespace ExcelDocumenter.Desktop.Tests.Asking;
 
 public sealed class OverwriteQuestionTests
 {

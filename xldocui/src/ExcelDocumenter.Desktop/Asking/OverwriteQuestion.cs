@@ -1,6 +1,6 @@
 using ExcelDocumenter.Shared.Files;
 
-namespace ExcelDocumenter.Desktop.Window;
+namespace ExcelDocumenter.Desktop.Asking;
 
 /// <summary>
 /// The console's "already exists. Overwrite? [y]es / [n]o / [a]ll / [q]uit" as a dialog's words. The tools only ask
