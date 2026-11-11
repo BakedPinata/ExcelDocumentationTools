@@ -7,16 +7,18 @@ Decisions that belong to one tool are in its own `docs/DECISIONS.md`.
 
 **The short name is the product; the long name is the code's identity.**
 
-| | vbadoc | pqdoc |
-|---|---|---|
-| Executable (`AssemblyName` of the console app) | `vbadoc` | `pqdoc` |
-| Tool folder | `vbadoc/` | `pqdoc/` |
-| Product name in docs, page titles, `Product` | vbadoc | pqdoc |
-| Release tags | `vbadoc-v<version>` | `pqdoc-v<version>` |
-| Page JavaScript global and browser storage keys | `window.vbadoc`, `vbadoc-…` | `window.pqdoc`, `pqdoc-…` |
-| Documentation files, for `Sales.xlsm` (`--output-name` overrides) | `Sales-vba.html` | `Sales-powerquery.html`, `.csv`, `.puml` |
-| Solution | `vbadoc/VbaDocumenter.sln` | `pqdoc/PowerQueryDocumenter.sln` |
-| Projects and namespaces | `VbaDocumenter`, `VbaDocumenter.Cli`, `VbaDocumenter.Core`, `VbaDocumenter.Tests`, `VbaDocumenter.BrowserTests` | `PowerQueryDocumenter`, `PowerQueryDocumenter.Cli`, `PowerQueryDocumenter.Core`, `PowerQueryDocumenter.Tests`, `PowerQueryDocumenter.BrowserTests` |
+| | vbadoc | pqdoc | xldocui (the desktop app) |
+|---|---|---|---|
+| Executable (`AssemblyName` of the console or desktop app) | `vbadoc` | `pqdoc` | `xldocui` |
+| Tool folder | `vbadoc/` | `pqdoc/` | `xldocui/` |
+| Product name in docs, page titles, `Product` | vbadoc | pqdoc | xldocui |
+| Release tags | `vbadoc-v<version>` | `pqdoc-v<version>` | `xldocui-v<version>` |
+| Page JavaScript global and browser storage keys | `window.vbadoc`, `vbadoc-…` | `window.pqdoc`, `pqdoc-…` | none: it makes no page |
+| Documentation files, for `Sales.xlsm` (`--output-name` overrides) | `Sales-vba.html` | `Sales-powerquery.html`, `.csv`, `.puml` | the tools' |
+| Solution | `vbadoc/VbaDocumenter.sln` | `pqdoc/PowerQueryDocumenter.sln` | `xldocui/ExcelDocumenter.Desktop.sln` |
+| Projects and namespaces | `VbaDocumenter`, `VbaDocumenter.Cli`, `VbaDocumenter.Core`, `VbaDocumenter.Tests`, `VbaDocumenter.BrowserTests` | `PowerQueryDocumenter`, `PowerQueryDocumenter.Cli`, `PowerQueryDocumenter.Core`, `PowerQueryDocumenter.Tests`, `PowerQueryDocumenter.BrowserTests` | `ExcelDocumenter.Desktop`, `ExcelDocumenter.Desktop.Tests` |
+
+`xldoc` is kept for a combined tool, if one is ever made.
 
 Classes keep names that describe what they do, such as `DependencyAnalyser`.
 
@@ -40,6 +42,9 @@ of generated pages, because changing one changes every page.
 - Every project targets **.NET 10**, set once in the root `Directory.Build.props`. .NET 10 is a long-term support
   release, supported until November 2028. Moving to a newer version is a deliberate decision, made when the work
   machine has its SDK.
+- **The desktop app alone targets Windows** (`net10.0-windows`), for Windows Forms, with its tests. Its
+  `Directory.Build.props` adds `-windows` to the root's target, so moving .NET is still one change. Everything else
+  stays plain `net10.0`.
 - The root `global.json` selects the SDK, and switches `dotnet test` to the Microsoft Testing Platform, which xUnit v3
   needs on .NET 10.
 - **Everything works from the `dotnet` command line:** building, testing, running and publishing, as the root
@@ -67,6 +72,9 @@ of generated pages, because changing one changes every page.
   arguments, prints and works out the exit code, and a console app that's only its `Program.cs`. Another program runs a
   tool through its command-line library, with its own logger and its own way of asking questions (`IUserInteraction`).
   What that needs is public; the rest stays internal, and the tests reach it through `InternalsVisibleTo`.
+- **The desktop app (`xldocui/`) holds no logic of its own.** It builds a tool's arguments and runs them through the
+  tool's command-line library, so the window and the console can't disagree. Anything more it needs from a tool, such
+  as where a page went, is added to the tool.
 - Each tool's folder has a `README.md`, `Requirements.md`, `CLAUDE.md`, `docs/PLAN.md`, `docs/DECISIONS.md`, its
   solution, `src/` and `tests/`.
 - **Code both tools need lives once, in `shared/`** (`ExcelDocumenter.Shared`, with `ExcelDocumenter.Shared.Tests` and
@@ -106,7 +114,8 @@ of generated pages, because changing one changes every page.
   files, and `-dirty` means uncommitted changes in those paths. The root build files are exactly
   `Directory.Build.props`, `Directory.Build.targets`, `Directory.Packages.props` and `global.json`, so root docs don't
   change a stamp and a commit to one tool doesn't change another's pages. A commit to `shared/` changes both, because
-  both are built from it.
+  both are built from it. The desktop app's stamp follows `vbadoc/` and `pqdoc/` too (`ToolStampPaths`), for the same
+  reason.
 
 ## Publishing
 
@@ -114,6 +123,8 @@ of generated pages, because changing one changes every page.
   to `PATH` adds every tool.
 - Each console app has a folder publish profile, `Properties/PublishProfiles/FolderProfile.pubxml`, the same in every
   tool. It takes its folder from `ToolsPublishDir` and doesn't name the target framework, which stays in one place.
+  The desktop app's adds compression: Windows Forms makes it 111 MB, and compressed it's about 50 MB, for about 0.1 s
+  more at start-up.
 - `publish.ps1` at the root publishes every project that has that profile, so a new tool only needs to add one. It adds
   to the folder rather than clearing it first, so keep the profile's "delete existing files" option off.
 - The folder is for using the tools on this machine. To publish somewhere else, such as for a GitHub release, keep the
@@ -169,6 +180,8 @@ of generated pages, because changing one changes every page.
   itself with a message saying how to enable it.
 - Pages have Playwright browser tests in their own project. Tests don't catch layout or colour problems, so look at
   screenshots in both themes too.
+- The desktop app's tests run everything but the window, with no window open. After changing the window, start it and
+  look at it.
 
 ## Dependencies and licences
 
