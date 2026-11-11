@@ -18,9 +18,10 @@ rather than repeating it.
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
-- **xldocui 0.1.0**, since step I3: the desktop app over both tools, in Windows Forms, published as one compressed
-  50 MB file. It runs the tools' command lines in its own process, so it holds no logic of its own. The Document tab
-  has every option of both main commands; the Import tab comes in I4. See `xldocui/README.md`.
+- **xldocui 0.2.0**, since steps I3 and I4: the desktop app over both tools, in Windows Forms, published as one
+  compressed 50 MB file. It runs the tools' command lines in its own process, so it holds no logic of its own. The
+  Document tab has every option of both main commands, and the Import tab every option of both `import`s, with Preview
+  and the tools' questions as dialogs. See `xldocui/README.md`.
 - **`shared/`** (`ExcelDocumenter.Shared`): the code both tools use, since step C1, and the page shell both pages are
   built on, since C2. See its README.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–I4. The user's build, test and
@@ -40,10 +41,11 @@ rather than repeating it.
   writing modules and queries into workbooks), H2 (the Export tab, the manifest and bundles) and H3 (vbadoc writing into
   workbooks) are pushed: Excel accepts what the spike wrote, at home and at work. H4 (pqdoc writing into workbooks) is
   pushed. I1 (the desktop window spike, which worked at home and on a work machine, and is deleted), I2 (each tool's
-  command line as a library) and I2a (an unknown option is a usage error, asked for in I2's review) are reviewed and
-  rebased onto main, not yet pushed. I3 (`xldocui`, with its Document tab) is on `feedback/i3-desktop-document`, waiting
-  for review. **Next: I4**, the Import tab. The user's other checks of what's built so far come after phase I; the plan
-  lists them.
+  command line as a library) and I2a (an unknown option is a usage error, asked for in I2's review) are pushed. I3
+  (`xldocui`, with its Document tab) is reviewed, ran on a work machine, and is pushed as
+  `feedback/i3-desktop-document`, not yet merged into main. I4 (the Import tab), which finishes phase I, is on
+  `feedback/i4-desktop-import`, on top of I3, waiting for review. **Next: the user's checks** of what's built so far,
+  which the plan lists under its progress table.
   E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
@@ -56,6 +58,21 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-11: Step I4, the desktop app's Import tab
+
+- The user found I3's window fix good, pushed the I3 branch, and asked to go on.
+- Each tool's command-line library gained `ImportSource`, listing what a source has that `import` could take, with why
+  not where it can't, by `import`'s own rules (`ImportableItem` in `shared/`). The console tools don't use it.
+- The Import tab: the source, whose items when both tools read it, what to take (ticked in that list, or a manifest),
+  and where it goes (a bundle, a new workbook, a copy of a target, the target itself), showing only what applies.
+  Preview runs the choice with nowhere to write. The clash question and "Are you sure?" are dialogs, asked through
+  `IAsk`, which the tests answer with a stand-in. Both tabs and which was showing are remembered.
+- 153 tests in the app, including real runs through it: Preview, a bundle, a new workbook, and a no to changing the
+  target itself, which left it as it was. The window was checked from screenshots, including a real clash. The
+  screenshots found a caption shown after its box, when both were shown together in a row, and a needless horizontal
+  scroll bar in the list; both are fixed.
+- xldocui 0.2.0.
 
 ### 2026-11-11: Step I3, the desktop app's Document tab
 

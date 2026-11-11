@@ -75,7 +75,7 @@ questions the draft raised.
 | I2 | Both tools' command lines can be run by another program, with no change to the console tools | Claude | Done |
 | I2a | Follow-up after I2's review: an unknown option is a usage error wherever it's written, rather than taken for the workbook | Claude | Done |
 | I3 | The desktop app: documenting a workbook with either tool | Claude | Done |
-| I4 | The desktop app: importing, with the tools' questions asked in dialogs | Claude | |
+| I4 | The desktop app: importing, with the tools' questions asked in dialogs | Claude | Done |
 
 **Checks still to come, after phase I** (the user's choice, after H3): A0 on a work machine, D1b's workbook with 20 groups,
 a bundle brought in by hand (H2), and H3 and H4 in Excel, which also settle control references, references to other VBA
@@ -1216,6 +1216,15 @@ the tab and the command, so the window's least size is now worked out from what 
 - Dialogs for the tools' questions: a clash shows what's in the way and what Skip and Overwrite each mean, with Skip,
   Overwrite, Skip All, Overwrite All and Quit, as the console prompt has. `--in-place` asks as it does there.
 - Tests of the dialogs' answers with a stand-in for the windows, and of what the tab builds, as in I3.
+
+**Done.** `xldocui` 0.2.0. The list is read from the source by the tool that would take from it, through a new
+`ImportSource` in each tool's command-line library, so what's offered follows `import`'s own rules; what can't come is
+greyed out with the reason. A name with a comma can only be chosen with a manifest, as `--items` is split at commas.
+Preview runs the choice with nowhere to write. The clash question and "Are you sure?" are dialogs, asked through a small
+interface that the tests answer with a stand-in. Tests cover what the tab builds against both tools' `import`, every
+option having a control or a reason, the dialogs' answers, and real runs through the app: Preview, a bundle, a new
+workbook, and a no to changing the target itself, which left it as it was. The window was checked from screenshots,
+including a real clash.
 
 ## 7. Changes to existing documents
 

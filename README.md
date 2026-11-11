@@ -8,7 +8,7 @@ options. Each has its own folder, solution, version and README, and they all fol
 |---|---|---|---|
 | **vbadoc** | A macro-enabled workbook (`.xlsm`, `.xlsb`, `.xlam`, `.xls` or `.xla`) | The VBA as text files, and a self-contained HTML page with a dependency graph and class diagram | [vbadoc/README.md](vbadoc/README.md) |
 | **pqdoc** | An Excel workbook (`.xlsx`, `.xlsm` or `.xlsb`), or a folder of exported Power Query (`.m`) files | An interactive HTML graph of the dependencies between queries, and optionally CSV and PlantUML | [pqdoc/README.md](pqdoc/README.md) |
-| **xldocui** | A workbook or folder, as both tools do | A window on Windows over both tools: every option, the command it runs with Copy, and the tools' log | [xldocui/README.md](xldocui/README.md) |
+| **xldocui** | A workbook or folder, as both tools do | A window on Windows over both tools, for documenting and importing: every option, the command it runs with Copy, the tools' log, and their questions as dialogs | [xldocui/README.md](xldocui/README.md) |
 
 Code both tools need, such as opening a workbook and building a page, is kept once in [shared/](shared/README.md).
 
