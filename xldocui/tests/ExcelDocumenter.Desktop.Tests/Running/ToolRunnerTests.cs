@@ -1,4 +1,5 @@
 using ExcelDocumenter.Desktop.Documenting;
+using ExcelDocumenter.Desktop.Importing;
 using ExcelDocumenter.Desktop.Running;
 using ExcelDocumenter.Shared;
 using ExcelDocumenter.Shared.Files;
@@ -114,12 +115,65 @@ public sealed class ToolRunnerTests : IDisposable
     Assert.Contains("<meta name=\"generator\" content=\"pqdoc ", File.ReadAllText(pqdoc.Page!), StringComparison.Ordinal);
   }
 
+  [Fact]
+  public async Task Preview_says_what_a_choice_comes_to_and_writes_nothing_and_Run_writes_the_bundle()
+  {
+    var source = folder.Fixture("SimpleMacro.xlsm");
+    var module = VbaDocumenter.Cli.ImportSource.Items(source).First(item => item.CanTake).Name;
+    var settings = new ImportSettings { Source = source, Items = [module], Bundle = folder.Combine("Shared") };
+
+    var preview = await Run(ImportCommands.Preview(settings)!);
+
+    Assert.Equal(ExitCodes.Success, preview.ExitCode);
+    Assert.Contains(lines, l => l.Text == $"[INF] Chosen: {module}");
+    Assert.Contains(lines, l => l.Text.StartsWith("[INF] Nothing was written.", StringComparison.Ordinal));
+    Assert.False(Directory.Exists(settings.Bundle));
+
+    Assert.Equal(ExitCodes.Success, (await Run(ImportCommands.Run(settings)!)).ExitCode);
+    Assert.NotEmpty(Directory.GetFiles(settings.Bundle, "*.bas"));
+  }
+
+  [Fact]
+  public async Task Pqdoc_writes_a_new_workbook_from_the_app()
+  {
+    var settings = new ImportSettings
+    {
+      Source = folder.Fixture("Queries.xlsx"),
+      Tool = Tool.Pqdoc,
+      Items = ["Chain_A"],
+      WriteTo = ImportDestination.NewWorkbook,
+      NewWorkbook = folder.Combine("New.xlsx"),
+    };
+
+    Assert.Equal(ExitCodes.Success, (await Run(ImportCommands.Run(settings)!)).ExitCode);
+    Assert.True(File.Exists(settings.NewWorkbook));
+  }
+
+  [Fact]
+  public async Task Changing_the_target_itself_asks_first_and_a_no_changes_nothing()
+  {
+    var source = folder.Fixture("Queries.xlsx");
+    var target = folder.Combine("Target.xlsx");
+    var make = new ImportSettings { Source = source, Tool = Tool.Pqdoc, Items = ["fnClean"], WriteTo = ImportDestination.NewWorkbook, NewWorkbook = target };
+    Assert.Equal(ExitCodes.Success, (await Run(ImportCommands.Run(make)!)).ExitCode);
+    var before = File.ReadAllBytes(target);
+    var change = new ImportSettings { Source = source, Tool = Tool.Pqdoc, Items = ["Chain_A"], WriteTo = ImportDestination.InPlace, Target = target };
+
+    var result = await Run(ImportCommands.Run(change)!);
+
+    Assert.Equal(ExitCodes.OutputRefused, result.ExitCode);
+    Assert.StartsWith("This changes Target.xlsx itself", Assert.Single(interaction.Confirmed), StringComparison.Ordinal);
+    Assert.Equal(before, File.ReadAllBytes(target));
+  }
+
   /// <summary>Answers the tools' questions as told, and remembers what they asked about.</summary>
   private sealed class Answers : IUserInteraction
   {
     public OverwriteAnswer Answer { get; set; } = OverwriteAnswer.Quit;
 
     public List<string> Asked { get; } = [];
+
+    public List<string> Confirmed { get; } = [];
 
     public bool IsInteractive => true;
 
@@ -131,6 +185,10 @@ public sealed class ToolRunnerTests : IDisposable
 
     public ClashAnswer AskClash(ImportClash clash) => throw new NotSupportedException();
 
-    public bool Confirm(string question) => false;
+    public bool Confirm(string question)
+    {
+      Confirmed.Add(question);
+      return false;
+    }
   }
 }

@@ -1,6 +1,9 @@
 using ExcelDocumenter.Desktop.Documenting;
+using ExcelDocumenter.Desktop.Importing;
+using ExcelDocumenter.Desktop.Running;
 using ExcelDocumenter.Desktop.Settings;
 using ExcelDocumenter.Shared.Files;
+using ExcelDocumenter.Shared.Importing;
 using PowerQueryDocumenter.Core.Configuration;
 
 namespace ExcelDocumenter.Desktop.Tests.Settings;
@@ -127,6 +130,52 @@ public sealed class SettingsTests : IDisposable
 
     settings.Choose(@"C:\Work\New.xlsm");
     Assert.Equal("", settings.Document.Vbadoc.Output);
+  }
+
+  [Fact]
+  public void The_import_tab_is_read_back_as_it_was_saved()
+  {
+    var settings = new AppSettings
+    {
+      Import = new ImportSettings
+      {
+        Source = @"C:\Work\Sales.xlsm",
+        Tool = Tool.Pqdoc,
+        ChooseFrom = ChooseFrom.Manifest,
+        Manifest = @"C:\Downloads\choice.json",
+        Items = ["Chain_A", "fnClean"],
+        WriteTo = ImportDestination.InPlace,
+        Target = @"C:\Work\Target.xlsx",
+        OnClash = OnClashBehaviour.Skip,
+        NoReferences = true,
+      },
+    };
+
+    SettingsStore.Save(File, settings);
+    var read = SettingsStore.Load(File).Import;
+
+    Assert.Equal(@"C:\Work\Sales.xlsm", read.Source);
+    Assert.Equal(Tool.Pqdoc, read.Tool);
+    Assert.Equal(ChooseFrom.Manifest, read.ChooseFrom);
+    Assert.Equal(new[] { "Chain_A", "fnClean" }, read.Items);
+    Assert.Equal(ImportDestination.InPlace, read.WriteTo);
+    Assert.Equal(@"C:\Work\Target.xlsx", read.Target);
+    Assert.Equal(OnClashBehaviour.Skip, read.OnClash);
+    Assert.True(read.NoReferences);
+  }
+
+  [Fact]
+  public void An_imports_source_goes_to_the_top_of_the_recent_list_keeping_its_outputs()
+  {
+    var settings = new AppSettings();
+    settings.Remember(Document(@"C:\Work\Sales.xlsm", vbadocOutput: @"C:\Docs\Sales"));
+    settings.Remember(Document(@"C:\Work\Other.xlsm"));
+
+    settings.RememberSource(@"c:\work\sales.xlsm");
+    settings.RememberSource("\"C:\\Work\\New.xlsx\"");
+
+    Assert.Equal(new[] { @"C:\Work\New.xlsx", @"C:\Work\Sales.xlsm", @"C:\Work\Other.xlsm" }, settings.Recent.Select(r => r.Input));
+    Assert.Equal(@"C:\Docs\Sales", settings.Recent[1].VbadocOutput);
   }
 
   [Fact]

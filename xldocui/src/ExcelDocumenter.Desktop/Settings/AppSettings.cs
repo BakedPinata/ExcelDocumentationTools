@@ -1,4 +1,5 @@
 using ExcelDocumenter.Desktop.Documenting;
+using ExcelDocumenter.Desktop.Importing;
 
 namespace ExcelDocumenter.Desktop.Settings;
 
@@ -24,6 +25,9 @@ internal sealed class AppSettings
 
   /// <summary>The Document tab as it was last left.</summary>
   public DocumentSettings Document { get; set; } = new();
+
+  /// <summary>The Import tab as it was last left.</summary>
+  public ImportSettings Import { get; set; } = new();
 
   /// <summary>Whether to open each page once it's written.</summary>
   public bool OpenPages { get; set; } = true;
@@ -56,6 +60,25 @@ internal sealed class AppSettings
     }
   }
 
+  /// <summary>Puts an import's source at the top of the recent list, keeping the outputs it had if it's there already.</summary>
+  public void RememberSource(string source)
+  {
+    ArgumentNullException.ThrowIfNull(source);
+    var tidied = DocumentCommands.Tidy(source);
+    if (tidied.Length == 0)
+    {
+      return;
+    }
+
+    var known = Recent.FirstOrDefault(recent => SameInput(recent.Input, tidied)) ?? new RecentInput { Input = tidied };
+    Recent.Remove(known);
+    Recent.Insert(0, known);
+    if (Recent.Count > RecentCount)
+    {
+      Recent.RemoveRange(RecentCount, Recent.Count - RecentCount);
+    }
+  }
+
   /// <summary>
   /// Makes an input the document's, with the outputs last used for it, or the tools' defaults if it's new. The outputs
   /// of the input before it don't carry over, since they were for that workbook.
@@ -79,6 +102,13 @@ internal sealed class AppSettings
     Document.Vbadoc ??= new VbadocSettings();
     Document.Pqdoc ??= new PqdocSettings();
     Document.Pqdoc.Formats ??= [];
+    Import ??= new ImportSettings();
+    Import.Source ??= "";
+    Import.Manifest ??= "";
+    Import.Bundle ??= "";
+    Import.NewWorkbook ??= "";
+    Import.Target ??= "";
+    Import.Items = (Import.Items ?? []).Where(item => !string.IsNullOrEmpty(item)).ToList();
     Recent = (Recent ?? []).Where(recent => recent is { Input.Length: > 0 }).Take(RecentCount).ToList();
     return this;
   }
