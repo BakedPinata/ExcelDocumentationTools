@@ -1205,7 +1205,8 @@ main commands but `--force` (the same as Overwrite), `--help` and `--version`. E
 command as it changes, and its tooltips and defaults come from the tool too. The tools gained `PageWritten`, so the app is
 told where each page went rather than working it out; the console doesn't use it. 87 tests run with no window, among them
 both real tools run through the app, and the window was checked from screenshots, including a run of the published exe.
-The decisions are in `xldocui/docs/DECISIONS.md`.
+The decisions are in `xldocui/docs/DECISIONS.md`. It runs on a work machine. There, a narrow window cut off the right of
+the tab and the command, so the window's least size is now worked out from what it shows.
 
 ### Step I4: Importing
 

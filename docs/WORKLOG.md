@@ -70,6 +70,10 @@ Newest first.
 - 87 tests with no window, including both real tools run through the app. The window was checked from screenshots at
   175%: buttons kept their default size and came out twice as tall, since Windows Forms scales a new control for the
   screen and the form scales it again, so they're sized by their text. The published exe ran a workbook.
+- The user ran it on a work machine, where a narrow window cut off the right of the tab and the command (Folder…, Copy,
+  the fields). The top table's one column was sized to its contents rather than the window, and the least size was a
+  fixed guess. The column now fills the window, and the least size is worked out from what's showing; if Windows makes
+  it smaller anyway, the top scrolls.
 
 ### 2026-11-11: Step I2a, unknown options
 
