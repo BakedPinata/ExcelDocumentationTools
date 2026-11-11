@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using ExcelDocumenter.Desktop.Asking;
 using ExcelDocumenter.Desktop.Documenting;
+using ExcelDocumenter.Desktop.Importing;
 using ExcelDocumenter.Desktop.Running;
 using ExcelDocumenter.Desktop.Settings;
 using ExcelDocumenter.Shared;
@@ -25,6 +26,8 @@ internal sealed class MainWindow : Form
   private readonly DocumentTab document = new() { Dock = DockStyle.Top };
   private readonly TabControl tabs = new() { Dock = DockStyle.Fill };
   private readonly TabPage documentPage = new("Document") { Padding = new Padding(8), AutoScroll = true, UseVisualStyleBackColor = true };
+  private readonly ImportTab import = new() { Dock = DockStyle.Top };
+  private readonly TabPage importPage = new("Import") { Padding = new Padding(8), AutoScroll = true, UseVisualStyleBackColor = true };
   private readonly TableLayoutPanel top = new() { ColumnCount = 1, Dock = DockStyle.Fill, Padding = new Padding(8, 8, 8, 4), RowCount = 2 };
   private readonly TableLayoutPanel commandPanel = new() { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Fill };
   private readonly SplitContainer split = new() { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, FixedPanel = FixedPanel.Panel1 };
@@ -40,6 +43,7 @@ internal sealed class MainWindow : Form
   };
   private readonly Label problems = new() { AutoSize = true, ForeColor = Color.FromArgb(0xB0, 0x2A, 0x1E), Margin = new Padding(3, 0, 3, 6) };
   private readonly Button copy = new Button { Text = "C&opy", Anchor = AnchorStyles.Top }.SizedToText();
+  private readonly Button preview = new Button { Text = "Pre&view", Visible = false }.SizedToText();
   private readonly Button run = new Button { Text = "&Run" }.SizedToText();
   private readonly Button cancel = new Button { Text = "&Cancel", Enabled = false }.SizedToText();
   private readonly Button openPages = new Button { Text = "Open the &page", Enabled = false }.SizedToText();
@@ -70,6 +74,8 @@ internal sealed class MainWindow : Form
 
     documentPage.Controls.Add(document);
     tabs.TabPages.Add(documentPage);
+    importPage.Controls.Add(import);
+    tabs.TabPages.Add(importPage);
 
     commandPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
     commandPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -81,7 +87,7 @@ internal sealed class MainWindow : Form
     commandPanel.Controls.Add(problems, 0, 2);
     commandPanel.SetColumnSpan(problems, 2);
     var buttons = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Fill, Margin = Padding.Empty, WrapContents = false };
-    buttons.Controls.AddRange([run, cancel, openWhenWritten, openPages]);
+    buttons.Controls.AddRange([preview, run, cancel, openWhenWritten, openPages]);
     commandPanel.Controls.Add(buttons, 0, 3);
     commandPanel.SetColumnSpan(buttons, 2);
 
@@ -108,7 +114,10 @@ internal sealed class MainWindow : Form
 
     document.Changed += (_, _) => ShowCommand();
     document.InputChosen += (_, chosen) => Choose(chosen);
+    import.Changed += (_, _) => ShowCommand();
+    tabs.SelectedIndexChanged += (_, _) => ShowCommand();
     copy.Click += (_, _) => CopyCommand();
+    preview.Click += async (_, _) => await PreviewAsync();
     run.Click += async (_, _) => await RunAsync();
     cancel.Click += (_, _) => running?.Cancel();
     openPages.Click += (_, _) => pages.ForEach(OpenPage);
@@ -116,6 +125,12 @@ internal sealed class MainWindow : Form
     AcceptDrops(this);
 
     document.Show(settings.Document, settings.Recent.Select(r => r.Input));
+    import.Show(settings.Import, settings.Recent.Select(r => r.Input));
+    if (settings.Tab == ImportTabName)
+    {
+      tabs.SelectedTab = importPage;
+    }
+
     initialInput = input;
   }
 
@@ -173,8 +188,7 @@ internal sealed class MainWindow : Form
       return;
     }
 
-    settings.Document = document.Read();
-    settings.OpenPages = openWhenWritten.Checked;
+    Keep();
     SaveSettings();
     base.OnFormClosing(e);
   }
@@ -191,19 +205,72 @@ internal sealed class MainWindow : Form
     base.Dispose(disposing);
   }
 
-  private async Task RunAsync()
+  private const string ImportTabName = "Import";
+
+  private bool OnImport => tabs.SelectedTab == importPage;
+
+  // What Run runs on the tab that's showing, which the window shows.
+  private IReadOnlyList<ToolCommand> Commands() => OnImport
+    ? ImportCommands.Run(import.Read()) is { } command ? [command] : []
+    : DocumentCommands.For(document.Read());
+
+  // What stops Run on the tab that's showing.
+  private IReadOnlyList<string> Problems() => OnImport ? ImportCommands.Problems(import.Read()) : DocumentCommands.Problems(document.Read());
+
+  // What Preview runs, on the Import tab, when it can.
+  private ToolCommand? PreviewCommand()
   {
-    var current = document.Read();
-    var commands = DocumentCommands.For(current);
-    if (running is not null || commands.Count == 0 || DocumentCommands.Problems(current).Count > 0)
+    if (!OnImport)
     {
-      return;
+      return null;
     }
 
-    settings.Document = current;
+    var current = import.Read();
+    return ImportCommands.Problems(current, preview: true).Count == 0 ? ImportCommands.Preview(current) : null;
+  }
+
+  private async Task RunAsync()
+  {
+    var commands = Commands();
+    if (running is null && commands.Count > 0 && Problems().Count == 0)
+    {
+      await RunAsync(commands);
+    }
+  }
+
+  private async Task PreviewAsync()
+  {
+    if (running is null && PreviewCommand() is { } command)
+    {
+      await RunAsync([command]);
+    }
+  }
+
+  // Both tabs as they are now, kept for next time.
+  private void Keep()
+  {
+    settings.Document = document.Read();
+    settings.Import = import.Read();
     settings.OpenPages = openWhenWritten.Checked;
-    settings.Remember(current);
-    document.ShowRecent(settings.Recent.Select(r => r.Input));
+    settings.Tab = OnImport ? ImportTabName : "Document";
+  }
+
+  private async Task RunAsync(IReadOnlyList<ToolCommand> commands)
+  {
+    // The workbook or source just used goes to the top of the recent ones.
+    Keep();
+    if (OnImport)
+    {
+      settings.RememberSource(settings.Import.Source);
+    }
+    else
+    {
+      settings.Remember(settings.Document);
+    }
+
+    var recent = settings.Recent.Select(r => r.Input).ToList();
+    document.ShowRecent(recent);
+    import.ShowRecent(recent);
     SaveSettings();
 
     using var cancellation = new CancellationTokenSource();
@@ -256,9 +323,8 @@ internal sealed class MainWindow : Form
   // The commands the tab makes, and anything that stops them running.
   private void ShowCommand()
   {
-    var current = document.Read();
-    command.Text = string.Join(Environment.NewLine, DocumentCommands.For(current).Select(c => c.Text));
-    var found = DocumentCommands.Problems(current);
+    command.Text = string.Join(Environment.NewLine, Commands().Select(c => c.Text));
+    var found = Problems();
     problems.Text = string.Join(Environment.NewLine, found);
     problems.Visible = found.Count > 0;
     ShowState();
@@ -268,10 +334,16 @@ internal sealed class MainWindow : Form
   private void ShowState()
   {
     var idle = running is null;
-    var current = document.Read();
-    run.Enabled = idle && DocumentCommands.For(current).Count > 0 && DocumentCommands.Problems(current).Count == 0;
+    run.Enabled = idle && Commands().Count > 0 && Problems().Count == 0;
+    preview.Visible = OnImport;
+    preview.Enabled = idle && PreviewCommand() is not null;
     cancel.Enabled = !idle;
     document.Enabled = idle;
+    import.Enabled = idle;
+
+    // Pages are the Document tab's; an import writes none.
+    openWhenWritten.Visible = !OnImport;
+    openPages.Visible = !OnImport;
     copy.Enabled = command.TextLength > 0;
     openPages.Enabled = idle && pages.Count > 0;
     openPages.Text = pages.Count > 1 ? "Open the &pages" : "Open the &page";
@@ -345,10 +417,13 @@ internal sealed class MainWindow : Form
     // the tab's scroll bar, in case the window is ever too short for it.
     var tabsHeader = tabs.Height - tabs.DisplayRectangle.Height;
     var tabsSides = tabs.Width - tabs.DisplayRectangle.Width;
-    var topHeight = document.Height + documentPage.Padding.Vertical + tabsHeader + commandPanel.Height + top.Padding.Vertical
+    var showing = OnImport ? (Control)import : document;
+    var topHeight = showing.Height + documentPage.Padding.Vertical + tabsHeader + commandPanel.Height + top.Padding.Vertical
       + LogicalToDeviceUnits(8);
+
+    // As wide as the wider tab, so changing tabs doesn't change the window's least width.
     var topWidth = Math.Max(
-      document.LeastWidth + documentPage.Padding.Horizontal + tabsSides + SystemInformation.VerticalScrollBarWidth,
+      Math.Max(document.LeastWidth, import.LeastWidth) + documentPage.Padding.Horizontal + tabsSides + SystemInformation.VerticalScrollBarWidth,
       commandPanel.GetPreferredSize(Size.Empty).Width) + top.Padding.Horizontal;
     var leastLog = LogicalToDeviceUnits(LeastLogHeight);
 
@@ -379,7 +454,14 @@ internal sealed class MainWindow : Form
     {
       if (e.Data?.GetData(DataFormats.FileDrop) is string[] { Length: > 0 } paths)
       {
-        Choose(paths[0]);
+        if (OnImport)
+        {
+          import.Drop(paths[0]);
+        }
+        else
+        {
+          Choose(paths[0]);
+        }
       }
     };
     foreach (Control child in control.Controls)

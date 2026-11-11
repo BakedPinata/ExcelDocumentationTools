@@ -32,6 +32,9 @@ internal sealed class AppSettings
   /// <summary>Whether to open each page once it's written.</summary>
   public bool OpenPages { get; set; } = true;
 
+  /// <summary>The tab showing when the window was closed.</summary>
+  public string Tab { get; set; } = "Document";
+
   /// <summary>Recent workbooks and folders, the most recent first.</summary>
   public List<RecentInput> Recent { get; set; } = [];
 
@@ -102,6 +105,7 @@ internal sealed class AppSettings
     Document.Vbadoc ??= new VbadocSettings();
     Document.Pqdoc ??= new PqdocSettings();
     Document.Pqdoc.Formats ??= [];
+    Tab ??= "Document";
     Import ??= new ImportSettings();
     Import.Source ??= "";
     Import.Manifest ??= "";

@@ -6,6 +6,7 @@ using PowerQueryDocumenter.Core.Configuration;
 using VbaDocumenter.Core.Output;
 using PqCli = PowerQueryDocumenter.Cli;
 using VbaCli = VbaDocumenter.Cli;
+using static ExcelDocumenter.Desktop.Window.TabParts;
 
 namespace ExcelDocumenter.Desktop.Window;
 
@@ -20,13 +21,7 @@ internal sealed class DocumentTab : UserControl
   private static readonly PqCli.CliDefinition PqdocHelp = new();
 
   private readonly ToolTip tips = new() { AutoPopDelay = 30000 };
-  private readonly TableLayoutPanel grid = new()
-  {
-    AutoSize = true,
-    AutoSizeMode = AutoSizeMode.GrowAndShrink,
-    ColumnCount = 3,
-    Dock = DockStyle.Top,
-  };
+  private readonly TabGrid rows = new();
 
   private readonly ComboBox input = new FieldComboBox(240) { Anchor = AnchorStyles.Left | AnchorStyles.Right, Name = "Input", AccessibleName = "Workbook or folder" };
   private readonly CheckBox embedSource = new() { Text = "Put the source in the page", AutoSize = true };
@@ -46,22 +41,17 @@ internal sealed class DocumentTab : UserControl
   private readonly List<Control> pqdocRows = [];
   private readonly List<Control> serverRow = [];
   private bool showing;
-  private int tabIndex;
 
   public DocumentTab()
   {
     AutoSize = true;
     AutoSizeMode = AutoSizeMode.GrowAndShrink;
-    grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-    grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-    grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-
     var browse = MakeButton("&Browse…", "Choose a workbook");
     browse.Click += (_, _) => BrowseForWorkbook();
     var folder = MakeButton("&Folder…", "Choose a folder of .m files, for Power Query");
     folder.Click += (_, _) => BrowseForFolder();
-    AddRow(Caption("&Workbook"), input, Flow(browse, folder));
-    AddRow(null, Note("A workbook, or for Power Query a folder of .m files. You can also drop one on the window.", visible: true));
+    rows.Add(Caption("&Workbook"), input, Flow(browse, folder));
+    rows.Add(null, Note("A workbook, or for Power Query a folder of .m files. You can also drop one on the window.", visible: true));
 
     onExists.Items.AddRange(new object[]
     {
@@ -76,13 +66,13 @@ internal sealed class DocumentTab : UserControl
       new Choice<LogDetail>("Verbose", LogDetail.Verbose),
       new Choice<LogDetail>("Quiet", LogDetail.Quiet),
     });
-    AddRow(Caption("Options"), Flow(embedSource, Caption("If a file &exists"), onExists, Caption("&Log"), logDetail));
+    rows.Add(Caption("Options"), Flow(embedSource, Caption("If a file &exists"), onExists, Caption("&Log"), logDetail));
 
     var vbadocBrowse = MakeButton("Br&owse…", "Choose where vbadoc writes");
     vbadocBrowse.Click += (_, _) => BrowseForOutput(vbadocOutput, "Choose where vbadoc writes the source files and page");
-    AddRow(null, Heading(vbadoc, vbadocNote));
-    vbadocRows.AddRange(AddRow(Caption("Output folder", indent: true), vbadocOutput, vbadocBrowse));
-    vbadocRows.AddRange(AddRow(Caption("Page name", indent: true), vbadocName));
+    rows.Add(null, Heading(vbadocNote, vbadoc));
+    vbadocRows.AddRange(rows.Add(Caption("Output folder", indent: true), vbadocOutput, vbadocBrowse));
+    vbadocRows.AddRange(rows.Add(Caption("Page name", indent: true), vbadocName));
 
     var pqdocBrowse = MakeButton("Bro&wse…", "Choose where pqdoc writes");
     pqdocBrowse.Click += (_, _) => BrowseForOutput(pqdocOutput, "Choose where pqdoc writes its outputs and query files");
@@ -96,15 +86,15 @@ internal sealed class DocumentTab : UserControl
       },
       AutoSize = true,
     });
-    AddRow(null, Heading(pqdoc, pqdocNote));
-    pqdocRows.AddRange(AddRow(Caption("Output folder", indent: true), pqdocOutput, pqdocBrowse));
-    pqdocRows.AddRange(AddRow(Caption("File names", indent: true), pqdocName));
-    pqdocRows.AddRange(AddRow(Caption("Formats", indent: true), Flow([.. formats.Values])));
-    serverRow.AddRange(AddRow(Caption("PlantUML server", indent: true), plantUmlServer));
+    rows.Add(null, Heading(pqdocNote, pqdoc));
+    pqdocRows.AddRange(rows.Add(Caption("Output folder", indent: true), pqdocOutput, pqdocBrowse));
+    pqdocRows.AddRange(rows.Add(Caption("File names", indent: true), pqdocName));
+    pqdocRows.AddRange(rows.Add(Caption("Formats", indent: true), Flow([.. formats.Values])));
+    serverRow.AddRange(rows.Add(Caption("PlantUML server", indent: true), plantUmlServer));
     plantUmlServer.PlaceholderText = "Or set PLANTUML_SERVER_URL, or a .env file";
 
     SetTips();
-    Controls.Add(grid);
+    Controls.Add(rows.Panel);
 
     input.TextChanged += (_, _) => OnChanged();
     input.SelectionChangeCommitted += (_, _) =>
@@ -137,7 +127,7 @@ internal sealed class DocumentTab : UserControl
   public event EventHandler? Changed;
 
   /// <summary>The narrowest the tab can be and show everything it shows now, with each field at its least width.</summary>
-  public int LeastWidth => grid.GetPreferredSize(Size.Empty).Width + grid.Margin.Horizontal;
+  public int LeastWidth => rows.LeastWidth;
 
   /// <summary>A workbook or folder was chosen with Browse, Folder or from the recent ones, rather than typed.</summary>
   public event EventHandler<string>? InputChosen;
@@ -323,128 +313,5 @@ internal sealed class DocumentTab : UserControl
     {
       field.Text = picker.SelectedPath;
     }
-  }
-
-  // The folder a path is in, or the folder itself, for a picker to start in; empty if there's none.
-  private static string FolderOf(string path)
-  {
-    if (path.Length == 0)
-    {
-      return "";
-    }
-
-    if (Directory.Exists(path))
-    {
-      return path;
-    }
-
-    var parent = Path.GetDirectoryName(path);
-    return parent is not null && Directory.Exists(parent) ? parent : "";
-  }
-
-  /// <summary>Adds a row: a caption, a field across the rest or the middle, and a button. Returns its controls.</summary>
-  private List<Control> AddRow(Control? caption, Control field, Control? button = null)
-  {
-    var row = grid.RowCount++;
-    grid.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-    var controls = new List<Control>();
-    if (caption is not null)
-    {
-      Place(caption, 0, row);
-      controls.Add(caption);
-    }
-
-    Place(field, caption is null ? 0 : 1, row);
-    grid.SetColumnSpan(field, (caption is null ? 3 : 2) - (button is null ? 0 : 1));
-    controls.Add(field);
-    if (button is not null)
-    {
-      Place(button, 2, row);
-      controls.Add(button);
-    }
-
-    return controls;
-  }
-
-  private void Place(Control control, int column, int row)
-  {
-    grid.Controls.Add(control, column, row);
-    control.TabIndex = tabIndex++;
-  }
-
-  private static Label Caption(string text, bool indent = false) => new()
-  {
-    Text = text,
-    AutoSize = true,
-    Anchor = AnchorStyles.Left,
-    Margin = new Padding(indent ? 24 : 3, 6, 3, 6),
-  };
-
-  private static Label Note(string text = "", bool visible = false) => new()
-  {
-    Text = text,
-    AutoSize = true,
-    Anchor = AnchorStyles.Left,
-    ForeColor = SystemColors.GrayText,
-    Visible = visible,
-  };
-
-  private static TextBox Field(string name) => new FieldTextBox(200)
-  {
-    Anchor = AnchorStyles.Left | AnchorStyles.Right,
-    AccessibleName = name,
-  };
-
-  private static Button MakeButton(string text, string name) => new Button
-  {
-    Text = text,
-    AccessibleName = name,
-  }.SizedToText();
-
-  private static FlowLayoutPanel Flow(params Control[] controls)
-  {
-    var flow = new FlowLayoutPanel
-    {
-      AutoSize = true,
-      AutoSizeMode = AutoSizeMode.GrowAndShrink,
-      Anchor = AnchorStyles.Left,
-      Margin = Padding.Empty,
-      // A flow that may wrap says it's as tall as it would be wrapped, which leaves gaps; the window is kept wide
-      // enough instead.
-      WrapContents = false,
-    };
-    foreach (var control in controls)
-    {
-      if (control is Label)
-      {
-        control.Margin = new Padding(12, 6, 0, 3);
-      }
-
-      flow.Controls.Add(control);
-    }
-
-    return flow;
-  }
-
-  // A tool's tickbox, with the note on why it's off, a little apart from the rows above.
-  private static FlowLayoutPanel Heading(CheckBox box, Label note)
-  {
-    var flow = Flow(box, note);
-    flow.Margin = new Padding(0, 10, 0, 0);
-    note.Margin = new Padding(6, 4, 0, 0);
-    return flow;
-  }
-
-  private static void SelectChoice<T>(ComboBox box, T value) =>
-    box.SelectedItem = box.Items.Cast<Choice<T>>().FirstOrDefault(c => EqualityComparer<T>.Default.Equals(c.Value, value))
-      ?? box.Items[0];
-
-  private static T Selected<T>(ComboBox box) => (box.SelectedItem ?? box.Items[0]) is Choice<T> choice
-    ? choice.Value
-    : throw new InvalidOperationException($"{box.AccessibleName} has no choices.");
-
-  private sealed record Choice<T>(string Label, T Value)
-  {
-    public override string ToString() => Label;
   }
 }
