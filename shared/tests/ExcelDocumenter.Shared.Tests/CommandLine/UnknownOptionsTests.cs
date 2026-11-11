@@ -16,7 +16,7 @@ public sealed class UnknownOptionsTests
       new Option<bool>("--quiet", "-q"),
       new Command("import") { new Argument<string>("source"), new Option<string?>("--items", "-i") },
     };
-    return UnknownOptions.Find(command.Parse(args));
+    return UnknownOptions.Find(command.Parse(args), args);
   }
 
   [Theory]
@@ -40,9 +40,21 @@ public sealed class UnknownOptionsTests
   }
 
   [Theory]
+  [InlineData("-vx", "-x", "-vx")]                        // read as -v and a workbook called x
+  [InlineData("-vx Sales.xlsm", "-x", "-vx")]             // read as -v and x, leaving the workbook unmatched
+  [InlineData("Sales.xlsm -vxq", "-x", "-vxq")]
+  [InlineData("import Sales.xlsm -vx -i A", "-x", "-vx")]
+  public void An_unknown_letter_in_a_bundle_of_short_options_is_found(string args, string letter, string bundle)
+  {
+    Assert.Equal(new[] { $"Unknown option '{letter}' in '{bundle}'." }, Find(args.Split(' ')));
+  }
+
+  [Theory]
   [InlineData("Sales.xlsm")]
   [InlineData("Sales.xlsm", "-v", "-q", "-o", "docs")]
   [InlineData("-vq", "Sales.xlsm")]                       // a bundle of known options
+  [InlineData("-vodocs", "Sales.xlsm")]                   // ending with an option's value
+  [InlineData("x", "-v")]                                 // an argument after a flag, written as a word of its own
   [InlineData("Sales.xlsm", "-o", "-drafts")]             // an option's value may start with a dash
   [InlineData("Sales.xlsm", "--output=-drafts")]
   [InlineData("-o", "--drafts", "Sales.xlsm")]

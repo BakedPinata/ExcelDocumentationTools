@@ -51,7 +51,7 @@ public static class CliRunner
     {
       // Validation errors: name the problem and the option, show brief usage, exit 2 (FR-CLI-3). A word that looks like
       // an option but isn't one comes first, since the parse's own errors may be about the wrong word.
-      var unknownOptions = UnknownOptions.Find(parseResult);
+      var unknownOptions = UnknownOptions.Find(parseResult, args);
       if (unknownOptions.Count > 0)
       {
         return ReportInvalidArguments(unknownOptions);
