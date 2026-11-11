@@ -31,51 +31,51 @@ questions the draft raised.
 
 | Step | Scope | Who | Status |
 |---|---|---|---|
-| A0 | Move to .NET 10, with command-line instructions | Claude, then you on a work machine | Done; work machine check to come |
-| A1 | Fix: a click in the graph pulls modules together | Claude | Done |
-| A2 | Fix: the export pauses while writing the page | Claude | Done: timings added; the cause, antivirus scanning Mermaid, is fixed by F1 |
-| A3 | pqdoc writes HTML by default | Claude | Done |
-| F1 | Class diagram drawn by the page, with boxes you can move; Mermaid removed (moved up after A2) | Claude | Done |
-| B1 | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | Done |
-| B2 | pqdoc reads queries from a workbook | Claude | Done |
-| A4 | Documentation files named after the workbook, the same way in both tools (added after B2) | Claude | Done |
-| B3 | pqdoc writes `.m` files, kept in step with the workbook | Claude | Done |
-| B4 | pqdoc's page shows highlighted M source | Claude | Done |
-| C1 | Shared library: `shared/`, with the C# code both tools now duplicate | Claude | Done |
-| C2 | Shared page shell: both pages rebuilt on it, with no visible change | Claude | Done |
-| A5 | vbadoc asks before overwriting its page, with `--on-exists` and `--force` as pqdoc has them (added after C1) | Claude | Done |
-| D1 | Explorer: a tree of everything in the workbook, beside the view | Claude | Done |
-| D1b | Explorer layouts: folders or kinds, with folders drawn as folders; pqdoc reads nested query groups (added after D1; first, because the samples now have nested groups) | You in Excel, then Claude | Done |
-| D1a | Panel controls: the toggles as icons at the two ends of the top bar; the side panel follows the selection unless locked; a button to copy the source (added after D1 and D1b) | Claude | Done |
-| D1e | `'@Folder` after a label in a header comment, such as `' Folder:<tabs>@Folder("Reports")` (added after D1a) | Claude | Done |
-| D1c | View controls: a Focus on click switch for every view, Ctrl+click for the other, Esc to deselect, Transitive into Settings, the class diagram's legend as the graph's, and the same summary in both pages (added after D1) | Claude | Done |
-| D1d | Speed: large projects stay smooth to pan and scroll, keeping every feature (added after D1; about 3 out of 10 after more use) | Claude, then you on a work machine | Done |
-| A6 | vbadoc: a name declared again under `#If` (for early or late binding, say) is one member, with every version's types and dependencies (added after D1d) | Claude | Done |
-| D2 | Favourites, replacing Home and the trail | Claude | Done |
-| D3a | Showing less, part 1: Expand and Collapse all, and checkboxes that filter every view to chosen items and folders, remembered per workbook (D3 split after D2) | Claude | Done |
-| D3b | Showing less, part 2: hiding, the Hidden group, the panel note about hidden items, and Focus on favourites | Claude | Done |
-| D3c | Showing less, part 3: the Show menus move into the explorer, for every view | Claude | Done |
-| D4 | Widely used items and predeclared classes, marked and grouped in the explorer, with Hide all (split from D3 after D1c) | Claude | Done |
-| E1 | Uses / Used by: each item once, with links to the exact lines | Claude | Done |
-| E2 | Calls tab: the procedures an entry point calls, in order | Claude | Done |
-| E3 | Calls tab: the Ifs, loops and Select Cases around each call | Claude | Done |
-| E4 | pqdoc: a query's steps, in order | Claude | Done |
-| E5 | Optional: a sequence diagram of the expanded calls | Claude | Done |
+| [A0](#step-a0-net-10) | Move to .NET 10, with command-line instructions | Claude, then you on a work machine | Done; work machine check to come |
+| [A1](#step-a1-graph-click) | Fix: a click in the graph pulls modules together | Claude | Done |
+| [A2](#step-a2-export-speed) | Fix: the export pauses while writing the page | Claude | Done: timings added; the cause, antivirus scanning Mermaid, is fixed by F1 |
+| [A3](#step-a3-pqdoc-writes-html-by-default) | pqdoc writes HTML by default | Claude | Done |
+| [F1](#step-f1-class-diagram) | Class diagram drawn by the page, with boxes you can move; Mermaid removed (moved up after A2) | Claude | Done |
+| [B1](#step-b1-sample-workbooks) | Sample workbooks with Power Query, and confirming the format against them | You in Excel, then Claude | Done |
+| [B2](#step-b2-pqdoc-reads-a-workbook) | pqdoc reads queries from a workbook | Claude | Done |
+| [A4](#step-a4-documentation-file-names) | Documentation files named after the workbook, the same way in both tools (added after B2) | Claude | Done |
+| [B3](#step-b3-pqdoc-writes-m-files) | pqdoc writes `.m` files, kept in step with the workbook | Claude | Done |
+| [B4](#step-b4-pqdocs-page-shows-source) | pqdoc's page shows highlighted M source | Claude | Done |
+| [C1](#step-c1-shared-library) | Shared library: `shared/`, with the C# code both tools now duplicate | Claude | Done |
+| [C2](#step-c2-shared-page-shell) | Shared page shell: both pages rebuilt on it, with no visible change | Claude | Done |
+| [A5](#step-a5-vbadoc-asks-before-overwriting-its-page) | vbadoc asks before overwriting its page, with `--on-exists` and `--force` as pqdoc has them (added after C1) | Claude | Done |
+| [D1](#step-d1-explorer) | Explorer: a tree of everything in the workbook, beside the view | Claude | Done |
+| [D1b](#step-d1b-explorer-layouts-and-nested-query-groups) | Explorer layouts: folders or kinds, with folders drawn as folders; pqdoc reads nested query groups (added after D1; first, because the samples now have nested groups) | You in Excel, then Claude | Done |
+| [D1a](#step-d1a-panel-controls) | Panel controls: the toggles as icons at the two ends of the top bar; the side panel follows the selection unless locked; a button to copy the source (added after D1 and D1b) | Claude | Done |
+| [D1e](#step-d1e-folder-after-a-label) | `'@Folder` after a label in a header comment, such as `' Folder:<tabs>@Folder("Reports")` (added after D1a) | Claude | Done |
+| [D1c](#step-d1c-view-controls-and-both-pages-summary) | View controls: a Focus on click switch for every view, Ctrl+click for the other, Esc to deselect, Transitive into Settings, the class diagram's legend as the graph's, and the same summary in both pages (added after D1) | Claude | Done |
+| [D1d](#step-d1d-speed-on-large-projects) | Speed: large projects stay smooth to pan and scroll, keeping every feature (added after D1; about 3 out of 10 after more use) | Claude, then you on a work machine | Done |
+| [A6](#step-a6-declarations-repeated-under-if) | vbadoc: a name declared again under `#If` (for early or late binding, say) is one member, with every version's types and dependencies (added after D1d) | Claude | Done |
+| [D2](#step-d2-favourites) | Favourites, replacing Home and the trail | Claude | Done |
+| [D3a](#d3a-expand-and-collapse-all-and-the-filter) | Showing less, part 1: Expand and Collapse all, and checkboxes that filter every view to chosen items and folders, remembered per workbook (D3 split after D2) | Claude | Done |
+| [D3b](#d3b-hiding) | Showing less, part 2: hiding, the Hidden group, the panel note about hidden items, and Focus on favourites | Claude | Done |
+| [D3c](#d3c-the-show-menus-in-the-explorer) | Showing less, part 3: the Show menus move into the explorer, for every view | Claude | Done |
+| [D4](#step-d4-widely-used-items-and-predeclared-classes) | Widely used items and predeclared classes, marked and grouped in the explorer, with Hide all (split from D3 after D1c) | Claude | Done |
+| [E1](#step-e1-uses--used-by-with-references) | Uses / Used by: each item once, with links to the exact lines | Claude | Done |
+| [E2](#step-e2-calls-tab) | Calls tab: the procedures an entry point calls, in order | Claude | Done |
+| [E3](#step-e3-the-logic-around-each-call) | Calls tab: the Ifs, loops and Select Cases around each call | Claude | Done |
+| [E4](#step-e4-a-querys-steps) | pqdoc: a query's steps, in order | Claude | Done |
+| [E5](#step-e5-sequence-diagram-optional) | Optional: a sequence diagram of the expanded calls | Claude | Done |
 | E5a | Follow-ups after E5's review: labels never cut in the diagram, open all below, whole entry points in scope, Show nothing and All / None, explained settings, gentler dragging (one try rolled back) | Claude | Done |
-| G1 | Saved views: named, exported to a file and imported again | Claude | Done |
-| G1a | Follow-ups after G1's review: a view keeps everything the page shows (the selection and its focus, Focus on click, the panels), moved nodes put back after Re-run layout or a focus, Save over any view with Undo, and a check before importing another workbook's views | Claude | Done |
-| G2 | A views file in the output folder is built into the page | Claude | Parked after G1a, to come back to; H1 goes first |
-| G3 | Printing a view or every view, with descriptions | Claude, then you on a work machine | Parked after G1a, to come back to |
-| G4 | Optional: copy a view as text, to paste into a chat | Claude | Parked after G1a, to come back to |
-| H1 | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | Done: yes, at home and at work, with labels and references |
-| H2 | The Export tab and manifest: choosing what to import, with what it brings; bundle folders | Claude, then you in Excel | Done; your check of a bundle by hand to come |
-| H3 | vbadoc imports into a new workbook or a copy of an existing one, with references, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
-| H4 | pqdoc imports into a new workbook or a copy of an existing one, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
-| I1 | Spike: a desktop window, published as one file, that runs on a work machine (added after H3) | Claude, then you on a work machine | Done: works at home and on a work machine |
-| I2 | Both tools' command lines can be run by another program, with no change to the console tools | Claude | Done |
-| I2a | Follow-up after I2's review: an unknown option is a usage error wherever it's written, rather than taken for the workbook | Claude | Done |
-| I3 | The desktop app: documenting a workbook with either tool | Claude | Done |
-| I4 | The desktop app: importing, with the tools' questions asked in dialogs | Claude | Done |
+| [G1](#step-g1-saved-views) | Saved views: named, exported to a file and imported again | Claude | Done |
+| [G1a](#step-g1a-follow-ups-after-g1s-review) | Follow-ups after G1's review: a view keeps everything the page shows (the selection and its focus, Focus on click, the panels), moved nodes put back after Re-run layout or a focus, Save over any view with Undo, and a check before importing another workbook's views | Claude | Done |
+| [G2](#step-g2-views-file-built-into-the-page) | A views file in the output folder is built into the page | Claude | Parked after G1a, to come back to; H1 goes first |
+| [G3](#step-g3-printing-and-descriptions) | Printing a view or every view, with descriptions | Claude, then you on a work machine | Parked after G1a, to come back to |
+| [G4](#step-g4-copy-a-view-as-text-optional) | Optional: copy a view as text, to paste into a chat | Claude | Parked after G1a, to come back to |
+| [H1](#step-h1-spike-on-writing-into-a-workbook) | Spike: can the tools write modules and queries into a workbook that Excel accepts? | Claude, then you in Excel | Done: yes, at home and at work, with labels and references |
+| [H2](#step-h2-the-export-tab-the-manifest-and-bundles) | The Export tab and manifest: choosing what to import, with what it brings; bundle folders | Claude, then you in Excel | Done; your check of a bundle by hand to come |
+| [H3](#steps-h3-and-h4-importing-into-a-workbook) | vbadoc imports into a new workbook or a copy of an existing one, with references, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
+| [H4](#steps-h3-and-h4-importing-into-a-workbook) | pqdoc imports into a new workbook or a copy of an existing one, asking about name clashes | Claude, then you in Excel | Done; your check in Excel to come |
+| [I1](#step-i1-spike-on-the-desktop-window) | Spike: a desktop window, published as one file, that runs on a work machine (added after H3) | Claude, then you on a work machine | Done: works at home and on a work machine |
+| [I2](#step-i2-the-tools-command-lines-runnable-by-another-program) | Both tools' command lines can be run by another program, with no change to the console tools | Claude | Done |
+| [I2a](#step-i2-the-tools-command-lines-runnable-by-another-program) | Follow-up after I2's review: an unknown option is a usage error wherever it's written, rather than taken for the workbook | Claude | Done |
+| [I3](#step-i3-documenting-a-workbook) | The desktop app: documenting a workbook with either tool | Claude | Done |
+| [I4](#step-i4-importing) | The desktop app: importing, with the tools' questions asked in dialogs | Claude | Done |
 
 **Checks still to come, after phase I** (the user's choice, after H3): A0 on a work machine, D1b's workbook with 20 groups,
 a bundle brought in by hand (H2), and H3 and H4 in Excel, which also settle control references, references to other VBA
