@@ -28,7 +28,7 @@ internal sealed class DocumentTab : UserControl
     Dock = DockStyle.Top,
   };
 
-  private readonly ComboBox input = new() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Name = "Input", AccessibleName = "Workbook or folder" };
+  private readonly ComboBox input = new FieldComboBox(240) { Anchor = AnchorStyles.Left | AnchorStyles.Right, Name = "Input", AccessibleName = "Workbook or folder" };
   private readonly CheckBox embedSource = new() { Text = "Put the source in the page", AutoSize = true };
   private readonly ComboBox onExists = new() { DropDownStyle = ComboBoxStyle.DropDownList, AccessibleName = "If a file exists" };
   private readonly ComboBox logDetail = new() { DropDownStyle = ComboBoxStyle.DropDownList, AccessibleName = "Log" };
@@ -135,6 +135,9 @@ internal sealed class DocumentTab : UserControl
 
   /// <summary>Anything on the tab changed.</summary>
   public event EventHandler? Changed;
+
+  /// <summary>The narrowest the tab can be and show everything it shows now, with each field at its least width.</summary>
+  public int LeastWidth => grid.GetPreferredSize(Size.Empty).Width + grid.Margin.Horizontal;
 
   /// <summary>A workbook or folder was chosen with Browse, Folder or from the recent ones, rather than typed.</summary>
   public event EventHandler<string>? InputChosen;
@@ -386,7 +389,7 @@ internal sealed class DocumentTab : UserControl
     Visible = visible,
   };
 
-  private static TextBox Field(string name) => new()
+  private static TextBox Field(string name) => new FieldTextBox(200)
   {
     Anchor = AnchorStyles.Left | AnchorStyles.Right,
     AccessibleName = name,

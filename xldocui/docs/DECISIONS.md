@@ -68,4 +68,8 @@ it. Add to this file whenever a new decision is agreed. Conventions shared with 
   text: Windows Forms already scales a new control's default size for the screen, and the form scales it again, so a
   button keeping its default size came out twice as tall.
 - **The tab is as tall as what it shows,** and the log has the rest; the split between them can be dragged.
+- **The window can't be made smaller than what it shows** (found on a work machine, after I3): its least size is worked
+  out from what's showing, at the screen's scale, whenever that changes. A field asks for its least width rather than
+  the width of its text, so a long path doesn't widen the window. If Windows makes the window smaller anyway, as
+  snapping it to half of a small screen can, the top scrolls rather than cutting off what's on the right.
 - **A dropped file is taken anywhere on the window,** since every control accepts the drop.

@@ -27,7 +27,7 @@ internal sealed class MainWindow : Form
   private readonly TableLayoutPanel top = new() { ColumnCount = 1, Dock = DockStyle.Fill, Padding = new Padding(8, 8, 8, 4), RowCount = 2 };
   private readonly TableLayoutPanel commandPanel = new() { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Fill };
   private readonly SplitContainer split = new() { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, FixedPanel = FixedPanel.Panel1 };
-  private readonly TextBox command = new()
+  private readonly TextBox command = new FieldTextBox(240)
   {
     Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top,
     Multiline = true,
@@ -44,6 +44,7 @@ internal sealed class MainWindow : Form
   private readonly Button openPages = new Button { Text = "Open the &page", Enabled = false }.SizedToText();
   private readonly CheckBox openWhenWritten = new() { Text = "Open each page when it's written", AutoSize = true, Margin = new Padding(12, 7, 3, 3) };
   private readonly LogPane log = new();
+  private readonly StatusStrip status = new() { SizingGrip = true };
   private readonly ToolStripStatusLabel versions = new() { Spring = true, TextAlign = ContentAlignment.MiddleRight };
   private readonly List<string> pages = [];
   private readonly string? initialInput;
@@ -64,7 +65,6 @@ internal sealed class MainWindow : Form
     AutoScaleMode = AutoScaleMode.Dpi;
     Text = "xldocui";
     ClientSize = new Size(900, 780);
-    MinimumSize = new Size(820, 600);
     StartPosition = FormStartPosition.CenterScreen;
 
     documentPage.Controls.Add(document);
@@ -84,15 +84,18 @@ internal sealed class MainWindow : Form
     commandPanel.Controls.Add(buttons, 0, 3);
     commandPanel.SetColumnSpan(buttons, 2);
 
+    // As wide as the window. A column with no style is sized to what's in it, so the tabs and the command ran off the
+    // right of a narrow window.
+    top.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
     top.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
     top.RowStyles.Add(new RowStyle(SizeType.AutoSize));
     top.Controls.Add(tabs, 0, 0);
     top.Controls.Add(commandPanel, 0, 1);
     split.Panel1.Controls.Add(top);
+    split.Panel1.AutoScroll = true;
     split.Panel2.Controls.Add(log.Box);
     split.Panel2.Padding = new Padding(8, 0, 8, 0);
 
-    var status = new StatusStrip { SizingGrip = true };
     status.Items.Add(versions);
     ShowVersions();
 
@@ -139,21 +142,23 @@ internal sealed class MainWindow : Form
     }
 
     FitCommand();
-    FitTabs();
+    FitToContent();
   }
 
   // Once the window has its size at the screen's scale.
   protected override void OnShown(EventArgs e)
   {
     base.OnShown(e);
-    FitTabs();
+    FitToContent();
   }
 
   protected override void OnDpiChanged(DpiChangedEventArgs e)
   {
     base.OnDpiChanged(e);
     FitCommand();
-    FitTabs();
+
+    // Once the controls have been scaled for the new screen and laid out again.
+    BeginInvoke(FitToContent);
   }
 
   protected override void OnFormClosing(FormClosingEventArgs e)
@@ -256,7 +261,7 @@ internal sealed class MainWindow : Form
     problems.Text = string.Join(Environment.NewLine, found);
     problems.Visible = found.Count > 0;
     ShowState();
-    FitTabs();
+    FitToContent();
   }
 
   private void ShowState()
@@ -323,24 +328,43 @@ internal sealed class MainWindow : Form
   private void FitCommand() =>
     command.Height = (TextRenderer.MeasureText("X", command.Font).Height * 2) + SystemInformation.HorizontalScrollBarHeight + 8;
 
-  // The tab as tall as what it shows, leaving the rest to the log.
-  private void FitTabs()
+  /// <summary>
+  /// The tab as tall as what it shows, the log the rest, and the window no smaller than that, worked out from what's
+  /// showing at the screen's scale. If Windows makes the window smaller anyway, as snapping it to half of a small screen
+  /// can, the top scrolls rather than cutting off what's on the right.
+  /// </summary>
+  private void FitToContent()
   {
     if (!IsHandleCreated)
     {
       return;
     }
 
-    // The tab and the command panel are laid out by now, so their heights are what they show.
-    var header = tabs.Height - tabs.DisplayRectangle.Height;
-    var needed = document.Height + documentPage.Padding.Vertical + header + commandPanel.Height + top.Padding.Vertical
+    // The tab and the command panel are laid out by now, so their heights are what they show. The width leaves room for
+    // the tab's scroll bar, in case the window is ever too short for it.
+    var tabsHeader = tabs.Height - tabs.DisplayRectangle.Height;
+    var tabsSides = tabs.Width - tabs.DisplayRectangle.Width;
+    var topHeight = document.Height + documentPage.Padding.Vertical + tabsHeader + commandPanel.Height + top.Padding.Vertical
       + LogicalToDeviceUnits(8);
-    var room = split.Height - split.SplitterWidth - LogicalToDeviceUnits(120);
-    if (room > split.Panel1MinSize)
-    {
-      split.SplitterDistance = Math.Clamp(needed, split.Panel1MinSize, room);
-    }
+    var topWidth = Math.Max(
+      document.LeastWidth + documentPage.Padding.Horizontal + tabsSides + SystemInformation.VerticalScrollBarWidth,
+      commandPanel.GetPreferredSize(Size.Empty).Width) + top.Padding.Horizontal;
+    var leastLog = LogicalToDeviceUnits(LeastLogHeight);
+
+    split.Panel1.AutoScrollMinSize = new Size(topWidth, 0);
+    var frame = Size - ClientSize;
+    var screen = Screen.FromControl(this).WorkingArea.Size;
+    MinimumSize = new Size(
+      Math.Min(topWidth + frame.Width, screen.Width),
+      Math.Min(topHeight + split.SplitterWidth + leastLog + status.Height + frame.Height, screen.Height));
+
+    // After the minimum, which may have made the window bigger.
+    var room = split.Height - split.SplitterWidth - Math.Max(leastLog, split.Panel2MinSize);
+    split.SplitterDistance = Math.Max(split.Panel1MinSize, Math.Min(topHeight, room));
   }
+
+  // The least height of the log, at 96 dpi: a few lines.
+  private const int LeastLogHeight = 120;
 
   // A workbook or folder dropped anywhere on the window is chosen. Every control takes the drop, so there's no part of
   // the window that refuses it.

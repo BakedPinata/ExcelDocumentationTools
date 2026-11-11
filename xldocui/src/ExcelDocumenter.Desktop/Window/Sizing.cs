@@ -16,3 +16,22 @@ internal static class Sizing
     return button;
   }
 }
+
+/// <summary>
+/// A text box that stretches with the window. Asked how wide it would like to be, it gives its least width rather than
+/// the width of its text, so a long path doesn't make the window's least width wider.
+/// </summary>
+/// <param name="leastWidth">The narrowest it should be, at 96 dpi.</param>
+internal sealed class FieldTextBox(int leastWidth) : TextBox
+{
+  public override Size GetPreferredSize(Size proposedSize) =>
+    new(LogicalToDeviceUnits(leastWidth), Multiline ? Height : base.GetPreferredSize(proposedSize).Height);
+}
+
+/// <summary>A combo box that stretches with the window, asking for its least width as <see cref="FieldTextBox"/> does.</summary>
+/// <param name="leastWidth">The narrowest it should be, at 96 dpi.</param>
+internal sealed class FieldComboBox(int leastWidth) : ComboBox
+{
+  public override Size GetPreferredSize(Size proposedSize) =>
+    new(LogicalToDeviceUnits(leastWidth), base.GetPreferredSize(proposedSize).Height);
+}
