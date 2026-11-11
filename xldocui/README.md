@@ -43,7 +43,7 @@ xldocui [<workbook or folder>]
 
 **Choose what to document** with Browse… (a workbook) or Folder… (a folder of `.m` files, for Power Query), from the
 recent ones in the list, by dropping it on the window, or by naming it when starting the app. Explorer's "Copy as path"
-can be pasted as it is.
+can be pasted as it is. The Import tab chooses its source the same way.
 
 **The Document tab** has every option of both tools' main commands:
 
@@ -71,11 +71,34 @@ on the clipboard, ready for a Command Prompt or PowerShell. Anything the tool's 
 words and with its exit code. Cancel stops a run as Ctrl+C does, and Quit in a question stops the rest of the run too.
 Each page is opened once it's written, unless that's turned off, and Open the page opens it again.
 
-**The app remembers**, for each person, the tab as it was left, and the last ten workbooks and folders, each with the
-output folders and names last used for it. They're in `%LOCALAPPDATA%\xldocui\settings.json`. If that file can't be
-read, the app starts again from the defaults.
+**The Import tab** takes chosen modules and classes (vbadoc) or queries (pqdoc), with what they use, out of a workbook,
+or out of a folder of `.m` files for queries, as `vbadoc import` and `pqdoc import` do:
 
-Importing comes next, in its own tab: step I4 of the [feedback plan](../FEEDBACK-PLAN.md).
+| In the window | `import` |
+|---|---|
+| Source | the source |
+| Take: modules and classes, or queries, when both tools read the source | which tool runs |
+| Tick them in the list, or From a manifest | `--items`, or `--manifest` |
+| Write to: a bundle folder, a new workbook, a copy of a target, or the target itself | `--bundle`, `--new`, `--into`, or `--into` and `--in-place` |
+| If it's in the target: Ask, Overwrite or Skip, with a target | `--on-clash` (Ask asks in a dialog) |
+| If a file exists, but for the target itself | `--on-exists` |
+| Log | `--verbose`, `--quiet` |
+| Leave out library references; Remove the target's signature, with a target (vbadoc) | `--no-references`; `--drop-signature` |
+
+The list is read from the source by the tool that would take from it, each item with what it is, and greyed out with
+the reason when it can't come, such as a sheet's module. What a ticked item uses comes with it. **Preview** runs the
+choice with nowhere to write, which says what it comes to: what's chosen, what's brought along, and what to check in the
+target. Run then writes it. A manifest dropped on the tab is taken as the choice, and anything else dropped as the source.
+A name with a comma in it can only be chosen with a manifest, since `--items` is split at commas.
+
+**The tools' questions** are dialogs: a page or file that's already there (Overwrite, Keep it, Overwrite all, Quit), an
+item the target already has (what's in the way, what Skip and Overwrite would each mean, then Skip, Overwrite, Skip all,
+Overwrite all, Quit, without Overwrite for what can't be replaced), and, before changing the target itself, whether
+you're sure. Enter gives the answer that changes nothing, and closing a question is Quit.
+
+**The app remembers**, for each person, both tabs as they were left and which was showing, and the last ten workbooks and
+folders, each with the output folders and names last used for it. They're in `%LOCALAPPDATA%\xldocui\settings.json`. If
+that file can't be read, the app starts again from the defaults.
 
 ## Project layout
 
@@ -83,9 +106,11 @@ Importing comes next, in its own tab: step I4 of the [feedback plan](../FEEDBACK
 src/ExcelDocumenter.Desktop/              the app
   Program.cs                              opens the window
   Documenting/                            the Document tab's settings, and the commands they make
+  Importing/                              the Import tab's settings, the commands they make, and its list
+  Asking/                                 the tools' questions, and what each answer means
   Running/                                running a tool in the app: the command, its text, the run, the log, exit codes
   Settings/                               what's remembered, and where
-  Window/                                 the window, the Document tab, the log pane and the dialogs
+  Window/                                 the window, the tabs, the log pane and the dialogs
 tests/ExcelDocumenter.Desktop.Tests/      tests of everything but the window, with the real tools
 ```
 

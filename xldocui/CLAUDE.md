@@ -26,8 +26,10 @@ dotnet run --project src/ExcelDocumenter.Desktop [-- <workbook or folder>]
   if the app needs something a tool doesn't offer, add it to the tool's `.Cli` library or Core, not here.
 - **A new option in a tool** needs a control on the tab, or an entry in `DocumentCommands.LeftOut` saying why not. The
   tests fail until it has one.
-- Everything but the window is plain code under `Documenting/`, `Running/` and `Settings/`, tested with no window.
-  `Window/` only shows it. After changing the window, look at it: start it, and take screenshots.
+- Everything but the window is plain code under `Documenting/`, `Importing/`, `Asking/`, `Running/` and `Settings/`,
+  tested with no window. `Window/` only shows it, and asks the tools' questions through `IAsk`. After changing the
+  window, look at it: start it, and take screenshots.
+- **A new option on `import`** needs the same as one on a main command, in `ImportCommands`.
 - Controls are made in code, with no designer, sized by their text and laid out by `TableLayoutPanel` and
   `FlowLayoutPanel`, so they're right at any screen scale. Don't give a control a fixed size.
 - Windows only: the projects target `net10.0-windows`, from the root's target in `Directory.Build.props`.

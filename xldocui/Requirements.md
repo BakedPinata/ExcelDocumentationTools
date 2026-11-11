@@ -33,14 +33,25 @@ A desktop app that gives vbadoc's and pqdoc's command lines a window. Steps I1 t
 | FR-DOC-6 | Each page MUST be opened once it's written, unless that's turned off. The tools MUST say where they put it. |
 | FR-DOC-7 | Only what differs from a tool's default MUST be written in its command, with long option names. |
 
-## 4. Settings
+## 4. The Import tab
 
 | ID | Requirement |
 |---|---|
-| FR-SET-1 | The app MUST remember, for each person, the tab as it was left, whether to open pages, and the last ten workbooks and folders, each with the output folders and names last used for it. |
+| FR-IMP-1 | The tab MUST set every option of both tools' `import`, except those it lists as left out on purpose, with the reason, checked by a test as FR-DOC-1 is. |
+| FR-IMP-2 | What to take MUST be choosable from a manifest, or by ticking it in a list read from the source by the tool that would take it. What can't be taken MUST be listed, greyed out, with the tool's reason. |
+| FR-IMP-3 | Where it goes MUST be choosable: a bundle folder, a new workbook, a copy of a target, or the target itself. Only what applies to the choice MUST be shown, such as `--on-clash` with a target. |
+| FR-IMP-4 | Preview MUST run the same choice with nowhere to write, so the tool says what it comes to and writes nothing. |
+| FR-IMP-5 | An item the target already has MUST be asked about in a dialog that says what's in the way and what Skip and Overwrite would each mean, with the console's answers: Skip, Overwrite, Skip all, Overwrite all and Quit, without Overwrite for what can't be replaced. Changing the target itself MUST ask first. |
+| FR-IMP-6 | The dialogs' answers MUST be tested with a stand-in for the windows. |
+
+## 5. Settings
+
+| ID | Requirement |
+|---|---|
+| FR-SET-1 | The app MUST remember, for each person, both tabs as they were left and which was showing, whether to open pages, and the last ten workbooks and folders, each with the output folders and names last used for it. |
 | FR-SET-2 | Settings that can't be read MUST NOT stop the app: it starts again from the defaults. |
 
-## 5. Platform
+## 6. Platform
 
 | ID | Requirement |
 |---|---|

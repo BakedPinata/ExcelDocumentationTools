@@ -32,7 +32,13 @@ it. Add to this file whenever a new decision is agreed. Conventions shared with 
 - **Closing the window during a run** cancels it, as Ctrl+C would, and closes once it's stopped.
 - **The overwrite question** is a task dialog with the console's four answers: Overwrite, Keep it, Overwrite all and
   Quit. Keep it is the default, so Enter changes nothing, and closing the dialog is Quit, as end of input is at the
-  console. The clash question and `--in-place`'s comes with the Import tab (I4).
+  console.
+- **The clash question** (step I4) says what's in the way and what Skip and Overwrite would each mean, as the console
+  does, with its five answers: Skip, Overwrite, Skip all, Overwrite all and Quit, and without Overwrite for what can't
+  be replaced. Skip is the default, as it keeps what the target has. **Changing the target itself** asks "Are you sure?"
+  with No the default. Closing either is Quit, or no.
+- **The questions are asked through `IAsk`:** a task dialog in the window, a stand-in in the tests, so what each answer
+  means is tested with no window. The dialogs' labels are ones the console's own reader understands too.
 
 ## The Document tab
 
@@ -54,12 +60,33 @@ it. Add to this file whenever a new decision is agreed. Conventions shared with 
   `AnalyserOptions.DefaultOutputName`, the default folders from each option's `[default: …]`, and the tooltips from the
   options' help.
 
+## The Import tab (step I4)
+
+- **One tool at a time.** An import takes modules and classes or queries, so the tab runs one tool's `import`: the one
+  chosen, when both read the source, or the one that does.
+- **The list is read by the tool that would take from it,** through `ImportSource` in its command-line library, by the
+  rules `import` uses, so the list and the command can't disagree. It's read off the window's thread, half a second
+  after typing stops, and again with Read again. What can't come is listed, greyed out, with the tool's reason, and
+  can't be ticked.
+- **Ticked names go in `--items`,** which is split at commas, so a name with a comma can only be chosen with a manifest;
+  the tab says so. What was ticked for another source is let go once the new source's list is read.
+- **Preview is the same command with nowhere to write,** which is how `import` already says what a choice comes to.
+  It doesn't need a destination; Run does.
+- **Each destination keeps its own path** (the bundle folder, the new workbook, the target), so switching between them
+  doesn't lose one. `--on-clash` and `--drop-signature` only show with a target, `--on-exists` not for the target
+  itself, which asks instead, and vbadoc's options only for vbadoc.
+- **Left out on purpose:** `--force`, the same as Overwrite, and for the target itself answered in a dialog; and
+  `--help`. `ImportCommands.LeftOut` says why, and a test checks every other option has a control.
+- **A manifest dropped on the tab is the choice,** and anything else dropped is the source.
+- **Nothing to open after an import,** so Open the page is only on the Document tab.
+
 ## Settings
 
 - **In `%LOCALAPPDATA%\xldocui\settings.json`,** per person and per machine, where Windows Forms keeps its own. Written
   all at once (`AtomicFileWriter`), when a run starts and when the window closes.
-- **The tab as it was left, and the last ten inputs.** An input's output folders and names belong to it rather than to
-  the tool, so they're kept with it and come back when it's chosen again; a new input starts from the defaults.
+- **Both tabs as they were left, which was showing, and the last ten inputs.** An input's output folders and names
+  belong to it rather than to the tool, so they're kept with it and come back when it's chosen again; a new input starts
+  from the defaults. An import's source joins the same list.
 - **Settings that can't be read start again** from the defaults, rather than stopping the app.
 
 ## The window
@@ -72,4 +99,8 @@ it. Add to this file whenever a new decision is agreed. Conventions shared with 
   out from what's showing, at the screen's scale, whenever that changes. A field asks for its least width rather than
   the width of its text, so a long path doesn't widen the window. If Windows makes the window smaller anyway, as
   snapping it to half of a small screen can, the top scrolls rather than cutting off what's on the right.
-- **A dropped file is taken anywhere on the window,** since every control accepts the drop.
+- **A dropped file is taken anywhere on the window,** since every control accepts the drop, by the tab that's showing.
+- **The tabs share their rows' parts** (`TabGrid`, `TabParts`), so they look and size alike. The least width is the
+  wider tab's, so changing tabs doesn't change it.
+- **In a row of choices, each caption is shown before its box, and the row laid out again after:** shown together, a box
+  could end up before its caption.
