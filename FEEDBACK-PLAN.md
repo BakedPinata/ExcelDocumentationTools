@@ -74,7 +74,7 @@ questions the draft raised.
 | I1 | Spike: a desktop window, published as one file, that runs on a work machine (added after H3) | Claude, then you on a work machine | Done: works at home and on a work machine |
 | I2 | Both tools' command lines can be run by another program, with no change to the console tools | Claude | Done |
 | I2a | Follow-up after I2's review: an unknown option is a usage error wherever it's written, rather than taken for the workbook | Claude | Done |
-| I3 | The desktop app: documenting a workbook with either tool | Claude | |
+| I3 | The desktop app: documenting a workbook with either tool | Claude | Done |
 | I4 | The desktop app: importing, with the tools' questions asked in dialogs | Claude | |
 
 **Checks still to come, after phase I** (the user's choice, after H3): A0 on a work machine, D1b's workbook with 20 groups,
@@ -1199,6 +1199,13 @@ is written as a path, such as `.\-draft.xlsm`, as the READMEs say. vbadoc 0.30.1
 - Opens the page when it's written. Remembers the last settings for each tool and recent workbooks, per user.
 - Tests, with no window: what each form builds parses with no errors in the real `CliDefinition`, and every option of a
   command has a control or is listed as deliberately left out, so a new option can't be forgotten.
+
+**Done.** `xldocui` 0.1.0, published compressed as you chose: one 50 MB file. The Document tab sets every option of both
+main commands but `--force` (the same as Overwrite), `--help` and `--version`. Each tool's own command line checks the
+command as it changes, and its tooltips and defaults come from the tool too. The tools gained `PageWritten`, so the app is
+told where each page went rather than working it out; the console doesn't use it. 87 tests run with no window, among them
+both real tools run through the app, and the window was checked from screenshots, including a run of the published exe.
+The decisions are in `xldocui/docs/DECISIONS.md`.
 
 ### Step I4: Importing
 

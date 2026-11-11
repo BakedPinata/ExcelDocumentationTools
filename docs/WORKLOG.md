@@ -18,6 +18,9 @@ rather than repeating it.
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
+- **xldocui 0.1.0**, since step I3: the desktop app over both tools, in Windows Forms, published as one compressed
+  50 MB file. It runs the tools' command lines in its own process, so it holds no logic of its own. The Document tab
+  has every option of both main commands; the Import tab comes in I4. See `xldocui/README.md`.
 - **`shared/`** (`ExcelDocumenter.Shared`): the code both tools use, since step C1, and the page shell both pages are
   built on, since C2. See its README.
 - **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–I4. The user's build, test and
@@ -36,11 +39,11 @@ rather than repeating it.
   user parked G2–G4 (the views file in the page, printing, copying a view) to come back to later. H1 (the spike on
   writing modules and queries into workbooks), H2 (the Export tab, the manifest and bundles) and H3 (vbadoc writing into
   workbooks) are pushed: Excel accepts what the spike wrote, at home and at work. H4 (pqdoc writing into workbooks) is
-  pushed. I1, the first of the desktop app's steps (`xldocui`, in Windows Forms), is on `feedback/i1-desktop-spike`: the
-  spike worked at home and on a work machine, and is deleted. I2 (each tool's command line as a library) is reviewed, on
-  `feedback/i2-cli-library`, on top of I1. I2a (an unknown option is a usage error, asked for in I2's review) is on
-  `feedback/i2a-unknown-options`, on top of I2, waiting for review. **Next: I3.** The user's other checks of what's built
-  so far come after phase I; the plan lists them.
+  pushed. I1 (the desktop window spike, which worked at home and on a work machine, and is deleted), I2 (each tool's
+  command line as a library) and I2a (an unknown option is a usage error, asked for in I2's review) are reviewed and
+  rebased onto main, not yet pushed. I3 (`xldocui`, with its Document tab) is on `feedback/i3-desktop-document`, waiting
+  for review. **Next: I4**, the Import tab. The user's other checks of what's built so far come after phase I; the plan
+  lists them.
   E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
@@ -53,6 +56,20 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-11: Step I3, the desktop app's Document tab
+
+- The user reviewed I2 and I2a, had them rebased onto main, and chose to publish the app compressed.
+- `xldocui/` 0.1.0, with its solution, documents and publish profile. The Document tab sets every option of both main
+  commands but `--force`, `--help` and `--version`, saying why; a test fails if a new option has neither. The command
+  shows with Copy, checked by each tool's own command line as it changes. Runs are off the window's thread with Cancel;
+  the log has the tools' own lines and how each ended in words; the overwrite question is a dialog; pages open once
+  written; the tab, recent workbooks and their outputs are remembered in `%LOCALAPPDATA%\xldocui`.
+- The tools gained `PageWritten`, to say where the page went; the console doesn't use it. The build stamp can follow
+  other folders (`ToolStampPaths`), and the app's follows `vbadoc/` and `pqdoc/`.
+- 87 tests with no window, including both real tools run through the app. The window was checked from screenshots at
+  175%: buttons kept their default size and came out twice as tall, since Windows Forms scales a new control for the
+  screen and the form scales it again, so they're sized by their text. The published exe ran a workbook.
 
 ### 2026-11-11: Step I2a, unknown options
 
