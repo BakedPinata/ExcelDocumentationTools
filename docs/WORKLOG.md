@@ -8,7 +8,11 @@ rather than repeating it.
 - **Updating it:** at the end of each stage, and after any session that changes direction, update *Current state* and
   add an entry at the top of the log. Give the date, what changed and why, and commits, in a few lines.
 
-## Current state (2026-11-12)
+## Current state (2026-11-13)
+
+- **`GENERALISATION-PLAN.md`** (root): a draft, written on 2026-11-13, to widen the repository to C# solutions and
+  Python projects, with new names for the repository, the shared library and the desktop app. **Next: the user's
+  review of it,** and their answers to its section 1. Nothing in it is started. It's on `general/plan`.
 
 - **vbadoc 0.31.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
@@ -46,9 +50,9 @@ rather than repeating it.
   (Excel add-ins: J1, sample add-ins and a spike on writing into them; J2, importing into them) was added after I4.
   J1 is done on `feedback/j1-addin-spike`: the samples are in, vbadoc reads them, and Excel accepted every add-in
   `spikes/j1-addins` wrote, at home and at work. J2 (vbadoc writing into add-ins, and the Import tab offering them) is
-  done on `feedback/j2-addin-import`, which starts from J1's branch. **Next: the user's review of J1 and J2,** and J2's
-  check in Excel, which the plan's J2 section lists. The user's checks of what's built so far, which the plan lists
-  under its progress table, are still to come.
+  done on `feedback/j2-addin-import`, which starts from J1's branch. The user found J1 and J2 working as expected on
+  2026-11-13, and local main was brought up to J2's branch; pushing main is still to come. The user's checks of what's
+  built so far, which the plan lists under its progress table, are still to come.
   E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
@@ -61,6 +65,17 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-13: A plan to document C# and Python too
+
+- The user found J1 and J2 working as expected, and had main brought up to `feedback/j2-addin-import` (a fast-forward,
+  local only).
+- They asked to generalise the project to C# solutions (projects, classes and members) and Python projects of many
+  files, with names to suit, and for a plan to review before anything changes.
+- `GENERALISATION-PLAN.md` is that plan, a draft on `general/plan`. It recommends: `CodeDocumentationTools`, with
+  `csdoc` and `pythondoc` beside vbadoc and pqdoc, and `codedocui` for the app; one set of views for VBA, C# and
+  Python, moved out of vbadoc first; Roslyn for C#, with nothing built or run; a parser of our own for Python. Each
+  new tool starts with a spike. Its section 1 has the questions to settle, closing the feedback plan among them.
 
 ### 2026-11-12: Step J2, importing into add-ins
 
