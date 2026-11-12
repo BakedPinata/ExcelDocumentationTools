@@ -51,14 +51,29 @@ public sealed class TargetWorkbook
   /// </summary>
   public IReadOnlyList<string> CodeNames => _projectPart is null && IsXml(_package.WorkbookPart) ? ReadCodeNames(_package.WorkbookPart) : [];
 
+  /// <summary>What modules can be written into: the workbooks both tools write into, and add-ins (step J1).</summary>
+  public static IReadOnlyList<string> Extensions { get; } = [.. TargetFile.Workbooks, ".xlam"];
+
+  /// <summary>The kinds of new file <see cref="New"/> builds, with their dots: a workbook, or an add-in.</summary>
+  public static IReadOnlyList<string> NewExtensions { get; } = [".xlsm", ".xlam"];
+
+  /// <summary>Whether it's an add-in, which it stays, project or not.</summary>
+  public bool IsAddin => _package.IsAddin;
+
   /// <summary>A new workbook with one sheet.</summary>
-  public static TargetWorkbook New() => new(BlankWorkbook.Build(macroEnabled: true), null, null);
+  /// <param name="addin">Whether it's an add-in, which is only a workbook with another content type.</param>
+  public static TargetWorkbook New(bool addin = false)
+  {
+    var package = BlankWorkbook.Build(macroEnabled: true);
+    if (addin) package.SetOverride(package.WorkbookPart, BlankWorkbook.AddinContentType);
+    return new(package, null, null);
+  }
 
   /// <summary>Reads a workbook to write into. It's only read: the result is the bytes <see cref="Write"/> returns.</summary>
   /// <exception cref="ExtractionException">It can't be a target, and says why.</exception>
   public static TargetWorkbook Read(string path)
   {
-    var bytes = TargetFile.ReadBytes(path, "modules", ".xlsm");
+    var bytes = TargetFile.ReadBytes(path, "modules", ".xlsm", Extensions);
     var package = OpcPackage.Read(bytes);
     var part = ProjectPartOf(package);
     return new TargetWorkbook(package, part, part is null ? null : WorkbookReader.Read(bytes));
@@ -161,7 +176,8 @@ public sealed class TargetWorkbook
     if (_projectPart is not null) _package.RemoveRelationships(_projectPart, type => type.Contains(Signature, StringComparison.OrdinalIgnoreCase));
   }
 
-  // A workbook without a project gets one, and becomes macro-enabled. Its .xlsb form already is.
+  // A workbook without a project gets one, and becomes macro-enabled. Its .xlsb form already is, and so is an add-in,
+  // which has to keep its own type to stay one.
   void AddProject(IReadOnlyList<ModuleToWrite> modules, IReadOnlyList<VbaReference> references, int codePage)
   {
     var workbook = _package.WorkbookPart;
@@ -170,7 +186,7 @@ public sealed class TargetWorkbook
     _package.Set(part, ProjectWriter.Create([.. documents, .. modules], references, codePage));
     _package.AddRelationship(workbook, VbaProjectRelationship, "vbaProject.bin");
     _package.SetOverride(part, VbaProjectContentType);
-    if (IsXml(workbook)) _package.SetOverride(workbook, BlankWorkbook.MacroEnabledContentType);
+    if (IsXml(workbook) && !IsAddin) _package.SetOverride(workbook, BlankWorkbook.MacroEnabledContentType);
   }
 
   // The sheets' parts, in order. A chart sheet isn't one of them, and Excel gives it a module itself.

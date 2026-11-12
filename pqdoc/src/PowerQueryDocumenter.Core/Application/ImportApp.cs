@@ -131,8 +131,7 @@ public sealed class ImportApp(ILogger logger, AppServices services)
   {
     if (target.New is { } file)
     {
-      var extension = Path.GetExtension(file);
-      if (extension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase) || extension.Equals(".xlsm", StringComparison.OrdinalIgnoreCase))
+      if (TargetWorkbook.NewExtensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
       {
         return file;
       }

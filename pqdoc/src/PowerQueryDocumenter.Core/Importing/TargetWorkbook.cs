@@ -53,6 +53,12 @@ public sealed class TargetWorkbook
   public bool IgnoresPrivacyLevels =>
     sections is { } read && read[1].Length > 0 && TryReadPermissions(read[1])?.Descendants("FirewallEnabled").FirstOrDefault()?.Value == "false";
 
+  /// <summary>What queries can be written into, with their dots.</summary>
+  public static IReadOnlyList<string> Extensions => TargetFile.Workbooks;
+
+  /// <summary>The kinds of new workbook <see cref="New"/> builds, with their dots.</summary>
+  public static IReadOnlyList<string> NewExtensions { get; } = [".xlsx", ".xlsm"];
+
   /// <summary>A new workbook with one sheet.</summary>
   /// <param name="macroEnabled">Whether it's to be an <c>.xlsm</c>.</param>
   public static TargetWorkbook New(bool macroEnabled) => new(BlankWorkbook.Build(macroEnabled), null, null, []);
@@ -63,7 +69,7 @@ public sealed class TargetWorkbook
   /// <exception cref="ExtractionException">It can't be a target, and says why.</exception>
   public static TargetWorkbook Read(string path, ILogger? logger = null)
   {
-    var package = OpcPackage.Read(TargetFile.ReadBytes(path, "queries", ".xlsx"));
+    var package = OpcPackage.Read(TargetFile.ReadBytes(path, "queries", ".xlsx", Extensions));
     foreach (var name in package.Names.Where(WorkbookReader.IsCustomXmlPart).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList())
     {
       XDocument document;

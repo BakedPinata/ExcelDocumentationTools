@@ -244,6 +244,12 @@ public sealed class OpcPackage
     SetXml(ContentTypesPart, document);
   }
 
+  /// <summary>A part's own type, or null if it has none and so takes its extension's.</summary>
+  public string? ContentTypeOf(string partName) => (string?)OverrideOf(Xml(ContentTypesPart), partName)?.Attribute("ContentType");
+
+  /// <summary>Whether the package is an add-in, which only its workbook part's type says.</summary>
+  public bool IsAddin => ContentTypeOf(WorkbookPart) == BlankWorkbook.AddinContentType;
+
   /// <summary>Takes out a part's own type, if it has one.</summary>
   public void RemoveOverride(string partName)
   {

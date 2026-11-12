@@ -59,7 +59,7 @@ public sealed class CliDefinition
       Description = "Leave out the source's library references.",
     };
     Import.Command.Options.Add(NoReferences);
-    ImportTarget = new ImportTargetOptions(Import, "modules and classes", "It has to be an .xlsm.");
+    ImportTarget = new ImportTargetOptions(Import, "modules and classes", "It has to be an .xlsm, or an .xlam for an add-in.");
     DropSignature = new Option<bool>("--drop-signature")
     {
       Description = "With --into, go ahead though the target's VBA project is signed, removing the signature the change would break.",

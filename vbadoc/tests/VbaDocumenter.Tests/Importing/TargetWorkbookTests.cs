@@ -192,13 +192,13 @@ public sealed class TargetWorkbookTests : IDisposable
   }
 
   [Theory]
-  [InlineData("Addin.xlam")]
   [InlineData("Template.xltm")]
+  [InlineData("Old.xla")]
   public void Only_the_kinds_tried_in_Excel_can_be_targets(string name)
   {
     var error = Assert.Throws<ExtractionException>(() => TargetWorkbook.Read(Save(name, BlankWorkbook.Build(true).Write())));
 
-    Assert.Contains(".xlsx, .xlsm, .xlsb", error.Message);
+    Assert.Contains("can only be written into .xlsx, .xlsm, .xlsb, .xlam files", error.Message);
   }
 
   [Fact]

@@ -13,6 +13,11 @@ public static class BlankWorkbook
   /// <summary>The content type of a workbook that can hold a VBA project.</summary>
   public const string MacroEnabledContentType = "application/vnd.ms-excel.sheet.macroEnabled.main+xml";
 
+  /// <summary>
+  /// The content type of an add-in (.xlam), which is all that makes one: in every other part it's a macro-enabled workbook.
+  /// </summary>
+  public const string AddinContentType = "application/vnd.ms-excel.addin.macroEnabled.main+xml";
+
   /// <summary>The relationship from a workbook to a sheet.</summary>
   public const string WorksheetRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet";
 

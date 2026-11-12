@@ -44,7 +44,9 @@ public static class WorkbookReader
     using var zip = new ZipArchive(new MemoryStream(fileBytes), ZipArchiveMode.Read);
     var entry = zip.GetEntry("xl/vbaProject.bin")
         ?? zip.Entries.FirstOrDefault(e => e.FullName.EndsWith("vbaProject.bin", StringComparison.OrdinalIgnoreCase))
-        ?? throw new ExtractionException("The workbook has no VBA project (no xl/vbaProject.bin). Was it saved as .xlsx?");
+        ?? throw new ExtractionException(IsAddin(fileBytes)
+            ? "The add-in has no VBA project (no xl/vbaProject.bin), so it has no modules."
+            : "The workbook has no VBA project (no xl/vbaProject.bin). Was it saved as .xlsx?");
 
     using var entryStream = entry.Open();
     var vbaProjectBin = new MemoryStream();
@@ -53,6 +55,19 @@ public static class WorkbookReader
 
     using var root = RootStorage.Open(vbaProjectBin);
     return ReadProject(root);
+  }
+
+  // Only for what's said when there's no project, so a package that can't say counts as a workbook.
+  static bool IsAddin(byte[] fileBytes)
+  {
+    try
+    {
+      return OpcPackage.Read(fileBytes).IsAddin;
+    }
+    catch (Exception ex) when (ex is ExtractionException or InvalidDataException or System.Xml.XmlException)
+    {
+      return false;
+    }
   }
 
   static VbaProject ReadCompoundFile(byte[] fileBytes)

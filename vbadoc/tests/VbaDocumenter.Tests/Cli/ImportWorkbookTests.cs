@@ -5,6 +5,7 @@ using ExcelDocumenter.Shared.Workbooks;
 using Serilog.Events;
 using VbaDocumenter.Cli;
 using VbaDocumenter.Core.Extraction;
+using VbaDocumenter.Core.Importing;
 using VbaDocumenter.Cli.Logging;
 using VbaDocumenter.Tests.Support;
 
@@ -51,7 +52,9 @@ public sealed class ImportWorkbookTests : IDisposable
     Directory.Delete(_folder, recursive: true);
   }
 
-  int Run(params string[] args) => CliRunner.Run(["import", Source, .. args], new AppServices
+  int Run(params string[] args) => RunOn(Source, args);
+
+  int RunOn(string source, params string[] args) => CliRunner.Run(["import", source, .. args], new AppServices
   {
     Output = _output,
     Error = _error,
@@ -193,6 +196,72 @@ public sealed class ImportWorkbookTests : IDisposable
     Assert.Equal(ExitCodes.Success, Run("--items", "Paths", "--into", target));
 
     Assert.Contains("Paths", Names(Path.Combine(_folder, "Target-imported.xlsb")));
+  }
+
+  [Fact]
+  public void An_add_ins_copy_goes_beside_it_and_stays_an_add_in_with_both_files_left_as_they_were()
+  {
+    var target = Path.Combine(_folder, "Toolkit.xlam");
+    File.Copy(Fixtures.Workbook("Toolkit.xlam"), target);
+    var source = File.ReadAllBytes(Source);
+    var before = File.ReadAllBytes(target);
+
+    Assert.Equal(ExitCodes.Success, Run("--items", "Paths", "--into", target));
+
+    var copy = Path.Combine(_folder, "Toolkit-imported.xlam");
+    Assert.True(OpcPackage.Read(File.ReadAllBytes(copy)).IsAddin);
+    Assert.Contains("Paths", Names(copy));
+    Assert.Contains("CustomStringPrinter", Names(copy));
+    Assert.Equal(before, File.ReadAllBytes(target));
+    Assert.Equal(source, File.ReadAllBytes(Source));
+  }
+
+  [Fact]
+  public void A_locked_add_in_changed_in_place_stays_a_locked_add_in()
+  {
+    var target = Path.Combine(_folder, "LockedToolkit.xlam");
+    File.Copy(Fixtures.Workbook("LockedToolkit.xlam"), target);
+
+    Assert.Equal(ExitCodes.Success, Run("--items", "Paths", "--into", target, "--in-place", "--force"));
+
+    var changed = TargetWorkbook.Read(target);
+    Assert.True(changed.IsAddin);
+    Assert.True(changed.IsLocked);
+    Assert.Contains("Paths", Names(target));
+    Assert.Equal(["LockedToolkit.xlam", "Tools.xlsm"], Directory.GetFiles(_folder).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+  }
+
+  [Fact]
+  public void A_new_file_named_xlam_is_an_add_in()
+  {
+    var addin = Path.Combine(_folder, "Toolkit.xlam");
+
+    Assert.Equal(ExitCodes.Success, Run("--items", "Paths", "--new", addin));
+
+    Assert.True(OpcPackage.Read(File.ReadAllBytes(addin)).IsAddin);
+    Assert.Equal(["ILogger", "Paths", "Sheet1", "ThisWorkbook"], Names(addin));
+  }
+
+  [Fact]
+  public void An_older_add_in_target_is_refused_saying_to_save_it_as_an_xlam()
+  {
+    var target = Path.Combine(_folder, "Toolkit.xla");
+    File.Copy(Fixtures.Workbook("Toolkit.xla"), target);
+
+    Assert.Equal(ExitCodes.InputError, Run("--items", "Paths", "--into", target));
+
+    Assert.Contains(_log.Messages(LogEventLevel.Error), m => m.Contains("Save it as an Excel Add-in (.xlam)"));
+    Assert.Equal(["Toolkit.xla", "Tools.xlsm"], Directory.GetFiles(_folder).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+  }
+
+  [Fact]
+  public void Modules_taken_from_an_add_in_bring_what_they_use_into_a_new_workbook()
+  {
+    Assert.Equal(ExitCodes.Success, RunOn(Fixtures.Workbook("Toolkit.xlam"), "--items", "CustomStringPrinter", "--new", New));
+
+    Assert.Equal(["CustomStringPrinter", "IStringPrinter", "Sheet1", "ThisWorkbook"], Names(New));
+    Assert.Contains("Scripting", Read(New).References.Select(r => r.Name));
+    Assert.False(OpcPackage.Read(File.ReadAllBytes(New)).IsAddin);
   }
 
   [Fact]

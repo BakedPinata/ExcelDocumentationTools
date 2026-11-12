@@ -89,7 +89,7 @@ sealed class ImportCommand(ILogger logger, AppServices services)
       return ExitCodes.OutputRefused;
     }
 
-    var workbook = target.New is not null ? TargetWorkbook.New() : TargetWorkbook.Read(target.Into!);
+    var workbook = target.New is not null ? TargetWorkbook.New(addin: IsXlam(output)) : TargetWorkbook.Read(target.Into!);
     if (workbook.IsSigned && !choice.DropSignature)
     {
       logger.Error("The target's VBA project is signed, and changing it would break the signature. Nothing was written. "
@@ -130,8 +130,8 @@ sealed class ImportCommand(ILogger logger, AppServices services)
   {
     if (target.New is { } file)
     {
-      if (Path.GetExtension(file).Equals(".xlsm", StringComparison.OrdinalIgnoreCase)) return file;
-      logger.Error("--new needs a file name ending in .xlsm, not {File:l}, as that's the kind vbadoc can build", Path.GetFileName(file));
+      if (TargetWorkbook.NewExtensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase)) return file;
+      logger.Error("--new needs a file name ending in .xlsm, or .xlam for an add-in, not {File:l}, as those are the kinds vbadoc can build", Path.GetFileName(file));
       return null;
     }
 
@@ -139,6 +139,8 @@ sealed class ImportCommand(ILogger logger, AppServices services)
   }
 
   static bool IsXlsx(string path) => Path.GetExtension(path).Equals(".xlsx", StringComparison.OrdinalIgnoreCase);
+
+  static bool IsXlam(string path) => Path.GetExtension(path).Equals(".xlam", StringComparison.OrdinalIgnoreCase);
 
   static bool SamePath(string a, string b) => string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
 

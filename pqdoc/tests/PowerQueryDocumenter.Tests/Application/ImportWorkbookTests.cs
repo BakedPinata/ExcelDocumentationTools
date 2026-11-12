@@ -365,6 +365,19 @@ public sealed class ImportWorkbookTests : IDisposable
   }
 
   [Fact]
+  public async Task An_add_in_isnt_a_target_as_only_vbadoc_writes_into_them()
+  {
+    var target = this.temp.Combine("Tools.xlam");
+    File.WriteAllBytes(target, BlankWorkbook.Build(macroEnabled: true).Write());
+
+    var (exit, log) = await Run("--items", "Base", "--into", target);
+
+    Assert.Equal(ExitCodes.InputError, exit);
+    Assert.Contains(log.Messages(LogEventLevel.Error), m => m.Contains("queries can only be written into .xlsx, .xlsm, .xlsb files", StringComparison.Ordinal));
+    Assert.False(File.Exists(this.temp.Combine("Tools-imported.xlam")));
+  }
+
+  [Fact]
   public async Task An_identical_query_is_left_alone_without_asking_and_counted()
   {
     WriteTarget(("Base", BaseText.Replace("\r\n", "\n", StringComparison.Ordinal)));

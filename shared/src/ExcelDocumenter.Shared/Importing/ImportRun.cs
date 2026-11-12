@@ -145,7 +145,10 @@ public sealed class ImportRun(ILogger logger, IUserInteraction interaction, stri
     // Said first, so nobody answers a question about something that can't happen.
     if (WhyNotReplaceable(path) is { } reason)
     {
-      logger.Error("{Path:l} can't be replaced, so nothing was changed. Is it open in Excel? {Reason:l}", path, reason);
+      var open = Path.GetExtension(path).Equals(".xlam", StringComparison.OrdinalIgnoreCase)
+        ? "Is it open in Excel? A loaded add-in is: untick it in the Add-ins dialog, or close Excel."
+        : "Is it open in Excel?";
+      logger.Error("{Path:l} can't be replaced, so nothing was changed. {Open:l} {Reason:l}", path, open, reason);
       return ExitCodes.ExportFailed;
     }
 

@@ -134,6 +134,21 @@ public sealed class ImportRunTests : IDisposable
     Assert.Empty(interaction.Questions);
     Assert.Equal(Before, File.ReadAllBytes(Target));
     Assert.Contains(log.Messages(LogEventLevel.Error), m => m.Contains("Is it open in Excel?"));
+    Assert.DoesNotContain(log.Messages(LogEventLevel.Error), m => m.Contains("add-in"));
+  }
+
+  [Fact]
+  public void An_add_in_held_open_says_how_to_let_it_go()
+  {
+    var addin = Path.Combine(folder.Path, "Tools.xlam");
+    File.WriteAllBytes(addin, Before);
+    using (new FileStream(addin, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
+    {
+      Assert.Equal(ExitCodes.ExportFailed, Run(new FakeUserInteraction(isInteractive: false)).ChangeInPlace(addin, force: true, "a change", Built));
+    }
+
+    Assert.Equal(Before, File.ReadAllBytes(addin));
+    Assert.Contains(log.Messages(LogEventLevel.Error), m => m.Contains("Is it open in Excel? A loaded add-in is: untick it in the Add-ins dialog, or close Excel."));
   }
 
   [Fact]
