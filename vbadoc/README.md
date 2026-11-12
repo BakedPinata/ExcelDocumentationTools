@@ -107,15 +107,18 @@ come too. **Download manifest** saves the choice as `vbadoc-export.json`, for `v
 vbadoc import Sales.xlsm --manifest vbadoc-export.json                       # says what would come
 vbadoc import Sales.xlsm --manifest vbadoc-export.json --new Toolkit.xlsm    # a new workbook
 vbadoc import Sales.xlsm --manifest vbadoc-export.json --into Target.xlsx    # writes Target-imported.xlsm, beside it
+vbadoc import Sales.xlsm --manifest vbadoc-export.json --into Tools.xlam     # an add-in: writes Tools-imported.xlam
+vbadoc import Sales.xlsm --manifest vbadoc-export.json --new Toolkit.xlam    # a new add-in
 vbadoc import Sales.xlsm --manifest vbadoc-export.json --bundle Shared       # a folder, to import by hand
 vbadoc import Sales.xlsm --items Logger,FilePathFromDialog --new Toolkit.xlsm  # by name, without a manifest
 ```
 
 The manifest lists what you picked and not what that brings, so running it again later picks up any new dependencies.
 
-**Neither workbook is changed.** `--into` takes `.xlsx`, `.xlsm` and `.xlsb` files and writes a copy beside the target,
-with the modules added and the target's sensitivity label, if it has one, as it was. An `.xlsx` is written as an `.xlsm`,
-as only that can hold modules. `--on-exists` and `--force` apply to the file written. A new workbook has no label, so
+**Neither workbook is changed.** `--into` takes `.xlsx`, `.xlsm`, `.xlsb` and `.xlam` files and writes a copy beside the
+target, with the modules added and the target's sensitivity label, if it has one, as it was. An `.xlsx` is written as an
+`.xlsm`, as only that can hold modules. An add-in stays an add-in, even one with no VBA yet, and a locked project stays
+locked, with the same password. An older `.xla` can't be written into: save it as an Excel Add-in (`.xlam`) first. `--on-exists` and `--force` apply to the file written. A new workbook has no label, so
 Excel asks for one where your organisation requires it. A workbook with a label that encrypts can't be read or written.
 
 **When the target already has a module of that name,** an identical one is left alone, and otherwise it asks about each,
@@ -133,7 +136,8 @@ vbadoc import Sales.xlsm --manifest shared.json --into Target.xlsm --in-place --
 `--force` answers that question and no other: an unattended run also needs `--on-clash` if the target might have any of
 the modules. With nobody to ask and no `--force`, it stops and changes nothing. The target is replaced in one step, once
 the result is finished and read back, so a failure leaves it as it was. A workbook open in Excel can't be replaced, and it
-says so. An `.xlsx` can't gain modules in place.
+says so. That includes an add-in Excel has loaded, so untick it in File > Options > Add-ins > Go first, or close Excel.
+An `.xlsx` can't gain modules in place.
 
 **Library references** come too, apart from those you unticked or `--no-references`, and any the target has. One that
 can't be found on this machine is left out and listed, because it would stop the whole project compiling, even code that

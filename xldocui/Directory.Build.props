@@ -4,7 +4,7 @@
 
   <PropertyGroup>
     <!-- Shown in the window's status bar. Raise it at the end of each stage. -->
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Product>xldocui</Product>
     <!-- The folder the build stamp follows: see Directory.Build.targets at the root. The app is built from both tools,
          so its stamp follows their folders too. -->

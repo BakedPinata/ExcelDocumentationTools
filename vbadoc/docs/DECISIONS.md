@@ -137,7 +137,8 @@ on a work machine.
 
 ## Writing into add-ins: what step J1 found
 
-The spike is `spikes/j1-addins`, to be deleted after J2, with the add-ins it writes in its README. The sample add-ins
+The spike was `spikes/j1-addins`, deleted in J2 and still in the repository's history, with the add-ins it wrote in its
+README. The sample add-ins
 are in the fixtures (see their README). Excel accepted all of this, at home and on a work machine.
 
 - **An add-in is an `.xlsm` with a content type of its own** for the workbook part
@@ -218,12 +219,34 @@ The commands and what they promise are in Requirements.md. What both tools need 
   sorts those out itself.
 - **Identical ignores only what ends a module,** since the VBA editor keeps or drops a last line as it likes. Anything
   else is a difference, even in an attribute, as that's what the person is being asked about.
-- **`.xlam` and `.xltm` aren't targets,** as only `.xlsx`, `.xlsm` and `.xlsb` have been tried in Excel.
+- **`.xltm` isn't a target,** as it hasn't been tried in Excel. Add-ins (`.xlam`) are, since 0.31.0 (step J2, below).
 - **`--drop-signature` is how a signed target goes ahead,** as the plan's "told to go ahead". It removes the signature's
   parts, relationships and types, rather than leave one that no longer matches. No real signed workbook has been tried.
 - **A reference is added even if every module was skipped or identical,** as those modules may need it.
 - **Where the library is looked up is this machine,** which may not be where the workbook is used. There's no better
   place to look, so the README says to run it where the workbook will be used.
+
+## Writing into add-ins (0.31.0, step J2 of the feedback plan)
+
+What step J1 found is above ("Writing into add-ins: what step J1 found").
+
+- **What can be a target is each tool's own list** (`TargetWorkbook.Extensions`), which starts from the workbooks both
+  tools write into (`TargetFile.Workbooks` in `shared/`), so pqdoc's stays as it was. Only a tool whose list has `.xlam`
+  tells an `.xla` to become one; pqdoc says what it can write into.
+- **An add-in is known by its content type** (`OpcPackage.IsAddin`), not its name, as nothing else marks one. A project
+  added to one leaves the type alone, and `--new` with an `.xlam` name gives a new workbook the add-in's type, which is
+  all J1's new add-in was. A copy keeps the target's extension, as before, so an add-in's copy is an `.xlam`.
+- **Checked against what Excel accepted.** Given J1's samples directly, J2's writer wrote the spike's A1 and A2 the
+  same in every part and stream, and A3 and A4 the same but for a new project's ID and the protection values encrypted
+  with it, which are new on every write. The spike is deleted, and is still in the repository's history.
+- **A loaded add-in is caught as an open workbook is,** by the check that an in-place target can be had to the tool
+  alone, and the message for an `.xlam` says how to unload one. That Excel holds a loaded add-in open is for the user's
+  check in Excel.
+- **An add-in with no VBA** is documented and imported from with a message that fits an add-in, rather than asking
+  whether it was saved as an `.xlsx`.
+- **The desktop app's file pickers take each tool's lists** (`Extensions`, and `NewExtensions` for `--new`), so it keeps
+  none of its own. vbadoc's new-file picker offers a workbook and an add-in one at a time, as Excel's Save As does, so a
+  name typed without an extension gets the kind chosen.
 
 ## Speed (step A2 of the feedback plan)
 

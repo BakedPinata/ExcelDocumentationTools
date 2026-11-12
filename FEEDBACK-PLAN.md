@@ -78,7 +78,7 @@ questions the draft raised.
 | [I3](#step-i3-documenting-a-workbook) | The desktop app: documenting a workbook with either tool | Claude | Done |
 | [I4](#step-i4-importing) | The desktop app: importing, with the tools' questions asked in dialogs | Claude | Done |
 | [J1](#step-j1-sample-add-ins-and-a-spike-on-writing-into-them) | Sample add-ins made in Excel, read by vbadoc; spike: can vbadoc write modules into an add-in that Excel accepts? (added after I4) | You in Excel, then Claude, then you in Excel | Done: yes, at home and at work, locked add-ins included; the Add-ins dialog installs one at work |
-| [J2](#step-j2-importing-into-add-ins) | vbadoc imports into an add-in, new or existing, and the Import tab offers them | Claude, then you in Excel | |
+| [J2](#step-j2-importing-into-add-ins) | vbadoc imports into an add-in, new or existing, and the Import tab offers them | Claude, then you in Excel | Done; your check in Excel to come |
 
 **Checks still to come, after phase I** (the user's choice, after H3): A0 on a work machine, D1b's workbook with 20 groups,
 a bundle brought in by hand (H2), and H3 and H4 in Excel, which also settle control references, references to other VBA
@@ -1330,6 +1330,26 @@ weren't tried; the first is part of J2's check.
   xldocui. `spikes/j1-addins` is deleted.
 - You check the results in Excel, at home and on a work machine, which can go with H3's check. It includes
   `--in-place` on an add-in Excel has loaded, which should be refused, and on one unticked in the Add-ins dialog.
+
+**Done** (2026-11-12): vbadoc 0.31.0, xldocui 0.3.0, and pqdoc 1.21.2, whose message for an `.xla` target now says what
+it can write into. Given J1's samples directly, the writer wrote the spike's add-ins as Excel accepted them, but for a
+new project's ID and what's encrypted with it, so the spike is deleted. The detail is in vbadoc's decisions ("Writing
+into add-ins").
+
+**Your check in Excel,** with `Toolkit.xlam` from the fixtures copied somewhere else as `Tools.xlam`, and a workbook
+with a module of made-up code that the add-in doesn't have, such as a new `Source.xlsm` with a `Greeting` module:
+
+1. **A copy:** on the Import tab, take `Greeting` into `Tools.xlam` as a copy of a target (or `vbadoc import Source.xlsm
+   --items Greeting --into Tools.xlam`). The target picker should offer add-ins. Open `Tools-imported.xlam`, compile,
+   and run something from the new module.
+2. **A new add-in:** write to a new workbook named `.xlam`; the new-file picker offers Excel add-ins as a kind. Install
+   it from the Add-ins dialog, restart Excel, and check it loads and runs.
+3. **In place, loaded:** with that add-in ticked in the Add-ins dialog, write into it in place. It should stop, saying
+   to untick it in the Add-ins dialog or close Excel, and leave it as it was. Copy the message word for word.
+4. **In place, unticked:** untick it, write into it in place, tick it again: the new module should be there and run.
+5. **Locked:** the same into a copy of `LockedToolkit.xlam`, which should still ask for its password,
+   `thequickbrownfox`.
+6. **An `.xla`** as the target should be refused, saying to save it as an Excel Add-in (`.xlam`).
 
 ## 7. Changes to existing documents
 

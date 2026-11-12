@@ -89,7 +89,8 @@ The list is read from the source by the tool that would take from it, each item 
 the reason when it can't come, such as a sheet's module. What a ticked item uses comes with it. **Preview** runs the
 choice with nowhere to write, which says what it comes to: what's chosen, what's brought along, and what to check in the
 target. Run then writes it. A manifest dropped on the tab is taken as the choice, and anything else dropped as the source.
-A name with a comma in it can only be chosen with a manifest, since `--items` is split at commas.
+A name with a comma in it can only be chosen with a manifest, since `--items` is split at commas. The file pickers for a
+target and a new workbook offer what the tool can write into, which for vbadoc includes add-ins (`.xlam`).
 
 **The tools' questions** are dialogs: a page or file that's already there (Overwrite, Keep it, Overwrite all, Quit), an
 item the target already has (what's in the way, what Skip and Overwrite would each mean, then Skip, Overwrite, Skip all,
