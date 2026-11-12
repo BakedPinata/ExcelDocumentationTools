@@ -597,9 +597,7 @@ internal sealed class ImportTab : UserControl
     using var picker = new SaveFileDialog
     {
       Title = "Choose a name for the new workbook",
-      Filter = pqdoc.Checked
-        ? "Workbooks (*.xlsx;*.xlsm)|*.xlsx;*.xlsm"
-        : "Macro-enabled workbooks (*.xlsm)|*.xlsm",
+      Filter = Writers.NewFileFilter(pqdoc.Checked ? Tool.Pqdoc : Tool.Vbadoc),
       OverwritePrompt = false,
       InitialDirectory = FolderOf(DocumentCommands.Tidy(newWorkbook.Text.Length > 0 ? newWorkbook.Text : source.Text)),
     };
@@ -614,7 +612,7 @@ internal sealed class ImportTab : UserControl
     using var picker = new OpenFileDialog
     {
       Title = "Choose the target workbook",
-      Filter = "Workbooks (*.xlsx;*.xlsm;*.xlsb)|*.xlsx;*.xlsm;*.xlsb|All files (*.*)|*.*",
+      Filter = Writers.TargetFilter(pqdoc.Checked ? Tool.Pqdoc : Tool.Vbadoc),
       InitialDirectory = FolderOf(DocumentCommands.Tidy(target.Text.Length > 0 ? target.Text : source.Text)),
     };
     if (picker.ShowDialog(this) == DialogResult.OK)
