@@ -30,3 +30,22 @@ e9ac8d566a43e3c3b6949e7de538705211b22af3fa1d147762d6ff1383df8092  xlmmacro.xlsm
 ```
 
 None of these contain a UserForm, so forms are still tested only with synthetic data.
+
+## Sample add-ins
+
+Made in Excel for step J1 of the feedback plan, with made-up code only, because this repository is public. Each is the
+same small project: `StandardModule` (`Demo`, which prints to the Immediate window), `IStringPrinter` (an interface),
+`CustomStringPrinter` (which implements it and uses a `Scripting.Dictionary`), a reference to Microsoft Scripting
+Runtime, and one sheet.
+
+| File | Why it's here |
+|---|---|
+| `Toolkit.xlsm` | The project as a macro-enabled workbook, to compare the add-ins with |
+| `Toolkit.xlam` | The same workbook saved as an Excel Add-in |
+| `LockedToolkit.xlam` | The add-in with its project locked for viewing. The password is `thequickbrownfox` |
+| `Toolkit.xla` | The same workbook saved as an Excel 97–2003 Add-in (a compound file) |
+| `Empty.xlam` | A new workbook with no VBA, saved as an Excel Add-in, so it has no project |
+
+After Excel saved them, the author (`docProps/core.xml`, and in the `.xla` its summary information and the user name in
+its `Workbook` stream) was replaced with "Fixture Author" ("FixtureAuthor" for the user name), and the folder each was saved from (`x15ac:absPath` in
+`xl/workbook.xml`) was removed. Nothing else was changed.
