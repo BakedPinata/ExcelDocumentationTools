@@ -44,9 +44,10 @@ rather than repeating it.
   command line as a library) and I2a (an unknown option is a usage error, asked for in I2's review) are pushed. I3
   (`xldocui`, with its Document tab) and I4 (the Import tab), which finish phase I, are reviewed and pushed. Phase J
   (Excel add-ins: J1, sample add-ins and a spike on writing into them; J2, importing into them) was added after I4.
-  J1 is on `feedback/j1-addin-spike`: the samples are in, vbadoc reads them, and `spikes/j1-addins` has written into
-  them. **Next: the user's check of the spike's add-ins in Excel,** at home and on a work machine, then J2. The user's
-  checks of what's built so far, which the plan lists under its progress table, are still to come.
+  J1 is done on `feedback/j1-addin-spike` (pushed for the user's check at work): the samples are in, vbadoc reads
+  them, and Excel accepted every add-in `spikes/j1-addins` wrote, at home and at work. **Next: the user's review of
+  J1, then J2** (vbadoc writing into add-ins, and the Import tab offering them). The user's checks of what's built so
+  far, which the plan lists under its progress table, are still to come.
   E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
@@ -59,6 +60,15 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-12: Step J1 in Excel
+
+- The user pulled `feedback/j1-addin-spike` at work, ran the spike there, and checked its add-ins in Excel at home and
+  at work: everything worked as expected. Each add-in compiled, ran and kept its modules after saving; the locked one
+  stayed locked. The Add-ins dialog installed the new add-in at work, so the plan's constraint now says only add-ins
+  that need an installer can't be installed.
+- The findings are in vbadoc's decisions ("Writing into add-ins: what step J1 found"), with J2 to go ahead as planned.
+  J2 also words the in-place message for a loaded add-in, and its check in Excel tries one.
 
 ### 2026-11-12: Step J1 so far, sample add-ins and the spike
 

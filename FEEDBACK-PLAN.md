@@ -77,7 +77,7 @@ questions the draft raised.
 | [I2a](#step-i2-the-tools-command-lines-runnable-by-another-program) | Follow-up after I2's review: an unknown option is a usage error wherever it's written, rather than taken for the workbook | Claude | Done |
 | [I3](#step-i3-documenting-a-workbook) | The desktop app: documenting a workbook with either tool | Claude | Done |
 | [I4](#step-i4-importing) | The desktop app: importing, with the tools' questions asked in dialogs | Claude | Done |
-| [J1](#step-j1-sample-add-ins-and-a-spike-on-writing-into-them) | Sample add-ins made in Excel, read by vbadoc; spike: can vbadoc write modules into an add-in that Excel accepts? (added after I4) | You in Excel, then Claude, then you in Excel | Under way: samples made, read and written into; your check in Excel to come |
+| [J1](#step-j1-sample-add-ins-and-a-spike-on-writing-into-them) | Sample add-ins made in Excel, read by vbadoc; spike: can vbadoc write modules into an add-in that Excel accepts? (added after I4) | You in Excel, then Claude, then you in Excel | Done: yes, at home and at work, locked add-ins included; the Add-ins dialog installs one at work |
 | [J2](#step-j2-importing-into-add-ins) | vbadoc imports into an add-in, new or existing, and the Import tab offers them | Claude, then you in Excel | |
 
 **Checks still to come, after phase I** (the user's choice, after H3): A0 on a work machine, D1b's workbook with 20 groups,
@@ -122,8 +122,8 @@ The notes behind this plan are kept out of the repository. This section is what 
 ### Constraints
 
 - **Developers run the tools on locked-down work machines.** Application control limits where and by whom
-  executables can run, Excel add-ins can't be installed, and the only AI help is a chat window with no access to the
-  project.
+  executables can run, Excel add-ins that need an installer can't be installed (an `.xlam` can be, from the Add-ins
+  dialog, as J1 found), and the only AI help is a chat window with no access to the project.
 - **Readers only open the page.** It must keep working with nothing installed, no network and no special settings, as it
   does now.
 - **Typical size:** tens of modules (some hundreds of lines long) and hundreds of members; tens of queries and
@@ -1307,20 +1307,29 @@ with the author's name and the folder each was saved from replaced or removed, a
   vbadoc's own writer. Each read back word for word, and the samples were left unchanged. Whether Excel accepts them is
   for your check.
 
+**Found in Excel** (2026-11-12), with the detail in vbadoc's decisions ("Writing into add-ins: what step J1 found"):
+Excel accepted every add-in the spike wrote, at home and on a work machine. Each compiled and ran, and kept its modules
+after saving and opening again; the locked one stayed locked, with its password, and its new code ran without it. At
+work the Add-ins dialog installed the new add-in, and vbadoc documented it while it was loaded. Nothing differs from
+"Where it starts from", but that installing at work is possible. Changing a loaded add-in in place, and a signed add-in,
+weren't tried; the first is part of J2's check.
+
 ### Step J2: Importing into add-ins
 
 - vbadoc: `--into` and `--in-place` take an `.xlam`, `--new` takes an `.xlam` as well as an `.xlsm`, and an add-in keeps
   its content type, whether or not it had a project. An `.xla` target is refused, with the reason. What can be a target
   becomes each tool's own list in `shared/`'s `TargetFile`, so pqdoc's stays `.xlsx`, `.xlsm` and `.xlsb`. Documenting
-  an add-in with no VBA says so in words that fit an add-in (added in J1).
-- J1's samples become fixtures, with a README saying what each is for. Tests: each sample reads as the `.xlsm` does; a
-  copy of each add-in; the locked one staying locked; a new add-in; one gaining a project; an `.xla` refused;
-  `--in-place`; and both files left byte-for-byte unchanged.
+  an add-in with no VBA says so in words that fit an add-in (added in J1). When `--in-place` can't have the target to
+  itself, the message for an add-in says it may be loaded as one (added in J1).
+- Tests on J1's samples, which are in the fixtures already: each sample reads as the `.xlsm` does; a copy of each
+  add-in; the locked one staying locked; a new add-in; one gaining a project; an `.xla` refused; `--in-place`; and both
+  files left byte-for-byte unchanged.
 - xldocui: the Import tab's file pickers offer add-ins, for the target and for a new file, when vbadoc is writing. Tests
   of what the tab builds, as in I4.
 - vbadoc's requirements, decisions and README, and xldocui's README, say what's changed. New versions of vbadoc and
-  xldocui.
-- You check the results in Excel, at home and on a work machine, which can go with H3's check.
+  xldocui. `spikes/j1-addins` is deleted.
+- You check the results in Excel, at home and on a work machine, which can go with H3's check. It includes
+  `--in-place` on an add-in Excel has loaded, which should be refused, and on one unticked in the Add-ins dialog.
 
 ## 7. Changes to existing documents
 

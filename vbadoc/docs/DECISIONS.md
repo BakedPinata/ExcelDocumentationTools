@@ -135,6 +135,39 @@ on a work machine.
   it. `HKEY_CLASSES_ROOT\TypeLib\{GUID}` says whether one is installed; only the GUID counts, as a project can name an
   older version than the machine has (Office `#2.0` where the machine has 2.6 to 2.8).
 
+## Writing into add-ins: what step J1 found
+
+The spike is `spikes/j1-addins`, to be deleted after J2, with the add-ins it writes in its README. The sample add-ins
+are in the fixtures (see their README). Excel accepted all of this, at home and on a work machine.
+
+- **An add-in is an `.xlsm` with a content type of its own** for the workbook part
+  (`application/vnd.ms-excel.addin.macroEnabled.main+xml`, in place of `…sheet.macroEnabled.main+xml`). Saved by Excel
+  from the same workbook, `Toolkit.xlam` and `Toolkit.xlsm` have the same parts, a `workbook.xml` that differs only in a
+  co-authoring element, and projects that differ only in what every save changes (the project ID, and CMG, DPB and GC
+  encrypted again). So writing into an add-in is writing into an `.xlsm`, but for one thing: the writer gives a
+  workbook that gains a project the `.xlsm`'s content type, and an add-in has to keep its own.
+- **Reading needed nothing new.** `Toolkit.xlam`, `LockedToolkit.xlam` and `Toolkit.xla` give `Toolkit.xlsm`'s modules,
+  source and reference, documented and imported from. vbadoc documented an add-in while Excel had it loaded, as it does
+  an open workbook.
+- **A locked project's source isn't encrypted,** so it's read without the password. Locking sets the project ID to
+  zeros, adds `HelpFile=""`, and changes CMG (protection state `04`), DPB (the password) and GC (not visible). Modules
+  were added to a locked project, and one replaced, with all of that kept as it stood: Excel still asked for the
+  password, the password still opened it, and the new code ran without it (`Application.Run` from the Immediate
+  window).
+- **An add-in with no VBA gains a project** as a workbook does (H1's document modules for itself and its sheet), and a
+  new add-in is a new `.xlsm` with the add-in's content type. Both compiled and ran, with a reference to Microsoft
+  Scripting Runtime and an interface implemented by a class that came with it.
+- **Modules taken from an add-in go into a new `.xlsm`** as from any workbook, as `--new` writes today.
+- **Saving from the VBA editor** and opening again kept every module, in each add-in.
+- **At work, the Add-ins dialog installed a new add-in** (File > Options > Add-ins > Go > Browse), and it loaded after a
+  restart. So the plan's "add-ins can't be installed" is about add-ins that need an installer, such as Rubberduck.
+- **Not tried:** changing an add-in in place while Excel has it loaded, and a signed add-in, as no sample is signed.
+
+**For J2:** go ahead as the plan has it. The writer keeps an add-in's content type, `--new` builds an add-in when the
+file it's given is an `.xlam`, and the rest is what can be a target. A loaded add-in should be caught by the check that
+an in-place target can be had to itself, as an open workbook is; the message then says it may be loaded as an add-in,
+and J2's check in Excel tries it.
+
 ## Choosing what to import (0.29.0, step H2 of the feedback plan)
 
 The Export tab, the manifest and bundles are mostly the shell's and `shared/`'s: see `shared/README.md`.
