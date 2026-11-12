@@ -77,7 +77,7 @@ questions the draft raised.
 | [I2a](#step-i2-the-tools-command-lines-runnable-by-another-program) | Follow-up after I2's review: an unknown option is a usage error wherever it's written, rather than taken for the workbook | Claude | Done |
 | [I3](#step-i3-documenting-a-workbook) | The desktop app: documenting a workbook with either tool | Claude | Done |
 | [I4](#step-i4-importing) | The desktop app: importing, with the tools' questions asked in dialogs | Claude | Done |
-| [J1](#step-j1-sample-add-ins-and-a-spike-on-writing-into-them) | Sample add-ins made in Excel, read by vbadoc; spike: can vbadoc write modules into an add-in that Excel accepts? (added after I4) | You in Excel, then Claude, then you in Excel | |
+| [J1](#step-j1-sample-add-ins-and-a-spike-on-writing-into-them) | Sample add-ins made in Excel, read by vbadoc; spike: can vbadoc write modules into an add-in that Excel accepts? (added after I4) | You in Excel, then Claude, then you in Excel | Under way: samples made, read and written into; your check in Excel to come |
 | [J2](#step-j2-importing-into-add-ins) | vbadoc imports into an add-in, new or existing, and the Import tab offers them | Claude, then you in Excel | |
 
 **Checks still to come, after phase I** (the user's choice, after H3): A0 on a work machine, D1b's workbook with 20 groups,
@@ -1293,11 +1293,26 @@ You then check them in Excel, at home and on a work machine, with the steps in t
 
 The findings go in vbadoc's decisions, with a recommendation for J2 and anything that differs from "Where it starts from".
 
+**Found before Excel** (2026-11-12), with the detail in `spikes/j1-addins/README.md`. The samples are in the fixtures,
+with the author's name and the folder each was saved from replaced or removed, as the repository is public.
+
+- **Reading works.** `Toolkit.xlam`, `LockedToolkit.xlam` and `Toolkit.xla` give the `.xlsm`'s modules, source,
+  interface and reference, documented and imported from. A locked project's source isn't encrypted, so no password is
+  needed. `Empty.xlam` has no project, and the message asks whether it was saved as an `.xlsx`, which doesn't fit an
+  add-in; J2 fixes the wording.
+- **An add-in is an `.xlsm` with another content type,** as "Where it starts from" assumed. The two files have the same
+  parts and the same `workbook.xml` but for a co-authoring element, and nothing else marks an add-in.
+- **Writing:** the spike wrote into copies of `Toolkit.xlam` (one module replaced), `LockedToolkit.xlam` (still locked,
+  with its password) and `Empty.xlam` (gaining a project), a new add-in, and a new `.xlsm` taken from an add-in, with
+  vbadoc's own writer. Each read back word for word, and the samples were left unchanged. Whether Excel accepts them is
+  for your check.
+
 ### Step J2: Importing into add-ins
 
 - vbadoc: `--into` and `--in-place` take an `.xlam`, `--new` takes an `.xlam` as well as an `.xlsm`, and an add-in keeps
   its content type, whether or not it had a project. An `.xla` target is refused, with the reason. What can be a target
-  becomes each tool's own list in `shared/`'s `TargetFile`, so pqdoc's stays `.xlsx`, `.xlsm` and `.xlsb`.
+  becomes each tool's own list in `shared/`'s `TargetFile`, so pqdoc's stays `.xlsx`, `.xlsm` and `.xlsb`. Documenting
+  an add-in with no VBA says so in words that fit an add-in (added in J1).
 - J1's samples become fixtures, with a README saying what each is for. Tests: each sample reads as the `.xlsm` does; a
   copy of each add-in; the locked one staying locked; a new add-in; one gaining a project; an `.xla` refused;
   `--in-place`; and both files left byte-for-byte unchanged.

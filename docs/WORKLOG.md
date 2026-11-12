@@ -44,8 +44,9 @@ rather than repeating it.
   command line as a library) and I2a (an unknown option is a usage error, asked for in I2's review) are pushed. I3
   (`xldocui`, with its Document tab) and I4 (the Import tab), which finish phase I, are reviewed and pushed. Phase J
   (Excel add-ins: J1, sample add-ins and a spike on writing into them; J2, importing into them) was added after I4.
-  **Next: J1,** which starts with the user making the sample add-ins in Excel. The user's checks of what's built so
-  far, which the plan lists under its progress table, are still to come.
+  J1 is on `feedback/j1-addin-spike`: the samples are in, vbadoc reads them, and `spikes/j1-addins` has written into
+  them. **Next: the user's check of the spike's add-ins in Excel,** at home and on a work machine, then J2. The user's
+  checks of what's built so far, which the plan lists under its progress table, are still to come.
   E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
@@ -58,6 +59,15 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-12: Step J1 so far, sample add-ins and the spike
+
+- The user made the sample add-ins in Excel. They named the user, as author and in the folder each was saved from, so
+  with the user's agreement those were replaced or removed before committing, and nothing else (the fixtures' README).
+- vbadoc reads `Toolkit.xlam`, the locked one and `Toolkit.xla` as it reads `Toolkit.xlsm`, documenting and importing.
+  An add-in differs from an `.xlsm` only in its workbook part's content type.
+- `spikes/j1-addins` writes into copies of the add-ins (one locked, one with no VBA) and builds a new one, with vbadoc's
+  own writer; each read back word for word. Its README has the steps for checking them in Excel.
 
 ### 2026-11-12: Excel add-ins added to the plan
 
