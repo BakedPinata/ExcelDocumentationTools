@@ -5,8 +5,9 @@ tool plan (`COMBINED-TOOL-PLAN.md`, in the repository's history). pqdoc still le
 pages still move onto one shared shell. One executable, a combined page and links from VBA to queries move to
 [Later](#9-later), because the workbooks in use rarely hold both and never link them. Most of the plan is about
 helping someone understand a workbook and leave documentation behind. Phase H imports chosen modules or queries, with
-what they depend on, into a new or existing workbook, and phase I puts a desktop app over both command lines. It is
-written to be handed to a fresh Claude Code session (or a developer) to carry out.
+what they depend on, into a new or existing workbook, and phase I puts a desktop app over both command lines. Phase J
+does the same for Excel add-ins (`.xlam`). It is written to be handed to a fresh Claude Code session (or a developer) to
+carry out.
 
 **Status: agreed on 2026-11-03.** The progress table shows how far it has got. Section 1 records the answers to the
 questions the draft raised.
@@ -76,10 +77,13 @@ questions the draft raised.
 | [I2a](#step-i2-the-tools-command-lines-runnable-by-another-program) | Follow-up after I2's review: an unknown option is a usage error wherever it's written, rather than taken for the workbook | Claude | Done |
 | [I3](#step-i3-documenting-a-workbook) | The desktop app: documenting a workbook with either tool | Claude | Done |
 | [I4](#step-i4-importing) | The desktop app: importing, with the tools' questions asked in dialogs | Claude | Done |
+| [J1](#step-j1-sample-add-ins-and-a-spike-on-writing-into-them) | Sample add-ins made in Excel, read by vbadoc; spike: can vbadoc write modules into an add-in that Excel accepts? (added after I4) | You in Excel, then Claude, then you in Excel | |
+| [J2](#step-j2-importing-into-add-ins) | vbadoc imports into an add-in, new or existing, and the Import tab offers them | Claude, then you in Excel | |
 
 **Checks still to come, after phase I** (the user's choice, after H3): A0 on a work machine, D1b's workbook with 20 groups,
 a bundle brought in by hand (H2), and H3 and H4 in Excel, which also settle control references, references to other VBA
-projects, and what a stale Permission Binding means for a query with a real data source.
+projects, and what a stale Permission Binding means for a query with a real data source. J2's check in Excel can go with
+H3's.
 
 ## 1. Questions settled
 
@@ -169,6 +173,7 @@ The notes behind this plan are kept out of the repository. This section is what 
 | AI help is a chat window with no access to the project | G4 (optional) |
 | Import chosen files into a new or existing workbook, with what they depend on (raised after the notes) | H1–H4 |
 | The commands' flags and parameters are getting long and cumbersome to type; a self-contained desktop app over them, as well as the command line (raised after H3) | I1–I4 |
+| Document and import VBA from Excel add-ins (`.xlam`); the Import tab refused an `.xlam` as the target, saying modules can only be written into `.xlsx`, `.xlsm` and `.xlsb` files (raised after I4) | J1, J2 |
 | draw.io? | Later: export a view as a `.drawio` file |
 | The VBA editor shows every module in one window | Later: open a module's source in its own window |
 | Shared code and conventions drift between workbooks | Later: a third tool, with its own plan |
@@ -189,6 +194,7 @@ The notes behind this plan are kept out of the repository. This section is what 
 8. Import chosen modules or queries into a new or existing workbook, bringing what they depend on, and saying what
    couldn't come.
 9. Run both tools from a desktop app, so nobody has to remember or type their options.
+10. Document Excel add-ins, import modules from them, and import modules into them, as for workbooks.
 
 **Non-goals**
 
@@ -1226,6 +1232,81 @@ option having a control or a reason, the dialogs' answers, and real runs through
 workbook, and a no to changing the target itself, which left it as it was. The window was checked from screenshots,
 including a real clash.
 
+### Steps J1 and J2: Excel add-ins
+
+Added after I4. The user wants to document the VBA in Excel add-ins (`.xlam`), take modules from them, and write modules
+into them, as with workbooks. Reading is in vbadoc already, as an add-in keeps its project where an `.xlsm` does: a
+made-up add-in (`SimpleMacro.xlsm` with an add-in's content type) was documented and imported from with no fault. But no
+add-in made in Excel has been tried. Writing into one is refused, as H3 only tried `.xlsx`, `.xlsm` and `.xlsb` in Excel:
+given an `.xlam` as the target, the Import tab ran `vbadoc import --into`, which stopped with "modules can only be written
+into .xlsx, .xlsm, .xlsb files".
+
+**Where it starts from,** for J1 to confirm or change:
+
+- **An add-in is a macro-enabled workbook with a content type of its own** for the workbook part
+  (`application/vnd.ms-excel.addin.macroEnabled.main+xml`). So writing into one needs no new format: what changes is what
+  can be a target, and keeping that content type, also when an add-in with no VBA gains a project. J1 compares an add-in
+  with the same workbook saved as an `.xlsm`, in case anything else differs.
+- **The command stays as it is.** `--into Tools.xlam` writes `Tools-imported.xlam` beside it, `--in-place` changes the
+  add-in itself, and `--new Tools.xlam` builds a new add-in, as `--new` builds an `.xlsm`.
+- **An add-in Excel has loaded is open** for as long as Excel runs. It can still be read, and a copy written, as with any
+  open workbook. Changing it in place needs Excel closed, or the add-in unticked in the Add-ins dialog, and the run says
+  so.
+- **Add-ins are often locked, or signed.** A locked project stays locked as it gains modules: H3 keeps protection, but no
+  locked project has been tried in Excel. A signed one needs `--drop-signature`, as now.
+- **An `.xla` is read, never written,** as with an `.xls`. The message says to save it as an `.xlam`.
+- **VBA only.** pqdoc doesn't read add-ins or write into them, since queries in add-ins weren't asked for (section 9).
+- **Installing at work.** The constraints say add-ins can't be installed at work, which is about add-ins such as
+  Rubberduck that need an installer. Whether the Add-ins dialog takes an `.xlam` there is part of J1's check. Opening one
+  with File > Open loads it for that session either way.
+
+### Step J1: Sample add-ins, and a spike on writing into them
+
+Excel has to make the samples, so this step starts with you. They go in a public repository, so use made-up code only.
+Save them in `vbadoc/tests/VbaDocumenter.Tests/Fixtures/Workbooks/`:
+
+| File | What it needs |
+|---|---|
+| `Toolkit.xlsm` | A few modules of made-up code: a standard module with a procedure to run, an interface (a class of empty procedures), a class that implements it, and a reference to Microsoft Scripting Runtime that one of them uses. One sheet is enough |
+| `Toolkit.xlam` | The same workbook, saved as an Excel Add-in. Excel suggests its AddIns folder, so choose the fixtures folder instead |
+| `LockedToolkit.xlam` | The same add-in with its project locked for viewing (Tools > VBAProject Properties > Protection), with a made-up password, which goes in the folder's README |
+| `Toolkit.xla` | The same workbook, saved as an Excel 97–2003 Add-in, as vbadoc reads those too |
+| `Empty.xlam` | A new workbook with no VBA at all, saved as an Excel Add-in, if Excel will |
+
+Then Claude:
+
+- **Reading:** documents each sample, and takes modules from each, the locked one included. Each should give the
+  `.xlsm`'s modules, kinds and references; anything that differs is raised before J2.
+- **What makes an add-in:** compares `Toolkit.xlam` with `Toolkit.xlsm`, part by part.
+- **Writing,** with throwaway code in `spikes/j1-addins`, kept out of the tools and deleted after J2: modules added to a
+  copy of `Toolkit.xlam`, with one replacing a module it has; added to a copy of `LockedToolkit.xlam`; added to a copy of
+  `Empty.xlam`, which gains a project; and a new add-in built by the tool, with a library reference. Each keeps the
+  add-in's content type.
+
+You then check them in Excel, at home and on a work machine, with the steps in the spike's README:
+
+- Each loads, from File > Options > Add-ins > Go > Browse, or with File > Open if the dialog isn't allowed.
+- In the VBA editor, the modules are there, Debug > Compile passes, and a procedure from each new module runs (F5).
+- The locked one still asks for its password, and the password still opens it.
+- After saving from the VBA editor and restarting Excel, the modules are still there.
+- vbadoc documents `Toolkit.xlam` while Excel has it loaded.
+
+The findings go in vbadoc's decisions, with a recommendation for J2 and anything that differs from "Where it starts from".
+
+### Step J2: Importing into add-ins
+
+- vbadoc: `--into` and `--in-place` take an `.xlam`, `--new` takes an `.xlam` as well as an `.xlsm`, and an add-in keeps
+  its content type, whether or not it had a project. An `.xla` target is refused, with the reason. What can be a target
+  becomes each tool's own list in `shared/`'s `TargetFile`, so pqdoc's stays `.xlsx`, `.xlsm` and `.xlsb`.
+- J1's samples become fixtures, with a README saying what each is for. Tests: each sample reads as the `.xlsm` does; a
+  copy of each add-in; the locked one staying locked; a new add-in; one gaining a project; an `.xla` refused;
+  `--in-place`; and both files left byte-for-byte unchanged.
+- xldocui: the Import tab's file pickers offer add-ins, for the target and for a new file, when vbadoc is writing. Tests
+  of what the tab builds, as in I4.
+- vbadoc's requirements, decisions and README, and xldocui's README, say what's changed. New versions of vbadoc and
+  xldocui.
+- You check the results in Excel, at home and on a work machine, which can go with H3's check.
+
 ## 7. Changes to existing documents
 
 The rule is to ask before changing a tool's `Requirements.md` or `DECISIONS.md`, or going against the guidelines.
@@ -1250,6 +1331,7 @@ Approving this plan covers the changes below. Anything else still needs asking.
 | Both `README.md`s | Usage and features | A3, B2–H4 |
 | `docs/GUIDELINES.md` | Naming: the desktop app. Platform: a `-windows` target for it alone. Structure: the command-line library | I2, I3 |
 | Root `README.md`, `CLAUDE.md` | The desktop app, how to build and run it | I3 |
+| `vbadoc/Requirements.md`, `vbadoc/docs/DECISIONS.md`, `vbadoc/README.md`, the fixtures' README, `xldocui/README.md` | Add-ins as targets of `--into` and `--new`, replacing "`.xlam` and `.xltm` aren't targets" (`.xltm` stays out); what J1 found; the sample add-ins | J1, J2 |
 | Both `Requirements.md`s (pqdoc's FR-HTML-8 without the generation time, FR-HTML-11 and new ids), both `DECISIONS.md`s and `README.md`s, `docs/GUIDELINES.md` (HTML pages) | Panel controls, the side panel following the selection, the copy button, explorer layouts, nested query groups, focus on click and Esc, both pages' summary, speed, the Show menus in the explorer, the explorer's filter, Expand and Collapse all | D1a–D1e, D3a–D3c, D4 |
 
 ## 8. When the plan is finished
@@ -1281,3 +1363,5 @@ Left out to keep this plan to what the feedback asked for:
 - **Bring a query's group along,** merging it into the target's groups. H4 brings each query in with no group.
 - **Import UserForms.** A text export has no `.frx`, but copying from project to project could bring the form's designer
   storage too. Not tried; forms are seldom used.
+- **Queries in add-ins, and templates (`.xltm`) as targets.** Neither was asked for with phase J, and neither has been
+  tried in Excel.

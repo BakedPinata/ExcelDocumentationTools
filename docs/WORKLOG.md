@@ -8,7 +8,7 @@ rather than repeating it.
 - **Updating it:** at the end of each stage, and after any session that changes direction, update *Current state* and
   add an entry at the top of the log. Give the date, what changed and why, and commits, in a few lines.
 
-## Current state (2026-11-11)
+## Current state (2026-11-12)
 
 - **vbadoc 0.30.1:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
@@ -24,7 +24,7 @@ rather than repeating it.
   and the tools' questions as dialogs. See `xldocui/README.md`.
 - **`shared/`** (`ExcelDocumenter.Shared`): the code both tools use, since step C1, and the page shell both pages are
   built on, since C2. See its README.
-- **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–I4. The user's build, test and
+- **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–J2. The user's build, test and
   publish of A0 on the work machine is still to come. A0–A5, F1, B1–B4, C1 and C2 are pushed and reviewed. D1 is done.
   The user's review of D1 added steps D1a to D1d, before D2, now settled (see the plan's "After D1's review"). D1b is
   pushed; the user's check of the workbook with 20 groups is still to come. D1a (with the copy button the user asked
@@ -42,10 +42,10 @@ rather than repeating it.
   workbooks) are pushed: Excel accepts what the spike wrote, at home and at work. H4 (pqdoc writing into workbooks) is
   pushed. I1 (the desktop window spike, which worked at home and on a work machine, and is deleted), I2 (each tool's
   command line as a library) and I2a (an unknown option is a usage error, asked for in I2's review) are pushed. I3
-  (`xldocui`, with its Document tab) is reviewed, ran on a work machine, and is pushed as
-  `feedback/i3-desktop-document`, not yet merged into main. I4 (the Import tab), which finishes phase I, is on
-  `feedback/i4-desktop-import`, on top of I3, waiting for review. **Next: the user's checks** of what's built so far,
-  which the plan lists under its progress table.
+  (`xldocui`, with its Document tab) and I4 (the Import tab), which finish phase I, are reviewed and pushed. Phase J
+  (Excel add-ins: J1, sample add-ins and a spike on writing into them; J2, importing into them) was added after I4.
+  **Next: J1,** which starts with the user making the sample add-ins in Excel. The user's checks of what's built so
+  far, which the plan lists under its progress table, are still to come.
   E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
 - **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
   reviews, rebases onto main and pushes.
@@ -58,6 +58,16 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-12: Excel add-ins added to the plan
+
+- The user found I4 working, and had I3 and I4 merged into main and pushed.
+- The user asked to document VBA in add-ins (`.xlam`) and import from and into them. Reading was already in vbadoc,
+  but no add-in made in Excel had been tried; a made-up one (`SimpleMacro.xlsm` with an add-in's content type)
+  documented and imported from with no fault. Writing into one is refused, as H3 only tried `.xlsx`, `.xlsm` and
+  `.xlsb`: the user's run of the Import tab with an `.xlam` target stopped there.
+- Added as steps J1 (sample add-ins made in Excel, and a spike on writing into them, checked in Excel) and J2 (vbadoc
+  importing into add-ins, and the Import tab offering them). VBA only: queries in add-ins weren't asked for.
 
 ### 2026-11-11: Step I4, the desktop app's Import tab
 
