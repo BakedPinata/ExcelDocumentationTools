@@ -10,14 +10,15 @@ rather than repeating it.
 
 ## Current state (2026-11-13)
 
-- **`GENERALISATION-PLAN.md`** (root): a draft, written on 2026-11-13, to widen the repository to C# solutions and
-  Python projects, with new names for the repository, the shared library and the desktop app. **Next: the user's
-  review of it,** and their answers to its section 1. Nothing in it is started. It's on `general/plan`.
-
+- **`GENERALISATION-PLAN.md`** (root): the current plan, a draft revised on 2026-11-13. It widens the repository to
+  Access databases (forms and VBA), C# solutions and Python projects, with new names for the repository, the shared
+  library and the desktop app, and starts with what the feedback plan parked, a Lock view button and a peek at a
+  reference. **Next: the user's answers in its section 1,** which has a column for them. Nothing else in it is started.
+  It's on `general/plan`.
 - **vbadoc 0.31.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
-  stage 7 waits for the feedback plan. Since 0.31.0 (step J2) it writes into add-ins (`.xlam`) as into workbooks.
+  stage 7 waits for the generalisation plan. Since 0.31.0 (step J2) it writes into add-ins (`.xlam`) as into workbooks.
 - **pqdoc 1.21.2**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
@@ -28,43 +29,34 @@ rather than repeating it.
   and the tools' questions as dialogs. See `xldocui/README.md`.
 - **`shared/`** (`ExcelDocumenter.Shared`): the code both tools use, since step C1, and the page shell both pages are
   built on, since C2. See its README.
-- **`FEEDBACK-PLAN.md`** (root): the current plan, agreed on 2026-11-03, steps A0–J2. The user's build, test and
-  publish of A0 on the work machine is still to come. A0–A5, F1, B1–B4, C1 and C2 are pushed and reviewed. D1 is done.
-  The user's review of D1 added steps D1a to D1d, before D2, now settled (see the plan's "After D1's review"). D1b is
-  pushed; the user's check of the workbook with 20 groups is still to come. D1a (with the copy button the user asked
-  for after D1b) is pushed. D1e (`'@Folder` after a label, asked for after D1a) and D1c (view controls and both pages'
-  summary) are pushed. The user's review of D1c added the explorer's filter (checkboxes, apart from selecting) and
-  Expand / Collapse all to D3, which moved widely used items to a new D4. D1d (speed) is pushed; the user found it a
-  little better on the production workbook, good enough for now. A6 (a name declared again under `#If` is one member)
-  is pushed. D2 (favourites) is pushed. D3 is split into D3a (Expand / Collapse all and the views' filter), D3b
-  (hiding) and D3c (the Show menus in the explorer), all pushed, as are D4 (widely used items and predeclared classes)
-  and E1 (Uses / Used by with references). E2 (the Calls tab) is pushed. E3 (the logic around each call) and E4 (a
-  query's steps, in pqdoc) are pushed. E5 (the sequence diagram, which the user asked for) is pushed, as are its
-  review's follow-ups (E5a) and a gentler drag. G1 (saved views) and its review's follow-ups (G1a) are pushed. The
-  user parked G2–G4 (the views file in the page, printing, copying a view) to come back to later. H1 (the spike on
-  writing modules and queries into workbooks), H2 (the Export tab, the manifest and bundles) and H3 (vbadoc writing into
-  workbooks) are pushed: Excel accepts what the spike wrote, at home and at work. H4 (pqdoc writing into workbooks) is
-  pushed. I1 (the desktop window spike, which worked at home and on a work machine, and is deleted), I2 (each tool's
-  command line as a library) and I2a (an unknown option is a usage error, asked for in I2's review) are pushed. I3
-  (`xldocui`, with its Document tab) and I4 (the Import tab), which finish phase I, are reviewed and pushed. Phase J
-  (Excel add-ins: J1, sample add-ins and a spike on writing into them; J2, importing into them) was added after I4.
-  J1 is done on `feedback/j1-addin-spike`: the samples are in, vbadoc reads them, and Excel accepted every add-in
-  `spikes/j1-addins` wrote, at home and at work. J2 (vbadoc writing into add-ins, and the Import tab offering them) is
-  done on `feedback/j2-addin-import`, which starts from J1's branch. The user found J1 and J2 working as expected on
-  2026-11-13, and local main was brought up to J2's branch; pushing main is still to come. The user's checks of what's
-  built so far, which the plan lists under its progress table, are still to come.
-  E5b (Calls tab follow-ups) is noted on `feedback/e5b-calls-follow-ups`, for later.
-- **Branches:** each step is worked on a branch of its own (`feedback/<step>`), committed a change at a time; the user
+- **The feedback plan** (steps A0–J2, agreed on 2026-11-03) is closed and deleted. Every step is done but G2–G4 and
+  E5b, which are steps L3–L6 of the generalisation plan. The user closed the checks that were still to come. The plan
+  as it stood is at the tag `feedback-plan-final`, and E5b's original notes at `feedback-plan-e5b-notes`; the log below
+  has each step. Local main is at J2; pushing it, and the tags, is still to come.
+- **The tools are in alpha** (agreed on 2026-11-13): a new version may change its pages and output files, and outputs
+  needn't be compared with the version before. The plan's 5.1 has the detail, to go into the guidelines in K0.
+- **Branches:** each step is worked on a branch of its own (`general/<step>`; `feedback/<step>` before), committed a change at a time; the user
   reviews, rebases onto main and pushes.
-- **`USER-FEEDBACK-NOTES.md`** (root, untracked): the user's feedback from trying both tools on real workbooks, and the
-  source of the feedback plan. It holds details about the user's workplace, so keep them out of the repository.
-  **Never commit it.**
 - **.NET 10** since step A0. `dotnet test` runs on the Microsoft Testing Platform, so it takes `--project` or
   `--solution`, not a bare path.
 
 ## Log
 
 Newest first.
+
+### 2026-11-13: The feedback plan closed; the generalisation plan revised
+
+- On reviewing the draft, the user agreed its names and asked for the feedback plan to be closed. Its Later section
+  went to vbadoc's and pqdoc's plans and the new plan; what pointed at it points at the new plan or the tag
+  `feedback-plan-final`; then it was deleted. The user closed their outstanding checks, and had
+  `USER-FEEDBACK-NOTES.md` deleted. The constraints it gave are in the new plan's section 3.
+- Added to the new plan: a tool for Access databases, `accessdoc`, with a Forms view for rebuilding forms as Blazor
+  components; the parked steps (E5b, G2–G4) early, as L3–L6; Lock view (L1) and Peek (L2), from the user's feedback
+  on the graph, class diagram and Uses / Used by list; and a "Your answer" column for every question, filled in with
+  the recommendation.
+- Also from the user: the tools are in alpha, so outputs needn't stay the same between versions; older .NET Framework
+  projects are in scope for csdoc; the Python tool is for a colleague, and the user doesn't know Python, so the plan
+  explains its terms, has questions to pass on, and checks the parser against Python's own.
 
 ### 2026-11-13: A plan to document C# and Python too
 

@@ -1,20 +1,23 @@
-# Generalisation plan: C# solutions and Python projects
+# Generalisation plan: Access, C# and Python
 
-This plan widens the repository from Excel workbooks to source code in general. Two new tools document a C# solution
-(its projects, types and members) and a Python project of many files, with the same page vbadoc makes: an explorer, a
-dependency graph, a class diagram, the Calls tab and saved views. The repository, the shared library and the desktop
-app get names that fit the wider goal. vbadoc and pqdoc keep their names and keep working as they do.
+This plan widens the repository from Excel workbooks to code in general. Three new tools document a Microsoft Access
+database (its forms and VBA), a C# solution (its projects, types and members) and a Python project of many files,
+with the page vbadoc makes: an explorer, a dependency graph, a class diagram, the Calls tab and saved views. The
+Access tool also shows how forms and subforms are put together, so they can be rebuilt as Blazor components. The
+repository, the shared library and the desktop app get names that fit the wider goal; vbadoc and pqdoc keep theirs.
 
-It is written to be handed to a fresh Claude Code session (or a developer) to carry out, as the
-[feedback plan](FEEDBACK-PLAN.md) was.
+Before any of that, it finishes what the feedback plan parked and adds two things asked for on 2026-11-13: locking a
+view so that clicking around doesn't change it, and peeking at a reference without leaving the selection.
 
-**Status: draft, written on 2026-11-13, waiting for your review.** Nothing in it has been started. Section 1 lists
-what to settle first; each question has a recommendation, and the rest of the plan assumes the recommendations.
+It is written to be handed to a fresh Claude Code session (or a developer) to carry out.
+
+**Status: draft, revised on 2026-11-13 after your first review, waiting for your answers in section 1.** The feedback
+plan is closed and nothing else here has been started.
 
 ## How to use this plan
 
 - Read the whole file before starting. Sections 1–5 are the background and the decisions; section 6 has the steps.
-- Work **one step at a time**, each on a branch of its own (`general/<step>`, such as `general/k1-names`), with a
+- Work **one step at a time**, each on a branch of its own (`general/<step>`, such as `general/l1-lock-view`), with a
   commit per change. At the end of each step:
   1. `dotnet build <root solution> -warnaserror` and the tests of everything touched pass;
   2. update the progress table below and `docs/WORKLOG.md`;
@@ -25,343 +28,491 @@ what to settle first; each question has a recommendation, and the rest of the pl
 - Ask before doing anything that goes against this plan, a tool's `Requirements.md` or `DECISIONS.md`, or the
   guidelines. Section 7 lists the changes to those that this plan needs.
 - Use Australian English in everything we write.
-- A step marked **no visible change** is checked the way C1 and C2 were: every fixture's output compared byte for byte
-  before and after, and screenshots of the pages compared pixel by pixel, with the build stamp made the same.
+- **The tools are in alpha** (5.1): a step may change what a page or an output file looks like, so steps are checked
+  by their tests and by looking at screenshots, not by comparing outputs byte for byte with the version before.
 
 ## Progress
 
 | Step | Scope | Who | Status |
 |---|---|---|---|
-| [K0](#step-k0-settle-the-questions) | Settle the questions in section 1, and close the feedback plan | You, then Claude | Waiting for your review |
-| [K1](#step-k1-names-inside-the-repository) | Names inside the repository: the root solution, the shared library, the shell's global, the publish folder, the documents. No visible change | Claude | Not started |
-| [K2](#step-k2-the-desktop-apps-name) | The desktop app becomes `codedocui`, bringing its remembered settings with it | Claude, with VS Code closed | Not started |
+| [K0](#step-k0-settle-the-questions) | Settle the questions in section 1; close the feedback plan | You, then Claude | Feedback plan closed; your answers in section 1 to come |
+| [K1](#step-k1-names-inside-the-repository) | Names inside the repository: the root solution, the shared library, the shell's global, the publish folder, the documents | Claude | Not started |
+| [K2](#step-k2-the-desktop-apps-name) | The desktop app becomes `codedocui` | Claude, with VS Code closed | Not started |
 | [K3](#step-k3-the-repositorys-name) | The repository's name on GitHub and on disk, `PATH`, and Claude's memory folder | You, then Claude | Not started |
-| [L1](#step-l1-the-shared-library-in-three) | The shared library in three: what every tool needs, what only workbooks need, and the code views. The shell stops saying "workbook" where it means the source. No visible change | Claude | Not started |
-| [L2](#step-l2-vbadocs-views-move-to-the-code-views-library) | vbadoc's graph, class diagram and Calls tab move to the code views library, unchanged. No visible change | Claude | Not started |
-| [L3](#step-l3-the-code-model) | The code model: the views draw what a language describes (its kinds, its relationships, its words), and files are apart from the things in them. vbadoc is its first language. No visible change | Claude | Not started |
-| [M1](#step-m1-spike-on-reading-a-c-solution) | Spike: read a C# solution with Roslyn and no build, on this repository and a real solution of yours | Claude, then you on a work machine | Not started |
-| [M2](#step-m2-csdoc-reads-a-solution) | `csdoc`: the tool's skeleton, reading a solution into projects, namespaces, types and members | Claude | Not started |
-| [M3](#step-m3-csdocs-dependencies) | `csdoc`: references with their lines, inheritance, interfaces, events, entry points and what's unreferenced | Claude | Not started |
-| [M4](#step-m4-csdocs-page) | `csdoc`: the page, with the explorer, graph, class diagram, source with a C# highlighter, and doc comments | Claude, then you on a real solution | Not started |
-| [M5](#step-m5-csdocs-calls) | `csdoc`: the Calls tab and sequence diagram | Claude | Not started |
-| [M6](#step-m6-the-graph-at-group-level) | The graph at group level (projects, namespaces, packages, folders), in the code views, so every language has it | Claude | Not started |
-| [M7](#step-m7-large-solutions) | Large solutions: the page stays usable at thousands of types | Claude, then you on a real solution | Not started |
-| [N1](#step-n1-sample-python-project-and-a-spike-on-reading-it) | A sample Python project, and a spike on reading Python without running it | Claude, then you on a real project | Not started |
-| [N2](#step-n2-pythondoc-reads-a-project) | `pythondoc`: the tool's skeleton, reading a project into packages, modules, classes and functions | Claude | Not started |
-| [N3](#step-n3-pythondocs-dependencies) | `pythondoc`: imports, references with their lines, inheritance, and what couldn't be followed | Claude | Not started |
-| [N4](#step-n4-pythondocs-page-and-calls) | `pythondoc`: the page, a Python highlighter, docstrings, and the Calls tab | Claude, then you on a real project | Not started |
-| [P1](#step-p1-the-desktop-app-takes-solutions-and-projects) | The desktop app documents solutions and Python projects | Claude | Not started |
-| [P2](#step-p2-finishing) | Finishing: the guidelines, the READMEs, and closing this plan | Claude | Not started |
+| [L1](#step-l1-lock-the-view) | Lock view: what's shown stays as it is while you click around, and only the source changes | Claude | Not started |
+| [L2](#step-l2-peek-at-a-reference) | Peek: a line in Uses / Used by opens a preview of the code around it, without leaving the selection | Claude | Not started |
+| [L3](#step-l3-calls-tab-follow-ups-e5b) | Calls tab follow-ups (E5b): Ifs whose conditions make calls, and the sequence diagram's participants staying in view | Claude | Not started |
+| [L4](#step-l4-views-file-built-into-the-page-g2) | A views file in the output folder is built into the page (G2) | Claude | Not started |
+| [L5](#step-l5-printing-and-descriptions-g3) | Printing a view or every view, with descriptions (G3) | Claude, then you on a work machine | Not started |
+| [L6](#step-l6-copy-a-view-as-text-g4) | Copy a view as text, to paste into a chat (G4) | Claude | Not started |
+| [M1](#step-m1-the-shared-library-in-three) | The shared library in three: what every tool needs, what only workbooks need, and the code views. The shell says "source", not "workbook" | Claude | Not started |
+| [M2](#step-m2-vbadocs-views-move-to-the-code-views-library) | vbadoc's graph, class diagram and Calls tab move to the code views library | Claude | Not started |
+| [M3](#step-m3-the-code-model) | The code model: the views draw what a language describes, and files are apart from the things in them. vbadoc is its first language | Claude | Not started |
+| [N1](#step-n1-sample-databases-and-a-spike-on-reading-them) | Sample Access databases, and a spike on getting forms and VBA out of them | You in Access, then Claude, then you on a work machine | Not started |
+| [N2](#step-n2-accessdoc-reads-a-databases-vba) | `accessdoc`: the VBA language in a library vbadoc and accessdoc share; the tool's skeleton; a page of the database's VBA | Claude | Not started |
+| [N3](#step-n3-accessdoc-reads-forms) | `accessdoc`: forms read into sections, controls, subforms, data sources and events, with handlers linked to their controls | Claude | Not started |
+| [N4](#step-n4-the-forms-view) | `accessdoc`: the Forms view: which form holds which, each form's layout drawn, its controls, data and events | Claude, then you on a real database | Not started |
+| [N5](#step-n5-a-forms-outline-for-rebuilding-it) | `accessdoc`: a form's outline for rebuilding it as components, copied as text | Claude, then you | Not started |
+| [P1](#step-p1-spike-on-reading-a-c-solution) | Spike: read a C# solution with Roslyn and no build, on this repository and a real solution of yours | Claude, then you on a work machine | Not started |
+| [P2](#step-p2-csdoc-reads-a-solution) | `csdoc`: the tool's skeleton, reading a solution into projects, namespaces, types and members, older project files included | Claude | Not started |
+| [P3](#step-p3-csdocs-dependencies) | `csdoc`: references with their lines, inheritance, interfaces, events, entry points and what's unreferenced | Claude | Not started |
+| [P4](#step-p4-csdocs-page) | `csdoc`: the page, with the explorer, graph, class diagram, source with a C# highlighter, and doc comments | Claude, then you on a real solution | Not started |
+| [P5](#step-p5-csdocs-calls) | `csdoc`: the Calls tab and sequence diagram | Claude | Not started |
+| [P6](#step-p6-the-graph-at-group-level) | The graph at group level (projects, namespaces, packages, folders), in the code views, with a check on a larger solution | Claude | Not started |
+| [Q1](#step-q1-your-colleagues-project-a-sample-and-a-spike) | Python: what to ask your colleague, a sample project, and a spike on reading Python without running it | You and your colleague, then Claude | Not started |
+| [Q2](#step-q2-pythondoc-reads-a-project) | `pythondoc`: the tool's skeleton, reading a project into packages, modules, classes and functions | Claude | Not started |
+| [Q3](#step-q3-pythondocs-dependencies) | `pythondoc`: imports, references with their lines, inheritance, and what couldn't be followed | Claude | Not started |
+| [Q4](#step-q4-pythondocs-page-and-calls) | `pythondoc`: the page, a Python highlighter, docstrings, and the Calls tab | Claude, then your colleague | Not started |
+| [R1](#step-r1-the-desktop-app-takes-everything) | The desktop app documents databases, solutions and Python projects | Claude | Not started |
+| [R2](#step-r2-finishing) | Finishing: the guidelines, the READMEs, and closing this plan | Claude | Not started |
 
-## 1. Questions to settle
+## 1. Your answers
 
-Each has a recommendation. Answer them in review, and K0 records the answers here.
+**Change the "Your answer" column wherever you disagree, and fill in the rows marked _(yours to fill in)_.** Every
+other row is filled in with what I recommend, so a row you leave alone is agreed. The rest of the plan assumes the
+answers as they stand, and K0 revises it for any you change.
 
-### 1.1 Names
+### 1.1 Settled already
 
-**The short name is still the product and the long name still the code** (the guidelines' rule). Recommended:
-
-| | Now | Proposed |
-|---|---|---|
-| GitHub repository and local folder | `ExcelDocumentationTools` | `CodeDocumentationTools` |
-| Root solution | `ExcelDocumentationTools.sln` | `CodeDocumentationTools.sln` |
-| Publish folder | `…\source\Executables\ExcelDocumentationTools\` | `…\source\Executables\CodeDocumentationTools\` |
-| Shared library | `ExcelDocumenter.Shared` | `CodeDocumenter.Shared`, `CodeDocumenter.Workbooks` and `CodeDocumenter.CodeViews` (see 5.2) |
-| The shell's JavaScript global | `ExcelDocumenterShell` | `CodeDocumenterShell` |
-| Desktop app | `xldocui`, `ExcelDocumenter.Desktop` | `codedocui`, `CodeDocumenter.Desktop` |
-| Name kept for a combined tool | `xldoc` | `codedoc` |
-| VBA tool | `vbadoc`, `VbaDocumenter` | unchanged |
-| Power Query tool | `pqdoc`, `PowerQueryDocumenter` | unchanged |
-| C# tool | none | `csdoc`, `CSharpDocumenter`, in `csdoc/`, writing `<solution>-csharp.html` |
-| Python tool | none | `pythondoc`, `PythonDocumenter`, in `pythondoc/`, writing `<project>-python.html` |
-
-- **vbadoc and pqdoc keep their names.** They say what each reads, scripts and `PATH` use them, and every remembered
-  setting, saved views file and export manifest is keyed by them.
-- **Not `pydoc`:** Python ships a command of that name, so ours would clash on any machine with Python on `PATH`.
-- **"Code", not "Source":** the tools document code, wherever it's kept. `CodeDocumentationTools` also changes one
-  word of the present name, so it's easy to recognise. If you'd rather have a product name than a description (an
-  atlas, a map), say so in review and K1 uses it; it needs checking that nothing else has it.
-
-### 1.2 The feedback plan
-
-Recommended: **close it in K0**, as its section 8 sets out, since this plan changes the code its parked steps would
-touch. What's still open moves here or to the tools' plans:
-
-- G2–G4 (the views file built into the page, printing, copying a view as text) and E5b (the Calls tab's follow-ups)
-  go to [Later](#9-later) in this plan. Built after phase L, they're built once for every language.
-- Your checks in Excel (a bundle by hand, H3, H4 and J2) stay listed in `docs/WORKLOG.md` until done.
-- Its Later section moves to vbadoc's and pqdoc's `docs/PLAN.md`.
-
-The other choice is to keep both plans open. That's workable, but two plans touching `shared/` invite collisions.
-
-### 1.3 How csdoc reads C#
-
-Recommended: **Roslyn, with the compilations made by csdoc itself, and nothing built or run.** M1 is a spike that
-tests this before anything is built on it. The choices:
-
-| | How | For | Against |
-|---|---|---|---|
-| **A (recommended)** | Roslyn parses every file, and csdoc makes each project's compilation from what it reads in the solution and project files | Exact names within your own code: overloads, `var`, generics, extension methods, interfaces. Works with no SDK and no restore. Runs nothing | Reads project files itself, so it knows only the common settings (see 5.4). Types from NuGet packages are unknown unless the solution has been restored |
-| B | Roslyn's MSBuild workspace loads the solution as Visual Studio does | Every setting right, every package known | Needs the .NET SDK and a restore on the machine; runs the build's own steps; slow; awkward in a single-file executable |
-| C | Roslyn's parser only, with our own name lookup, as vbadoc has | Smallest | Guesses where A knows. C# leans on overloads and inference far more than VBA |
-
-To answer in review, since they change what M1 tries:
-
-1. Do the machines csdoc will run on have the .NET SDK, and are the solutions usually restored or built there?
-2. Are any of the solutions older .NET Framework projects (project files that list every source file)?
-3. Roughly how big are they: how many projects and source files in the largest?
-4. Is anything in them not C# that should be read (VB.NET, F#, Razor, XAML)? The plan assumes not.
-
-### 1.4 How pythondoc reads Python
-
-Recommended: **our own light parser in C#, as vbadoc and pqdoc have**, tested by a spike (N1). The choices:
-
-| | How | For | Against |
-|---|---|---|---|
-| **A (recommended)** | A tokeniser and structural parser of our own: indentation, strings, brackets, `import`, `class`, `def`, decorators, assignments, calls | Needs nothing installed. One self-contained executable, like the others | Ours to keep up with new syntax. It reads structure, not every expression |
-| B | Run the machine's own Python with a small script that prints the syntax tree (`ast`) | An exact syntax tree, for no parsing work | Needs Python on the machine and allowed to run. A second process, and a second language in the repository |
-| C | A parser library (ANTLR's Python grammar, or tree-sitter) | A full parse in .NET | A new dependency whose grammar trails the language, or native code inside the executable |
-
-Whichever reads the syntax, **Python has no declared types, so following `thing.method()` to a definition is partly
-inference** (see 5.5). The page counts what couldn't be followed, as vbadoc counts late-bound calls.
-
-To answer in review: is the project one package, or several under one folder? Does it use type annotations much?
-Annotations are the best evidence there is for what a name holds.
-
-### 1.5 One set of views, or a copy for each language
-
-Recommended: **one set**, in phase L. vbadoc's graph, class diagram and Calls tab are about 4,000 lines of
-JavaScript, written in VBA's terms but not tied to VBA: a C# type or a Python class fills the place of a module, and
-its members the place of members. Copying them twice would mean every later fix made three times. The cost is that
-vbadoc's views are reworked before anything new shows, checked for no visible change.
-
-The other choice is to copy first and merge later, as pqdoc's source panel was (B4, then C2). It shows a C# page
-sooner and costs more overall.
-
-### 1.6 Smaller questions
-
-| Question | Recommended |
+| | Settled on 2026-11-13 |
 |---|---|
-| Where a page goes by default | Beside the solution file, or in the Python project's root: source paths in the page are relative to that folder, so Load folder is given the same folder. `--output` changes it |
-| Is source in the page? | No, as now: the page holds file names and hashes, and Load folder reads the files. `--embed-source` puts it in |
-| The Export tab and `import` for C# and Python | No. They exist to move modules between workbooks; source files are already files |
-| What the top bar's summary says in place of "Workbook saved" | Counts only. A page still never says when it was made. Showing the git commit is in Later |
-| Test projects | Read like any other, with a `--exclude` option for projects, folders or files |
-| Real code to check against | This repository for csdoc (about 200 source files, 5 projects and their tests), and one real solution and one real Python project of yours, kept in a git-ignored `private/` folder as vbadoc's workbook is |
+| Names | The table in [4.1](#41-names), as proposed |
+| The feedback plan | Closed and deleted. Its parked steps (G2–G4, E5b) are steps L3–L6 here. Your outstanding checks are closed; the list of them is in the history at the tag `feedback-plan-final`, and E5b's original notes at `feedback-plan-e5b-notes` |
+| Keeping outputs the same from one version to the next | Not needed while the tools are in alpha (5.1) |
+| The feedback notes file | Deleted |
+
+### 1.2 The order of the work
+
+| Question | Recommended | Your answer |
+|---|---|---|
+| Names (K) or page follow-ups (L) first? | Names first: K1 and K2 are a day's mechanical work, and L then lands under the new names. L doesn't depend on them, so it can go first if you'd rather have Lock view and Peek sooner | Names first |
+| Which new tool first? | Access, then C#, then Python. Access reuses vbadoc's VBA reading whole, so it's the shortest road to something you can use, and it's the one your Blazor work is waiting on. Python last: it's for someone else and has the most guesswork | Access, C#, Python |
+| Is L6 (copy a view as text) wanted? It was optional in the feedback plan | Yes: N5's outline for Blazor is the same kind of thing, so it's built once | Yes |
+
+### 1.3 Lock view (step L1)
+
+How I've read what you asked for: a button that keeps what the graph and class diagram show exactly as it is. While
+it's on, a click on an item, or on empty space, changes only the selection and the source panel. Tell me if any of
+this is wrong.
+
+| Question | Recommended | Your answer |
+|---|---|---|
+| What the button is called | **Lock view**, a padlock at the start of each view's toolbar, beside Focus | Lock view |
+| What it keeps | The items shown, where they are, the zoom, and the level (modules or members). Nothing is added, removed or moved by a click | As recommended |
+| How the selected item is shown while locked | Outlined, so you can see what the source panel is showing. Nothing else is dimmed or lit | Outlined only |
+| Where the locked items show | Ticked in the explorer, as you described: locking ticks everything shown, so the explorer says what's kept, and you can untick one to drop it or tick another to add it | Ticked in the explorer |
+| Unlocking | The button again. The ticks go back to what they were before locking, and Focus on click works again | As recommended |
+| One lock for the page, or one per view | One for the page: the graph and the class diagram already show the same items | One for the page |
+| Dragging a node while locked | Still allowed. It moves that node only | Allowed |
+| Is it kept in a saved view? | Yes | Yes |
+| pqdoc's graph too? | Yes, it's the shell's | Yes |
+
+### 1.4 Peek (step L2)
+
+| Question | Recommended | Your answer |
+|---|---|---|
+| What a click on a line in Uses / Used by does | Opens a preview under that line: the code around it, highlighted, with the line marked. The selection, the views and the source below stay as they are | Peek |
+| How to go there instead, as a click does now | A **Go to** button in the preview, and Ctrl+click on the line (Ctrl+click already means "the other thing" in every view) | Go to, and Ctrl+click |
+| How much code the preview shows | The line and 5 lines either side, with a button to show the whole procedure or query | 5 lines either side |
+| How many previews can be open | Any number. Each closes with a click on its line again; Esc closes the last opened | Any number |
+| Both tools? | Yes, it's the shell's list | Yes |
+
+### 1.5 Access
+
+| Question | Recommended | Your answer |
+|---|---|---|
+| How accessdoc gets forms and VBA out of a database (see [5.5](#55-reading-access)) | Through Access itself: given a database, accessdoc copies it, has Access write every form and module as text from the copy, and reads the text. Given a folder of that text, it needs no Access. N1's spike tries this, and reading the file directly, before anything is built | Through Access, on a copy; N1 to confirm |
+| Is Access installed where you'll run it, at home and at work? Which version, and 32- or 64-bit if you know? | Needed for the answer above | _(yours to fill in)_ |
+| Which files: `.accdb`, older `.mdb`, both? Are they split into a front end and a back end of tables? Are any compiled (`.accde`), or opened with a password? | A compiled file has no source to read, and a password would have to be typed into Access by you | _(yours to fill in)_ |
+| Roughly how many forms does a database have, and how deep do subforms nest? | Sets how the Forms view is laid out | _(yours to fill in)_ |
+| Reports | Later: they're read the same way as forms, so adding them is small once forms work | Later |
+| Queries and tables | Named wherever a form or control uses one, and a query's SQL shown. A table's fields listed if the spike finds them cheap to get. No diagram of table relationships | As recommended |
+| Access macros (the kind built in the macro designer, embedded ones included) | Read far enough to follow them: an event that runs a macro links to the forms it opens and the VBA it runs | As recommended |
+| What the outline for Blazor holds (N5) | For each form: the forms inside it and how each is linked to its parent, its data source, each control with what it's bound to and its size and place, and each event with the code it runs. As text you can paste into a chat. It doesn't write Blazor code | As recommended |
+| Can you make a small sample database in Access with made-up content, as you did the sample workbooks? | Needed for N1: the repository is public, so real databases stay in `private/` | Yes |
+
+### 1.6 C#
+
+| Question | Recommended | Your answer |
+|---|---|---|
+| How csdoc reads C# (see [5.6](#56-reading-c)) | Roslyn, with csdoc working the solution out for itself: nothing is built, restored or run | As recommended; P1 to confirm |
+| Restored or not? | You weren't sure, and it needn't matter: csdoc works either way, and knows more about NuGet packages' types when a restore has been done. P1 reports the difference on your solutions | Works either way |
+| Older .NET Framework projects | In scope, for reading other people's code. P2 has a fixture of one | In scope |
+| Size | Small to moderate, so no step of its own for large solutions. P6 checks one larger solution so there's a known limit | As recommended |
+| Razor components (`.razor`), since you're building in Blazor | Later, as its own step once csdoc's page exists. Say if you'd rather have it in this plan | Later |
+| Anything else that should be read: VB.NET, F#, XAML? | No | No |
+
+### 1.7 Python
+
+You said you have little experience of Python and the tool is for a colleague, so this plan doesn't ask you to judge
+Python. [5.7](#57-reading-python) explains the words it uses, and Q1 has a short list to pass to your colleague.
+
+| Question | Recommended | Your answer |
+|---|---|---|
+| How pythondoc reads Python | A parser of our own, so the tool needs nothing installed. While it's being built, its reading is checked against Python's own parser on this machine, across thousands of files, so its accuracy doesn't rest on anyone's eye | As recommended; Q1 to confirm |
+| Who says whether the page is right and useful? | Your colleague, at Q4. Before that, the checks are automatic | My colleague |
+| Can a copy of their project be used for checking, kept in a git-ignored `private/` folder and never committed? | Yes if they agree. If not, Q1's spike is given to them to run, and prints only counts | _(yours to fill in, after asking)_ |
+| Does their machine have the same limits as your work machine? | Assumed yes: one self-contained executable, nothing installed | _(yours to fill in)_ |
+
+### 1.8 Smaller questions
+
+| Question | Recommended | Your answer |
+|---|---|---|
+| Where a page goes by default | Beside the database or solution file, or in the Python project's root. `--output` changes it | As recommended |
+| Is source in the page? | No, as now: Load folder reads it. `--embed-source` puts it in | As recommended |
+| The Export tab and `import` for the new tools | No. Moving forms between Access databases is in Later | No |
+| The top bar's summary, in place of "Workbook saved" | For a database, when it was last saved, as for a workbook. For a solution or project, counts only | As recommended |
+| The desktop app's remembered settings when it's renamed | Start afresh: a few recent files and tick boxes | Start afresh |
 
 ## 2. Goals and non-goals
 
 **Goals**
 
-1. Document a C# solution: its projects, namespaces, types and members, what uses what and on which lines, what
+1. Lock a view and peek at a reference, and finish what the feedback plan parked: the Calls tab's follow-ups, views
+   built into the page, printing, and copying a view as text.
+2. Document an Access database: its VBA as vbadoc does a workbook's, and its forms, with which form holds which, each
+   form's layout, controls, data and events, in enough detail to rebuild it as Blazor components.
+3. Document a C# solution: its projects, namespaces, types and members, what uses what and on which lines, what
    inherits and implements what, and the path a call takes.
-2. Document a Python project of many files the same way: packages, modules, classes, functions and methods.
-3. One page design and one set of views across VBA, C# and Python, so a feature built once reaches all three, and
-   someone who knows one page knows the others.
-4. Names that fit: the repository, the shared code and the desktop app stop saying Excel where they don't mean it.
-5. vbadoc and pqdoc lose nothing: same commands, same outputs, same remembered settings, same saved views files.
-6. The desktop app documents solutions and Python projects too.
+4. Document a Python project of many files the same way: packages, modules, classes, functions and methods.
+5. One page design and one set of views across every language, so a feature built once reaches all of them.
+6. Names that fit: the repository, the shared code and the desktop app stop saying Excel where they don't mean it.
+7. The desktop app runs every tool.
 
 **Non-goals**
 
-- Building, restoring or running the code that's read. Nothing is executed, and nothing is fetched.
-- API reference documentation, as DocFX and Sphinx make. These pages are for finding your way through code and how
-  it hangs together; doc comments and docstrings are shown, not turned into a manual.
+- Building, restoring or running the code that's read. The one exception is asking Access to write a copy of a
+  database out as text, which runs none of the database's own code (5.5).
+- Writing Blazor code, or converting anything. accessdoc describes a form; rebuilding it is yours.
+- API reference documentation, as DocFX and Sphinx make.
 - Complete type inference for Python, or following reflection, dependency injection containers, `dynamic`, `getattr`
   or `eval`. The page says what couldn't be followed.
-- Other languages (VB.NET, F#, TypeScript, notebooks), and links between languages. See [Later](#9-later).
-- Changing source code. There's no Export tab and no `import` for the new tools.
-- Anything that needs the network, an install or admin rights, as before.
+- Other languages, and links between languages. See [Later](#9-later).
+- Changing source code or databases. There's no Export tab and no `import` for the new tools.
+- Anything that needs the network, an install or admin rights.
 
-## 3. Constraints carried over
+## 3. What the tools are for, and their constraints
 
-From the guidelines and the feedback plan, all still true:
+Carried over from the feedback plan, which is now closed, so that they have a home until R2 moves them to the
+guidelines.
 
-- Everything works from the `dotnet` command line, on .NET 10. Each tool publishes as one self-contained executable.
-- A work machine has application control and no admin rights. Each new executable is tried there early (M1, N1).
-- Pages load nothing from the network, and the same source gives the same page, byte for byte.
-- Every dependency is compatible with the MIT licence. Check the licence and the current version when adding one.
-- The repository is public, and real code of yours isn't. It stays in `private/` folders, and fixtures are written for
-  the purpose or are this repository's own code.
+**Objectives**
+
+1. **Understand code** that's new, or not worked on for a while. What matters most is the path execution takes for
+   one activity, not everything at once.
+2. **Leave documentation** for whoever works on it next.
+3. New with this plan: **see how an Access form is built,** well enough to rebuild it elsewhere.
+
+**Constraints**
+
+- **Developers run the tools on locked-down work machines.** Application control limits where and by whom executables
+  can run, nothing that needs an installer can be installed, and the only AI help is a chat window with no access to
+  the project. Each new executable is tried on a work machine early (N1, P1, Q1).
+- **Readers only open the page.** It works with nothing installed, no network and no special settings.
+- **Everything works from the `dotnet` command line,** on .NET 10. Each tool publishes as one self-contained
+  executable.
+- **Pages load nothing from the network,** and never say when they were made.
+- **Every dependency is compatible with the MIT licence.** Check the licence and the current version when adding one.
+- **The repository is public, and real workbooks, databases and code aren't.** They stay in git-ignored `private/`
+  folders; fixtures are made for the purpose, with made-up content, and anything Office writes into them about the
+  person or machine that made them is removed before they're committed.
 
 ## 4. What it will look like
 
-### Commands
+### 4.1 Names
+
+The short name is the product and the long name is the code, as the guidelines have it.
+
+| | Now | Becomes |
+|---|---|---|
+| GitHub repository and local folder | `ExcelDocumentationTools` | `CodeDocumentationTools` |
+| Root solution | `ExcelDocumentationTools.sln` | `CodeDocumentationTools.sln` |
+| Publish folder | `…\source\Executables\ExcelDocumentationTools\` | `…\source\Executables\CodeDocumentationTools\` |
+| Shared library | `ExcelDocumenter.Shared` | `CodeDocumenter.Shared`, `CodeDocumenter.Workbooks`, `CodeDocumenter.CodeViews` and `CodeDocumenter.Vba` (5.3) |
+| The shell's JavaScript global | `ExcelDocumenterShell` | `CodeDocumenterShell` |
+| Desktop app | `xldocui`, `ExcelDocumenter.Desktop` | `codedocui`, `CodeDocumenter.Desktop` |
+| Name kept for a combined tool | `xldoc` | `codedoc` |
+| VBA in workbooks | `vbadoc`, `VbaDocumenter` | unchanged |
+| Power Query | `pqdoc`, `PowerQueryDocumenter` | unchanged |
+| Access | none | `accessdoc`, `AccessDocumenter`, in `accessdoc/`, writing `<database>-access.html` |
+| C# | none | `csdoc`, `CSharpDocumenter`, in `csdoc/`, writing `<solution>-csharp.html` |
+| Python | none | `pythondoc`, `PythonDocumenter`, in `pythondoc/`, writing `<project>-python.html` |
+
+`pydoc` is avoided because Python ships a command of that name. `accessdoc` is new since you agreed the table; change
+it here if you'd like another.
+
+### 4.2 Commands
 
 ```
-csdoc <solution, project or folder> [--output <folder>] [--output-name <name>] [--exclude <pattern>…]
-                                    [--embed-source] [--on-exists …] [--force] [--verbose] [--quiet]
-pythondoc <project folder>          the same options
+accessdoc <database or folder of exported text>
+csdoc     <solution, project or folder>
+pythondoc <project folder>
+
+each with:  [--output <folder>] [--output-name <name>] [--exclude <pattern>…] [--embed-source]
+            [--on-exists …] [--force] [--verbose] [--quiet]
 ```
 
+- `accessdoc` takes an `.accdb` or `.mdb`, and writes the forms and modules as text into a folder beside the page,
+  kept in step with the database as vbadoc's module files are, so they can go into git. Given that folder, it reads
+  it without Access.
 - `csdoc` takes a `.sln`, `.slnx` or `.csproj`, or a folder holding exactly one solution.
-- `pythondoc` takes the project's root folder. It leaves out virtual environments, `__pycache__`, build folders and
-  anything under a folder whose name starts with a dot.
-- Exit codes, logging and the shared options are the guidelines'.
+- `pythondoc` takes the project's root folder, leaving out virtual environments, `__pycache__`, build folders and
+  folders whose names start with a dot.
 
-### How each language fills the page
+### 4.3 How each language fills the page
 
-| | VBA (now) | C# | Python |
-|---|---|---|---|
-| Source | A workbook or add-in | A solution | A project folder |
-| Groups, shown as folders | `'@Folder` | Projects, then namespaces | Packages (folders) |
-| Units, the graph's upper level | Modules: standard, class, interface, document, form | Types: class, interface, struct, record, enum, delegate. A nested type is its own unit, named `Outer.Inner` | Modules (holding a file's own functions and variables) and classes |
-| Members | Procedures, properties, variables, constants, enums, types, events, declares | Methods, constructors, properties, fields, events, indexers, operators, enum members | Functions, methods, properties, class and module variables |
-| Relationships | Uses, Implements, Events | Uses, Inherits, Implements, Events | Uses, Inherits, Imports |
-| Called without a reference in the code | Macros, worksheet functions, event handlers | `Main`, public members of a library, overrides, interface implementations, tests, members marked with attributes | `__main__` blocks, dunder methods, decorated functions, tests, public names of a package |
-| Can't be followed | Late-bound calls | `dynamic`, reflection, unresolved names | Attribute calls on values of unknown type |
-| Explorer layouts | Folders, Types | Projects, Namespaces, Types | Packages, Types |
-| Outside code used | Library references | Packages and framework namespaces, per project | Imported packages that aren't the project's |
+| | VBA in a workbook (now) | Access | C# | Python |
+|---|---|---|---|---|
+| Source | A workbook or add-in | A database | A solution | A project folder |
+| Groups, shown as folders | `'@Folder` | Forms, reports, modules; `'@Folder` | Projects, then namespaces | Packages (folders) |
+| Units, the graph's upper level | Modules: standard, class, interface, document, form | The same, with a form's module tied to its form | Types: class, interface, struct, record, enum, delegate | Modules and classes |
+| Members | Procedures, properties, variables, constants, enums, types, events, declares | The same | Methods, constructors, properties, fields, events, indexers, operators, enum members | Functions, methods, properties, variables |
+| Relationships | Uses, Implements, Events | The same, and Opens (a form opening another), Holds (a subform) | Uses, Inherits, Implements, Events | Uses, Inherits, Imports |
+| Called without a reference in the code | Macros, worksheet functions, event handlers | Event properties, macros, the start-up form | `Main`, public members of a library, overrides, tests, members with attributes | `__main__` blocks, dunder methods, decorated functions, tests |
+| Can't be followed | Late-bound calls | The same, and form references built from text | `dynamic`, reflection, unresolved names | Attribute calls on values of unknown type |
+| Explorer layouts | Folders, Types | Forms, Folders, Types | Projects, Namespaces, Types | Packages, Types |
+| Views of its own | none | Forms | none | none |
 
-Everything the shell gives is there from the start: the explorer with its filter, favourites, hiding, widely used
-items and the Show… menu, Uses / Used by with lines, saved views, both themes.
+### 4.4 The Forms view (Access)
 
-### Repository
+- **Which form holds which:** a tree and a diagram of forms and the subforms inside them, to any depth, with the
+  fields that link each subform to its parent. A form used in several places shows in each.
+- **A form's layout,** drawn from its controls' positions and sizes as a wireframe: sections (header, detail,
+  footer), tab controls and their pages, option groups, subform controls showing the form they hold. Clicking a
+  control selects it.
+- **The side panel for a form or control:** its properties that matter (name, type, caption, what it's bound to, row
+  source, default value, validation, visible and enabled, tab order), its events with the procedure or macro each
+  runs, linked to the code, and its data source with the query's SQL.
+- **The outline** (N5) puts those together as text, for one form and everything inside it.
+
+### 4.5 Repository
 
 ```
 shared/
   src/CodeDocumenter.Shared/        every tool: exit codes, version, files, command line, the page shell, d3
   src/CodeDocumenter.Workbooks/     vbadoc and pqdoc: opening and writing workbooks, importing
-  src/CodeDocumenter.CodeViews/     vbadoc, csdoc and pythondoc: the code model, graph, class diagram, Calls
+  src/CodeDocumenter.CodeViews/     vbadoc, accessdoc, csdoc and pythondoc: the code model, graph, class diagram, Calls
+  src/CodeDocumenter.Vba/           vbadoc and accessdoc: reading the VBA language
 vbadoc/  pqdoc/                     as now
-csdoc/                              CSharpDocumenter, .Cli, .Core, .Tests, .BrowserTests
-pythondoc/                          PythonDocumenter, the same five
+accessdoc/  csdoc/  pythondoc/      each with its long name's .Cli, .Core, .Tests and .BrowserTests
 codedocui/                          the desktop app, renamed
 ```
 
 ## 5. Decisions
 
-### 5.1 Order of the work
+### 5.1 The tools are in alpha
 
-Names first (K), so new code is born with the right ones and the renames don't cut across half-built tools. Then the
-shared views (L), because both new tools stand on them. Then C# (M) before Python (N): Roslyn gives exact answers, so
-whatever goes wrong in M is the model's or the views' fault, not the reader's, and it's fixed before Python's guesses
-arrive. The desktop app last (P), as it only runs what the tools can already do.
+Agreed on 2026-11-13. Until a tool says otherwise:
+
+- **A new version may change its pages, its output files and its page data** in any way. Documentation folders
+  already committed to other repositories are made again with the new version, and their git histories will show the
+  change. No code is written to read or tidy up what an older version made, beyond what's there now.
+- **Remembered settings, saved views files and export manifests are kept working where it costs nothing,** and
+  otherwise dropped, with a line in the work log saying so.
+- **The same source still gives the same page** with the same version, and a page still never says when it was made.
+  That costs nothing to keep and is what makes a page's diff in git mean something.
+- **Steps that only move code** are checked by the tests passing and screenshots looked at in both themes. The
+  byte-for-byte and pixel-by-pixel comparisons C1 and C2 used aren't needed.
+
+### 5.2 Order of the work
+
+Names first (K), so new code is born with the right ones. Then the page follow-ups (L), because they change the views
+and the shell, and are better made before those are moved and shared than after. Then the shared views (M), which
+every new tool stands on. Then Access (N), which reuses vbadoc's reading of VBA whole and adds forms; then C# (P),
+the first language that isn't VBA and so the real test of the code model; then Python (Q). The desktop app last (R),
+as it only runs what the tools can already do.
 
 Each new tool begins with a spike that's tried on real code and on a work machine, as H1, I1 and J1 were. If a spike
 says the recommended way won't do, the steps after it are rewritten before they're started.
 
-### 5.2 The shared library in three
+### 5.3 The shared library in four
 
-`ExcelDocumenter.Shared` holds three kinds of thing, and the new tools need only some of them:
+`ExcelDocumenter.Shared` holds several kinds of thing, and the new tools need only some of them:
 
 - **`CodeDocumenter.Shared`:** what every tool needs. Exit codes, the build stamp, atomic and source folder writes,
   asking before overwriting, the command line's shared options, the page shell and d3.
-- **`CodeDocumenter.Workbooks`:** what only vbadoc and pqdoc need. `Workbooks/` (with OpenMcdf, so csdoc and pythondoc
-  don't carry it), `Importing/`, and the `import` command's options.
-- **`CodeDocumenter.CodeViews`:** what vbadoc, csdoc and pythondoc need and pqdoc doesn't. The code model and the views
-  drawn from it.
+- **`CodeDocumenter.Workbooks`:** what only vbadoc and pqdoc need. `Workbooks/` (with OpenMcdf), `Importing/`, and
+  the `import` command's options.
+- **`CodeDocumenter.CodeViews`:** what every tool but pqdoc needs. The code model and the views drawn from it.
+- **`CodeDocumenter.Vba`** (from N2): the VBA language, out of vbadoc's Core. The parser, the analyser, the
+  highlighter and how a module is written as a file. vbadoc keeps what's about workbooks; accessdoc brings what's
+  about databases.
 
-A tool's build stamp follows only the libraries it uses (`ToolStampPaths` already allows it), so a change to the code
-views doesn't change pqdoc's pages. The guidelines' rule stays: code that only one tool needs stays in that tool.
+A tool's build stamp follows only the libraries it uses. The guidelines' rules stay: tools never use each other, and
+code only one tool needs stays in that tool.
 
-### 5.3 The code model
+### 5.4 The code model
 
 The page's data, in terms no language owns. A language's Core fills it in; the views draw it.
 
-- **Files** are apart from what's in them. A VBA module is one file, but a C# type can be spread over several
-  (`partial`) and one file can hold several types, and a Python file holds a module and its classes. Each unit and
-  member says which file and lines it's in; the source panel shows those lines, or the whole file.
-- **Groups, units and members,** as the table in section 4 has them. Groups nest to any depth. Units are what the
-  class diagram draws as boxes and the graph's upper level as nodes. Two levels with folders above is what vbadoc has
-  now, and both new languages fit it, which is why the views can be shared without being rewritten.
+- **Files** are apart from what's in them. A VBA module is one file, but a C# type can be spread over several and one
+  file can hold several types, and a Python file holds a module and its classes. Each unit and member says which file
+  and lines it's in.
+- **Groups, units and members,** as the table in 4.3 has them. Groups nest to any depth. Units are what the class
+  diagram draws as boxes and the graph's upper level as nodes. That's what vbadoc has now, and every new language
+  fits it, which is why the views can be shared without being rewritten.
 - **Kinds are the language's:** each says what its kinds of unit, member and relationship are, with a label, a shape
-  and a colour group for each, and the views take the legend, the Show… menu and the explorer's Types layout from
-  that. New colours are validated with the dataviz palette validator, as the guidelines ask.
-- **Ids are names:** `Namespace.Type` and `Namespace.Type.Member(parameter types)` in C#, `package.module.Class.method`
-  in Python, a module's or member's name in VBA as now. Favourites, hidden items, the filter and saved views are kept
-  by id, so an id only changes when the thing is renamed or moved.
-- **Edges** are kept between members, with their lines, and rolled up to units and (from M6) groups.
-- **Calls and blocks** are as vbadoc has them: each call in the order of the code, with the `if`, loop, `switch` or
-  `try` around it.
+  and a colour group, and the views take the legend, the Show… menu and the explorer's Types layout from that. New
+  colours are validated with the dataviz palette validator.
+- **Ids are names:** `Namespace.Type.Member(parameter types)` in C#, `package.module.Class.method` in Python, a
+  module's or member's name in VBA. Favourites, hidden items, the filter and saved views are kept by id.
+- **Edges** are kept between members, with their lines, and rolled up to units and (from P6) groups.
+- **Calls and blocks** are as vbadoc has them: each call in the order of the code, with the `If`, loop or `switch`
+  around it.
+- **A language can add a view of its own,** as accessdoc adds Forms, using the shell and the selection like any other.
 
-vbadoc's page data changes shape once, in L3, to this. Its ids, its stored settings and its views files don't change.
+### 5.5 Reading Access
 
-### 5.4 Reading C#
+An Access database isn't a zip of parts like a workbook. It's a database file, with its forms and its VBA project
+kept inside its own system tables in formats Microsoft hasn't published. There are three ways in:
 
-Assuming M1 confirms choice A of 1.3:
+| | How | For | Against |
+|---|---|---|---|
+| **A (recommended)** | Access writes each form and module out as text (its own `SaveAsText`), and accessdoc reads the text | The text is complete and readable: every section, control, property and event, and the form's module. It's the format Access's own source control tools use | Needs Access installed wherever the text is made. accessdoc has to start Access and stay out of the way of the database's start-up code |
+| B | accessdoc reads only a folder of that text, made some other way (a script we supply, run from inside Access, or an existing add-in) | accessdoc itself needs no Access and runs nothing | A step by hand before every run |
+| C | accessdoc reads the database file directly | No Access anywhere | The VBA can probably be reached, since it's stored much as a workbook's is. Forms are stored in a format nobody has documented, so this may never give the layout, which is the point |
 
-- **The solution file** gives the projects (`.sln` and `.slnx`, read by our own code or by Microsoft's solution
-  library, whichever M1 finds simpler). A `.csproj` alone is a solution of one.
-- **A project's files** are every `.cs` under its folder, less `bin/`, `obj/` and what the project file removes; an
-  older project file's own list is used as written.
+The recommendation is A with B's folder as its other input, so the page can be made again, or made on a machine
+without Access, from the text. How A stays safe:
+
+- **The database given is never opened.** accessdoc copies it to a temporary folder and has Access open the copy, so
+  the original isn't locked, changed or compacted.
+- **None of the database's own code runs:** the copy is opened with its start-up form and `AutoExec` macro bypassed.
+  N1 finds the way that works at home and at work, and if there isn't one, A is off and B stands.
+- **Access is started hidden and closed again,** and a run that fails still closes it.
+- **Linked tables aren't followed.** Only the front end's forms, modules, queries and macros are read.
+
+N1 tries A and C on the samples, and reports. It also says what a compiled (`.accde`) or password-protected database
+does, so the tool can say so plainly.
+
+**What's read from a form's text:** its record source and properties; its sections; every control with its type,
+name, caption, position and size, what it's bound to, and its row source; tab controls and their pages, and option
+groups, as controls holding controls; subform controls with the form each shows and the fields linking it to its
+parent; every event property, which names an event procedure, a macro or an expression; and the form's own module,
+which goes through the VBA library like any other.
+
+**What forms add to the dependencies:** an event procedure is tied to its control, so it's an entry point with a
+name; a subform control is a Holds edge between forms; `DoCmd.OpenForm "Name"` with a literal name, in VBA or a
+macro, is an Opens edge; a record source or row source names a query or table. A form's name built from text at run
+time can't be followed, and is counted.
+
+### 5.6 Reading C#
+
+Roslyn is Microsoft's own C# compiler as a library (MIT). The choices for using it:
+
+| | How | For | Against |
+|---|---|---|---|
+| **A (recommended)** | Roslyn parses every file, and csdoc makes each project's compilation from what it reads in the solution and project files | Exact names within the code read: overloads, `var`, generics, extension methods, interfaces. Works with no SDK and no restore. Runs nothing | Reads project files itself, so it knows the common settings, not every one. Types from NuGet packages are unknown unless a restore has been done |
+| B | Roslyn's MSBuild workspace loads the solution as Visual Studio does | Every setting right, every package known | Needs the SDK and a restore on the machine; runs the build's own steps; slow; awkward in a single-file executable |
+| C | Roslyn's parser only, with our own name lookup, as vbadoc has | Smallest | Guesses where A knows |
+
+Assuming P1 confirms A:
+
+- **The solution file** gives the projects (`.sln` and `.slnx`). A `.csproj` alone is a solution of one.
+- **A project's files** are every `.cs` under its folder, less `bin/`, `obj/` and what the project file removes. An
+  older .NET Framework project file lists its own files, and that list is used as written.
 - **A project's settings** come from its project file and the `Directory.Build.props` files above it, for the few
   that change what code means: the language version, `Nullable`, `ImplicitUsings`, defined constants, the root
-  namespace, and references to other projects. Conditions and imports beyond that aren't evaluated; when one is
-  met, the log says what was assumed.
-- **References:** other projects in the solution, by their own compilations; the .NET reference assemblies, carried
-  in the executable so no SDK is needed; and NuGet packages from `obj/project.assets.json` when a restore has left
-  one. A type that can't be found doesn't stop anything: it's counted, and listed under `--verbose`.
-- **Generated code** in `obj/` isn't read, apart from implicit usings, so what a source generator makes is unknown.
-  Razor and XAML aren't read.
-- **Multi-targeted projects** are read once, for the first target framework. `#if` branches follow that target.
-- Roslyn is MIT licensed. It adds to the executable's size, which M1 measures.
+  namespace, and references to other projects. When something more involved is met, the log says what was assumed.
+- **References:** other projects in the solution; the .NET or .NET Framework reference assemblies, carried in the
+  executable so no SDK is needed; and NuGet packages when a restore has left them (`obj/project.assets.json`, or an
+  older project's `packages` folder). A type that can't be found doesn't stop anything: it's counted, and listed
+  under `--verbose`.
+- **Generated code** in `obj/` isn't read, apart from implicit usings. Razor and XAML aren't read.
+- **Multi-targeted projects** are read once, for the first target framework.
 
-### 5.5 Reading Python
+### 5.7 Reading Python
 
-Assuming N1 confirms choice A of 1.4:
+**Python in plain words,** for the terms this plan uses:
 
-- **Finding the project:** packages are folders with `__init__.py`, or any folder of `.py` files under the root; a
-  `src/` layout is recognised. `pyproject.toml` gives the project's name when there is one.
+| Word | Means | Nearest thing in VBA or C# |
+|---|---|---|
+| Module | One `.py` file. Its functions, classes and variables belong to it | A standard module; a C# file that is also a static class |
+| Package | A folder of modules, usually with a file named `__init__.py` | A namespace or project |
+| `import` | How one module names another to use it | A reference plus `using` |
+| Class, method | As in C#. A method's first parameter, `self`, is the object | `Me`, `this` |
+| Decorator | A line starting with `@` above a function, which hands it to something else. Frameworks use them to say "call this for that web address" or "this is a test" | An attribute such as `[HttpGet]` |
+| Docstring | A text literal as the first line of a function, class or module, describing it | A `///` comment |
+| Annotation | An optional note of a parameter's or variable's type, such as `count: int`. Python doesn't check it | A declared type |
+| Virtual environment | A folder inside the project holding copies of installed packages (`venv`, `.venv`). Not the project's own code | `bin/` and `packages/` |
+
+**The difficulty:** Python doesn't declare types. In `thing.save()`, nothing says what `thing` is, so which `save` it
+calls has to be worked out from the code around it, and sometimes can't be. Imports are exact, and so is the
+structure of every file. So the page's module-to-module picture is exact, and its member-to-member picture is as good
+as the evidence in the code, with what couldn't be followed counted and listed, as vbadoc does late-bound calls.
+
+**The choices for reading it:**
+
+| | How | For | Against |
+|---|---|---|---|
+| **A (recommended)** | A tokeniser and structural parser of our own, in C# | Needs nothing installed. One self-contained executable | Ours to keep up with new syntax |
+| B | Run the machine's own Python with a small script that prints the syntax tree | An exact syntax tree, for no parsing work | Needs Python on the machine and allowed to run there |
+| C | A parser library | A full parse in .NET | A dependency whose grammar trails the language, or native code inside the executable |
+
+Assuming Q1 confirms A:
+
+- **Checking it without a Python expert:** this machine has Python. While pythondoc is being built, and never when
+  it's run, its reading of each file's structure is compared with what Python's own parser says, over the sample
+  project and Python's standard library (thousands of files, in every style). Q1 sets that up, and it stays as an
+  optional test that skips itself where Python isn't installed.
+- **Finding the project:** packages are folders with `__init__.py`, or any folder of `.py` files under the root.
+  `pyproject.toml` gives the project's name when there is one.
 - **Structure** is exact: imports, classes with their bases, functions with their parameters, annotations, decorators
-  and docstrings, module and class variables, `self.` attributes set in a class's methods.
-- **Names are followed by scope and import:** a local, an enclosing function, the module, then what it imported,
-  `from x import *` included, by `__all__` when it's there.
+  and docstrings, module and class variables, and `self.` attributes set in a class's methods.
+- **Names are followed by scope and import:** a local, an enclosing function, the module, then what it imported.
 - **What a name holds is inferred from the evidence in the code:** an annotation, an assignment from a class's
-  constructor, a parameter's default, `self`, `cls` and `super()`. An attribute call on a value of unknown type isn't
-  guessed at by name alone, since a method name such as `run` or `get` can be in many classes: it's recorded as one
-  that couldn't be followed.
-- **Imports are a relationship of their own,** between modules, and exact. Imports from outside the project are listed
-  as the outside packages a module uses.
-- New syntax is the parser's risk. The tokeniser has to know every string form, f-strings included; a statement the
-  structural parser doesn't know is passed over, not an error.
+  constructor, `self`, `cls` and `super()`. An attribute call on a value of unknown type isn't guessed at by name
+  alone, since a name such as `run` or `get` can be in many classes: it's recorded as one that couldn't be followed.
+- **Imports from outside the project** are listed as the outside packages a module uses.
 
-### 5.6 What makes something an entry point
+### 5.8 What makes something an entry point
 
-Each language's list of what's "called without a reference" (section 4's table) decides what's flagged as
-unreferenced and where the Calls tab starts. For C# and Python the lists can't be complete, since frameworks call
-code by attributes, decorators and naming conventions. So: only what can't be reached from outside is ever flagged
-(private and internal members in C#, names starting with an underscore in Python), the page's wording is "no
-reference found", and anything carrying an attribute or decorator is treated as called.
+Each language's list of what's "called without a reference" (4.3) decides what's flagged as unreferenced and where
+the Calls tab starts. For C# and Python the lists can't be complete, since frameworks call code by attributes,
+decorators and naming conventions. So only what can't be reached from outside is ever flagged (private and internal
+members in C#, names starting with an underscore in Python), the page's wording is "no reference found", and anything
+carrying an attribute or decorator is treated as called. In Access, a procedure named for a control's event is only
+an entry point if that control's event property says it runs event procedures, which the form's text tells us; vbadoc
+has to guess that for workbooks.
 
-### 5.7 Size
+### 5.9 Lock view and Peek
 
-A workbook has tens of modules; a solution can have thousands of types and tens of thousands of members. vbadoc is
-tested to 300 modules, and its member-level graph was already slow at 70 (D1d). So:
+- **Lock view is the filter, plus a hold on the views.** Locking ticks every item now shown in the explorer (the
+  shell's filter, which every view already follows), and stops a click from focusing, laying out, fitting or
+  highlighting. Unlocking puts the ticks back as they were. So it needs no second idea of "what's shown", it's never
+  silent (the explorer and each toolbar's filter note say what's kept), and a saved view keeps it.
+- **A click while locked** selects, outlines the item, and shows its source. A click on empty space clears the
+  selection, and the side panel closes unless it's locked open. Nothing else changes.
+- **Peek is the shell's,** in the Uses / Used by list, so every tool has it. It reads the same source the panel does,
+  so it needs the source loaded or embedded, and says so when it isn't.
+- **Ctrl+click goes there,** which is what a plain click does now. That fits the guidelines' rule that Ctrl+click does
+  the other thing.
 
-- The graph opens at the coarsest level that's readable, which is why M6 adds the group level.
-- The member level is offered only within a focus or filter once the solution is past a size M7 settles by measuring.
-- The page's data is kept small: lines are numbers, repeated strings are stored once.
-- M7 uses a generated solution, and your largest real one.
+### 5.10 Renaming without breaking anything
 
-### 5.8 Renaming without breaking anything
-
-- **Nothing a user has stored is keyed by a name that changes,** but for the desktop app's settings folder
-  (`%LOCALAPPDATA%\xldocui`), which `codedocui` copies from on its first run if its own doesn't exist.
-- **The pages' link to the repository** follows the new name. GitHub redirects the old address, so pages already made
-  keep working.
+- **The pages' link to the repository** follows the new name. GitHub redirects the old address.
 - **Folder renames are done with VS Code closed,** from a terminal of its own: the C# extensions hold the tool
   folders. K2 is one of these.
 - **Old executables** stay in the old publish folder until deleted by hand; K3 says so.
+- **The desktop app's remembered settings start afresh** under its new name (1.8).
 
 ## 6. Steps
 
 ### Step K0: Settle the questions
 
-Record the answers to section 1 in this file. If 1.2 is agreed, close the feedback plan as its section 8 sets out:
-check its decisions are in the guidelines or a tool's `DECISIONS.md`, move its Later section, delete it in its own
-commit, and point `docs/WORKLOG.md` and the tools' plans here.
+The feedback plan is closed: its Later section moved to vbadoc's and pqdoc's plans and to section 9 here, what
+pointed at it points here or at the tag `feedback-plan-final`, and the file is deleted. Still to do: once you've been
+through section 1, revise the plan for any answer you changed, and record the alpha decision (5.1) in the guidelines.
 
 ### Step K1: Names inside the repository
 
-The root solution, `ExcelDocumenter.Shared` (to `CodeDocumenter.Shared`, still one library until L1), the shell's
-global, `ToolsPublishDir`, the build workflow, and every document that names them. **No visible change:** every
-fixture's output is byte-identical apart from the build stamp. The link to the repository waits for K3.
+The root solution, `ExcelDocumenter.Shared` (to `CodeDocumenter.Shared`, still one library until M1), the shell's
+global, `ToolsPublishDir`, the build workflow, and every document that names them. The link to the repository waits
+for K3.
 
 ### Step K2: The desktop app's name
 
-`xldocui/` becomes `codedocui/`, `ExcelDocumenter.Desktop` becomes `CodeDocumenter.Desktop`, and its settings are
-copied across on first run. Its title and README say what it now covers only once P1 has made it true; until then it
+`xldocui/` becomes `codedocui/` and `ExcelDocumenter.Desktop` becomes `CodeDocumenter.Desktop`. Until R1 it still
 says it runs vbadoc and pqdoc. Done from a terminal outside VS Code.
 
 ### Step K3: The repository's name
@@ -374,151 +525,270 @@ Yours first, in this order, with a checklist written into this section when the 
    starts without it.
 4. Add the new publish folder to `PATH` on each machine, and delete the old one.
 
-Then Claude: the pages' repository link, the READMEs, the build badge if any, and a check that a fresh clone builds,
-tests and publishes.
+Then Claude: the pages' repository link, the READMEs, and a check that a fresh clone builds, tests and publishes.
 
-### Step L1: The shared library in three
+### Step L1: Lock the view
 
-Split as 5.2 sets out. The shell's interface and messages say "source" where they said "workbook" and mean either
-(the tool supplies the word shown, so vbadoc's and pqdoc's pages read as before); the Export tab becomes something a
-tool asks for; the summary's saved time becomes optional. A views file or manifest written by vbadoc or pqdoc is
-unchanged, `workbook` field included; the new tools write `source`, and both are read. **No visible change.**
+As 1.3 and 5.9 set out, in the shell and in vbadoc's graph and class diagram and pqdoc's graph. Browser tests: with
+the lock on, clicks on items and on empty space leave every node's place, the zoom and the set shown unchanged, and
+change the source panel; unlocking puts the ticks back; a saved view keeps the lock. Screenshots in both themes.
 
-### Step L2: vbadoc's views move to the code views library
+### Step L2: Peek at a reference
+
+As 1.4 and 5.9 set out, in the shell's Uses / Used by list. Browser tests in both tools: a click opens the preview
+and leaves the selection; Go to and Ctrl+click navigate; with no source loaded, the preview says how to load it.
+
+### Step L3: Calls tab follow-ups (E5b)
+
+Raised on 2026-11-06 while H1 was under way.
+
+- **Ifs with `Or` or `And` conditions seem not to show up, only the Else or ElseIf after them.** Looked at, not yet
+  fixed. The parser reads every form of these, each block is right, and every call and dependency edge is found, so
+  nothing is lost. The likely cause is in what the tab draws: a call in a condition belongs to the block around the
+  If (`BlockTracker`: "a block's own statement is in the block around it"), and a block row is drawn only when its
+  body holds a call (`childrenOf` in `calls.js`). So for this code, the tree shows IsA and IsB loose above the Else
+  row, with no If row at all, and the same goes for a condition with one call:
+
+  ```vb
+  If Helper.IsA(1) Or Helper.IsB(2) Then
+      x = 1
+  Else
+      Helper.DoB
+  End If
+  ```
+
+  **First check this against your real example,** in case there's another cause. The likely fix: draw an If or
+  ElseIf row when its condition makes a call, with those calls shown as the condition's, in the tree and the sequence
+  diagram.
+- **Keep the participants row in view while scrolling down the sequence diagram.** Each entry point is its own
+  diagram with its own participants, so the row showing has to be that of the diagram being scrolled through, and it
+  has to move sideways with the diagram.
+- Unit tests for the condition's calls, browser tests for both, and screenshots in both themes.
+
+### Step L4: Views file built into the page (G2)
+
+- Each tool reads `<tool>-views.json` from the output folder, checks its format version, and builds it into the page,
+  so readers get the views by opening the page and the file is versioned in git with the source. A missing file is
+  normal; an unreadable one is a warning, not a failure.
+- Views that mention items no longer in the source still load, and the missing items are listed, as now.
+- Check that neither tool's source folder writer deletes the views file.
+
+### Step L5: Printing and descriptions (G3)
+
+- **Descriptions** come from a member's `VB_Description` attribute if it has one, otherwise from the comments directly
+  above it, and from a module's comments at the top; for queries, from the description in the workbook, otherwise
+  from comments at the top of the query. They're added to the page data in Core and shown in the side panel.
+- **Printing** uses a print stylesheet and a Print menu: the current view or every view as a document, with the title,
+  source and build stamp, then for each view its description, its diagram fitted to the page, and its items with
+  kind, signature, description and Uses / Used by. Source is optional. The browser's Print, then Save as PDF, makes
+  the PDF.
+- Browser tests that print to PDF in headless Chromium and check the PDF has a page per view.
+- You check printing to PDF and exporting views in the browser on a work machine.
+
+### Step L6: Copy a view as text (G4)
+
+A Copy button puts the current view on the clipboard as Markdown: its items with signatures and descriptions, the
+open Calls tree, and optionally the source. It warns when the text is long. If the browser refuses the clipboard, the
+text appears in a box to copy by hand. N5 uses the same button for a form's outline.
+
+### Step M1: The shared library in three
+
+Split as 5.3 sets out (the fourth library, for VBA, waits for N2). The shell's interface and messages say "source"
+where they said "workbook" and mean either, with the tool supplying the word shown; the Export tab becomes something
+a tool asks for; the summary's saved time becomes optional.
+
+### Step M2: vbadoc's views move to the code views library
 
 `graph.js`, `classes.js`, `calls.js`, the parts of `page.js` and `page.css` they need, and `ClassDiagram` move as
 they are, still speaking of modules. vbadoc's browser tests move with them where they test the views, and stay where
-they test vbadoc. **No visible change.**
+they test vbadoc.
 
-### Step L3: The code model
+### Step M3: The code model
 
-The model of 5.3, in C# and in the page's data, with vbadoc's Core filling it in. The views take kinds, labels,
-shapes, relationships and wording from the language's description, and files are apart from units. A small made-up
-language in the library's own tests (two kinds of unit, one extra relationship) proves the views don't assume VBA.
-**No visible change to vbadoc's page;** its data changes shape, once.
+The model of 5.4, in C# and in the page's data, with vbadoc's Core filling it in. The views take kinds, labels,
+shapes, relationships and wording from the language's description. A small made-up language in the library's own
+tests (two kinds of unit, one extra relationship, a type in two files) proves the views don't assume VBA.
 
-### Step M1: Spike on reading a C# solution
+### Step N1: Sample databases, and a spike on reading them
 
-`spikes/m1-csharp`, throwaway. It reads a solution as 5.4 sets out and reports: projects, types and members found;
-the share of names resolved, and what the unresolved ones were; time and memory; the published executable's size.
-Run on this repository, restored and not, and by you on a real solution and on a work machine. It also tries the
-MSBuild workspace (choice B) on the same solutions, to say what A gives up. **The step ends with a recommendation,
-and M2–M5 are revised to fit before they start.**
+- **You, in Access:** a small sample database with made-up content, saved as `.accdb` and, if Access still offers it,
+  `.mdb`. A list of what it should hold is written into this section when the step starts; in outline: a form with a
+  subform, a subform inside a subform, a continuous form, a tab control, an option group, a combo box with a row
+  source, events run by event procedures, by a macro and by an expression, a standard module and a class module, a
+  start-up form and an `AutoExec` macro that visibly do something, so the spike can prove they didn't run.
+- **Claude:** `spikes/n1-access`, throwaway. It tries 5.5's choice A (Access writes text from a copy, start-up
+  bypassed, hidden, closed afterwards) and choice C (the VBA read from the file directly), and reports what each got,
+  how long it took, and what a compiled or password-protected database does. What Access wrote about you or your
+  machine into the samples is removed before they're committed, with your agreement, as for the sample add-ins.
+- **You:** run the spike at home and on a work machine, where application control and Access's own security settings
+  are the real test.
+- **The step ends with a recommendation, and N2–N5 are revised to fit.**
 
-### Step M2: csdoc reads a solution
+### Step N2: accessdoc reads a database's VBA
 
-`csdoc/` with its solution, documents and publish profile, as the guidelines set out for a tool. A sample solution
-as a fixture, written to cover the cases: several projects, nested and partial types, generics, overloads, records,
-interfaces, events, extension methods, a multi-file type. `csdoc <solution>` prints a summary of what it found;
-`--verbose` lists it. No page yet.
+The VBA language moves out of vbadoc's Core into `CodeDocumenter.Vba`. `accessdoc/` is set up as the guidelines set
+out for a tool. It gets the text as N1 settled, writes it into a source folder kept in step with the database, and
+makes `<database>-access.html` with everything vbadoc's page has, form modules included. No Forms view yet.
 
-### Step M3: csdoc's dependencies
+### Step N3: accessdoc reads forms
 
-The dependency model: edges between members with their lines, Inherits, Implements and Events, entry points as 5.6
-has them, unreferenced members, outside packages used, and the count of names that couldn't be followed. Tests
-assert the sample's whole edge list, as vbadoc's do.
+The forms model, as 5.5 lists: sections, controls, subforms, data sources and events, read from each form's text.
+Event procedures are tied to their controls, and Holds and Opens edges join the dependencies. Macros and queries are
+read as far as 1.5 says. Tests assert the sample's whole form tree and its edges.
 
-### Step M4: csdoc's page
+### Step N4: The Forms view
+
+As 4.4: the tree and diagram of forms within forms, a form's layout drawn as a wireframe, and the side panel for a
+form or control. A Forms layout in the explorer, down to controls. Browser tests and screenshots in both themes. Then
+your review on a real database, which will add follow-up steps, as D1's did.
+
+### Step N5: A form's outline, for rebuilding it
+
+For a chosen form, everything inside it as text (1.5's row), through L6's Copy button and printed by L5's Print. You
+try it on a real form you mean to rebuild, and say what a Blazor component needed that the outline didn't give.
+
+### Step P1: Spike on reading a C# solution
+
+`spikes/p1-csharp`, throwaway. It reads a solution as 5.6 sets out and reports: projects, types and members found;
+the share of names resolved, and what the unresolved ones were; time and memory; the published executable's size. Run
+on this repository, restored and not, on an older .NET Framework project, and by you on a real solution and on a work
+machine. It also tries the MSBuild workspace (choice B) on the same solutions, to say what A gives up. **The step
+ends with a recommendation, and P2–P5 are revised to fit.**
+
+### Step P2: csdoc reads a solution
+
+`csdoc/` with its solution, documents and publish profile. A sample solution as a fixture: several projects, nested
+and partial types, generics, overloads, records, interfaces, events, extension methods, and one older-style project.
+`csdoc <solution>` prints a summary of what it found; `--verbose` lists it. No page yet.
+
+### Step P3: csdoc's dependencies
+
+Edges between members with their lines, Inherits, Implements and Events, entry points as 5.8 has them, unreferenced
+members, outside packages used, and the count of names that couldn't be followed. Tests assert the sample's whole
+edge list, as vbadoc's do.
+
+### Step P4: csdoc's page
 
 `<solution>-csharp.html` on the shell and the code views: the explorer's three layouts, the graph at type and member
 level, the class diagram, the source panel with a C# highlighter and Load folder, doc comment summaries in the side
-panel, search. Browser tests and screenshots in both themes. Then your review on a real solution, which will add
-follow-up steps, as D1's did.
+panel, search. Then your review on a real solution.
 
-### Step M5: csdoc's calls
+### Step P5: csdoc's calls
 
 Calls in order with the blocks around them; a call through an interface opens to its implementations, a virtual call
 to its overrides; a call through a delegate or lambda is shown as one that couldn't be followed to a single place.
-The sequence diagram comes with the Calls tab.
 
-### Step M6: The graph at group level
+### Step P6: The graph at group level
 
 A third level in the graph, above units: projects and namespaces in C#, packages in Python, `'@Folder` folders in
-VBA. Edges are rolled up, and opening a group shows what's in it. In the code views, so it's built once.
+VBA, forms and modules in Access. Edges are rolled up, and opening a group shows what's in it. With it, a check on
+one larger solution (a generated one, and someone else's if you have one to hand), so the README can say what size
+the page is good for.
 
-### Step M7: Large solutions
+### Step Q1: Your colleague's project, a sample, and a spike
 
-Measure on a generated solution and your largest; settle the limits of 5.7; keep the hover and drag budgets vbadoc's
-`SpeedTests` hold. The step's findings decide what, if anything, is left out at size, and the page says so when it is.
+- **To pass to your colleague,** with their answers written here:
 
-### Step N1: Sample Python project, and a spike on reading it
+  | Question | Why it's asked | Their answer |
+  |---|---|---|
+  | Which version of Python does the project use? | New versions add syntax | _(theirs)_ |
+  | What's in the project's top folder? A list of the file and folder names is enough | Shows how it's laid out, and what to leave out | _(theirs)_ |
+  | Does the code say what type things are (`def f(x: int) -> str`)? Everywhere, here and there, or not at all | It's the best evidence for following calls | _(theirs)_ |
+  | Is it built on a framework (Django, Flask, FastAPI, pandas scripts, something else)? | Frameworks call code in their own ways, which decides the entry points | _(theirs)_ |
+  | How is it started? | The Calls tab starts from there | _(theirs)_ |
+  | What do they most want to see: which file uses which, what calls what, the classes? | Decides what the page opens on | _(theirs)_ |
+  | May a copy be used for checking, kept private and never committed? | 1.7 | _(theirs)_ |
 
-A sample project as a fixture: packages, relative and star imports, classes with inheritance, decorators, properties,
-annotations and none, nested functions, every string form. `spikes/n1-python`, throwaway, tokenises and parses it and
-a real project of yours, and reports what it read, what it passed over, and the share of attribute calls it could
-follow. It's run on a work machine. **The step ends with a recommendation between 1.4's choices, and N2–N4 are
-revised to fit.**
+- **Claude:** a sample project as a fixture, covering packages, relative and star imports, classes with inheritance,
+  decorators, properties, annotations and none, nested functions, and every form of string. `spikes/q1-python`,
+  throwaway, reads it and reports what it read, what it passed over, and the share of attribute calls it could
+  follow. The check against Python's own parser (5.7) is set up here.
+- **You or your colleague:** run the spike on the real project, on the machine it'll be used on.
+- **The step ends with a recommendation, and Q2–Q4 are revised to fit.**
 
-### Step N2: pythondoc reads a project
+### Step Q2: pythondoc reads a project
 
-`pythondoc/`, set up as csdoc was. Project discovery, the tokeniser and structural parser, and a console summary.
+`pythondoc/`, set up as the others were. Project discovery, the tokeniser and structural parser, and a console
+summary.
 
-### Step N3: pythondoc's dependencies
+### Step Q3: pythondoc's dependencies
 
-Imports, scopes, what names hold (5.5), edges with lines, Inherits and Imports, entry points, outside packages, and
+Imports, scopes, what names hold (5.7), edges with lines, Inherits and Imports, entry points, outside packages, and
 what couldn't be followed. Tests assert the sample's whole edge list.
 
-### Step N4: pythondoc's page and calls
+### Step Q4: pythondoc's page and calls
 
-`<project>-python.html`, as M4 and M5 together: the views are already there, so this is the language's description,
-a Python highlighter, docstrings in the side panel, and the Calls tab's blocks (`if`, loops, `try`, `with`, `match`).
-Then your review on a real project.
+`<project>-python.html`: the language's description, a Python highlighter, docstrings in the side panel, and the
+Calls tab's blocks (`if`, loops, `try`, `with`, `match`). Then your colleague's review on the real project. Its
+README is written for someone who knows Python and not these tools.
 
-### Step P1: The desktop app takes solutions and projects
+### Step R1: The desktop app takes everything
 
-The Document tab offers each tool that can read what was picked: a workbook gives vbadoc and pqdoc, a solution csdoc,
-a folder whichever of pqdoc, csdoc and pythondoc find something in it. The Import tab stays the Excel tools'. Its
-test that every option is either offered or explained covers the new tools.
+The Document tab offers each tool that can read what was picked: a workbook gives vbadoc and pqdoc, a database
+accessdoc, a solution csdoc, a folder whichever tools find something in it. The Import tab stays the Excel tools'.
+Its test that every option is either offered or explained covers the new tools.
 
-### Step P2: Finishing
+### Step R2: Finishing
 
-Check every decision in section 5 is in `docs/GUIDELINES.md` or a tool's `docs/DECISIONS.md`, move
+Check every decision in section 5, and section 3, is in `docs/GUIDELINES.md` or a tool's `docs/DECISIONS.md`, move
 [Later](#9-later) into the relevant plans, update the root README, then delete this file in its own commit.
 
 ## 7. Changes to existing documents
 
-To be made in the step that causes them, each asked about first, as the root `CLAUDE.md` requires:
+Approving this plan covers the changes below, each made in the step that causes it. Anything else still needs asking.
 
-- **`docs/GUIDELINES.md`:** the naming table gains the new tools and loses the old names (K1–K3, M2, N2);
-  "Structure" describes three shared libraries and which tool uses which (L1); "Versions and the build stamp" says a
-  stamp follows the libraries its tool uses (L1); "HTML pages" speaks of the source, not the workbook, and makes the
-  Export tab the Excel tools' (L1).
-- **vbadoc's `Requirements.md` and `DECISIONS.md`:** where its views now live, and the page data's new shape (L2, L3).
-  Nothing about what vbadoc does changes.
-- **pqdoc's and the desktop app's documents:** the new names only, until P1 widens the app's requirements.
-- **New:** `Requirements.md`, `DECISIONS.md`, `PLAN.md`, `README.md` and `CLAUDE.md` for csdoc and pythondoc, written
-  in M2 and N2; a README for each new shared library.
-- **Root `README.md` and `CLAUDE.md`:** the new names (K1, K3) and the new tools as they arrive.
+| Document | Change | Steps |
+|---|---|---|
+| `docs/GUIDELINES.md` | The tools are in alpha (5.1), which loosens "values stored in the data of generated pages keep their spelling" and the rule on deleting older outputs | K0 |
+| `docs/GUIDELINES.md` | Naming: the new names and tools. Structure: the shared libraries and which tool uses which. Versions: a stamp follows the libraries its tool uses | K1–K3, M1, N2, P2, Q2 |
+| `docs/GUIDELINES.md` | HTML pages: Lock view; Peek, and Ctrl+click in the Uses / Used by list; views files built in; printing; "source" in place of "workbook"; the Export tab as the Excel tools' | L1, L2, L4, L5, M1 |
+| `vbadoc/Requirements.md`, `vbadoc/docs/DECISIONS.md`, `vbadoc/README.md` | Lock view, Peek, the Calls tab's condition rows, views built in, printing and descriptions, copying a view; where its views and its VBA reading now live | L1–L6, M2, M3, N2 |
+| `pqdoc/Requirements.md`, `pqdoc/docs/DECISIONS.md`, `pqdoc/README.md` | Lock view, Peek, views built in, printing and descriptions, copying a view | L1, L2, L4–L6 |
+| The desktop app's documents | Its new name; then the tools it runs | K2, R1 |
+| `shared/README.md` | Split in step with the libraries | M1, N2 |
+| New | `Requirements.md`, `DECISIONS.md`, `PLAN.md`, `README.md` and `CLAUDE.md` for accessdoc, csdoc and pythondoc | N2, P2, Q2 |
+| Root `README.md` and `CLAUDE.md` | The new names, and the new tools as they arrive | K1, K3, N2, P2, Q2 |
 
 ## 8. What you'll be asked to do
 
-So the plan's calls on your time are in one place:
-
 | When | What |
 |---|---|
-| Now | Review this plan and answer section 1 |
+| Now | Go through section 1: change any answer you disagree with, and fill in the rows that are yours |
 | K2 | Close VS Code while the app's folder is renamed |
 | K3 | Rename the repository on GitHub and on disk, move Claude's memory folder, update `PATH` |
-| M1 | Run the spike on a real solution, and on a work machine |
-| M4, M7 | Try csdoc's page on a real solution; say what's missing or in the way |
-| N1 | Run the spike on a real Python project, and on a work machine |
-| N4 | Try pythondoc's page on a real project |
+| L3 | Find the real example of the missing Ifs |
+| L5 | Print to PDF on a work machine |
+| N1 | Make the sample database in Access; run the spike at home and on a work machine |
+| N4, N5 | Try the Forms view and the outline on a real database and a form you mean to rebuild |
+| P1 | Run the spike on a real solution, and on a work machine |
+| P4 | Try csdoc's page on a real solution |
+| Q1 | Pass the questions to your colleague; get the spike run on their project |
+| Q4 | Your colleague tries pythondoc's page |
 | Every step | Review, rebase onto main and push |
 
 ## 9. Later
 
-Left out to keep this plan to what was asked for:
+Left out to keep this plan to what was asked for.
 
-- **From the feedback plan, if 1.2 is agreed:** G2 (a views file in the output folder built into the page), G3
-  (printing a view or every view, with descriptions), G4 (copy a view as text) and E5b (Ifs that seem to be missing
-  from the Calls tab; keeping the sequence diagram's participants in view). Each is now built once for every language.
+**New with this plan**
+
+- **Access reports,** read as forms are.
+- **Writing a Blazor component's skeleton** from a form's outline.
+- **Moving forms and modules between Access databases,** as `import` does for workbooks.
+- **A table relationships diagram** for Access.
+- **vbadoc's UserForms (its stage 6) on the Forms view.**
+- **csdoc reading Razor components (`.razor`),** so a Blazor project's components show with the C# behind them.
 - **pqdoc on the code views,** if a query graph and a code graph turn out to want the same things.
-- **One page for a repository that holds several languages,** and links between them (C# that starts a Python script,
-  VBA that refreshes a query).
-- **One executable** (`codedoc cs`, `codedoc py`, `codedoc vba`, `codedoc pq`).
-- **The git commit in the top bar's summary,** read from `.git` without running git, if it can be kept deterministic.
+- **One page for a repository that holds several languages,** and links between them.
+- **The git commit in the top bar's summary,** read from `.git` without running git.
 - **Outside packages as nodes in the graph,** not only a list.
 - **Other languages:** VB.NET (Roslyn reads it, so it's the cheapest), F#, TypeScript, Jupyter notebooks.
 - **Python stub files (`.pyi`) and installed packages' types** as more evidence for what a name holds.
 - **csdoc reading what source generators make,** from `obj/`, when it's there.
-- **Names inside the source view as links,** in every tool.
+
+**From the feedback plan's Later section** (what's about one tool is in that tool's `docs/PLAN.md`)
+
+- **One executable** (`codedoc vba`, `codedoc pq`, and so on), a command that documents a whole workbook on one page,
+  and links from VBA to the queries it refreshes.
+- **Export a view as a `.drawio` file,** if draw.io turns out to be available at work.
+- **Make names inside the source view links,** in every tool.
