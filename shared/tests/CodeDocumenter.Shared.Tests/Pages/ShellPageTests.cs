@@ -139,7 +139,7 @@ public sealed class ShellPageTests
   [Fact]
   public void Without_a_summary_or_a_saved_time_there_is_no_summary()
   {
-    Assert.DoesNotContain("page-summary", Page().Render(), StringComparison.Ordinal);
+    Assert.DoesNotContain("id=\"page-summary\"", Page().Render(), StringComparison.Ordinal); // the element; the shell's script names it
     Assert.Contains(">2 things.</p>", Page(p => p with { Summary = "2 things." }).Render(), StringComparison.Ordinal);
   }
 }
