@@ -14,12 +14,13 @@ rather than repeating it.
   Access databases (forms and VBA), C# solutions and Python projects, with new names for the repository, the shared
   library and the desktop app, and starts with what the feedback plan parked, a Lock view button and a peek at a
   reference. Its progress table says which step is next. K0 is done: the user's answers are in its section 1, and
-  the plan is revised for them.
-- **vbadoc 0.31.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+  the plan is revised for them. K1 is done: the root solution is `CodeDocumentationTools.sln` and the shared library
+  `CodeDocumenter.Shared`.
+- **vbadoc 0.31.1:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the generalisation plan. Since 0.31.0 (step J2) it writes into add-ins (`.xlam`) as into workbooks.
-- **pqdoc 1.21.2**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.21.3**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -27,7 +28,7 @@ rather than repeating it.
   compressed 50 MB file. It runs the tools' command lines in its own process, so it holds no logic of its own. The
   Document tab has every option of both main commands, and the Import tab every option of both `import`s, with Preview
   and the tools' questions as dialogs. See `xldocui/README.md`.
-- **`shared/`** (`ExcelDocumenter.Shared`): the code both tools use, since step C1, and the page shell both pages are
+- **`shared/`** (`CodeDocumenter.Shared`, which was `ExcelDocumenter.Shared` until step K1): the code both tools use, since step C1, and the page shell both pages are
   built on, since C2. See its README.
 - **The feedback plan** (steps A0–J2, agreed on 2026-11-03) is closed and deleted. Every step is done but G2–G4 and
   E5b, which are steps L3–L6 of the generalisation plan. The user closed the checks that were still to come. The plan
@@ -43,6 +44,21 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-13: Step K1, names inside the repository
+
+- The root solution is `CodeDocumentationTools.sln`, the shared library `CodeDocumenter.Shared` (its folders,
+  projects, namespaces and solution), the shell's JavaScript global `CodeDocumenterShell`, and the publish folder
+  `…\source\Executables\CodeDocumentationTools\`. The build workflow and every document that named them follow.
+  The log below keeps the names as they were at the time.
+- Not yet: the repository's own name, its link in the pages and the root README's title (K3), and the desktop app
+  (K2).
+- The old publish folder still holds the last executables published there. Nothing deletes it; K3 has the user
+  move `PATH` to the new one.
+- VS Code holds the project folders, so the shared library's files were moved one at a time into the new folders.
+  An empty `shared/tests/ExcelDocumenter.Shared.Tests` folder is left on disk until VS Code is closed; it isn't in
+  git.
+- vbadoc 0.31.1 and pqdoc 1.21.3, as their pages name the shell's global.
 
 ### 2026-11-13: Step K0, the generalisation plan agreed
 

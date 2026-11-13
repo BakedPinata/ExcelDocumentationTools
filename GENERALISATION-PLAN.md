@@ -36,7 +36,7 @@ step K0. The progress table says where the work is.
 | Step | Scope | Who | Status |
 |---|---|---|---|
 | [K0](#step-k0-settle-the-questions) | Settle the questions in section 1; close the feedback plan | You, then Claude | Done |
-| [K1](#step-k1-names-inside-the-repository) | Names inside the repository: the root solution, the shared library, the shell's global, the publish folder, the documents | Claude | Not started |
+| [K1](#step-k1-names-inside-the-repository) | Names inside the repository: the root solution, the shared library, the shell's global, the publish folder, the documents | Claude | Done |
 | [K2](#step-k2-the-desktop-apps-name) | The desktop app becomes `codedocui` | Claude, with VS Code closed | Not started |
 | [K3](#step-k3-the-repositorys-name) | The repository's name on GitHub and on disk, `PATH`, and Claude's memory folder | You, then Claude | Not started |
 | [L1](#step-l1-lock-the-view) | Lock view: what's shown stays as it is while you click around, and only the source changes | Claude | Not started |
