@@ -5,7 +5,7 @@
        tool's folder ($(ToolRoot), set in its Directory.Build.props), the shared library every tool uses (shared/) or
        the root build files, not HEAD: otherwise a commit to one tool would change the stamp in every other tool's
        pages. Root docs don't count. A tool built from other tools adds their folders as $(ToolStampPaths), so its
-       stamp follows them too: xldocui, the desktop app, follows vbadoc/ and pqdoc/.
+       stamp follows them too: codedocui, the desktop app, follows vbadoc/ and pqdoc/.
 
        Uncommitted changes in those same paths add "-dirty" after the sha, so a page made by such a build can't be
        mistaken for one made from that commit. If git isn't available, the stamp is left as it is. -->

@@ -7,18 +7,18 @@ Decisions that belong to one tool are in its own `docs/DECISIONS.md`.
 
 **The short name is the product; the long name is the code's identity.**
 
-| | vbadoc | pqdoc | xldocui (the desktop app) |
+| | vbadoc | pqdoc | codedocui (the desktop app) |
 |---|---|---|---|
-| Executable (`AssemblyName` of the console or desktop app) | `vbadoc` | `pqdoc` | `xldocui` |
-| Tool folder | `vbadoc/` | `pqdoc/` | `xldocui/` |
-| Product name in docs, page titles, `Product` | vbadoc | pqdoc | xldocui |
-| Release tags | `vbadoc-v<version>` | `pqdoc-v<version>` | `xldocui-v<version>` |
+| Executable (`AssemblyName` of the console or desktop app) | `vbadoc` | `pqdoc` | `codedocui` |
+| Tool folder | `vbadoc/` | `pqdoc/` | `codedocui/` |
+| Product name in docs, page titles, `Product` | vbadoc | pqdoc | codedocui |
+| Release tags | `vbadoc-v<version>` | `pqdoc-v<version>` | `codedocui-v<version>` |
 | Page JavaScript global and browser storage keys | `window.vbadoc`, `vbadoc-…` | `window.pqdoc`, `pqdoc-…` | none: it makes no page |
 | Documentation files, for `Sales.xlsm` (`--output-name` overrides) | `Sales-vba.html` | `Sales-powerquery.html`, `.csv`, `.puml` | the tools' |
-| Solution | `vbadoc/VbaDocumenter.sln` | `pqdoc/PowerQueryDocumenter.sln` | `xldocui/ExcelDocumenter.Desktop.sln` |
-| Projects and namespaces | `VbaDocumenter`, `VbaDocumenter.Cli`, `VbaDocumenter.Core`, `VbaDocumenter.Tests`, `VbaDocumenter.BrowserTests` | `PowerQueryDocumenter`, `PowerQueryDocumenter.Cli`, `PowerQueryDocumenter.Core`, `PowerQueryDocumenter.Tests`, `PowerQueryDocumenter.BrowserTests` | `ExcelDocumenter.Desktop`, `ExcelDocumenter.Desktop.Tests` |
+| Solution | `vbadoc/VbaDocumenter.sln` | `pqdoc/PowerQueryDocumenter.sln` | `codedocui/CodeDocumenter.Desktop.sln` |
+| Projects and namespaces | `VbaDocumenter`, `VbaDocumenter.Cli`, `VbaDocumenter.Core`, `VbaDocumenter.Tests`, `VbaDocumenter.BrowserTests` | `PowerQueryDocumenter`, `PowerQueryDocumenter.Cli`, `PowerQueryDocumenter.Core`, `PowerQueryDocumenter.Tests`, `PowerQueryDocumenter.BrowserTests` | `CodeDocumenter.Desktop`, `CodeDocumenter.Desktop.Tests` |
 
-`xldoc` is kept for a combined tool, if one is ever made.
+`codedoc` is kept for a combined tool, if one is ever made.
 
 Classes keep names that describe what they do, such as `DependencyAnalyser`.
 
@@ -87,7 +87,7 @@ Agreed on 2026-11-13. Until a tool says otherwise:
   arguments, prints and works out the exit code, and a console app that's only its `Program.cs`. Another program runs a
   tool through its command-line library, with its own logger and its own way of asking questions (`IUserInteraction`).
   What that needs is public; the rest stays internal, and the tests reach it through `InternalsVisibleTo`.
-- **The desktop app (`xldocui/`) holds no logic of its own.** It builds a tool's arguments and runs them through the
+- **The desktop app (`codedocui/`) holds no logic of its own.** It builds a tool's arguments and runs them through the
   tool's command-line library, so the window and the console can't disagree. Anything more it needs from a tool, such
   as where a page went, is added to the tool.
 - Each tool's folder has a `README.md`, `Requirements.md`, `CLAUDE.md`, `docs/PLAN.md`, `docs/DECISIONS.md`, its

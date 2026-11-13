@@ -33,11 +33,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VbaDocumenter.Cli", "vbadoc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerQueryDocumenter.Cli", "pqdoc\src\PowerQueryDocumenter.Cli\PowerQueryDocumenter.Cli.csproj", "{40FD96C2-F894-4FED-A608-A82EF62365F4}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "xldocui", "xldocui", "{76A49C37-019B-B10E-1723-1CDDD8DDA557}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "codedocui", "codedocui", "{76A49C37-019B-B10E-1723-1CDDD8DDA557}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelDocumenter.Desktop", "xldocui\src\ExcelDocumenter.Desktop\ExcelDocumenter.Desktop.csproj", "{1D155729-BE09-4A99-A5D7-ADA00CCB2CB7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeDocumenter.Desktop", "codedocui\src\CodeDocumenter.Desktop\CodeDocumenter.Desktop.csproj", "{1D155729-BE09-4A99-A5D7-ADA00CCB2CB7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelDocumenter.Desktop.Tests", "xldocui\tests\ExcelDocumenter.Desktop.Tests\ExcelDocumenter.Desktop.Tests.csproj", "{D9D26B0C-8DDD-4CAE-AD0D-FBCB98D33B0F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeDocumenter.Desktop.Tests", "codedocui\tests\CodeDocumenter.Desktop.Tests\CodeDocumenter.Desktop.Tests.csproj", "{D9D26B0C-8DDD-4CAE-AD0D-FBCB98D33B0F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -8,7 +8,7 @@ options. Each has its own folder, solution, version and README, and they all fol
 |---|---|---|---|
 | **vbadoc** | A macro-enabled workbook (`.xlsm`, `.xlsb`, `.xlam`, `.xls` or `.xla`) | The VBA as text files, and a self-contained HTML page with a dependency graph and class diagram | [vbadoc/README.md](vbadoc/README.md) |
 | **pqdoc** | An Excel workbook (`.xlsx`, `.xlsm` or `.xlsb`), or a folder of exported Power Query (`.m`) files | An interactive HTML graph of the dependencies between queries, and optionally CSV and PlantUML | [pqdoc/README.md](pqdoc/README.md) |
-| **xldocui** | A workbook or folder, as both tools do | A window on Windows over both tools, for documenting and importing: every option, the command it runs with Copy, the tools' log, and their questions as dialogs | [xldocui/README.md](xldocui/README.md) |
+| **codedocui** | A workbook or folder, as both tools do | A window on Windows over both tools, for documenting and importing: every option, the command it runs with Copy, the tools' log, and their questions as dialogs | [codedocui/README.md](codedocui/README.md) |
 
 Code both tools need, such as opening a workbook and building a page, is kept once in [shared/](shared/README.md).
 
@@ -38,7 +38,7 @@ To run a tool without publishing it, put its arguments after `--`:
 ```
 dotnet run --project vbadoc/src/VbaDocumenter -- <workbook>
 dotnet run --project pqdoc/src/PowerQueryDocumenter -- <folder>
-dotnet run --project xldocui/src/ExcelDocumenter.Desktop              # the desktop app
+dotnet run --project codedocui/src/CodeDocumenter.Desktop              # the desktop app
 ```
 
 Each tool's README has more: its options, and commands to run from its own folder.
@@ -56,7 +56,7 @@ It runs this for each tool, which you can also run yourself:
 ```
 dotnet publish vbadoc/src/VbaDocumenter -c Release -p:PublishProfile=FolderProfile
 dotnet publish pqdoc/src/PowerQueryDocumenter -c Release -p:PublishProfile=FolderProfile
-dotnet publish xldocui/src/ExcelDocumenter.Desktop -c Release -p:PublishProfile=FolderProfile
+dotnet publish codedocui/src/CodeDocumenter.Desktop -c Release -p:PublishProfile=FolderProfile
 ```
 
 Each tool becomes a single self-contained executable for 64-bit Windows, so the machine it runs on needs no .NET
