@@ -46,7 +46,7 @@ public sealed class PageFixture : IAsyncLifetime
     UserSizedEmbedded = Generate(SyntheticWorkbook.Xlsm(UserSizedProject()), "UserSized.xlsm", "user-sized-embedded", embedSource: true);
     PredeclaredEmbedded = Generate(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules().Append(PredeclaredSettings)), "Predeclared.xlsm",
         "predeclared-embedded", embedSource: true);
-    ConditionsEmbedded = Generate(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules().Append(Conditions)), "Conditions.xlsm",
+    ConditionsEmbedded = Generate(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules().Append(Conditions).Append(Described)), "Conditions.xlsm",
         "conditions-embedded", embedSource: true);
     ViewsBuiltIn = Generate(sample, "SampleVba.xlsm", "views-built-in", embedSource: true, viewsFile: BuiltInViewsFile);
     ReferencesEmbedded = Generate(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules(), references:
@@ -128,6 +128,25 @@ public sealed class PageFixture : IAsyncLifetime
   /// scrolling a sequence diagram.
   /// </summary>
   public string ConditionsEmbedded { get; private set; } = "";
+
+  /// <summary>A module and members that say what they're for (step L5), in <see cref="ConditionsEmbedded"/>.</summary>
+  static readonly SyntheticModule Described = new("Described", VbaModuleKind.Standard, string.Join("\r\n",
+      "Attribute VB_Name = \"Described\"",
+      "Option Explicit",
+      "",
+      "' Works out prices for the <shop>,",
+      "' tax included.",
+      "",
+      "' Adds the tax to a net price.",
+      "Public Function WithTax(ByVal net As Double) As Double",
+      "Attribute WithTax.VB_Description = \"The price with tax, to two places.\"",
+      "    WithTax = Round(net * 1.1, 2)",
+      "End Function",
+      "",
+      "Public Function Plain(ByVal net As Double) As Double",
+      "    Plain = net",
+      "End Function",
+      ""));
 
   static readonly SyntheticModule Conditions = new("Conditions", VbaModuleKind.Standard, string.Join("\r\n",
       "Attribute VB_Name = \"Conditions\"",

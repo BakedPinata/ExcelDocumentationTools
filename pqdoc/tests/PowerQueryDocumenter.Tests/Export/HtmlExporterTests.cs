@@ -324,6 +324,19 @@ public sealed class HtmlExporterTests
   }
 
   [Fact]
+  public void FR_HTML_24_a_querys_description_is_in_the_pages_data()
+  {
+    var graph = Fixtures.Graph([], "A", "B");
+    var details = new[] { new QueryDetails("A", false, null, "Orders <from> the warehouse."), new QueryDetails("B", false, null) };
+
+    using var data = JsonDocument.Parse(HtmlExporter.SerialiseGraph(graph, new ExportContext("t", null, Details: details)));
+
+    var queries = data.RootElement.GetProperty("queries").EnumerateArray().ToDictionary(q => q.GetProperty("id").GetString()!);
+    Assert.Equal("Orders <from> the warehouse.", queries["A"].GetProperty("description").GetString());
+    Assert.Equal(JsonValueKind.Null, queries["B"].GetProperty("description").ValueKind);
+  }
+
+  [Fact]
   public void FR_HTML_11_a_group_with_queries_only_in_the_groups_inside_it_is_still_listed()
   {
     var outer = new QueryGroup("Outer", 0);

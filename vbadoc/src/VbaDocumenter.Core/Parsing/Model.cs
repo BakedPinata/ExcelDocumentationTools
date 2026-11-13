@@ -126,6 +126,12 @@ public sealed class Member
   /// <summary>Last line of the member's source: e.g. "End Sub", "End Enum", or the end of the declaration line.</summary>
   public int EndLine { get; internal set; }
 
+  /// <summary>
+  /// What the member says about itself (see <see cref="Descriptions"/>): its <c>VB_Description</c> attribute, otherwise
+  /// the comments directly above it; null when it has neither.
+  /// </summary>
+  public string? Description { get; internal set; }
+
   /// <summary>Procedures only: variables and constants declared in the body. Parameters are in <see cref="Parameters"/>.</summary>
   public IReadOnlyList<LocalVariable> Locals => LocalsList;
 
@@ -217,6 +223,12 @@ public sealed class ModuleModel
   /// written, or null. The page groups modules by it, splitting it at the dots.
   /// </summary>
   public string? Folder { get; init; }
+
+  /// <summary>
+  /// What the module says about itself (see <see cref="Descriptions"/>): its <c>VB_Description</c> attribute, otherwise
+  /// the comments at its top; null when it has neither.
+  /// </summary>
+  public string? Description { get; init; }
 
   /// <summary>Number of physical lines in the file.</summary>
   public required int LineCount { get; init; }

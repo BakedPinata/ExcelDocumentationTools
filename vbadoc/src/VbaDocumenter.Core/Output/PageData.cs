@@ -6,6 +6,7 @@ using CodeDocumenter.Shared.Importing;
 using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Extraction;
 using VbaDocumenter.Core.Importing;
+using VbaDocumenter.Core.Parsing;
 
 namespace VbaDocumenter.Core.Output;
 
@@ -29,15 +30,18 @@ public sealed record PageNeed(string What, string Why);
 /// null otherwise.</param>
 /// <param name="WhyNot">Why the Export tab can't pick it, or null when it can (see <see cref="ModuleImport"/>).</param>
 /// <param name="Needs">What it relies on that doesn't come with it, or null for nothing.</param>
+/// <param name="Description">What it says about itself (see <see cref="Descriptions"/>), or null.</param>
 public sealed record PageModule(
     string Id, string Kind, string File, bool IsInterface, int Lines, string Hash, string? Folder, int? UsedBy, bool? Predeclared,
-    string? WhyNot, IReadOnlyList<PageNeed>? Needs);
+    string? WhyNot, IReadOnlyList<PageNeed>? Needs, string? Description);
 
 /// <param name="Class">The member's line in the class diagram, or null if it isn't shown there.</param>
 /// <param name="UsedBy">How many other modules use it, or null for none (see <see cref="Usage"/>).</param>
+/// <param name="Description">What it says about itself (see <see cref="Descriptions"/>), or null.</param>
 public sealed record PageMember(
     string Id, string Module, string Name, string Kind, string Visibility, string Signature,
-    int Start, int End, int Declaration, string Role, bool Unreferenced, string? Parent, PageClassLine? Class, int? UsedBy);
+    int Start, int End, int Declaration, string Role, bool Unreferenced, string? Parent, PageClassLine? Class, int? UsedBy,
+    string? Description);
 
 /// <param name="Lines">For a member edge, the lines of the module's file where the references are (see
 /// <see cref="Edge.Lines"/>); null for module edges.</param>
@@ -89,7 +93,7 @@ public sealed record PageData(
               node.IsInterface, node.Module.LineCount, Convert.ToHexStringLower(SHA256.HashData(content))[..16],
               string.IsNullOrEmpty(node.Module.Folder) ? null : node.Module.Folder, UsedBy(node.Id),
               node.Module.Kind == VbaModuleKind.Class && !node.IsInterface && node.Module.HasPredeclaredId ? true : null,
-              import.WhyNot(node.Id), needs.Count > 0 ? needs : null);
+              import.WhyNot(node.Id), needs.Count > 0 ? needs : null, node.Module.Description);
     }).ToList();
 
     var classLines = model.Modules.ToDictionary(m => m.Id, m => ClassDiagram.Lines(m.Module));
@@ -97,7 +101,7 @@ public sealed record PageData(
         n.Id, n.Module.Name, n.Member!.Name, Camel(n.Member.Kind), Camel(n.Member.Visibility),
         MemberFormatter.Signature(n.Member), n.Member.StartLine, n.Member.EndLine, n.Member.DeclarationLine,
         Camel(n.Role), n.IsUnreferenced, n.Member.ParentName,
-        classLines[n.Module.Name].GetValueOrDefault(n.Member), UsedBy(n.Id))).ToList();
+        classLines[n.Module.Name].GetValueOrDefault(n.Member), UsedBy(n.Id), n.Member.Description)).ToList();
 
     PageEdge Edge(Edge e) => new(e.From, e.To, Camel(e.Kind), e.Count, e.Lines.Count == 0 ? null : e.Lines);
     var callers = model.Calls.Select(c => c.From).ToHashSet(StringComparer.Ordinal);

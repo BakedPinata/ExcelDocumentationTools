@@ -425,12 +425,17 @@
   }
 
 
+  // What a module or member says about itself: its VB_Description, or the comments above it (Core works it out).
+  function descriptionHtml(item) {
+    return item.description ? "<p class=\"description\" id=\"source-description\">" + escapeHtml(item.description) + "</p>" : "";
+  }
+
   function renderHeader(module, member) {
     var html;
     if (member) {
       html = "<h2>" + escapeHtml(member.name) + shell.favourites.buttonHtml(member.id) + shell.hidden.buttonHtml(member.id) + "<span class=\"kind\">" + escapeHtml(KIND_LABELS[member.kind] || member.kind) +
         " in <a href=\"#\" data-select=\"" + escapeHtml(module.id) + "\">" + escapeHtml(module.id) + "</a></span></h2>" +
-        "<p class=\"signature\">" + escapeHtml(member.signature) + "</p>";
+        "<p class=\"signature\">" + escapeHtml(member.signature) + "</p>" + descriptionHtml(member);
       var badges = [];
       if (member.role !== "none") {
         var role = ROLE_LABELS[member.role] || member.role;
@@ -454,7 +459,7 @@
       }
     } else {
       html = "<h2>" + escapeHtml(module.id) + shell.favourites.buttonHtml(module.id) + shell.hidden.buttonHtml(module.id) + "<span class=\"kind\">" + escapeHtml(moduleKindLabel(module)) + "</span></h2>" +
-        "<p class=\"signature\">" + escapeHtml(module.file) + " · " + module.lines + " lines</p>";
+        "<p class=\"signature\">" + escapeHtml(module.file) + " · " + module.lines + " lines</p>" + descriptionHtml(module);
     }
     var shownId = member ? member.id : module.id;
     var index = member ? memberEdges : moduleEdges;

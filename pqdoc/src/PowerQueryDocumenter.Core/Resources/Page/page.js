@@ -247,7 +247,10 @@
     var downstream = chain(selection, usedBy).size;
     panelHeader.innerHTML = "<h2>" + escapeHtml(query.id) + shell.favourites.buttonHtml(query.id) + shell.hidden.buttonHtml(query.id) +
       "</h2><p class=\"muted\" id=\"details-role\">" + ROLE_TEXT[query.role] +
-      (query.inCycle ? " Part of a circular dependency." : "") + "</p>" + shell.hidden.noteHtml(query.id, hiddenNear(query.id));
+      (query.inCycle ? " Part of a circular dependency." : "") + "</p>" +
+      // What the query says about itself (FR-HTML-24): its description in the workbook, or the comments at its top.
+      (query.description ? "<p class=\"description\" id=\"details-description\">" + escapeHtml(query.description) + "</p>" : "") +
+      shell.hidden.noteHtml(query.id, hiddenNear(query.id));
     panelBody.innerHTML =
       "<h3><span class=\"swatch upstream\" aria-hidden=\"true\"></span>Uses (" + uses.get(selection).length + ")</h3>" +
       "<div id=\"details-uses\">" + queryList(selection, uses.get(selection), "uses") + "</div>" +

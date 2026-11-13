@@ -28,7 +28,9 @@ public sealed record ExportContext(
 /// <param name="Query">The query's name.</param>
 /// <param name="IsFunction">Whether it's a function: from the workbook's metadata, or its code for a folder.</param>
 /// <param name="Group">Its Excel query group, or null.</param>
-public sealed record QueryDetails(string Query, bool IsFunction, QueryGroup? Group);
+/// <param name="Description">What it says about itself (FR-HTML-24): its description in the workbook, otherwise the
+/// comments at the top of its code; null when it has neither.</param>
+public sealed record QueryDetails(string Query, bool IsFunction, QueryGroup? Group, string? Description = null);
 
 /// <summary>
 /// Produces one output format from a <see cref="DependencyGraph"/> (NFR-ARCH-1). Exporters work

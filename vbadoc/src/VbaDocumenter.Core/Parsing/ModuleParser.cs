@@ -95,6 +95,15 @@ public static partial class ModuleParser
     int lineCount = lines.Count == 0 ? 0 : lines[^1].LastLine;
     state.Finish(lineCount);
 
+    // What each member and the module say about themselves: an attribute first, then comments.
+    var sourceLines = LogicalLineReader.PhysicalLines(text);
+    foreach (var member in state.Members)
+    {
+      member.Description = state.MemberDescriptions.TryGetValue(member.Name, out var described) && member.ParentName == null
+          ? described
+          : Descriptions.ForMember(sourceLines, member);
+    }
+
     return new ModuleModel
     {
       Name = name,
@@ -104,8 +113,10 @@ public static partial class ModuleParser
       Attributes = state.Attributes,
       Options = state.Options,
       Folder = state.Folder,
+      Description = Descriptions.FromAttribute(state.ModuleDescription)
+          ?? Descriptions.ForModule(sourceLines, state.Members.Count > 0 ? state.Members.Min(m => m.StartLine) : null),
       LineCount = lineCount,
-      SourceLines = LogicalLineReader.PhysicalLines(text),
+      SourceLines = sourceLines,
       Warnings = state.Warnings,
     };
   }
@@ -119,6 +130,15 @@ public static partial class ModuleParser
     public List<string> Options { get; } = [];
     public List<string> Warnings { get; } = [];
     public string? Folder { get; private set; }
+
+    /// <summary>The module's VB_Description attribute as written, quotes and all, or null.</summary>
+    public string? ModuleDescription { get; private set; }
+
+    /// <summary>
+    /// Members' descriptions from their attributes, by name: "Attribute Name.VB_Description" inside a procedure, or
+    /// "Attribute Name.VB_VarDescription" after a variable. A property's accessors share a name and a description.
+    /// </summary>
+    public Dictionary<string, string> MemberDescriptions { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     Member? _procedure;          // the procedure we're inside, if any
     readonly Dictionary<Member, BlockTracker> _blocks = []; // each procedure's blocks, followed as its lines are read
@@ -146,10 +166,21 @@ public static partial class ModuleParser
       var attribute = AttributeStatement().Match(code);
       if (attribute.Success)
       {
-        // Module attributes (VB_Name, VB_PredeclaredId, ...) are kept. Member attributes such as
-        // "Attribute Foo.VB_Description" can appear inside procedures and are skipped.
-        if (!attribute.Groups["name"].Value.Contains('.'))
-          Attributes[attribute.Groups["name"].Value] = attribute.Groups["value"].Value.Trim().Trim('"');
+        // Module attributes (VB_Name, VB_PredeclaredId, ...) are kept. Of the member attributes, which can appear
+        // inside procedures ("Attribute Foo.VB_Description"), only descriptions are.
+        var attributeName = attribute.Groups["name"].Value;
+        var attributeValue = attribute.Groups["value"].Value;
+        int dot = attributeName.IndexOf('.');
+        if (dot < 0)
+        {
+          Attributes[attributeName] = attributeValue.Trim().Trim('"');
+          if (attributeName.Equals("VB_Description", StringComparison.OrdinalIgnoreCase)) ModuleDescription = attributeValue;
+        }
+        else if (attributeName[(dot + 1)..] is var what && (what.Equals("VB_Description", StringComparison.OrdinalIgnoreCase) || what.Equals("VB_VarDescription", StringComparison.OrdinalIgnoreCase))
+            && Descriptions.FromAttribute(attributeValue) is { } description)
+        {
+          MemberDescriptions[attributeName[..dot]] = description;
+        }
         return;
       }
 

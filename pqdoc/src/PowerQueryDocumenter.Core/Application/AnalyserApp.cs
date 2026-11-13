@@ -322,9 +322,10 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
         .Select(q => new QueryDetails(
           q.Name,
           q.ResultType is not null ? q.ResultType == "Function" : FunctionDetector.IsFunction(q.Expression),
-          q.Group))
+          q.Group,
+          QueryDescription.Of(q.Description, q.Expression)))
         .ToList()
-      : sources.Select(f => new QueryDetails(f.Query, FunctionDetector.IsFunction(f.Text), null)).ToList();
+      : sources.Select(f => new QueryDetails(f.Query, FunctionDetector.IsFunction(f.Text), null, QueryDescription.FromComments(f.Text))).ToList();
 
   /// <summary>
   /// The text outputs (the page, CSV and PlantUML source) as they'd be written, by path. One that can't be made is left

@@ -138,7 +138,8 @@ public sealed class HtmlExporter : IExporter
         details.GetValueOrDefault(n.Name)?.IsFunction == true ? "function" : "query",
         details.GetValueOrDefault(n.Name)?.Group is { } group ? groupIndex[group] : null,
         graph.StepsOf(n.Name).Select(s => new StepDocument(s.Name, s.Line, s.Uses)).ToArray(),
-        files.GetValueOrDefault(n.Name) is { } file ? QueryImport.NeedsOf(file.Text).Select(need => new NeedDocument(need.What, need.Why)).ToArray() : [])).ToArray(),
+        files.GetValueOrDefault(n.Name) is { } file ? QueryImport.NeedsOf(file.Text).Select(need => new NeedDocument(need.What, need.Why)).ToArray() : [],
+        details.GetValueOrDefault(n.Name)?.Description)).ToArray(),
       graph.Edges.Select(e => new EdgeDocument(
         e.Upstream,
         e.Downstream,
@@ -229,9 +230,10 @@ public sealed class HtmlExporter : IExporter
   /// <param name="Group">Its Excel query group, as its place in <see cref="GraphDocument.Groups"/>, or null.</param>
   /// <param name="Steps">Its <c>let</c> steps, then its <c>in</c> expression (FR-HTML-20); empty without <c>let</c>.</param>
   /// <param name="Needs">What it relies on that doesn't come with it, for the Export tab (see <see cref="QueryImport"/>).</param>
+  /// <param name="Description">What it says about itself (FR-HTML-24), or null.</param>
   private sealed record QueryDocument(
     string Id, string Role, bool InCycle, int Upstream, int Downstream, string? File, string? Hash, string Kind, int? Group,
-    IReadOnlyList<StepDocument> Steps, IReadOnlyList<NeedDocument> Needs);
+    IReadOnlyList<StepDocument> Steps, IReadOnlyList<NeedDocument> Needs, string? Description);
 
   /// <summary>What a query relies on that doesn't come with it.</summary>
   private sealed record NeedDocument(string What, string Why);

@@ -105,7 +105,7 @@ public sealed class PageFixture : IAsyncLifetime
     SourceFolder = CopyOfSources();
     var sources = SourcesIn(SourceFolder);
     // As the tool does for a folder: whether each query is a function comes from its code.
-    var details = sources.Select(f => new QueryDetails(f.Query, FunctionDetector.IsFunction(f.Text), null)).ToArray();
+    var details = sources.Select(f => new QueryDetails(f.Query, FunctionDetector.IsFunction(f.Text), null, QueryDescription.FromComments(f.Text))).ToArray();
     FolderPage = Generate(sample, "sales-model", sources, embed: false, folder: SourceFolder, details: details);
     EmbeddedPage = Generate(sample, "sales-model", sources, embed: true, details: details);
 
@@ -115,7 +115,7 @@ public sealed class PageFixture : IAsyncLifetime
     WorkbookPage = Generate(
       workbookGraph,
       "Queries.xlsx",
-      details: queries.Select(q => new QueryDetails(q.Name, q.ResultType == "Function", q.Group)).ToArray());
+      details: queries.Select(q => new QueryDetails(q.Name, q.ResultType == "Function", q.Group, QueryDescription.Of(q.Description, q.Expression))).ToArray());
 
     var awkward = AwkwardGraph();
     AwkwardSourcePage = Generate(
