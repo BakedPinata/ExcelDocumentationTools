@@ -497,7 +497,7 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
     await OpenView(page, "Processing orders");
     Assert.Equal("true", await page.GetAttributeAsync("#tab-calls", "aria-selected"));
     Assert.Equal("sequence", await page.EvaluateAsync<string>("() => window.vbadocCalls.showing()"));
-    Assert.True(await page.IsVisibleAsync("#calls-sequence svg"));
+    Assert.True(await page.IsVisibleAsync("#calls-sequence svg.calls-seq"));
     Assert.Equal("true", await page.GetAttributeAsync(processOrders, "aria-expanded"));
 
     await OpenView(page, "Boxes");
