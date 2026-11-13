@@ -13,6 +13,9 @@
 //   pqdoc.hidden() / isHidden(id) / toggleHidden(id)   the queries hidden from the graph
 //   pqdoc.shows(id) / shownKey() / onShownChange(fn)   whether the graph shows a query: kept by the Show… choices, in
 //                                     the filter and not hidden. The key changes with any of them
+//   pqdoc.locked() / onLockChange(fn) / lockSource(view, fn)   the shell's Lock view: whether it's on; fn(on) when it
+//                                     changes, just before onShownChange; and a view's say in what locking ticks:
+//                                     fn() gives { ids } for what it shows now, when it's the open view
 //   pqdoc.focusFavourites() / setFocusFavourites(on)   whether the graph shows only the favourites and what they use
 //                                     (with the focused selection's); changes come through onFocusChange
 //   pqdoc.theme() / onThemeChange(fn)  "light" or "dark"
@@ -64,7 +67,8 @@
 
   var escapeHtml = shell.escapeHtml;
 
-  var listeners = { selection: [], search: [], shown: [] };
+  var listeners = { selection: [], search: [], shown: [], lock: [] };
+  var lockSources = {};
   function emit(name, value) {
     listeners[name].forEach(function (fn) {
       try { fn(value); } catch (e) { console.error(e); }
@@ -204,6 +208,11 @@
   }
 
   shell.onFilterChange(function () { emit("shown"); });
+  // Locking and unlocking change the filter with the lock: the graph hears of the lock, then draws once.
+  shell.onLockChange(function (on) {
+    emit("lock", on);
+    emit("shown");
+  });
   shell.onChoicesChange(function () { emit("shown"); });
   shell.onHiddenChange(function () {
     if (selection !== null) renderDetails();
@@ -396,6 +405,9 @@
     shows: shows,
     shownKey: shownKey,
     onShownChange: function (fn) { listeners.shown.push(fn); },
+    locked: shell.lock.on,
+    onLockChange: function (fn) { listeners.lock.push(fn); },
+    lockSource: function (view, fn) { lockSources[view] = fn; },
     focusFavourites: shell.focusFavourites,
     setFocusFavourites: shell.setFocusFavourites,
     onFavouritesChange: shell.onFavouritesChange,
@@ -419,6 +431,11 @@
     kept: kept,
     widelyUsed: widelyUsed,
     exists: function (id) { return queriesById.has(id); },
+    // What Lock view ticks: what the open view shows, if it's one that can say.
+    shown: function () {
+      var source = lockSources[shell.activeView()];
+      return source ? source() : null;
+    },
     node: function (id) { return queryNode(queriesById.get(id), true); },
     describeFilter: function (ids) { return ids.length + " of " + countText(data.queries.length); }
   });

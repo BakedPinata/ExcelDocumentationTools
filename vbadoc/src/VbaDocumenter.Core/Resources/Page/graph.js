@@ -211,7 +211,7 @@
       });
       // Each module also has a node for references to the module itself (e.g. "As Order", "Sheet1.Range").
       data.modules.forEach(function (m) {
-        if (!vb.kept(m.id) || !vb.shows(m.id)) return;
+        if (!vb.kept(m.id) || !vb.showsItself(m.id)) return;
         nodes.push({
           id: m.id, module: m.id, label: m.id, group: moduleStyle(m).group, shape: d3.symbolCircle, r: size * 7,
           title: moduleStyle(m).label + " (the module itself)", isModuleNode: true, minor: true
@@ -764,16 +764,26 @@
 
   function placeFromView(graph, layout) {
     var pinned = new Set(layout.pinned);
+    var positions = new Map();
+    Object.keys(layout.positions).forEach(function (id) {
+      positions.set(id, { x: layout.positions[id][0], y: layout.positions[id][1], pinned: pinned.has(id) });
+    });
+    placeAt(graph, positions);
+  }
+
+  // Puts the nodes where positions (id -> { x, y, pinned }) has them, and settles any it doesn't have beside what
+  // they're linked to. Returns whether any node was placed from it: if none was, the graph is laid out afresh.
+  function placeAt(graph, positions) {
     var known = [];
     var unknown = [];
     graph.nodes.forEach(function (n) {
       if (state.level === "members") setBox(n);
       n.vx = 0; n.vy = 0; n.fx = null; n.fy = null; n.pinned = false;
-      var p = Object.prototype.hasOwnProperty.call(layout.positions, n.id) ? layout.positions[n.id] : null;
+      var p = positions.get(n.id);
       if (!p) { unknown.push(n); return; }
-      n.x = p[0];
-      n.y = p[1];
-      n.pinned = pinned.has(n.id);
+      n.x = p.x;
+      n.y = p.y;
+      n.pinned = !!p.pinned;
       known.push(n);
     });
     createSimulation(graph);
@@ -781,10 +791,39 @@
       placeNewNodes(graph, known, unknown);
     } else if (unknown.length > 0) {
       initialLayout(graph);
-      return;
+      return false;
     }
     graph.nodes.forEach(function (n) { if (n.pinned) { n.fx = n.x; n.fy = n.y; } });
     simulation.alpha(0);
+    return true;
+  }
+
+  // ---- Lock view ----
+  //
+  // While the page's view is locked (the shell's Lock view), the graph keeps its nodes where they are and its zoom:
+  // a click only outlines what's selected, nothing is focused, lit, dimmed or brought into view, and when the
+  // explorer's ticks or the Show… choices change, the nodes still shown stay put. Dragging moves only what's dragged.
+  // Locking ticks what the graph shows; at member level a module's own node is kept on its own, since a tick on the
+  // module would bring every member.
+
+  var skipCarry = false; // a saved view's positions come before what's on screen
+
+  vb.lockSource("graph", function () {
+    if (!graph) return null;
+    var ids = [];
+    var alone = [];
+    graph.nodes.forEach(function (n) { (n.isModuleNode ? alone : ids).push(n.id); });
+    return { ids: ids, alone: alone };
+  });
+
+  // Where the nodes on screen are, to carry into the next drawing while locked; null when there's nothing to carry.
+  function carriedPositions(fresh) {
+    var carry = !fresh && !skipCarry && vb.locked() && graph && graph.level === state.level;
+    skipCarry = false;
+    if (!carry) return null;
+    var positions = new Map();
+    graph.nodes.forEach(function (n) { positions.set(n.id, { x: n.x, y: n.y, pinned: !!n.pinned }); });
+    return positions;
   }
 
   // New nodes start beside the known members of their module, or what they're linked to, or else to the right of the
@@ -856,6 +895,7 @@
       // What's on screen now isn't kept when the view draws over it: kept, it would be put back in place of the view's
       // positions when the filter and choices are the same (after Re-run layout, or a focus, say).
       if (graph) graph.layoutKey = null;
+      skipCarry = true;
       var layouts = value.layouts && typeof value.layouts === "object" ? value.layouts : {};
       ["modules", "members"].forEach(function (level) {
         var layout = cleanLayout(layouts[level]);
@@ -884,6 +924,7 @@
   function render(fresh) {
     hideTooltip();
     keepLayout();
+    var carried = carriedPositions(fresh);
     if (fresh) {
       keptLayouts.clear();
       movedLayouts.clear();
@@ -918,15 +959,21 @@
     // A focused graph's layout is kept for its focus, so coming back to the same focus finds what was moved in it.
     state.focusState = state.focused ? focusState() : null;
     var key = layoutKey() + (state.focused ? "\u0000" + state.focusKey : "");
+    var keptPlace = false; // locked: the nodes are where they were, so the zoom stays too
     if (viewLayouts.has(key)) {
       // A view's positions come first: they're what the person opened.
       placeFromView(graph, viewLayouts.get(key));
       viewLayouts.delete(key);
       movedLayouts.add(key);
+    } else if (carried) {
+      keptPlace = placeAt(graph, carried);
+      // Kept in a saved view, as a layout that was moved is: it isn't what laying out afresh would give.
+      if (keptPlace) movedLayouts.add(key);
     } else if (!restoreLayout(graph, key)) {
       initialLayout(graph);
     }
     graph.layoutKey = key;
+    graph.level = state.level;
     svg.classed("members", state.level === "members");
 
     // Module outlines (member level only).
@@ -996,7 +1043,7 @@
     renderLegend();
     updateFavourites();
     updateToolbar();
-    fit(false);
+    if (!keptPlace) fit(false);
     highlight();
   }
 
@@ -1072,11 +1119,11 @@
           nodes.forEach(function (n) { n.fx = n.x + pendingX; n.fy = n.y + pendingY; });
           // Gently: a hotter layout slides the whole graph about while dragging, and at member level pulls it in
           // until it's let go. This is warm enough for the rest to make room for what's dragged.
-          if (settings.live) simulation.alphaTarget(DRAG_HEAT).restart();
+          if (rearranging()) simulation.alphaTarget(DRAG_HEAT).restart();
         } else {
           nodes.forEach(function (n) { n.fx += event.dx; n.fy += event.dy; });
         }
-        if (!settings.live) {
+        if (!rearranging()) {
           nodes.forEach(function (n) { n.x = n.fx; n.y = n.fy; });
           updatePositions();
         }
@@ -1086,7 +1133,7 @@
         dragging = false;
         svg.classed("dragging", false);
         markMoved();
-        if (settings.live) simulation.alphaTarget(0);
+        if (rearranging()) simulation.alphaTarget(0);
         var nodes = nodesOf(d);
         if (settings.pinDragged) {
           nodes.forEach(function (n) { n.pinned = true; });
@@ -1096,6 +1143,9 @@
         }
       });
   }
+
+  // Whether the rest makes room for what's dragged: the setting, but never while the view is locked.
+  function rearranging() { return settings.live && !vb.locked(); }
 
   function release(nodes) {
     nodes.forEach(function (n) { n.fx = null; n.fy = null; n.pinned = false; });
@@ -1239,7 +1289,9 @@
     if (!graph) return;
     var start = selectedIds(graph);
     var selection = vb.selection();
-    if (state.path && pathUnavailable(graph)) state.path = false;
+    // While the view is locked the selection is only outlined: nothing is lit or dimmed for it, or brought into view.
+    var held = vb.locked();
+    if (state.path && (held || pathUnavailable(graph))) state.path = false;
     var path = state.path ? findPath(graph) : null;
     var active, litEdges, isSelected, isLit;
 
@@ -1252,7 +1304,7 @@
       isSelected = function (id) { return start.indexOf(id) >= 0; };
       isLit = function (id) { return pathNodes.has(id) || (isSelected(id) && (start.length === 1 || id === selection)); };
     } else {
-      var reached = start.length ? reach(graph, start, settings.reach === "transitive", state.direction) : null;
+      var reached = start.length && !held ? reach(graph, start, settings.reach === "transitive", state.direction) : null;
       var legend = legendHighlight(graph);
       active = !!reached || !!legend;
       litEdges = new Set(active ? graph.edges.filter(function (e) {
@@ -1260,7 +1312,7 @@
       }) : []);
       var edgeEnds = new Set();
       litEdges.forEach(function (e) { edgeEnds.add(e.from); edgeEnds.add(e.to); });
-      isSelected = function (id) { return !!reached && reached.selected.has(id); };
+      isSelected = function (id) { return reached ? reached.selected.has(id) : held && start.indexOf(id) >= 0; };
       isLit = function (id) {
         if (isSelected(id) && (start.length === 1 || id === selection)) return true;
         if (reached && !reached.nodes.has(id)) return false;
@@ -1285,7 +1337,7 @@
     // A hidden view has no size, and moving it then would give d3-zoom a NaN transform.
     if (vb.activeView() !== "graph") return;
     if (path) fit(true, path.nodes.map(function (id) { return graph.byId.get(id); }));
-    else if (start.length === 1) bringIntoView(graph.byId.get(start[0]));
+    else if (start.length === 1 && !held) bringIntoView(graph.byId.get(start[0]));
   }
 
   // ---- Zoom helpers ----
@@ -1423,8 +1475,11 @@
 
   // Clicking the background, or Escape, clears the legend highlight, the path and the selection.
   function clearHighlights() {
-    state.legend.clear();
-    state.path = false;
+    // Locked, a click on the background only clears the selection: the legend's picks are part of what's shown.
+    if (!vb.locked()) {
+      state.legend.clear();
+      state.path = false;
+    }
     vb.select(null);
     highlight();
   }
@@ -1450,7 +1505,8 @@
     setChecked("[data-level]", "data-level", state.level);
     setChecked("[data-direction]", "data-direction", state.direction);
     focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false");
-    var unavailable = graph ? pathUnavailable(graph) : "";
+    focusButton.disabled = vb.locked();
+    var unavailable = vb.locked() ? "Unlock the view to show a path" : graph ? pathUnavailable(graph) : "";
     pathButton.disabled = !!unavailable && !state.path;
     pathButton.title = unavailable || "Show the shortest chain of dependencies between the nearest favourite and the selection";
     pathButton.setAttribute("aria-pressed", state.path ? "true" : "false");
@@ -1620,6 +1676,9 @@
   });
   // The Focus button shows the page's setting even before the graph is first drawn.
   focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false");
+  focusButton.disabled = vb.locked();
+  // Locking or unlocking changes the filter too, so the graph is drawn through onShownChange, which follows.
+  vb.onLockChange(function () { focusButton.disabled = vb.locked(); });
   vb.onFocusChange(function () {
     if (!started) { focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false"); return; }
     if (focusKey() !== state.focusKey) render(); else updateToolbar();
@@ -1661,6 +1720,8 @@
     edgeCount: function () { return graph ? graph.edges.length : 0; },
     // For tests: whether the simulation is still moving things.
     moving: function () { return !!simulation && simulation.alpha() > simulation.alphaMin(); },
+    // And whether the view is still sliding or zooming into place.
+    sliding: function () { return d3.active(svg.node()) !== null; },
     position: function (id) { var n = graph && graph.byId.get(id); return n ? { x: n.x, y: n.y } : null; }
   };
 

@@ -211,6 +211,7 @@
         focusedMoves.set(focusedKey(keyOf(modules)), cleanMoves(focused.positions));
       }
       state.legend = new Set(Array.isArray(value.legend) ? value.legend.filter(function (key) { return typeof key === "string"; }) : []);
+      skipCarry = true;
       updateToolbar();
     },
     ids: function (value) {
@@ -447,8 +448,27 @@
   var drawn = null; // { boxes, byId, edges } on screen
   var stale = true; // the diagram needs drawing next time the view is shown
 
+  // While the page's view is locked (the shell's Lock view), the boxes on screen keep their places and the zoom
+  // stays, whatever changes what's drawn: locking itself, a tick in the explorer, a Show… choice. A box that joins
+  // them goes to their right. A saved view's positions come before what's on screen.
+  var skipCarry = false;
+
+  vb.lockSource("classes", function () {
+    return drawn && !stale ? { ids: drawn.boxes.map(function (b) { return b.id; }), alone: [] } : null;
+  });
+
+  function carriedPositions() {
+    var carry = vb.locked() && drawn && !skipCarry;
+    skipCarry = false;
+    if (!carry) return null;
+    var positions = {};
+    drawn.boxes.forEach(function (b) { positions[b.id] = [b.x, b.y]; });
+    return positions;
+  }
+
   function render() {
     stale = false;
+    var carried = carriedPositions();
     state.focusIds = focusModules();
     state.focusKey = keyOf(state.focusIds);
     var boxes = shownModules().map(buildBox);
@@ -458,6 +478,20 @@
     });
     layout(boxes, edges);
     var moved = loadDrawnMoves();
+    var stayed = carried ? boxes.filter(function (b) { return carried[b.id]; }) : [];
+    if (stayed.length > 0) {
+      moved = Object.assign({}, moved);
+      stayed.forEach(function (b) { moved[b.id] = carried[b.id]; b.x = carried[b.id][0]; b.y = carried[b.id][1]; });
+      var right = d3.max(stayed, function (b) { return b.x + b.width; }) + 60;
+      var top = d3.min(stayed, function (b) { return b.y; });
+      boxes.forEach(function (b) {
+        if (carried[b.id] || moved[b.id]) return;
+        moved[b.id] = [right, top];
+        top += b.height + 30;
+      });
+      storeDrawnMoves(moved);
+      state.resetView = false;
+    }
     boxes.forEach(function (b) {
       var p = moved[b.id];
       if (p && isFinite(p[0]) && isFinite(p[1])) { b.x = p[0]; b.y = p[1]; b.moved = true; }
@@ -467,7 +501,7 @@
     drawEdges();
     if (state.resetView) { state.resetView = false; startingView(); }
     highlight();
-    bringSelectionIntoView(false);
+    if (!vb.locked()) bringSelectionIntoView(false);
   }
 
   function drawBoxes() {
@@ -683,7 +717,8 @@
 
   // Clicking the background, or Escape, clears the legend's highlight and the selection, as in the graph.
   function clearHighlights() {
-    state.legend.clear();
+    // Locked, a click on the background only clears the selection: the legend's picks are part of what's shown.
+    if (!vb.locked()) state.legend.clear();
     vb.select(null);
     highlight();
   }
@@ -701,6 +736,7 @@
 
   function updateToolbar() {
     focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false");
+    focusButton.disabled = vb.locked();
     membersButton.setAttribute("aria-pressed", state.members ? "true" : "false");
   }
 
@@ -795,7 +831,7 @@
 
   function drawIfNeeded() {
     if (vb.activeView() !== "classes") return;
-    if (stale || !drawn) render(); else { highlight(); bringSelectionIntoView(false); }
+    if (stale || !drawn) render(); else { highlight(); if (!vb.locked()) bringSelectionIntoView(false); }
   }
 
   vb.onViewChange(drawIfNeeded);
@@ -809,6 +845,8 @@
   }
 
   vb.onFocusChange(function () { if (!refocusIfNeeded()) updateToolbar(); });
+  // Locking or unlocking changes the filter too, so the diagram is drawn through onShownChange, which follows.
+  vb.onLockChange(updateToolbar);
 
   // A different filter, different items hidden or different Show… choices make a different diagram.
   function redrawForShown() {
@@ -822,7 +860,7 @@
     if (refocusIfNeeded()) return;
     highlight();
     // A box clicked here is already in view, unless the side panel has just opened over it.
-    if ((!clickedHere || vb.panelFollowing()) && vb.activeView() === "classes") bringSelectionIntoView(true);
+    if ((!clickedHere || vb.panelFollowing()) && vb.activeView() === "classes" && !vb.locked()) bringSelectionIntoView(true);
   });
 
   // Colours come from the page's CSS variables, so a theme change needs no redrawing.

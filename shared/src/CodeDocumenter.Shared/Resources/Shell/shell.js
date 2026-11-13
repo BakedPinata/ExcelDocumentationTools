@@ -34,7 +34,8 @@
 //                                      Returns whether the selection changed; if it didn't, its focus may have
 //                                      (see onFocusChange)
 //   shell.focused() / onFocusChange(fn)   whether the views show only the selection and what it's connected to; fn is
-//                                      called when that changes without the selection changing
+//                                      called when that changes without the selection changing. Never while the view
+//                                      is locked
 //   shell.focusOnClick() / setFocusOnClick(on)   the page's Focus on click setting, remembered as
 //                                      <tool>-focus-on-click and on unless turned off; setting it applies it to the
 //                                      current selection too
@@ -46,10 +47,21 @@
 //                                      widelyUsed(share), the tool's explorer nodes for what's used by at least share%
 //                                      of the others (most used first, and may hold children), the shell lists them in
 //                                      a Widely used group, marks their rows, and offers the share in the Show… menu,
-//                                      remembered as <tool>-widely-used-share
+//                                      remembered as <tool>-widely-used-share. With shown(), what the open view shows
+//                                      now, for Lock view to tick: { ids, alone } (alone: items shown without all
+//                                      they hold), or null when the open view can't say
 //   shell.filter.active() / has(id) / ids() / clear() / onFilterChange(fn)   the explorer's filter: the items ticked,
 //                                      which the views show alone while any are. What a tick covers (a module's
 //                                      members, say) is the tool's to say, through has()
+//   shell.filter.alone(id) / aloneIds()   the items in the filter on their own, without what they hold: what Lock
+//                                      view keeps of an item shown without all it holds. A tick never makes one
+//   shell.lock.on() / set(on) / onLockChange(fn)   Lock view, a button the shell puts at the start of every view's
+//                                      toolbar: while it's on, the views keep what they show, where it is, and a
+//                                      click only selects. Locking ticks what items.init's shown() says the open view
+//                                      shows ({ ids, alone }, or null to leave the filter as it is), and unlocking
+//                                      puts the ticks back as they were. focused() and focusFavourites() are false
+//                                      while it's on. fn(on) is called in place of onFilterChange, once the filter
+//                                      and the lock have both changed. Remembered per workbook as <tool>-lock|<workbook>
 //   shell.favourites.list() / has(id) / toggle(id) / onFavouritesChange(fn)   the favourites, in the order starred
 //   shell.favourites.buttonHtml(id)    a star that adds or removes the favourite, for the side panel's header; the
 //                                      explorer's rows have their own, and the shell keeps every star in step
@@ -100,7 +112,8 @@
 //                                      sets the view to it without drawing (value is undefined for a view without
 //                                      it, which starts afresh), and ids(value) lists the items it mentions, so those
 //                                      the workbook no longer has can be listed. name can't be one of the shell's own:
-//                                      name, description, tab, filter, hidden, show, selection, focus, explorer or panel
+//                                      name, description, tab, filter, alone, lock, hidden, show, selection, focus,
+//                                      explorer or panel
 //   shell.onViewApplied(fn)            called once a saved view has been opened, with the view's selection (an id, or
 //                                      null), in place of onFilterChange, onHiddenChange and onChoicesChange, so the
 //                                      tool draws its views once. The shell has already taken the selection, its focus
@@ -145,7 +158,7 @@
       remove: function (name) { try { localStorage.removeItem(tool + "-" + name); } catch (e) { /* nothing stored */ } }
     };
 
-    var listeners = { theme: [], view: [], focus: [], favourites: [], filter: [], hidden: [], choices: [], applied: [] };
+    var listeners = { theme: [], view: [], focus: [], favourites: [], filter: [], hidden: [], choices: [], applied: [], lock: [] };
     function emit(name, value) {
       listeners[name].forEach(function (fn) {
         try { fn(value); } catch (e) { console.error(e); }
@@ -809,8 +822,11 @@
       favouriteSource = source;
       favourites = loadIds(favouritesKey());
       ticked = new Set(loadIds(filterKey()));
+      alone = new Set(loadIds(aloneKey()));
+      viewLock = loadLock();
       hiddenIds = loadIds(hiddenKey());
       savedViews = loadViews();
+      updateLock();
       updateFilter();
       updateNotes();
       updateViewsSummary();
@@ -856,7 +872,7 @@
 
     var focusFavouritesOn = settings.load("focus-favourites") === "true";
 
-    function focusFavourites() { return focusFavouritesOn && favouriteList().length > 0; }
+    function focusFavourites() { return focusFavouritesOn && viewLock === null && favouriteList().length > 0; }
 
     function setFocusFavourites(on) {
       focusFavouritesOn = !!on;
@@ -1320,6 +1336,8 @@
     // silent, with a bar in the explorer and a note in every view's toolbar, each with Clear.
 
     var ticked = new Set();     // ids ticked, including any no longer in the workbook
+    var alone = new Set();      // ids in the filter on their own, without what they hold (see Lock view)
+    var viewLock = null;        // null, or { before, beforeAlone }: the ticks to go back to when the view is unlocked
     var filterBar = $("explorer-filter-bar");
     var filterNotes = [];
     document.querySelectorAll(".view-toolbar").forEach(function (toolbar) {
@@ -1345,23 +1363,37 @@
     });
 
     function filterKey() { return "filter|" + favouriteSource.workbook; }
+    function aloneKey() { return "filter-alone|" + favouriteSource.workbook; }
 
     function filterIds() {
       return favouriteSource ? Array.from(ticked).filter(function (id) { return favouriteSource.exists(id); }) : [];
     }
 
-    function filterActive() { return filterIds().length > 0; }
+    function aloneIds() {
+      return favouriteSource ? Array.from(alone).filter(function (id) { return favouriteSource.exists(id); }) : [];
+    }
 
-    function setTicked(ids) {
+    function filterActive() { return filterIds().length > 0 || aloneIds().length > 0; }
+
+    function saveFilter() {
+      if (!favouriteSource) return;
+      settings.save(filterKey(), JSON.stringify(Array.from(ticked)));
+      if (alone.size > 0) settings.save(aloneKey(), JSON.stringify(Array.from(alone))); else settings.remove(aloneKey());
+    }
+
+    // alone: the ids to keep on their own; left out, those there stay unless they're now ticked.
+    function setTicked(ids, aloneNow) {
       ticked = new Set(ids);
-      if (favouriteSource) settings.save(filterKey(), JSON.stringify(Array.from(ticked)));
+      alone = new Set(Array.from(aloneNow || alone).filter(function (id) { return !ticked.has(id); }));
+      saveFilter();
       updateFilter();
       emit("filter", filterIds());
     }
 
     function updateFilter() {
       var active = filterActive();
-      var text = active && favouriteSource.describeFilter ? "Filtered: " + favouriteSource.describeFilter(filterIds()) : "Filtered";
+      var what = viewLock !== null ? "Locked: " : "Filtered: ";
+      var text = active && favouriteSource.describeFilter ? what + favouriteSource.describeFilter(filterIds().concat(aloneIds())) : "Filtered";
       filterBar.hidden = !active;
       $("explorer-filter-text").textContent = text;
       filterNotes.forEach(function (note) {
@@ -1402,11 +1434,12 @@
         var below = itemsBelow(li);
         var tops = isItem ? [] : topItems(li);
         var all = isItem ? own || through : tops.length > 0 && tops.every(isTicked);
+        var byItself = isItem && !all && alone.has(li.dataset.id);
         box.checked = all;
         box.disabled = through;
-        box.indeterminate = !all && below.some(function (item) { return ticked.has(item.dataset.id); });
+        box.indeterminate = !all && (byItself || below.some(function (item) { return ticked.has(item.dataset.id) || alone.has(item.dataset.id); }));
         box.title = through ? "Shown in the views with what holds it" : all ? "Shown in the views. Click to take it out of the filter"
-          : "Show only the ticked items in the views";
+          : byItself ? "Shown in the views on its own, without all it holds" : "Show only the ticked items in the views";
       });
     }
 
@@ -1414,24 +1447,107 @@
       var box = li.querySelector(":scope > .tree-row > .tree-check");
       if (!box || box.disabled) return;
       var next = new Set(ticked);
+      var nextAlone = new Set(alone);
       var under = itemsBelow(li).map(function (item) { return item.dataset.id; });
       var tops = topItems(li);
-      if (li.dataset.id !== undefined) {
+      var id = li.dataset.id;
+      if (id !== undefined && nextAlone.has(id) && !under.some(function (below) { return next.has(below) || nextAlone.has(below); })) {
+        // An item kept on its own, with nothing it holds: the click drops it.
+        nextAlone.delete(id);
+      } else if (id !== undefined) {
         // An item ticked brings all it holds, so their own ticks aren't needed.
-        if (next.has(li.dataset.id)) next.delete(li.dataset.id);
-        else { next.add(li.dataset.id); under.forEach(function (id) { next.delete(id); }); }
+        if (next.has(id)) next.delete(id);
+        else { next.add(id); under.forEach(function (below) { next.delete(below); nextAlone.delete(below); }); }
       } else if (tops.length > 0 && tops.every(isTicked)) {
         // A group ticked throughout is unticked, with everything in it. (Not box.checked: a click has already changed it.)
-        under.forEach(function (id) { next.delete(id); });
+        under.forEach(function (below) { next.delete(below); nextAlone.delete(below); });
       } else {
-        under.forEach(function (id) { next.delete(id); });
+        under.forEach(function (below) { next.delete(below); nextAlone.delete(below); });
         tops.forEach(function (item) { next.add(item.dataset.id); });
       }
-      setTicked(Array.from(next));
+      setTicked(Array.from(next), nextAlone);
     }
 
     document.addEventListener("click", function (event) {
-      if (event.target.closest && event.target.closest("[data-filter-clear]")) setTicked([]);
+      if (event.target.closest && event.target.closest("[data-filter-clear]")) setTicked([], []);
+    });
+
+    // ---- Lock view ----
+    //
+    // Locking keeps what the views show as it is while you click around. It ticks everything the open view shows, so
+    // the explorer says what's kept and a tick still adds or drops an item, and it holds focus off, so a click only
+    // selects: the views keep their items, places and zoom, and only the selection's outline and the side panel
+    // change. An item shown without all it holds (a module whose own node is in the graph while its members aren't)
+    // is kept "alone", its box half ticked. Unlocking puts the ticks back as they were. One lock for the page,
+    // remembered per workbook with the ticks to go back to, and kept in a saved view.
+
+    var LOCK_ICONS = "<svg class=\"icon lock-open\" viewBox=\"0 0 16 16\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"3\" y=\"7.5\" width=\"10\" height=\"6.5\" rx=\"1.5\"/><path d=\"M5.5 7.5V5a2.5 2.5 0 0 1 4.9-.7\"/></svg>" +
+      "<svg class=\"icon lock-shut\" viewBox=\"0 0 16 16\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"3\" y=\"7.5\" width=\"10\" height=\"6.5\" rx=\"1.5\"/><path d=\"M5.5 7.5V5a2.5 2.5 0 0 1 5 0v2.5\"/></svg>";
+    var lockButtons = [];
+    document.querySelectorAll(".view-toolbar").forEach(function (toolbar) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "button view-lock";
+      button.setAttribute("data-lock-view", "");
+      button.setAttribute("aria-pressed", "false");
+      button.innerHTML = LOCK_ICONS + "<span>Lock view</span>";
+      toolbar.insertBefore(button, toolbar.firstChild);
+      lockButtons.push(button);
+    });
+
+    function lockKey() { return "lock|" + favouriteSource.workbook; }
+
+    function cleanLock(raw) {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+      return { before: stringList(raw.before), beforeAlone: stringList(raw.beforeAlone) };
+    }
+
+    function loadLock() {
+      try { return cleanLock(JSON.parse(settings.load(lockKey()) || "null")); } catch (e) { return null; }
+    }
+
+    function saveLock() {
+      if (!favouriteSource) return;
+      if (viewLock !== null) settings.save(lockKey(), JSON.stringify(viewLock)); else settings.remove(lockKey());
+    }
+
+    function updateLock() {
+      var on = viewLock !== null;
+      lockButtons.forEach(function (button) {
+        button.setAttribute("aria-pressed", on ? "true" : "false");
+        button.title = on
+          ? "Unlock the view: put the explorer's ticks back as they were, and let a click focus again"
+          : "Lock the view: keep what's shown where it is, so a click changes only the selection and the " + options.panel + " panel";
+      });
+      root.classList.toggle("view-locked", on);
+    }
+
+    function setViewLock(on) {
+      on = !!on;
+      if (!favouriteSource || on === (viewLock !== null)) return;
+      if (on) {
+        var shown = favouriteSource.shown ? favouriteSource.shown() : null;
+        viewLock = { before: Array.from(ticked), beforeAlone: Array.from(alone) };
+        if (shown) {
+          ticked = new Set(stringList(shown.ids));
+          alone = new Set(stringList(shown.alone).filter(function (id) { return !ticked.has(id); }));
+        }
+      } else {
+        ticked = new Set(viewLock.before);
+        alone = new Set(viewLock.beforeAlone);
+        viewLock = null;
+      }
+      saveFilter();
+      saveLock();
+      updateLock();
+      updateFilter();
+      updateNotes();
+      announce(on ? "View locked" : "View unlocked");
+      emit("lock", on);
+    }
+
+    document.addEventListener("click", function (event) {
+      if (event.target.closest && event.target.closest("[data-lock-view]")) setViewLock(viewLock === null);
     });
 
     // ---- Expand and Collapse all ----
@@ -1668,7 +1784,7 @@
 
     var VIEWS_FORMAT = 1;
     var VIEW_NAME_LENGTH = 80;
-    var SHELL_PARTS = ["name", "description", "tab", "filter", "hidden", "show", "selection", "focus", "explorer", "panel"];
+    var SHELL_PARTS = ["name", "description", "tab", "filter", "alone", "lock", "hidden", "show", "selection", "focus", "explorer", "panel"];
     var viewParts = [];          // { name, save(), apply(value), ids(value) }, from the tool
     var savedViews = [];         // in the menu's order
     var currentView = null;      // the name of the view last opened or saved, or null
@@ -1701,6 +1817,9 @@
       view.description = typeof raw.description === "string" ? raw.description : "";
       if (typeof raw.tab !== "string") delete view.tab;
       view.filter = stringList(raw.filter);
+      // Only a locked view, or one saved while something was kept on its own, has these.
+      if (stringList(raw.alone).length > 0) view.alone = stringList(raw.alone); else delete view.alone;
+      if (cleanLock(raw.lock)) view.lock = cleanLock(raw.lock); else delete view.lock;
       view.hidden = stringList(raw.hidden);
       var show = raw.show && typeof raw.show === "object" ? raw.show : {};
       view.show = { off: stringList(show.off), radios: {} };
@@ -1762,6 +1881,8 @@
       if (favouriteSource && favouriteSource.widelyUsed) view.show.share = share;
       if (activeLayout !== null) view.explorer.layout = activeLayout;
       if (selected !== null) view.selection = { id: selected, focused: focused };
+      if (alone.size > 0) view.alone = Array.from(alone).sort();
+      if (viewLock !== null) view.lock = { before: viewLock.before.slice().sort(), beforeAlone: viewLock.beforeAlone.slice().sort() };
       viewParts.forEach(function (part) {
         try {
           var value = part.save();
@@ -1792,7 +1913,7 @@
     // The items a view mentions that the workbook doesn't have.
     function missingFrom(view) {
       if (!favouriteSource) return [];
-      var ids = view.filter.concat(view.hidden, view.selection ? [view.selection.id] : []);
+      var ids = view.filter.concat(view.alone || [], view.hidden, view.selection ? [view.selection.id] : []);
       viewParts.forEach(function (part) {
         if (!part.ids || view[part.name] === undefined) return;
         try { ids = ids.concat(part.ids(view[part.name]) || []); } catch (e) { console.error(e); }
@@ -1825,7 +1946,11 @@
       hiddenIds = view.hidden.slice();
       settings.save(hiddenKey(), JSON.stringify(hiddenIds));
       ticked = new Set(view.filter);
-      settings.save(filterKey(), JSON.stringify(Array.from(ticked)));
+      alone = new Set(view.alone || []);
+      viewLock = view.lock ? { before: view.lock.before.slice(), beforeAlone: view.lock.beforeAlone.slice() } : null;
+      saveFilter();
+      saveLock();
+      updateLock();
       var shareChanged = false;
       if (view.show.share !== undefined && favouriteSource && favouriteSource.widelyUsed && clampShare(view.show.share) !== share) {
         share = clampShare(view.show.share);
@@ -2639,8 +2764,13 @@
         following: function () { return following; }
       },
       selectionChanged: selectionChanged,
-      focused: function () { return focused; },
+      focused: function () { return focused && viewLock === null; },
       onFocusChange: function (fn) { listeners.focus.push(fn); },
+      lock: {
+        on: function () { return viewLock !== null; },
+        set: setViewLock
+      },
+      onLockChange: function (fn) { listeners.lock.push(fn); },
       focusOnClick: function () { return focusOnClick; },
       setFocusOnClick: setFocusOnClick,
       explorer: { setLayouts: setLayouts },
@@ -2649,7 +2779,9 @@
         active: filterActive,
         has: function (id) { return ticked.has(id); },
         ids: filterIds,
-        clear: function () { setTicked([]); }
+        alone: function (id) { return alone.has(id); },
+        aloneIds: aloneIds,
+        clear: function () { setTicked([], []); }
       },
       onFilterChange: function (fn) { listeners.filter.push(fn); },
       favourites: {

@@ -263,6 +263,15 @@ body.resizing { cursor: col-resize; user-select: none; }
 .side-panel-lock[aria-pressed="true"] .lock-shut { display: block; }
 .side-panel-lock[aria-pressed="true"] { color: var(--accent); }
 
+.view-toolbar .button:disabled { opacity: 0.55; cursor: default; }
+.view-toolbar .button:disabled:hover { border-color: var(--border); }
+
+/* Lock view, at the start of every view's toolbar. */
+.view-lock { display: inline-flex; align-items: center; gap: 6px; }
+.view-lock .icon { width: 15px; height: 15px; }
+.view-lock .lock-shut, .view-lock[aria-pressed="true"] .lock-open { display: none; }
+.view-lock[aria-pressed="true"] .lock-shut { display: block; }
+
 @media (max-width: 900px) {
   .layout {
     --explorer-track: minmax(100px, var(--explorer-size, var(--explorer-default-stacked, 30%)));

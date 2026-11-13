@@ -297,6 +297,7 @@
       b.setAttribute("aria-checked", b.getAttribute("data-calls-direction") === direction ? "true" : "false");
     });
     focusButton.setAttribute("aria-pressed", vb.focusOnClick() ? "true" : "false");
+    focusButton.disabled = vb.locked();
   }
 
   function drawIfVisible() { if (vb.activeView() === "calls") draw(); else drawn = false; }

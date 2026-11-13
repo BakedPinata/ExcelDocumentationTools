@@ -17,6 +17,11 @@
 //                                     members with it)
 //   vbadoc.shows(id) / shownKey() / onShownChange(fn)   whether the views show a module or member: in the filter and
 //                                     not hidden. The key changes with either
+//   vbadoc.showsItself(id)            whether the graph's member level shows a module's own node: as shows(id), but
+//                                     while the view is locked, only a module ticked or kept on its own
+//   vbadoc.locked() / onLockChange(fn) / lockSource(view, fn)   the shell's Lock view: whether it's on; fn(on) when
+//                                     it changes, just before onShownChange; and a view's say in what locking ticks:
+//                                     fn() gives { ids, alone } for what it shows now, when it's the open view
 //   vbadoc.memberCategories            [{ id, label, kinds }]: the kinds of member the Show… menu chooses between
 //   vbadoc.kept(id)                    whether the Show… choices keep a module or member (its module's kind, its own
 //                                     kind, private members, references); the views apply the rest themselves
@@ -81,7 +86,7 @@
   var escapeHtml = shell.escapeHtml;
   var settings = shell.settings;
 
-  var listeners = { selection: [], shown: [] };
+  var listeners = { selection: [], shown: [], lock: [] };
   function emit(name, value) {
     listeners[name].forEach(function (fn) {
       try { fn(value); } catch (e) { console.error(e); }
@@ -152,7 +157,7 @@
   shell.onFilterChange(refreshFilter);
 
   function inFilter(id) {
-    if (!shell.filter.active() || shell.filter.has(id)) return true;
+    if (!shell.filter.active() || shell.filter.has(id) || shell.filter.alone(id)) return true;
     var member = membersById.get(id);
     return member ? shell.filter.has(member.module) : modulesWithTickedMembers.has(id);
   }
@@ -230,11 +235,31 @@
 
   function shows(id) { return inFilter(id) && !isHidden(id); }
 
-  function shownKey() {
-    return shell.filter.ids().slice().sort().join("|") + "\u0000" + shell.hidden.list().slice().sort().join("|");
+  // A module's own node at the graph's member level. Unlocked, a ticked member brings it; locked, only what locking
+  // found on screen is kept, so the module has to be ticked or kept on its own.
+  function showsItself(id) {
+    if (!shows(id)) return false;
+    return !shell.lock.on() || !shell.filter.active() || shell.filter.has(id) || shell.filter.alone(id);
   }
 
+  function filterKey() {
+    var alone = shell.filter.aloneIds();
+    return shell.filter.ids().slice().sort().join("|") + (alone.length > 0 ? "\u0001" + alone.slice().sort().join("|") : "");
+  }
+
+  function shownKey() {
+    return filterKey() + (shell.lock.on() ? "\u0001locked" : "") + "\u0000" + shell.hidden.list().slice().sort().join("|");
+  }
+
+  var lockSources = {};
+
   shell.onFilterChange(function () { emit("shown"); });
+  // Locking and unlocking change the filter with the lock: the views hear of the lock, then draw once.
+  shell.onLockChange(function (on) {
+    refreshFilter();
+    emit("lock", on);
+    emit("shown");
+  });
   shell.onHiddenChange(function () {
     hiddenNow = new Set(shell.hidden.list());
     if (selection !== null) renderHeader(modulesById.get(membersById.has(selection) ? membersById.get(selection).module : selection), membersById.get(selection) || null);
@@ -685,8 +710,12 @@
     toggleFavourite: shell.favourites.toggle,
     inFilter: inFilter,
     filterActive: shell.filter.active,
-    filterKey: function () { return shell.filter.ids().slice().sort().join("|"); },
+    filterKey: filterKey,
     onFilterChange: shell.onFilterChange,
+    locked: shell.lock.on,
+    onLockChange: function (fn) { listeners.lock.push(fn); },
+    lockSource: function (view, fn) { lockSources[view] = fn; },
+    showsItself: showsItself,
     hidden: shell.hidden.list,
     isHidden: isHidden,
     toggleHidden: shell.hidden.toggle,
@@ -716,6 +745,11 @@
     kept: kept,
     widelyUsed: widelyUsed,
     exists: function (id) { return modulesById.has(id) || membersById.has(id); },
+    // What Lock view ticks: what the open view shows, if it's one that can say.
+    shown: function () {
+      var source = lockSources[shell.activeView()];
+      return source ? source() : null;
+    },
     node: function (id) {
       var member = membersById.get(id);
       if (!member) return { label: id, detail: moduleKindLabel(modulesById.get(id)), title: modulesById.get(id).file };

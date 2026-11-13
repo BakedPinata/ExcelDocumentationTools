@@ -399,10 +399,17 @@
   var showingKey = null; // what decided the last showing: focus, the filter and what's hidden
   var shown = null;       // the ids shown while focused, filtered or with queries hidden, or null for all
 
+  // While the page's view is locked (the shell's Lock view), the graph keeps what it shows and its zoom: a click
+  // only outlines the query, and nothing is focused, lit, dimmed, fitted or centred. Locking ticks what's shown.
+  pq.lockSource("graph", function () {
+    return { ids: nodes.filter(function (n) { return shown === null || shown.has(n.id); }).map(function (n) { return n.id; }) };
+  });
+
   // Shows what the explorer's filter keeps, and of that, the focused query's chains. Returns whether that changed, in
-  // which case the view was fitted.
-  function applyFocus(duration) {
+  // which case the view was fitted, unless it's locked (first: the graph's first drawing, which is fitted anyway).
+  function applyFocus(duration, first) {
     focusButton.setAttribute("aria-pressed", pq.focusOnClick() ? "true" : "false");
+    focusButton.disabled = pq.locked();
     var wanted = pq.focused() && pq.shows(pq.selection()) ? pq.selection() : null; // a query not shown isn't focused on
     var favourites = pq.focusFavourites() ? pq.favourites() : [];
     var key = [wanted === null ? "" : wanted, favourites.join("|"), pq.shownKey()].join("\u0000");
@@ -430,7 +437,7 @@
       return shown !== null && !nodes.some(function (n) { return n.column === c && shown.has(n.id); });
     });
     updatePositions();
-    fit(duration);
+    if (first || !pq.locked()) fit(duration);
     return true;
   }
 
@@ -447,7 +454,9 @@
     var lit = null;
     var direction = new Map(); // edge -> "upstream" or "downstream"
 
-    if (selection !== null) {
+    if (selection !== null && pq.locked()) {
+      // Only outlined: see Lock view.
+    } else if (selection !== null) {
       var up = pq.upstream(selection);
       var down = pq.downstream(selection);
       lit = new Set([selection]);
@@ -594,7 +603,7 @@
     simulation.on("tick", updatePositions);
     updatePositions();
     highlight();
-    if (!applyFocus(0)) fit(0);
+    if (!applyFocus(0, true)) fit(0);
   }
 
   pq.onSelectionChange(function (id) {
@@ -606,8 +615,9 @@
     // transform.)
     if (pq.activeView() === "graph" && applyFocus(300)) return;
     var n = id !== null && pq.activeView() === "graph" ? nodes.find(function (q) { return q.id === id; }) : null;
-    if (n && (!clickedInGraph || (pq.panelFollowing() && !inView(n)))) centreOn(n);
+    if (n && !pq.locked() && (!clickedInGraph || (pq.panelFollowing() && !inView(n)))) centreOn(n);
   });
+  pq.onLockChange(function () { focusButton.disabled = pq.locked(); });
   // A saved view can bring a selection with it, so the highlight follows too.
   pq.onShownChange(function () {
     if (!started || pq.activeView() !== "graph") return;
@@ -618,6 +628,7 @@
     if (started && pq.activeView() === "graph") applyFocus(300);
     else focusButton.setAttribute("aria-pressed", pq.focusOnClick() ? "true" : "false");
   });
+  focusButton.disabled = pq.locked();
   pq.onSearchChange(function () { if (started) highlight(); });
   pq.onViewChange(drawIfVisible);
   // Colours are CSS variables, so a theme change needs no redraw.
