@@ -34,8 +34,23 @@ Use Australian English in everything we write: identifiers, comments, docs and U
 `behaviour`, `licence` as a noun, `tokeniser`).
 
 Names that come from somewhere else keep their own spelling: .NET, VBA, CSS, the DOM, libraries and file formats
-(`Class_Initialize`, `JsonSerializer`, CSS `color`, `NO_COLOR`, the `LICENSE` file). So do values stored in the data
-of generated pages, because changing one changes every page.
+(`Class_Initialize`, `JsonSerializer`, CSS `color`, `NO_COLOR`, the `LICENSE` file). Values stored in the data of
+generated pages keep theirs unless there's a reason to change them, because changing one changes every page.
+
+## The tools are in alpha
+
+Agreed on 2026-11-13. Until a tool says otherwise:
+
+- **A new version may change its pages, its output files and its page data** in any way. Documentation already
+  committed to other repositories is made again with the new version, and its git history shows the change.
+- **No new code is written to read or tidy up what an older version made.** What's there now stays, such as deleting
+  a page written under an older name.
+- **Remembered settings, saved views files and export manifests keep working where that costs nothing.** Otherwise
+  they're dropped, with a line in the work log saying so.
+- **The same source still gives the same page** with the same version, and a page never says when it was made. That
+  is what makes a page's diff in git mean something.
+- **A change that only moves code is checked by its tests and by screenshots in both themes,** not by comparing
+  outputs byte for byte with the version before.
 
 ## Platform and build
 
