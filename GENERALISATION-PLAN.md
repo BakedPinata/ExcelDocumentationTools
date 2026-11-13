@@ -121,15 +121,15 @@ this is wrong.
 
 | Question | Recommended | Your answer |
 |---|---|---|
-| How accessdoc gets forms and VBA out of a database (see [5.5](#55-reading-access)) | Through Access itself: given a database, accessdoc copies it, has Access write every form and module as text from the copy, and reads the text. Given a folder of that text, it needs no Access. N1's spike tries this, and reading the file directly, before anything is built | Through Access, on a copy; N1 to confirm |
-| Is Access installed where you'll run it, at home and at work? Which version, and 32- or 64-bit if you know? | Needed for the answer above | _(yours to fill in)_ |
-| Which files: `.accdb`, older `.mdb`, both? Are they split into a front end and a back end of tables? Are any compiled (`.accde`), or opened with a password? | A compiled file has no source to read, and a password would have to be typed into Access by you | _(yours to fill in)_ |
-| Roughly how many forms does a database have, and how deep do subforms nest? | Sets how the Forms view is laid out | _(yours to fill in)_ |
+| How accessdoc gets forms and VBA out of a database (see [5.5](#55-reading-access)) | Through Access itself: given a database, accessdoc copies it, has Access write every form and module as text from the copy, and reads the text. Given a folder of that text, it needs no Access. N1's spike tries this, and reading the file directly, before anything is built | Please take a look at this MS Access [Version Control Add-in](https://github.com/joyfullservice/msaccess-vcs-addin) which seems have some crossover with what we need (let me know if you are unable to access it and I can provide a copy of it's source code/repo). I have used it in the past, however recent Group Policy changes on my work environment means that its not as straight forward to use. Use what you can from it, but don't assume I can install or run it myself. If this does not help, then it sounds like it would be best to do as you recommended. |
+| Is Access installed where you'll run it, at home and at work? Which version, and 32- or 64-bit if you know? | Needed for the answer above | 64-bit on both. The version that lets you modify files (not just the runtime) |
+| Which files: `.accdb`, older `.mdb`, both? Are they split into a front end and a back end of tables? Are any compiled (`.accde`), or opened with a password? | A compiled file has no source to read, and a password would have to be typed into Access by you | Lets assume `.accdb` only, with no password. No split as far as I know. Some projects use a combination of local tables and connections to SQL databases. Additionally, some projects generate temporary local tables from the connected SQL tables during export procedures. These may or may not be present at any given point due to bugs in how it cleans up the temp tables, if a procedure fails, or is exited early. |
+| Roughly how many forms does a database have, and how deep do subforms nest? | Sets how the Forms view is laid out | Roughly 150 forms. Not sure how deeply nested, could be 10s of forms deep. |
 | Reports | Later: they're read the same way as forms, so adding them is small once forms work | Later |
 | Queries and tables | Named wherever a form or control uses one, and a query's SQL shown. A table's fields listed if the spike finds them cheap to get. No diagram of table relationships | As recommended |
 | Access macros (the kind built in the macro designer, embedded ones included) | Read far enough to follow them: an event that runs a macro links to the forms it opens and the VBA it runs | As recommended |
-| What the outline for Blazor holds (N5) | For each form: the forms inside it and how each is linked to its parent, its data source, each control with what it's bound to and its size and place, and each event with the code it runs. As text you can paste into a chat. It doesn't write Blazor code | As recommended |
-| Can you make a small sample database in Access with made-up content, as you did the sample workbooks? | Needed for N1: the repository is public, so real databases stay in `private/` | Yes |
+| What the outline for Blazor holds (N5) | For each form: the forms inside it and how each is linked to its parent, its data source, each control with what it's bound to and its size and place, and each event with the code it runs. As text you can paste into a chat. It doesn't write Blazor code | As recommended, though having it write blazor code would be very helpful. Perhaps we add this later, but provision for it now. |
+| Can you make a small sample database in Access with made-up content, as you did the sample workbooks? | Needed for N1: the repository is public, so real databases stay in `private/` | Are there any publicly available ones? [Northwind](https://support.microsoft.com/en-us/access/northwind-2-0-developer-edition)? If not I can try, but I'd prefer not to. |
 
 ### 1.6 C#
 
@@ -137,7 +137,7 @@ this is wrong.
 |---|---|---|
 | How csdoc reads C# (see [5.6](#56-reading-c)) | Roslyn, with csdoc working the solution out for itself: nothing is built, restored or run | As recommended; P1 to confirm |
 | Restored or not? | You weren't sure, and it needn't matter: csdoc works either way, and knows more about NuGet packages' types when a restore has been done. P1 reports the difference on your solutions | Works either way |
-| Older .NET Framework projects | In scope, for reading other people's code. P2 has a fixture of one | In scope |
+| Older .NET Framework projects | In scope, for reading other people's code. P2 has a fixture of one | In scope, but lower priority. |
 | Size | Small to moderate, so no step of its own for large solutions. P6 checks one larger solution so there's a known limit | As recommended |
 | Razor components (`.razor`), since you're building in Blazor | Later, as its own step once csdoc's page exists. Say if you'd rather have it in this plan | Later |
 | Anything else that should be read: VB.NET, F#, XAML? | No | No |
@@ -150,9 +150,9 @@ Python. [5.7](#57-reading-python) explains the words it uses, and Q1 has a short
 | Question | Recommended | Your answer |
 |---|---|---|
 | How pythondoc reads Python | A parser of our own, so the tool needs nothing installed. While it's being built, its reading is checked against Python's own parser on this machine, across thousands of files, so its accuracy doesn't rest on anyone's eye | As recommended; Q1 to confirm |
-| Who says whether the page is right and useful? | Your colleague, at Q4. Before that, the checks are automatic | My colleague |
-| Can a copy of their project be used for checking, kept in a git-ignored `private/` folder and never committed? | Yes if they agree. If not, Q1's spike is given to them to run, and prints only counts | _(yours to fill in, after asking)_ |
-| Does their machine have the same limits as your work machine? | Assumed yes: one self-contained executable, nothing installed | _(yours to fill in)_ |
+| Who says whether the page is right and useful? | Your colleague, at Q4. Before that, the checks are automatic | My colleague, however they are also a python novice who's inherited code from someone else that's no longer available for support. |
+| Can a copy of their project be used for checking, kept in a git-ignored `private/` folder and never committed? | Yes if they agree. If not, Q1's spike is given to them to run, and prints only counts | Yes, so long as it's git-ignored as you state. |
+| Does their machine have the same limits as your work machine? | Assumed yes: one self-contained executable, nothing installed | Assume yes. Theirs may be more restricted than mine so I'd have to run this tool on their behalf. |
 
 ### 1.8 Smaller questions
 
