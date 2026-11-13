@@ -152,6 +152,10 @@ left to right by depth (how many queries feed them). You can:
 - give your views to everyone who opens the page: put the exported `pqdoc-views.json` in the output folder and run
   pqdoc again, and it builds them into the page, marked "in the page" in the menu (pqdoc only reads the file, and
   warns if it can't use it);
+- read a query's description in the details panel: the one in the workbook's query properties, otherwise the
+  comments at the top of its M code;
+- print the graph and its queries, or every saved view from a new page each, with **Print** in the top bar, and save
+  it as a PDF from the browser's print dialog;
 - reset the view.
 
 The top bar says how many queries and dependencies there are and, for a workbook, when it was last saved; it never

@@ -235,6 +235,18 @@ The commands and what they promise are in Requirements.md (FR-IMP-7 to FR-IMP-16
   check, because a token's kind also shows in its text (quotes, `//`, digits, `#`). In the light theme numbers and type
   names are close in colour, in vbadoc too; left for C2, which gives both pages one set of tokens.
 
+## Descriptions and printing (1.25.0, step L5 of the generalisation plan)
+
+- **A query's description** (FR-HTML-24) is `Analysis/QueryDescription`: the workbook's own, which `WorkbookReader`
+  already read for `import`, otherwise the comments the code starts with. For a folder of `.m` files there's only the
+  comments. It travels in `QueryDetails.Description` to the page's data.
+- **Only comments before any code count.** A comment after `let`, or at the end of the query, describes a step, not
+  the query. A block comment's leading stars and lines of decoration are dropped.
+- **Printing is the shell's** (FR-HTML-25; see `shared/README.md`). pqdoc says the graph is ready once its simulation
+  has stopped, gives `#graph-svg` as the diagram, and describes a query by its kind, its role as a note, its
+  description, and what it uses and is used by. Queries out of focus are hidden in the copy as they are on the page,
+  so a view's graph prints only what it shows.
+
 ## Views built into the page (1.24.0, step L4 of the generalisation plan)
 
 - **The reading is the shared library's** (`ViewsFile.Read`; FR-HTML-23, see `shared/README.md`), and the menu is the

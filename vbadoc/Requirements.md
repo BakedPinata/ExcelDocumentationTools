@@ -201,6 +201,22 @@ Shared by both views.
 - **Unlocking,** with the button again or Unlock in the note, puts the ticks back as they were before locking, and Focus on click works again.
 - **Lines:** a locked graph draws every line between the items it shows. A focused graph draws only the lines on the way to the selection, so locking one can add lines between the items that were already there.
 
+### Descriptions
+
+- **What a module or member says about itself** is shown under its signature in the source panel, as text, and in the printed document.
+- **A member's description** is its `VB_Description` attribute (`VB_VarDescription` for a variable), which the VBA editor's Procedure Attributes dialog and Rubberduck write. Without one, it's a `'@Description("…")` annotation or the comment lines directly above the member, with other annotations and lines of decoration left out. Without those, it's a comment at the end of its declaration's line. A property's accessors share an attribute's description.
+- **A module's description** is its `VB_Description` attribute. Without one, it's a `'@ModuleDescription("…")` annotation or the first comment lines at its top, above its first member; comments directly above the first member are that member's.
+- A description is cut at 1,000 characters. They're worked out when the page is made, and are in the page's data.
+
+### Printing
+
+- **A Print menu** in the top bar makes a document and hands it to the browser's Print; the browser's Save as PDF makes a PDF of it. **This view** prints the page as it's arranged now. **Every saved view** prints each view in the Views menu, the page's own and yours, each starting on a new page: the page opens each in turn, then goes back to how it was.
+- **The document** has the workbook's name, the page's summary and the build of vbadoc that made the page (never when), then for each view its name and description, a line saying what it shows (the tab, the filter or lock, hidden items, Show… choices in effect, the selection), its diagram fitted to the page's width, and its items.
+- **The diagram** is the open tab's: the graph, the class diagram, or the Calls tree or sequence diagram as opened. It prints in the light theme whatever the page is in. The legend isn't printed.
+- **The items** are those the graph or class diagram shows; on the Calls tab, the ticked items, or the selection. Each has its name, kind, signature, description, and what it uses and what uses it, by name. At most 200 are listed for a view, with a count of the rest.
+- **Include each item's source** adds each item's code, highlighted and numbered as its file has it, up to 300 lines an item, when the source is embedded or a folder is loaded. The choice is remembered.
+- The browser's own Print (Ctrl+P) still prints the page as it looks.
+
 ### Saved views
 
 - **A view** is everything the page shows, saved under a name, with a description: the tab; the selection and whether it's focused; Focus on click and Focus on favourites; the views' filter, whether the view is locked (with the ticks to go back to), the hidden items, the Show… choices and the widely used share; whether the explorer and the source panel are shown, their sizes, the explorer's layout and the source panel's lock; whether the source panel shows a member in its whole module and its Dependencies; the graph's level, Dependencies / Dependents, Path, legend picks and settings (apart from the two about dragging) and, at each level where anything was moved, where its nodes are and which are pinned, and the same for a focused graph; the class diagram's Members switch, legend picks and moved boxes, focused or not; and the Calls tab's starting point, open rows, Calls or Called by, and tree or sequence diagram. Favourites and the theme stay the person's own.

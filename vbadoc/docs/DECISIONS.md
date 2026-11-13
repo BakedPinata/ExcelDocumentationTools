@@ -606,6 +606,37 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Descriptions and printing (0.36.0, step L5 of the generalisation plan)
+
+- **Descriptions are read by the parser** (`Parsing/Descriptions`), into `Member.Description` and
+  `ModuleModel.Description`, and go in the page's data as `description`, left out when there's none.
+- **The attribute first.** `Attribute Name.VB_Description = "…"` sits inside its procedure in an exported file, and
+  `VB_VarDescription` after a variable; the parser used to skip both, and now keeps them by member name. A property's
+  Get, Let and Set share a name, so they share the description, as the VBA editor has it. An Enum's values, which
+  can share a name with a member, never take one from an attribute.
+- **Then the comments directly above,** which is the run of comment lines the member's source already starts with
+  (`StartLine`), so no new idea of "above" was needed. For a member declared again under `#If`, whose source starts
+  at the `#If`, only the comment lines straight above the first declaration count. A `'@Description` annotation in
+  that run is the description alone; other `'@` annotations and lines with no letters or digits are left out, and a
+  line of decoration becomes a break.
+- **A comment ending the declaration's line is the last resort,** mostly for constants and variables, which are
+  commented that way more than they are above.
+- **A module's comments stop at its first member,** so the comment above the first procedure isn't taken for the
+  module's. Of what's left, the first run of comment lines that says anything is the description, after a
+  `'@ModuleDescription` anywhere among them.
+- **Cut at 1,000 characters,** so a licence or a change history in comments doesn't travel in every page.
+- **Printing is the shell's** (see `shared/README.md`). vbadoc says its open view is ready once the graph's simulation
+  has stopped and it isn't sliding, or the class diagram is drawn; gives `#graph-svg`, `#classes-svg`, or on the
+  Calls tab the tree or the sequence diagram, whichever is showing; and describes an item with the names of what it
+  uses and is used by at its own level, as the Dependencies list does.
+- **The Calls tab can't say what it shows** (it has no say in Lock view either), so its printed items are the ticked
+  ones, or the selection.
+- **The browser tests print to PDF in headless Chromium** and count the PDF's page objects, which it writes
+  uncompressed. They reach the document through `vbadoc.preparePrint` and `finishPrint`, as `window.print()` does
+  nothing useful there; one test replaces `window.print` to check the menu's button calls it and tidies up after.
+- **To check on a work machine** (the plan's L5): that Print and Save as PDF work in the browser there, on a real
+  workbook, and that Export still downloads a views file.
+
 ### Views built into the page (0.35.0, step L4 of the generalisation plan)
 
 - **The reading is the shared library's** (`ViewsFile.Read`; see `shared/README.md`), and the menu is the shell's.

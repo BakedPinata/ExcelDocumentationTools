@@ -186,6 +186,14 @@ Agreed on 2026-11-13. Until a tool says otherwise:
   the source. A missing file is the usual case, and one that can't be used is a warning, never a failure. The file is
   the person's own: a tool only reads it. In the page, the page's views are marked, and a person's own version of
   one is kept in their browser and shown in its place.
+- **Descriptions are worked out in Core,** from what the source says about itself (an attribute or the comments
+  above a member, the description in a workbook or the comments at the top of a query), and go in the page's data.
+  The side panel shows one under the item's name, and the printed document beside it.
+- **Printing is the shell's:** a Print menu in the top bar makes a document of the view showing, or of every saved
+  view from a new page each, and hands it to the browser's Print, whose Save as PDF makes the PDF. A tool says when
+  its open view is still, which element is its diagram, and what there is to say about an item
+  (`shell.print.init`). The document is in the light theme whatever the page is in, and it says which build made the
+  page, never when.
 - **A page never says when it was made,** so the same workbook gives the same page and git diffs show only real
   changes. The top bar's summary says when the workbook was last saved instead, from its own document properties.
 - **The side panel follows the selection** unless locked open: it opens when something is selected and closes when

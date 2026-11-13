@@ -164,6 +164,37 @@ dotnet test --solution CodeDocumentationTools.sln                # everything, s
   result reaches `AtomicFileWriter.Replace`, which uses `File.Replace` so the file keeps its permissions and creation
   time. A move would give it the folder's.
 
+### Printing (step L5 of the generalisation plan)
+
+- **The Print menu is the shell's,** in the top bar after Views, shown once a tool calls
+  `shell.print.init({ ready(), element(), describe(id) })`. This view, Every saved view (with how many), and Include
+  each item's source, remembered as `<tool>-print-source`.
+- **The document is its own element,** `#print-document`, filled when asked and shown only in print while
+  `html.printing` is set, when everything else in the body is hidden. So the browser's own Print still prints the
+  page as it looks, and nothing about the page's layout had to change for print.
+- **`preparePrint(which, options)`** makes it and gives a promise; `finishPrint()` empties it and puts the theme
+  back. The menu calls `window.print()` between the two, finishing on `afterprint`. Tests call the two directly.
+- **Every saved view:** the arrangement is captured, each listed view is applied in turn (as opening it does, without
+  making it the view showing), the tool's `ready()` awaited, its part made, and the captured arrangement applied
+  again at the end.
+- **A diagram is copied as drawn** (`printCopy`): a deep clone, with each SVG element's computed style written onto
+  its copy (a fixed list of properties: fill, stroke, fonts, markers, display and so on), so the copy needs none of
+  the page's rules, which are often written against a view's id. Ids are prefixed and `url(#…)` references rewritten,
+  so its arrowheads are its own and still draw when the original is hidden. HTML in a copy keeps its classes and
+  loses its ids.
+- **An SVG with a `g.viewport`** (every graph and the class diagram) loses the viewport's pan and zoom and gets a
+  `viewBox` around what it shows, so it fills the page's width however the page was zoomed. Any other SVG gets a
+  `viewBox` of its own size and scales down to fit.
+- **In the light theme.** The theme is set to light while the document exists, without being remembered, so the
+  computed styles copied are the light ones and the code's colours are too; `finishPrint` puts it back.
+- **What's listed** is what `items.init`'s `shown()` gives for the open view, the same answer Lock view uses;
+  without it, the ticked items, or the selection. At most 200 items (`PRINT_ITEMS`), and 300 lines of source an item
+  (`PRINT_SOURCE_LINES`), each with a line saying how many more there are.
+- **`describe(id)`** gives `{ name, kind, signature, note, description, uses, usedBy, source: { id, first, last } }`:
+  `signature` prints as code and `note` as text, and `uses` and `usedBy` are names.
+- **Each view after the first starts a new page** (`break-before: page`), and an item isn't split across pages unless
+  it has source.
+
 ### Views built into the page (step L4 of the generalisation plan)
 
 - **`ViewsFile.Read(folder, tool, source)`** reads `<tool>-views.json`, the file the Views menu exports, and gives

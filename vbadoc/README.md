@@ -227,6 +227,14 @@ over** any view with the page as it is now; Undo puts it back. **Export** downlo
 to keep with the source or share, and **Import** reads one back, saying first if it's from another workbook. A view
 that mentions something the workbook no longer has still opens, and says what's missing.
 
+**Print**, in the top bar, makes a document for the browser's Print dialog, where **Save as PDF** makes a PDF of it.
+**This view** prints what the page shows now: the diagram, then each item with its description and what it uses and is
+used by. **Every saved view** prints each of your views from a new page, which makes a document of the workbook to
+leave with it. Tick **Include each item's source** to add the code.
+
+A module's or member's description is its `VB_Description` attribute if it has one, otherwise the comments directly
+above it (for a module, the comments at its top). It shows under the name in the source panel.
+
 **To give your views to everyone who opens the page,** put the exported `vbadoc-views.json` in the output folder,
 beside the module files, and run vbadoc again. It builds the file's views into the page, where the menu marks them "in
 the page", and the file can go into git with the rest. In the page they can't be changed, but **Save over** one makes

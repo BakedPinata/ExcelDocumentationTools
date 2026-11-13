@@ -43,7 +43,7 @@ step K0. The progress table says where the work is.
 | [L2](#step-l2-peek-at-a-reference) | Peek: a line in Uses / Used by opens a preview of the code around it, without leaving the selection | Claude | Done |
 | [L3](#step-l3-calls-tab-follow-ups-e5b) | Calls tab follow-ups (E5b): Ifs whose conditions make calls, and the sequence diagram's participants staying in view | Claude | Done; your real example is still to be checked |
 | [L4](#step-l4-views-file-built-into-the-page-g2) | A views file in the output folder is built into the page (G2) | Claude | Done |
-| [L5](#step-l5-printing-and-descriptions-g3) | Printing a view or every view, with descriptions (G3) | Claude, then you on a work machine | Not started |
+| [L5](#step-l5-printing-and-descriptions-g3) | Printing a view or every view, with descriptions (G3) | Claude, then you on a work machine | Done; your check on a work machine is still to come |
 | [L6](#step-l6-copy-a-view-as-text-g4) | Copy a view as text, to paste into a chat (G4) | Claude | Not started |
 | [M1](#step-m1-the-shared-library-in-three) | The shared library in three: what every tool needs, what only workbooks need, and the code views. The shell says "source", not "workbook" | Claude | Not started |
 | [M2](#step-m2-vbadocs-views-move-to-the-code-views-library) | vbadoc's graph, class diagram and Calls tab move to the code views library | Claude | Not started |
@@ -666,6 +666,24 @@ Done on 2026-11-13, as below. What was decided along the way:
 - Check that neither tool's source folder writer deletes the views file.
 
 ### Step L5: Printing and descriptions (G3)
+
+Done on 2026-11-13, as below, but for the last line, which is yours: **print to PDF, and export views, in the browser
+on a work machine.** Open a real workbook's page there, choose Print, then This view, and Save as PDF in the dialog;
+then save two views and try Every saved view; then Views, Export. What to look for: the dialog opens, the PDF has the
+diagram and the items, each view starts a new page, and the page is as you left it afterwards.
+
+What was decided along the way:
+
+- **A member's description** also takes Rubberduck's `'@Description` annotation, and a comment at the end of a
+  declaration's line when there's nothing above it, which is how constants and variables are usually commented.
+- **A module's comments stop at its first member,** so the comment above the first procedure isn't taken for the
+  module's.
+- **The document is in the light theme** whatever the page is in, and says which build made the page, never when.
+- **The items listed are those the diagram shows.** The Calls tab can't say what it shows, so there it's the ticked
+  items, or the selection.
+- **Limits:** 200 items a view and 300 lines of source an item, each with a count of what's left out, and a
+  description is cut at 1,000 characters.
+- **The legend isn't printed.**
 
 - **Descriptions** come from a member's `VB_Description` attribute if it has one, otherwise from the comments directly
   above it, and from a module's comments at the top; for queries, from the description in the workbook, otherwise
