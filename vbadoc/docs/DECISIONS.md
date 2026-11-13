@@ -606,6 +606,19 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Views built into the page (0.35.0, step L4 of the generalisation plan)
+
+- **The reading is the shared library's** (`ViewsFile.Read`; see `shared/README.md`), and the menu is the shell's.
+  vbadoc reads `vbadoc-views.json` from `--output` before it builds the page (`HtmlPageWriter.ReadViews`), passes the
+  views to `HtmlPageWriter.Build`, logs how many were built in, and logs the file's warning if it has one.
+- **Read before the question about overwriting,** since the views are part of the page: a page that would come out
+  the same, views and all, still isn't asked about or written again.
+- **Nothing deletes the file.** The module files' writer only deletes `.bas`, `.cls` and `.frm` files, and the tidying
+  of older pages only `.html` files carrying vbadoc's generator tag. A test runs the tool twice over a folder holding
+  the file and checks it byte for byte.
+- **Not an option.** There's no switch to name another file or to leave the views out: the file is in the folder or it
+  isn't, which is what makes the page follow from what's in git.
+
 ### Calls tab follow-ups (0.34.0, step L3 of the generalisation plan)
 
 - **The missing Ifs.** Raised on 2026-11-06: Ifs with `Or` or `And` conditions seemed not to show, only the Else or

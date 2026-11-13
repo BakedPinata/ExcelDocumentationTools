@@ -181,6 +181,11 @@ Agreed on 2026-11-13. Until a tool says otherwise:
   they are. Go to in the preview goes there, and so does Ctrl+click on the line, which is Ctrl+click doing the other
   thing as it does everywhere. A tool gives each reference the lines of what holds it, so the preview never runs on
   into its neighbours.
+- **A views file in the output folder is built into the page.** Each tool reads `<tool>-views.json` there (the file
+  the Views menu exports), and its views are in the page for everyone who opens it, so they're versioned in git with
+  the source. A missing file is the usual case, and one that can't be used is a warning, never a failure. The file is
+  the person's own: a tool only reads it. In the page, the page's views are marked, and a person's own version of
+  one is kept in their browser and shown in its place.
 - **A page never says when it was made,** so the same workbook gives the same page and git diffs show only real
   changes. The top bar's summary says when the workbook was last saved instead, from its own document properties.
 - **The side panel follows the selection** unless locked open: it opens when something is selected and closes when

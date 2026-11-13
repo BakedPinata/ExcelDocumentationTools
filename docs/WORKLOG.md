@@ -17,12 +17,13 @@ rather than repeating it.
   the plan is revised for them. K1 is done: the root solution is `CodeDocumentationTools.sln` and the shared library
   `CodeDocumenter.Shared`. K2 is done: the desktop app is `codedocui`. K3 (the repository's own name) is the user's
   to start, and nothing waits for it. L1 is done: Lock view. L2 is done: Peek. L3 is done: the Calls tab's follow-ups, with the user's
-  real example of the missing Ifs still to be checked.
-- **vbadoc 0.34.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+  real example of the missing Ifs still to be checked. L4 is done: a views file in the output folder is built into
+  the page.
+- **vbadoc 0.35.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the generalisation plan. Since 0.31.0 (step J2) it writes into add-ins (`.xlam`) as into workbooks.
-- **pqdoc 1.23.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.24.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -46,6 +47,19 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-13: Step L4, views file built into the page (G2)
+
+- Each tool reads `<tool>-views.json` from its output folder (`ViewsFile` in the shared library) and builds its views
+  into the page, so readers get them by opening the page and the file is versioned with the source. A missing file is
+  normal; one that can't be used is a warning, and the page is made without it. The file is only ever read, and
+  neither tool's source folder writer or tidying of older outputs deletes it.
+- The Views menu lists the page's views first, marked "in the page". Save over one makes your own version, marked
+  "yours", until it's deleted. A browser's copy that's the same as the page's is dropped. Export writes every view
+  listed.
+- Checked: every test passes (14 new unit tests, nine new browser tests), a page made by the tool itself from a folder
+  holding a views file, and screenshots of the menu in both themes.
+- vbadoc 0.35.0, pqdoc 1.24.0.
 
 ### 2026-11-13: Step L3, Calls tab follow-ups (E5b)
 

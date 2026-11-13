@@ -149,6 +149,9 @@ left to right by depth (how many queries feed them). You can:
   the panels, and where you've dragged queries) as a named view with **Views** in the top bar, open it again later, save over
   any view, and **Export** your views as `pqdoc-views.json` or **Import** them, to keep with the source or share;
   a file from another workbook says so before it's imported;
+- give your views to everyone who opens the page: put the exported `pqdoc-views.json` in the output folder and run
+  pqdoc again, and it builds them into the page, marked "in the page" in the menu (pqdoc only reads the file, and
+  warns if it can't use it);
 - reset the view.
 
 The top bar says how many queries and dependencies there are and, for a workbook, when it was last saved; it never

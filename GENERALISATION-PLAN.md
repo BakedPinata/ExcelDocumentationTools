@@ -42,7 +42,7 @@ step K0. The progress table says where the work is.
 | [L1](#step-l1-lock-the-view) | Lock view: what's shown stays as it is while you click around, and only the source changes | Claude | Done |
 | [L2](#step-l2-peek-at-a-reference) | Peek: a line in Uses / Used by opens a preview of the code around it, without leaving the selection | Claude | Done |
 | [L3](#step-l3-calls-tab-follow-ups-e5b) | Calls tab follow-ups (E5b): Ifs whose conditions make calls, and the sequence diagram's participants staying in view | Claude | Done; your real example is still to be checked |
-| [L4](#step-l4-views-file-built-into-the-page-g2) | A views file in the output folder is built into the page (G2) | Claude | Not started |
+| [L4](#step-l4-views-file-built-into-the-page-g2) | A views file in the output folder is built into the page (G2) | Claude | Done |
 | [L5](#step-l5-printing-and-descriptions-g3) | Printing a view or every view, with descriptions (G3) | Claude, then you on a work machine | Not started |
 | [L6](#step-l6-copy-a-view-as-text-g4) | Copy a view as text, to paste into a chat (G4) | Claude | Not started |
 | [M1](#step-m1-the-shared-library-in-three) | The shared library in three: what every tool needs, what only workbooks need, and the code views. The shell says "source", not "workbook" | Claude | Not started |
@@ -647,6 +647,17 @@ Raised on 2026-11-06 while H1 was under way.
 - Unit tests for the condition's calls, browser tests for both, and screenshots in both themes.
 
 ### Step L4: Views file built into the page (G2)
+
+Done on 2026-11-13, as below. What was decided along the way:
+
+- **The page's views can't be changed in the page.** Save over one makes a version of your own, kept in your browser
+  and marked "yours", which shows in its place until you delete it. To change a view for everyone, export and
+  replace the file.
+- **A browser's copy that's the same as the page's is dropped,** so the round trip works: export, put the file in
+  the folder, run the tool, and the page's views take over from the copies in your browser.
+- **Export writes every view listed,** the page's too, so the file can replace the one in the folder.
+- **A file that names another workbook is built in, with a warning,** as the page already copes with views that
+  mention items it doesn't have.
 
 - Each tool reads `<tool>-views.json` from the output folder, checks its format version, and builds it into the page,
   so readers get the views by opening the page and the file is versioned in git with the source. A missing file is

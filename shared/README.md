@@ -13,7 +13,7 @@ build stamps. See "Structure" in [docs/GUIDELINES.md](../docs/GUIDELINES.md) for
 | `Files/` | `AtomicFileWriter`: write to a temporary file, then move it into place, or replace a file keeping its permissions; `SourceFolderWriter`: keep a folder of source files in step with a workbook; `OverwriteResolver` and `OnExistsBehaviour`: what to do when an output already exists, asking through `IUserInteraction` | vbadoc's module files and page; pqdoc's `.m` files and outputs |
 | `CommandLine/` | `OverwriteOptions`: `--on-exists` and `--force` (`-y`), checked and bound the same way in both tools; `ImportOptions`: the `import` command; `ImportTargetOptions`: `--new`, `--into`, `--in-place` and `--on-clash`; `UnknownOptions`: words that look like options but aren't the command's, which System.CommandLine would take for arguments; `ConsoleUserInteraction`: the prompts, on standard error | both command lines |
 | `Importing/` | `ImportPlan`: what a choice comes to; `ExportManifest`: the file the Export tab writes; `BundleFolder`: a folder of chosen files with a README; `ImportClash` and `ClashResolver`: what's in the target already, and what to do about it; `ImportRun`: the steps of `import` both tools share; `ImportableItem`: something a source has to take, for the desktop app's list | both `import` commands |
-| `Pages/` | `ShellPage`: a page built on the shell, from the parts a tool brings; `PageBuilder`: filling a template's placeholders, inlining scripts after d3 and the shell's, escaping text and JSON, the favicon; `EmbeddedResources`; `VendoredScripts` | both pages |
+| `Pages/` | `ViewsFile`: a saved views file in an output folder, read for building into the page; `ShellPage`: a page built on the shell, from the parts a tool brings; `PageBuilder`: filling a template's placeholders, inlining scripts after d3 and the shell's, escaping text and JSON, the favicon; `EmbeddedResources`; `VendoredScripts` | both pages |
 | `Resources/Shell/` | The page shell: `shell.html` (the template), `shell.css` (the frame and shared colour tokens) and `shell.js` (theme, settings, tabs, the explorer, the side panel, their splitters, Load folder, source view; its interface is at the top) | both pages |
 | `Resources/Vendor/` | d3 and its licence, byte-for-byte as published (see its README) | both pages |
 
@@ -163,6 +163,33 @@ dotnet test --solution CodeDocumentationTools.sln                # everything, s
   answers a question about what can't happen. The build happens after every answer, and only its finished, read-back
   result reaches `AtomicFileWriter.Replace`, which uses `File.Replace` so the file keeps its permissions and creation
   time. A move would give it the folder's.
+
+### Views built into the page (step L4 of the generalisation plan)
+
+- **`ViewsFile.Read(folder, tool, source)`** reads `<tool>-views.json`, the file the Views menu exports, and gives
+  `ViewsFileResult`: the JSON to build in (`formatVersion`, `tool` and `views`, indented, with line feeds, so the
+  same file always gives the same text), how many views that is, and a warning or null. No file is
+  `ViewsFileResult.None`. It never throws for what's in the file, and never writes.
+- **What makes a file unusable,** each a warning naming the file and the reason, with nothing built in: not JSON
+  (comments and trailing commas are allowed, as people edit these by hand), not a views file (no `views` array or
+  `formatVersion`), another tool's, or a `formatVersion` above `ViewsFile.FormatVersion`. Views without a name are
+  left out and counted. A file whose `workbook` isn't this page's is built in, with a warning that its views may
+  mention items the page doesn't have, since the page already copes with those.
+- **`ShellPage.ViewsJson`** puts them in the page as `<script type="application/json" id="<tool>-views">`, made safe
+  as the data is. With no views there's no block.
+- **In the page,** the shell lists the page's views first, then the person's own (`listedViews`), each of the page's
+  marked "in the page". They have Save over but no Edit or Delete, as the page can't change itself.
+- **A person's own version.** Save over, Save changes, or a new view saved over one of the page's makes a view of
+  that name in the browser, shown in the page's view's place and marked "yours". Deleting it shows the page's again.
+  Names are matched whatever their case, as they always were.
+- **A browser's view that's the same as the page's isn't kept** (`dropRedundantViews`, comparing the description and
+  the arrangement): when the page loads, after an import, and after a save. On loading, the browser's store is
+  written back without them. That's what lets the round trip work: export your views, put the file in the folder,
+  run the tool, and the page's views take over from the copies in your browser. Without it, an old copy in one
+  person's browser would hide a newer view of the same name that came with a newer page.
+- **Export writes every view listed,** the page's with the person's versions in their place, so the file can replace
+  the one in the folder. Its status says where to put it.
+- **`VIEWS_FORMAT` in `shell.js` and `ViewsFile.FormatVersion` are the same number,** and change together.
 
 ### Peek (step L2 of the generalisation plan)
 

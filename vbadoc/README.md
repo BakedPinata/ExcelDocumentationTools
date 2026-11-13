@@ -227,6 +227,12 @@ over** any view with the page as it is now; Undo puts it back. **Export** downlo
 to keep with the source or share, and **Import** reads one back, saying first if it's from another workbook. A view
 that mentions something the workbook no longer has still opens, and says what's missing.
 
+**To give your views to everyone who opens the page,** put the exported `vbadoc-views.json` in the output folder,
+beside the module files, and run vbadoc again. It builds the file's views into the page, where the menu marks them "in
+the page", and the file can go into git with the rest. In the page they can't be changed, but **Save over** one makes
+a version of your own, marked "yours", until you delete it. To change them for everyone, export again and replace the
+file. vbadoc only reads the file, and says so if it can't use it.
+
 The **Calls** tab follows the execution path: start from a macro, event handler or worksheet function (or a
 favourite, or Ctrl+click any procedure) and open its calls one level at a time, in the order of the code. Each call
 links to its line. Calls through an interface open to the implementations, RaiseEvent to its handlers, and **Called by**

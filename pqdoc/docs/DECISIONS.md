@@ -235,6 +235,15 @@ The commands and what they promise are in Requirements.md (FR-IMP-7 to FR-IMP-16
   check, because a token's kind also shows in its text (quotes, `//`, digits, `#`). In the light theme numbers and type
   names are close in colour, in vbadoc too; left for C2, which gives both pages one set of tokens.
 
+## Views built into the page (1.24.0, step L4 of the generalisation plan)
+
+- **The reading is the shared library's** (`ViewsFile.Read`; FR-HTML-23, see `shared/README.md`), and the menu is the
+  shell's, as for vbadoc. `AnalyserApp` reads `pqdoc-views.json` from the output folder when the page is one of the
+  formats asked for, and gives the views to the exporter in `ExportContext.ViewsJson`.
+- **Only the page reads it:** a run that writes only CSV or PlantUML doesn't look for the file or warn about it.
+- **Nothing deletes the file.** The `.m` files' writer only deletes `.m` files, and older outputs are recognised by
+  their own names and tags.
+
 ## Peek (1.23.0, step L2 of the generalisation plan)
 
 - **Peek is the shell's** (FR-HTML-22; see `shared/README.md`), and works as vbadoc's does: a click on a line in Uses
