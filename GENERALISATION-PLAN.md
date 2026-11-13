@@ -11,8 +11,8 @@ view so that clicking around doesn't change it, and peeking at a reference witho
 
 It is written to be handed to a fresh Claude Code session (or a developer) to carry out.
 
-**Status: draft, revised on 2026-11-13 after your first review, waiting for your answers in section 1.** The feedback
-plan is closed and nothing else here has been started.
+**Status: agreed on 2026-11-13.** Your answers are in section 1, and the rest of the plan was revised for them in
+step K0. The progress table says where the work is.
 
 ## How to use this plan
 
@@ -35,7 +35,7 @@ plan is closed and nothing else here has been started.
 
 | Step | Scope | Who | Status |
 |---|---|---|---|
-| [K0](#step-k0-settle-the-questions) | Settle the questions in section 1; close the feedback plan | You, then Claude | Feedback plan closed; your answers in section 1 to come |
+| [K0](#step-k0-settle-the-questions) | Settle the questions in section 1; close the feedback plan | You, then Claude | Done |
 | [K1](#step-k1-names-inside-the-repository) | Names inside the repository: the root solution, the shared library, the shell's global, the publish folder, the documents | Claude | Not started |
 | [K2](#step-k2-the-desktop-apps-name) | The desktop app becomes `codedocui` | Claude, with VS Code closed | Not started |
 | [K3](#step-k3-the-repositorys-name) | The repository's name on GitHub and on disk, `PATH`, and Claude's memory folder | You, then Claude | Not started |
@@ -48,17 +48,18 @@ plan is closed and nothing else here has been started.
 | [M1](#step-m1-the-shared-library-in-three) | The shared library in three: what every tool needs, what only workbooks need, and the code views. The shell says "source", not "workbook" | Claude | Not started |
 | [M2](#step-m2-vbadocs-views-move-to-the-code-views-library) | vbadoc's graph, class diagram and Calls tab move to the code views library | Claude | Not started |
 | [M3](#step-m3-the-code-model) | The code model: the views draw what a language describes, and files are apart from the things in them. vbadoc is its first language | Claude | Not started |
-| [N1](#step-n1-sample-databases-and-a-spike-on-reading-them) | Sample Access databases, and a spike on getting forms and VBA out of them | You in Access, then Claude, then you on a work machine | Not started |
+| [N1](#step-n1-sample-databases-and-a-spike-on-reading-them) | Sample Access databases, and a spike on getting forms and VBA out of them | Claude, then you at home and on a work machine | Not started |
 | [N2](#step-n2-accessdoc-reads-a-databases-vba) | `accessdoc`: the VBA language in a library vbadoc and accessdoc share; the tool's skeleton; a page of the database's VBA | Claude | Not started |
 | [N3](#step-n3-accessdoc-reads-forms) | `accessdoc`: forms read into sections, controls, subforms, data sources and events, with handlers linked to their controls | Claude | Not started |
 | [N4](#step-n4-the-forms-view) | `accessdoc`: the Forms view: which form holds which, each form's layout drawn, its controls, data and events | Claude, then you on a real database | Not started |
 | [N5](#step-n5-a-forms-outline-for-rebuilding-it) | `accessdoc`: a form's outline for rebuilding it as components, copied as text | Claude, then you | Not started |
 | [P1](#step-p1-spike-on-reading-a-c-solution) | Spike: read a C# solution with Roslyn and no build, on this repository and a real solution of yours | Claude, then you on a work machine | Not started |
-| [P2](#step-p2-csdoc-reads-a-solution) | `csdoc`: the tool's skeleton, reading a solution into projects, namespaces, types and members, older project files included | Claude | Not started |
+| [P2](#step-p2-csdoc-reads-a-solution) | `csdoc`: the tool's skeleton, reading a solution into projects, namespaces, types and members | Claude | Not started |
 | [P3](#step-p3-csdocs-dependencies) | `csdoc`: references with their lines, inheritance, interfaces, events, entry points and what's unreferenced | Claude | Not started |
 | [P4](#step-p4-csdocs-page) | `csdoc`: the page, with the explorer, graph, class diagram, source with a C# highlighter, and doc comments | Claude, then you on a real solution | Not started |
 | [P5](#step-p5-csdocs-calls) | `csdoc`: the Calls tab and sequence diagram | Claude | Not started |
 | [P6](#step-p6-the-graph-at-group-level) | The graph at group level (projects, namespaces, packages, folders), in the code views, with a check on a larger solution | Claude | Not started |
+| [P7](#step-p7-older-net-framework-projects) | `csdoc`: older .NET Framework project files | Claude | Not started |
 | [Q1](#step-q1-your-colleagues-project-a-sample-and-a-spike) | Python: what to ask your colleague, a sample project, and a spike on reading Python without running it | You and your colleague, then Claude | Not started |
 | [Q2](#step-q2-pythondoc-reads-a-project) | `pythondoc`: the tool's skeleton, reading a project into packages, modules, classes and functions | Claude | Not started |
 | [Q3](#step-q3-pythondocs-dependencies) | `pythondoc`: imports, references with their lines, inheritance, and what couldn't be followed | Claude | Not started |
@@ -68,9 +69,20 @@ plan is closed and nothing else here has been started.
 
 ## 1. Your answers
 
-**Change the "Your answer" column wherever you disagree, and fill in the rows marked _(yours to fill in)_.** Every
-other row is filled in with what I recommend, so a row you leave alone is agreed. The rest of the plan assumes the
-answers as they stand, and K0 revises it for any you change.
+**Answered on 2026-11-13.** The tables below are kept as you left them. Where an answer said something other than
+the recommendation, K0 revised the plan:
+
+| Your answer | What changed |
+|---|---|
+| Look at the Access [Version Control add-in](https://github.com/joyfullservice/msaccess-vcs-addin), and use what you can without assuming it can be installed | [5.5](#55-reading-access): it's VBA that runs inside Access, built on the same `SaveAsText` the recommendation uses, so it confirms that way in and doesn't replace it. accessdoc reads a folder the add-in exported as well as its own, takes the add-in's list of what to leave out of form text so git shows only real changes, and N1's fixtures start from the add-in's own published test source |
+| `.accdb` only, no password, not split | `.mdb`, compiled and password-protected databases are left to [Later](#9-later); accessdoc says plainly that it can't read them |
+| Local tables, tables linked to SQL databases, and temporary tables that come and go | [5.5](#55-reading-access): tables are listed as local or linked, a linked table's connection is shown without its password, and a table named in code or a query but not in the database is "not in the database when it was read", never an error. Table definitions aren't written to the source folder, so a left-over temporary table doesn't show up in git |
+| About 150 forms, nested perhaps tens deep | [4.4](#44-the-forms-view-access), N4: the Forms view opens on a tree, draws one form and what's inside it at a time, and never draws every form at once |
+| Writing Blazor code would be very helpful; later, but allow for it now | N3 and N5: the outline is written from a forms model that holds everything a generator would need (each control's kind, place, size, binding and events, in Access's own units), so writing component skeletons is a later step over the same model. It leads [Later](#9-later) |
+| A public sample, such as Northwind, in place of one you make | N1: you don't make one. The committed fixtures are the add-in's test source, and a small database Claude builds from text by script. Northwind 2.0 is made from Access's own template into `private/` as the larger test; I found nothing that lets it be redistributed, so it isn't committed |
+| Older .NET Framework projects are lower priority | They move out of P1 and P2 into a step of their own at the end, P7 |
+| Your colleague is new to Python too, and inherited the code | [5.7](#57-reading-python), Q1, Q4: the spike answers the technical questions from the project itself, the questions for your colleague are ones a newcomer can answer, and the page and README are written for someone finding their way around code they didn't write |
+| Their machine may be more locked down than yours | Q1, Q4: you run pythondoc for them, and they only open the page |
 
 ### 1.1 Settled already
 
@@ -183,7 +195,8 @@ Python. [5.7](#57-reading-python) explains the words it uses, and Q1 has a short
 
 - Building, restoring or running the code that's read. The one exception is asking Access to write a copy of a
   database out as text, which runs none of the database's own code (5.5).
-- Writing Blazor code, or converting anything. accessdoc describes a form; rebuilding it is yours.
+- Writing Blazor code, or converting anything, in this plan. accessdoc describes a form, and rebuilding it is yours.
+  The forms model is kept complete enough for a later step to write component skeletons from it (N3).
 - API reference documentation, as DocFX and Sphinx make.
 - Complete type inference for Python, or following reflection, dependency injection containers, `dynamic`, `getattr`
   or `eval`. The page says what couldn't be followed.
@@ -244,7 +257,7 @@ it here if you'd like another.
 ### 4.2 Commands
 
 ```
-accessdoc <database or folder of exported text>
+accessdoc <database, or a folder of its exported text>
 csdoc     <solution, project or folder>
 pythondoc <project folder>
 
@@ -252,9 +265,9 @@ each with:  [--output <folder>] [--output-name <name>] [--exclude <pattern>…] 
             [--on-exists …] [--force] [--verbose] [--quiet]
 ```
 
-- `accessdoc` takes an `.accdb` or `.mdb`, and writes the forms and modules as text into a folder beside the page,
-  kept in step with the database as vbadoc's module files are, so they can go into git. Given that folder, it reads
-  it without Access.
+- `accessdoc` takes an `.accdb`, and writes the forms, modules, queries and macros as text into a folder beside the
+  page, kept in step with the database as vbadoc's module files are, so they can go into git. Given that folder, or
+  one the Access Version Control add-in exported (`<database>.src`), it reads it without Access.
 - `csdoc` takes a `.sln`, `.slnx` or `.csproj`, or a folder holding exactly one solution.
 - `pythondoc` takes the project's root folder, leaving out virtual environments, `__pycache__`, build folders and
   folders whose names start with a dot.
@@ -275,8 +288,12 @@ each with:  [--output <folder>] [--output-name <name>] [--exclude <pattern>…] 
 
 ### 4.4 The Forms view (Access)
 
+- **Made for about 150 forms, nested tens deep.** It opens on the tree, with a filter, and draws one form and what's
+  inside it at a time. Every form is never drawn at once. Deep nesting opens a level at a time, and a form that holds
+  itself, directly or through others, is shown once and marked.
 - **Which form holds which:** a tree and a diagram of forms and the subforms inside them, to any depth, with the
-  fields that link each subform to its parent. A form used in several places shows in each.
+  fields that link each subform to its parent. A form used in several places shows in each, and a form's panel lists
+  where it's used.
 - **A form's layout,** drawn from its controls' positions and sizes as a wireframe: sections (header, detail,
   footer), tab controls and their pages, option groups, subform controls showing the form they hold. Clicking a
   control selects it.
@@ -382,8 +399,37 @@ without Access, from the text. How A stays safe:
 - **Access is started hidden and closed again,** and a run that fails still closes it.
 - **Linked tables aren't followed.** Only the front end's forms, modules, queries and macros are read.
 
-N1 tries A and C on the samples, and reports. It also says what a compiled (`.accde`) or password-protected database
-does, so the tool can say so plainly.
+N1 tries A and C on the samples, and reports. Only `.accdb` files with no password are in scope (1.5); the tool says
+plainly when it's given an `.mdb`, a compiled database (`.accde`) or one that needs a password.
+
+**The Access Version Control add-in** ([msaccess-vcs-addin](https://github.com/joyfullservice/msaccess-vcs-addin),
+BSD-style licence, looked at on 2026-11-13) exports a database to a folder of text and builds one back from it. It's
+VBA that runs inside Access as an installed add-in, so it can't be part of accessdoc, and it can't be assumed to be
+installable at work. What it gives us:
+
+- **It confirms choice A.** Its form and report files are Access's `SaveAsText` output, tidied. So the text accessdoc
+  reads is the same whichever of the two made it.
+- **Its export folder is another input.** `accessdoc <database>.src` reads a folder the add-in made: forms as
+  `.form` with their code in `.cls` (or both in one `.bas`, in older exports), modules, queries as `.sql`, macros as
+  `.macro`, and table definitions. Where the add-in has run, accessdoc needs no Access at all.
+- **Its list of what to leave out.** `SaveAsText` writes things that change from one export to the next for no
+  reason (printer settings, cached layout, checksums, name maps), and positions inside layout groups that depend on
+  the screen scaling of the machine that exported them. The add-in's source says which, and how it settles them.
+  accessdoc leaves the same things out of its source folder and its page, so the same database gives the same page
+  on any machine.
+- **Fixtures.** Its repository holds the exported source of a test database made for the purpose (forms, reports,
+  macros, queries, local and linked tables), which can be committed here with its licence.
+
+**Tables.** A database holds local tables and tables linked to other databases, and code that makes temporary
+tables which may or may not be there when it's read (1.5):
+
+- Tables are listed with whether each is local or linked. A linked table shows what it's linked to with any user
+  name and password removed.
+- A table or query that code, a form or a query names, but which isn't in the database, is shown as "not in the
+  database when it was read". It's never an error.
+- Table definitions go on the page but not into the source folder, so a temporary table left behind by a failed run
+  doesn't appear in git. `--exclude` takes a pattern for names to leave off the page too.
+- No table data is read, and linked tables are never opened.
 
 **What's read from a form's text:** its record source and properties; its sections; every control with its type,
 name, caption, position and size, what it's bound to, and its row source; tab controls and their pages, and option
@@ -410,7 +456,8 @@ Assuming P1 confirms A:
 
 - **The solution file** gives the projects (`.sln` and `.slnx`). A `.csproj` alone is a solution of one.
 - **A project's files** are every `.cs` under its folder, less `bin/`, `obj/` and what the project file removes. An
-  older .NET Framework project file lists its own files, and that list is used as written.
+  older .NET Framework project file lists its own files, and that list is used as written (P7, after everything
+  else in C#, as it's for reading other people's code).
 - **A project's settings** come from its project file and the `Directory.Build.props` files above it, for the few
   that change what code means: the language version, `Nullable`, `ImplicitUsings`, defined constants, the root
   namespace, and references to other projects. When something more involved is met, the log says what was assumed.
@@ -448,6 +495,11 @@ as the evidence in the code, with what couldn't be followed counted and listed, 
 | **A (recommended)** | A tokeniser and structural parser of our own, in C# | Needs nothing installed. One self-contained executable | Ours to keep up with new syntax |
 | B | Run the machine's own Python with a small script that prints the syntax tree | An exact syntax tree, for no parsing work | Needs Python on the machine and allowed to run there |
 | C | A parser library | A full parse in .NET | A dependency whose grammar trails the language, or native code inside the executable |
+
+**Nobody involved knows Python well** (1.7): you don't, and your colleague is new to it and inherited the project
+from someone who's gone. So the tool has to be right without anyone to check it by eye, and the page is for finding
+your way around code you didn't write: where it starts, which file uses which, and what a function leads to.
+Nothing in the plan asks either of you to judge Python.
 
 Assuming Q1 confirms A:
 
@@ -500,9 +552,10 @@ has to guess that for workbooks.
 
 ### Step K0: Settle the questions
 
-The feedback plan is closed: its Later section moved to vbadoc's and pqdoc's plans and to section 9 here, what
-pointed at it points here or at the tag `feedback-plan-final`, and the file is deleted. Still to do: once you've been
-through section 1, revise the plan for any answer you changed, and record the alpha decision (5.1) in the guidelines.
+Done on 2026-11-13. The feedback plan is closed: its Later section moved to vbadoc's and pqdoc's plans and to
+section 9 here, what pointed at it points here or at the tag `feedback-plan-final`, and the file is deleted. You
+answered section 1, the plan was revised where an answer differed (the table at the top of section 1), and the
+alpha decision (5.1) is in the guidelines.
 
 ### Step K1: Names inside the repository
 
@@ -611,17 +664,22 @@ tests (two kinds of unit, one extra relationship, a type in two files) proves th
 
 ### Step N1: Sample databases, and a spike on reading them
 
-- **You, in Access:** a small sample database with made-up content, saved as `.accdb` and, if Access still offers it,
-  `.mdb`. A list of what it should hold is written into this section when the step starts; in outline: a form with a
-  subform, a subform inside a subform, a continuous form, a tab control, an option group, a combo box with a row
-  source, events run by event procedures, by a macro and by an expression, a standard module and a class module, a
-  start-up form and an `AutoExec` macro that visibly do something, so the spike can prove they didn't run.
+- **Samples, with nothing for you to build by hand:**
+  - The Version Control add-in's test source (5.5), committed as a fixture with its licence: real `SaveAsText` text
+    for forms, reports, macros, queries and tables.
+  - A small database Claude builds by script, through Access on this machine, from text written for the purpose: a
+    form with a subform, a subform inside a subform, a continuous form, a tab control, an option group, a combo box
+    with a row source, events run by event procedures, by a macro and by an expression, a standard module and a
+    class module, a local table and a linked one, and a start-up form and an `AutoExec` macro that visibly do
+    something, so the spike can prove they didn't run. What Access writes into it about you or your machine is
+    removed before it's committed, with your agreement, as for the sample add-ins.
+  - Northwind 2.0 Developer Edition as the larger test. You make it once from Access's own template (File, New,
+    search for Northwind) into `accessdoc/private/`. It isn't committed.
 - **Claude:** `spikes/n1-access`, throwaway. It tries 5.5's choice A (Access writes text from a copy, start-up
-  bypassed, hidden, closed afterwards) and choice C (the VBA read from the file directly), and reports what each got,
-  how long it took, and what a compiled or password-protected database does. What Access wrote about you or your
-  machine into the samples is removed before they're committed, with your agreement, as for the sample add-ins.
-- **You:** run the spike at home and on a work machine, where application control and Access's own security settings
-  are the real test.
+  bypassed, hidden, closed afterwards) and choice C (the VBA read from the file directly), and reports what each got
+  and how long it took, on the samples and on a database of about 150 forms made by copying the sample's.
+- **You:** run the spike at home and on a work machine, where application control, Group Policy and Access's own
+  security settings are the real test, and on one real database.
 - **The step ends with a recommendation, and N2–N5 are revised to fit.**
 
 ### Step N2: accessdoc reads a database's VBA
@@ -633,32 +691,38 @@ makes `<database>-access.html` with everything vbadoc's page has, form modules i
 ### Step N3: accessdoc reads forms
 
 The forms model, as 5.5 lists: sections, controls, subforms, data sources and events, read from each form's text.
-Event procedures are tied to their controls, and Holds and Opens edges join the dependencies. Macros and queries are
-read as far as 1.5 says. Tests assert the sample's whole form tree and its edges.
+Event procedures are tied to their controls, and Holds and Opens edges join the dependencies. Macros, queries and
+tables are read as far as 1.5 and 5.5 say. Tests assert the sample's whole form tree and its edges.
+
+The model keeps what a generator would need, not only what the page shows: each control's kind, its place and size
+in Access's own units, its parent (section, tab page, option group), tab order, what it's bound to, its row source,
+its attached label, and its events. Writing Blazor skeletons is in [Later](#9-later), and is to need no change to
+what's read.
 
 ### Step N4: The Forms view
 
 As 4.4: the tree and diagram of forms within forms, a form's layout drawn as a wireframe, and the side panel for a
-form or control. A Forms layout in the explorer, down to controls. Browser tests and screenshots in both themes. Then
+form or control. A Forms layout in the explorer, down to controls. Browser tests and screenshots in both themes,
+and a test on a generated database of 150 forms nested 30 deep, for speed and for a page that stays readable. Then
 your review on a real database, which will add follow-up steps, as D1's did.
 
 ### Step N5: A form's outline, for rebuilding it
 
 For a chosen form, everything inside it as text (1.5's row), through L6's Copy button and printed by L5's Print. You
-try it on a real form you mean to rebuild, and say what a Blazor component needed that the outline didn't give.
+try it on a real form you mean to rebuild, and say what a Blazor component needed that the outline didn't give. That
+list is what the later step that writes Blazor skeletons starts from.
 
 ### Step P1: Spike on reading a C# solution
 
 `spikes/p1-csharp`, throwaway. It reads a solution as 5.6 sets out and reports: projects, types and members found;
 the share of names resolved, and what the unresolved ones were; time and memory; the published executable's size. Run
-on this repository, restored and not, on an older .NET Framework project, and by you on a real solution and on a work
-machine. It also tries the MSBuild workspace (choice B) on the same solutions, to say what A gives up. **The step
+on this repository, restored and not, and by you on a real solution and on a work machine. It also tries the MSBuild workspace (choice B) on the same solutions, to say what A gives up. **The step
 ends with a recommendation, and P2–P5 are revised to fit.**
 
 ### Step P2: csdoc reads a solution
 
 `csdoc/` with its solution, documents and publish profile. A sample solution as a fixture: several projects, nested
-and partial types, generics, overloads, records, interfaces, events, extension methods, and one older-style project.
+and partial types, generics, overloads, records, interfaces, events and extension methods.
 `csdoc <solution>` prints a summary of what it found; `--verbose` lists it. No page yet.
 
 ### Step P3: csdoc's dependencies
@@ -685,25 +749,33 @@ VBA, forms and modules in Access. Edges are rolled up, and opening a group shows
 one larger solution (a generated one, and someone else's if you have one to hand), so the README can say what size
 the page is good for.
 
+### Step P7: Older .NET Framework projects
+
+Project files in the older style, which list their own files and references, and packages restored into a
+`packages` folder. A fixture of one, the .NET Framework reference assemblies carried as the .NET ones are, and a
+check on someone else's project if you have one to hand by then. Last in C#, because it's for reading other people's
+code and none of yours needs it.
+
 ### Step Q1: Your colleague's project, a sample, and a spike
 
-- **To pass to your colleague,** with their answers written here:
+- **A copy of the project** goes into `pythondoc/private/`, which is git-ignored and never committed (1.7).
+- **To ask your colleague,** with their answers written here. Each can be answered by someone new to Python; what
+  needs Python knowledge, the spike finds out from the copy:
 
   | Question | Why it's asked | Their answer |
   |---|---|---|
-  | Which version of Python does the project use? | New versions add syntax | _(theirs)_ |
-  | What's in the project's top folder? A list of the file and folder names is enough | Shows how it's laid out, and what to leave out | _(theirs)_ |
-  | Does the code say what type things are (`def f(x: int) -> str`)? Everywhere, here and there, or not at all | It's the best evidence for following calls | _(theirs)_ |
-  | Is it built on a framework (Django, Flask, FastAPI, pandas scripts, something else)? | Frameworks call code in their own ways, which decides the entry points | _(theirs)_ |
-  | How is it started? | The Calls tab starts from there | _(theirs)_ |
-  | What do they most want to see: which file uses which, what calls what, the classes? | Decides what the page opens on | _(theirs)_ |
-  | May a copy be used for checking, kept private and never committed? | 1.7 | _(theirs)_ |
+  | How do you start it? The command you type or the file you run | The Calls tab starts from there | _(theirs)_ |
+  | What does it do, in a sentence or two? | Says what a useful page would show first | _(theirs)_ |
+  | Which parts do you need to change or understand first? | Decides what's checked most carefully | _(theirs)_ |
+  | Is anything in the folder not part of it: old copies, downloads, data? | So it's left out | _(theirs)_ |
 
 - **Claude:** a sample project as a fixture, covering packages, relative and star imports, classes with inheritance,
   decorators, properties, annotations and none, nested functions, and every form of string. `spikes/q1-python`,
   throwaway, reads it and reports what it read, what it passed over, and the share of attribute calls it could
-  follow. The check against Python's own parser (5.7) is set up here.
-- **You or your colleague:** run the spike on the real project, on the machine it'll be used on.
+  follow. On the copy it also reports what nobody can be asked: which version of Python the syntax needs, how the
+  folder is laid out, how much of the code says what type things are, which frameworks and outside packages it
+  imports, and where it looks to start from. The check against Python's own parser (5.7) is set up here.
+- **You:** run the spike on the copy, on a work machine, since you may be the one running pythondoc for them.
 - **The step ends with a recommendation, and Q2–Q4 are revised to fit.**
 
 ### Step Q2: pythondoc reads a project
@@ -719,8 +791,9 @@ what couldn't be followed. Tests assert the sample's whole edge list.
 ### Step Q4: pythondoc's page and calls
 
 `<project>-python.html`: the language's description, a Python highlighter, docstrings in the side panel, and the
-Calls tab's blocks (`if`, loops, `try`, `with`, `match`). Then your colleague's review on the real project. Its
-README is written for someone who knows Python and not these tools.
+Calls tab's blocks (`if`, loops, `try`, `with`, `match`). You make the page from the real project and your colleague
+opens it; their review is whether it helps them find their way around, not whether the Python is right. Its README
+is written for someone new to both Python and these tools.
 
 ### Step R1: The desktop app takes everything
 
@@ -753,17 +826,16 @@ Approving this plan covers the changes below, each made in the step that causes 
 
 | When | What |
 |---|---|
-| Now | Go through section 1: change any answer you disagree with, and fill in the rows that are yours |
 | K2 | Close VS Code while the app's folder is renamed |
 | K3 | Rename the repository on GitHub and on disk, move Claude's memory folder, update `PATH` |
 | L3 | Find the real example of the missing Ifs |
 | L5 | Print to PDF on a work machine |
-| N1 | Make the sample database in Access; run the spike at home and on a work machine |
+| N1 | Make Northwind 2.0 from Access's template into `accessdoc/private/`; run the spike at home, on a work machine and on one real database |
 | N4, N5 | Try the Forms view and the outline on a real database and a form you mean to rebuild |
 | P1 | Run the spike on a real solution, and on a work machine |
 | P4 | Try csdoc's page on a real solution |
-| Q1 | Pass the questions to your colleague; get the spike run on their project |
-| Q4 | Your colleague tries pythondoc's page |
+| Q1 | Put a copy of your colleague's project in `pythondoc/private/`, ask them four questions, and run the spike on a work machine |
+| Q4 | Make the page for your colleague, who opens it and says whether it helps |
 | Every step | Review, rebase onto main and push |
 
 ## 9. Later
@@ -772,8 +844,11 @@ Left out to keep this plan to what was asked for.
 
 **New with this plan**
 
+- **Writing Blazor component skeletons** from the forms model: a component for each form and subform, with its
+  controls laid out and bound, and its events as empty handlers naming the VBA they replace. Asked for on
+  2026-11-13 as very helpful. N3 keeps the model complete enough for it, and N5's review says what it needs.
 - **Access reports,** read as forms are.
-- **Writing a Blazor component's skeleton** from a form's outline.
+- **Older `.mdb` files,** and saying more about compiled and password-protected databases.
 - **Moving forms and modules between Access databases,** as `import` does for workbooks.
 - **A table relationships diagram** for Access.
 - **vbadoc's UserForms (its stage 6) on the Forms view.**

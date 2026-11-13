@@ -10,11 +10,11 @@ rather than repeating it.
 
 ## Current state (2026-11-13)
 
-- **`GENERALISATION-PLAN.md`** (root): the current plan, a draft revised on 2026-11-13. It widens the repository to
+- **`GENERALISATION-PLAN.md`** (root): the current plan, agreed on 2026-11-13. It widens the repository to
   Access databases (forms and VBA), C# solutions and Python projects, with new names for the repository, the shared
   library and the desktop app, and starts with what the feedback plan parked, a Lock view button and a peek at a
-  reference. **Next: the user's answers in its section 1,** which has a column for them. Nothing else in it is started.
-  It's on `general/plan`.
+  reference. Its progress table says which step is next. K0 is done: the user's answers are in its section 1, and
+  the plan is revised for them.
 - **vbadoc 0.31.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
@@ -34,7 +34,7 @@ rather than repeating it.
   as it stood is at the tag `feedback-plan-final`, and E5b's original notes at `feedback-plan-e5b-notes`; the log below
   has each step. Local main is at J2; pushing it, and the tags, is still to come.
 - **The tools are in alpha** (agreed on 2026-11-13): a new version may change its pages and output files, and outputs
-  needn't be compared with the version before. The plan's 5.1 has the detail, to go into the guidelines in K0.
+  needn't be compared with the version before. It's in the guidelines.
 - **Branches:** each step is worked on a branch of its own (`general/<step>`; `feedback/<step>` before), committed a change at a time; the user
   reviews, rebases onto main and pushes.
 - **.NET 10** since step A0. `dotnet test` runs on the Microsoft Testing Platform, so it takes `--project` or
@@ -43,6 +43,21 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-13: Step K0, the generalisation plan agreed
+
+- The user answered section 1 of the plan and asked for steps K0 to L6 to be worked through without stopping for
+  review between them. Where an answer differed from the recommendation, the plan was revised; the table at the top
+  of its section 1 lists each one.
+- Access: the Version Control add-in the user pointed to (msaccess-vcs-addin, BSD-style licence) is VBA that runs
+  inside Access on the same `SaveAsText`, so it confirms the recommended way in. accessdoc will also read a folder
+  it exported, leave out what it leaves out, and use its published test source as fixtures. `.accdb` only; tables
+  listed as local or linked, with temporary tables that come and go never an error; the Forms view made for about
+  150 forms nested tens deep; the forms model kept complete enough to write Blazor skeletons from later. The user
+  doesn't make a sample database: Claude builds a small one by script, and Northwind stays in `private/`.
+- C#: older .NET Framework projects moved to a last step, P7. Python: the colleague is new to Python too, so the
+  spike answers the technical questions and the user runs the tool for them.
+- The alpha decision is in the guidelines.
 
 ### 2026-11-13: The feedback plan closed; the generalisation plan revised
 
