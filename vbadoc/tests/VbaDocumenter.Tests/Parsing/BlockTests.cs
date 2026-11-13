@@ -48,6 +48,48 @@ public class BlockTests
   }
 
   [Fact]
+  public void A_blocks_own_statement_says_which_block_it_opens_and_no_other_statement_does()
+  {
+    var run = Procedure(
+        "    If IsA(1) Or IsB(2) Then",
+        "        x = 1",
+        "    ElseIf IsC() Then",
+        "        y = 2",
+        "    Else",
+        "        Other",
+        "    End If",
+        "    For i = 1 To Count()",
+        "        Select Case Kind(i)",
+        "            Case Special()",
+        "                Process i",
+        "        End Select",
+        "    Next i",
+        "    Do While More()",
+        "    Loop Until Done()",
+        "    With Thing()",
+        "    End With",
+        "    If Ready() Then Go Else Wait");
+
+    string Opened(string text) =>
+        run.Body.Single(s => s.Text == text).Opens is { } id ? run.Blocks[id].Kind + ": " + run.Blocks[id].Text : "(none)";
+
+    Assert.Equal("if: If IsA(1) Or IsB(2) Then", Opened("If IsA(1) Or IsB(2) Then"));
+    Assert.Equal("elseIf: ElseIf IsC() Then", Opened("ElseIf IsC() Then"));
+    Assert.Equal("for: For i = 1 To Count()", Opened("For i = 1 To Count()"));
+    Assert.Equal("select: Select Case Kind(i)", Opened("Select Case Kind(i)"));
+    Assert.Equal("case: Case Special()", Opened("Case Special()"));
+    Assert.Equal("do: Do While More()", Opened("Do While More()"));
+    Assert.Equal("with: With Thing()", Opened("With Thing()"));
+    Assert.Equal("if: If Ready() Then", Opened("If Ready() Then")); // a single-line If's condition
+
+    // An Else has no condition, a closing statement is inside its block, and the rest open nothing.
+    string[] others = ["x = 1", "Else", "Other", "End If", "Process i", "End Select", "Next i", "Loop Until Done()", "End With", "Go", "Wait"];
+    Assert.All(others, text => Assert.All(run.Body.Where(s => s.Text == text), s => Assert.Null(s.Opens)));
+    // What it opens is never the block it's in.
+    Assert.All(run.Body.Where(s => s.Opens != null), s => Assert.Equal(s.Block, run.Blocks[s.Opens!.Value].Parent));
+  }
+
+  [Fact]
   public void ElseIf_and_Else_are_branches_beside_their_If()
   {
     var run = Procedure(

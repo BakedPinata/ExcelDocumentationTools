@@ -73,6 +73,13 @@ public sealed record Call(string From, string? To, string? LateBound, int Line)
   /// or null at the top of the procedure.
   /// </summary>
   public int? Block { get; init; }
+
+  /// <summary>
+  /// For a call made by a block's own statement (an If's condition, a Select Case's value, a loop's bounds, a With's
+  /// object), that block, whose call it is shown as (step L3 of the generalisation plan); <see cref="Block"/> is then
+  /// the block around it. Null for every other call.
+  /// </summary>
+  public int? Condition { get; init; }
 }
 
 /// <summary>A member access on an Object, Variant or untyped value, which can't be resolved without running the code.</summary>

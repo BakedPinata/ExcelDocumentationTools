@@ -37,7 +37,7 @@ public sealed class EdgeCollector
 public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, List<LateBoundReference> lateBound)
 {
   /// <summary>Where a statement or expression lives, and which node its references come from.</summary>
-  sealed record Scope(ModuleModel Module, Member? Procedure, string FromId, int Line, int LastLine, int? Block = null);
+  sealed record Scope(ModuleModel Module, Member? Procedure, string FromId, int Line, int LastLine, int? Block = null, int? Condition = null);
 
   /// <summary>
   /// The line a reference to <paramref name="name"/> is on: <paramref name="first"/>, or for a statement continued over
@@ -83,7 +83,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
   {
     if (scope.Procedure == null) return;
     if (!target.IsProcedure && target.Kind is not (MemberKind.Event or MemberKind.Declare)) return;
-    var call = new Call(scope.FromId, index.IdOf(target), null, line) { Block = scope.Block };
+    var call = new Call(scope.FromId, index.IdOf(target), null, line) { Block = scope.Block, Condition = scope.Condition };
     if (Calls.Count == 0 || Calls[^1] != call) Calls.Add(call); // one call even if a chain names it twice
   }
 
@@ -107,7 +107,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
     var withTypes = new Stack<ResolvedType>();
     foreach (var statement in procedure.Body)
     {
-      var scope = new Scope(module, procedure, index.IdOf(procedure), statement.Line, statement.Line + statement.ContinuedLines, statement.Block);
+      var scope = new Scope(module, procedure, index.IdOf(procedure), statement.Line, statement.Line + statement.ContinuedLines, statement.Block, statement.Opens);
       var tokens = StatementTokeniser.Tokenise(statement.Text);
 
       if (tokens.Count == 2 && tokens[0].IsKeyword("End") && tokens[1].IsKeyword("With"))
@@ -227,7 +227,7 @@ public sealed class ReferenceResolver(ProjectIndex index, EdgeCollector edges, L
       {
         case ResolvedTypeKind.LateBound:
           lateBound.Add(new LateBoundReference(scope.FromId, Describe(segments, next, withDot), scope.Line));
-          if (scope.Procedure != null) Calls.Add(new Call(scope.FromId, null, Describe(segments, next, withDot), scope.Line) { Block = scope.Block });
+          if (scope.Procedure != null) Calls.Add(new Call(scope.FromId, null, Describe(segments, next, withDot), scope.Line) { Block = scope.Block, Condition = scope.Condition });
           return (j, ResolvedType.Unknown);
 
         case ResolvedTypeKind.Module:

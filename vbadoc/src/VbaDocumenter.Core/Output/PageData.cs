@@ -46,8 +46,8 @@ public sealed record PageEdge(string From, string To, string Kind, int Count, IR
 public sealed record PageLateBound(string From, string Expression, int Line);
 
 /// <summary>A call, for the Calls tab (see <see cref="Call"/>): what's called, or the late-bound expression, the line,
-/// and the innermost block it's in, or null.</summary>
-public sealed record PageCall(string From, string? To, string? LateBound, int Line, int? Block);
+/// the innermost block it's in, or null, and for a call made by a block's own statement, that block.</summary>
+public sealed record PageCall(string From, string? To, string? LateBound, int Line, int? Block, int? Condition);
 
 /// <summary>A procedure's block statement, for the Calls tab (see <see cref="CodeBlock"/>).</summary>
 public sealed record PageBlock(string From, int Id, string Kind, string Text, int Line, int? Parent);
@@ -112,7 +112,7 @@ public sealed record PageData(
         model.MemberEdges.Select(Edge).ToList(),
         ClassDiagram.Edges(model),
         model.LateBound.Select(l => new PageLateBound(l.FromId, l.Expression, l.Line)).ToList(),
-        model.Calls.Select(c => new PageCall(c.From, c.To, c.LateBound, c.Line, c.Block)).ToList(),
+        model.Calls.Select(c => new PageCall(c.From, c.To, c.LateBound, c.Line, c.Block, c.Condition)).ToList(),
         // Only blocks with a call in them are drawn, so only procedures with calls need theirs.
         model.Members.Where(n => n.Member is { Blocks.Count: > 0 } && callers.Contains(n.Id))
             .SelectMany(n => n.Member!.Blocks.Select(b => new PageBlock(n.Id, b.Id, b.Kind, b.Text, b.Line, b.Parent))).ToList());

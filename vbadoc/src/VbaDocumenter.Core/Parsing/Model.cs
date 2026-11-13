@@ -45,6 +45,13 @@ public sealed record Statement(string Text, int Line)
   /// procedure. A block's own statement (its condition, say) is in the block around it.
   /// </summary>
   public int? Block { get; init; }
+
+  /// <summary>
+  /// The block this statement opens with something of its own to work out: an If's or ElseIf's condition, a Select
+  /// Case's value, a Case's values, a loop's bounds or condition, or a With's object. Null for every other statement,
+  /// an Else among them. What it calls is called for that block (step L3 of the generalisation plan).
+  /// </summary>
+  public int? Opens { get; init; }
 }
 
 /// <summary>

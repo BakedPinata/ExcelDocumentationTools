@@ -77,7 +77,7 @@ public class ModuleParserTests
         [("svc", "OrderService"), ("repo", "IOrderRepository"), ("reporter", "ProgressReporter"), ("o", "Order"), ("legacy", "Object")],
         process.Locals.Select(l => (l.Name, l.Type)));
     Assert.Contains(new Statement("Dim svc As OrderService", 5), process.Body);
-    Assert.Contains(new Statement("With svc", 32), process.Body);
+    Assert.Contains(new Statement("With svc", 32) { Opens = 7 }, process.Body); // its own statement is outside the With it opens
     Assert.Contains(new Statement(".Summarise", 33) { Block = 7 }, process.Body); // inside the With, its eighth block
   }
 
@@ -99,7 +99,7 @@ public class ModuleParserTests
     Assert.DoesNotContain(body, s => s.Text.StartsWith("ErrHandler"));
     Assert.Contains(new Statement("Logger.LogError \"ProcessOrders failed: \" & Err.Description", 41) { Block = 8 }, body); // the handler
     Assert.DoesNotContain(body, s => s.Text.Contains("nothing"));
-    Assert.Contains(new Statement("Case Else", 27) { Block = 3 }, body); // a Case is in its Select Case
+    Assert.Contains(new Statement("Case Else", 27) { Block = 3, Opens = 6 }, body); // a Case is in its Select Case
   }
 
   [Fact]

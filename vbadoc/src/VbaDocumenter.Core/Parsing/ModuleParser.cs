@@ -387,9 +387,9 @@ public static partial class ModuleParser
         code = code[lineNumber.Length..];
       }
 
-      foreach (var (statement, block) in BlocksOf(proc).Statements(code, line.FirstLine))
+      foreach (var (statement, block, opens) in BlocksOf(proc).Statements(code, line.FirstLine))
       {
-        proc.BodyList.Add(new Statement(statement, line.FirstLine) { ContinuedLines = line.LastLine - line.FirstLine, Block = block });
+        proc.BodyList.Add(new Statement(statement, line.FirstLine) { ContinuedLines = line.LastLine - line.FirstLine, Block = block, Opens = opens });
         var declaration = LocalDeclaration().Match(statement);
         if (declaration.Success) AddLocals(proc, declaration, line.FirstLine);
       }

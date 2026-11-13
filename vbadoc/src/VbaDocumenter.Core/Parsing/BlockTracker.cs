@@ -6,7 +6,8 @@ namespace VbaDocumenter.Core.Parsing;
 /// Follows a procedure's block statements as its lines are read (step E3 of the feedback plan): If, ElseIf and Else
 /// branches (a single-line If too), Select Case and each Case, For, Do and While loops, With, and On Error handlers.
 /// Each statement gets the innermost block it's in; a block's own statement (its condition, say) is in the block around
-/// it, since that's where it runs.
+/// it, since that's where it runs, and says which block it opens, so what its condition calls can be shown as that
+/// block's.
 /// </summary>
 /// <remarks>
 /// A single-line If is split into its parts, as a block If would be: "If x Then A Else B" becomes "If x Then", "A",
@@ -91,10 +92,13 @@ sealed partial class BlockTracker(Member procedure)
     if (endOfFirst != null) _open = endOfFirst;
   }
 
-  /// <summary>The statements of a logical line's code, each with the innermost block it's in.</summary>
-  public List<(string Text, int? Block)> Statements(string code, int line)
+  /// <summary>
+  /// The statements of a logical line's code, each with the innermost block it's in and, for a block's own statement,
+  /// the block it opens (see <see cref="Statement.Opens"/>).
+  /// </summary>
+  public List<(string Text, int? Block, int? Opens)> Statements(string code, int line)
   {
-    var result = new List<(string, int?)>();
+    var result = new List<(string, int?, int?)>();
     var statements = LogicalLineReader.SplitStatements(code);
     for (int i = 0; i < statements.Count; i++)
     {
@@ -109,37 +113,41 @@ sealed partial class BlockTracker(Member procedure)
     return result;
   }
 
-  void SingleLine(string header, string tail, int line, List<(string, int?)> result)
+  void SingleLine(string header, string tail, int line, List<(string, int?, int?)> result)
   {
     var parent = Current;
-    result.Add((header, parent));
     var elseAt = FindKeyword(tail, "Else", 0);
     var then = Open("if", header, line, parent);
+    result.Add((header, parent, then));
     result.AddRange(Statements((elseAt < 0 ? tail : tail[..elseAt]).Trim(), line));
     Close(then);
     if (elseAt < 0) return;
-    result.Add(("Else", parent));
+    result.Add(("Else", parent, null));
     var otherwise = Open("else", "Else", line, parent);
     result.AddRange(Statements(tail[(elseAt + 4)..].Trim(), line));
     Close(otherwise);
   }
 
-  void Statement(string s, int line, List<(string, int?)> result)
+  void Statement(string s, int line, List<(string, int?, int?)> result)
   {
     if (s.Length == 0) return;
     if (IsBlockIf(s))
     {
       var parent = Current;
-      result.Add((s, parent));
-      Open("if", s, line, parent);
+      result.Add((s, parent, Open("if", s, line, parent)));
     }
     else if (ElseIfStatement().IsMatch(s) || ElseStatement().IsMatch(s))
     {
       var branch = Innermost("if", "elseIf", "else");
       var parent = branch is { } b ? BlockOf(b).Parent : Current;
       if (branch is { } open) Close(open);
-      result.Add((s, parent));
-      Open(ElseStatement().IsMatch(s) ? "else" : "elseIf", s, line, parent);
+      // An Else has nothing of its own to work out.
+      if (ElseStatement().IsMatch(s))
+      {
+        result.Add((s, parent, null));
+        Open("else", s, line, parent);
+      }
+      else result.Add((s, parent, Open("elseIf", s, line, parent)));
     }
     else if (EndIfStatement().IsMatch(s)) CloseWith(s, result, "if", "elseIf", "else");
     else if (SelectStatement().IsMatch(s)) OpenWith(s, line, result, "select");
@@ -147,14 +155,13 @@ sealed partial class BlockTracker(Member procedure)
     {
       // A Case ends the one before it, inside the same Select Case.
       _open.RemoveRange(_open.IndexOf(select) + 1, _open.Count - _open.IndexOf(select) - 1);
-      result.Add((s, select));
-      Open("case", s, line, select);
+      result.Add((s, select, Open("case", s, line, select)));
     }
     else if (EndSelectStatement().IsMatch(s)) CloseWith(s, result, "select");
     else if (ForStatement().IsMatch(s)) OpenWith(s, line, result, "for");
     else if (NextStatement().Match(s) is { Success: true } next)
     {
-      result.Add((s, Current));
+      result.Add((s, Current, null));
       // "Next i, j" ends two loops.
       for (int n = next.Groups["vars"].Value.Count(c => c == ',') + 1; n > 0 && Innermost("for") is { } loop; n--) Close(loop);
     }
@@ -168,21 +175,21 @@ sealed partial class BlockTracker(Member procedure)
     {
       if (OnErrorGoTo().Match(s) is { Success: true } onError && onError.Groups["label"].Value is not ("0" or "-1"))
         _handlers.Add(onError.Groups["label"].Value);
-      result.Add((s, Current));
+      result.Add((s, Current, null));
     }
   }
 
-  // A block's own statement is in the block around it.
-  void OpenWith(string s, int line, List<(string, int?)> result, string kind)
+  // A block's own statement is in the block around it, and opens the block.
+  void OpenWith(string s, int line, List<(string, int?, int?)> result, string kind)
   {
-    result.Add((s, Current));
-    Open(kind, s, line, Current);
+    var parent = Current;
+    result.Add((s, parent, Open(kind, s, line, parent)));
   }
 
   // A closing statement (End If, Loop While …) is the block's last, so it's inside it.
-  void CloseWith(string s, List<(string, int?)> result, params string[] kinds)
+  void CloseWith(string s, List<(string, int?, int?)> result, params string[] kinds)
   {
-    result.Add((s, Current));
+    result.Add((s, Current, null));
     if (Innermost(kinds) is { } block) Close(block);
   }
 

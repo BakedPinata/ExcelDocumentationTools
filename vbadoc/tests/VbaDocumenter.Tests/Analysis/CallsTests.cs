@@ -61,6 +61,52 @@ public class CallsTests
   }
 
   [Fact]
+  public void A_call_made_by_a_blocks_own_statement_is_that_blocks_and_stays_in_the_block_around_it()
+  {
+    string Condition(string from, string to)
+    {
+      var member = Model.Members.Single(n => n.Id == from).Member!;
+      var call = Model.Calls.First(c => c.From == from && c.To == to);
+      return call.Condition is { } id ? member.Blocks[id].Text : "(none)";
+    }
+
+    Assert.Equal("For Each o In repo.LoadAll", Condition("Main.ProcessOrders", "IOrderRepository.LoadAll"));
+    Assert.Equal("Select Case o.Status", Condition("Main.ProcessOrders", "Order.Status[Get]"));
+    Assert.Equal("(none)", Condition("Main.ProcessOrders", "OrderService.Process"));
+    Assert.Equal("(none)", Condition("Main.ProcessOrders", "OrderService.Summarise")); // inside the With, not its object
+    Assert.Equal("If o.IsValid Then", Condition("OrderService.Process", "Order.IsValid"));
+    Assert.Equal("ElseIf o.Status = \"DRAFT\" Then", Condition("OrderService.Process", "Order.Status[Get]"));
+    Assert.Equal("(none)", Condition("OrderService.Process", "Order.Status[Let]"));
+
+    // Its block is still the one around the statement, as before.
+    Assert.Null(Model.Calls.First(c => c.From == "Main.ProcessOrders" && c.To == "IOrderRepository.LoadAll").Block);
+  }
+
+  [Fact]
+  public void The_calls_in_an_Or_condition_are_the_Ifs_even_when_nothing_inside_the_If_makes_a_call()
+  {
+    // The shape raised with step E5b: before, IsA and IsB showed loose above the Else, with no If row at all.
+    const string helper = "Attribute VB_Name = \"Helper\"\r\nOption Explicit\r\n" +
+        "Public Function IsA(ByVal n As Long) As Boolean\r\nEnd Function\r\n" +
+        "Public Function IsB(ByVal n As Long) As Boolean\r\nEnd Function\r\n" +
+        "Public Sub DoB()\r\nEnd Sub\r\n";
+    const string caller = "Attribute VB_Name = \"Caller\"\r\nOption Explicit\r\n" +
+        "Public Sub Run()\r\n    Dim x As Long\r\n" +
+        "    If Helper.IsA(1) Or Helper.IsB(2) Then\r\n        x = 1\r\n    Else\r\n        Helper.DoB\r\n    End If\r\n" +
+        "End Sub\r\n";
+    var model = DependencyAnalyser.Analyse(ProjectParser.Parse(WorkbookReader.Read(SyntheticWorkbook.Xlsm(
+        [new SyntheticModule("Helper", VbaModuleKind.Standard, helper), new SyntheticModule("Caller", VbaModuleKind.Standard, caller)]))));
+    var run = model.Members.Single(n => n.Id == "Caller.Run").Member!;
+    string Text(int? block) => block is { } id ? run.Blocks[id].Text : "(none)";
+
+    Assert.Equal(
+        [("Helper.IsA", "If Helper.IsA(1) Or Helper.IsB(2) Then", "(none)"),
+         ("Helper.IsB", "If Helper.IsA(1) Or Helper.IsB(2) Then", "(none)"),
+         ("Helper.DoB", "(none)", "Else")],
+        model.Calls.Where(c => c.From == "Caller.Run").Select(c => (c.To!, Text(c.Condition), Text(c.Block))));
+  }
+
+  [Fact]
   public void Recursion_is_a_call_to_itself_but_assigning_the_result_is_not()
   {
     Assert.Equal([("Main.Factorial", 45)], CallsOf("Main.Factorial"));
