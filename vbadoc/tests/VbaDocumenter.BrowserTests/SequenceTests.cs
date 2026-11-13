@@ -4,7 +4,9 @@ namespace VbaDocumenter.BrowserTests;
 
 /// <summary>
 /// The sequence diagram (step E5 of the feedback plan): what's open in the Calls tree, drawn with modules as lifelines,
-/// calls as messages in order and blocks as frames, sharing what's open with the tree so either narrows both.
+/// calls as messages in order and blocks as frames, sharing what's open with the tree so either narrows both. A call
+/// made by a frame's own statement is the frame's first message, and each diagram's participants stay in view while
+/// it's scrolled through (step L3 of the generalisation plan).
 /// </summary>
 [Collection("Browser")]
 public class SequenceTests(PageFixture fixture)
@@ -41,7 +43,7 @@ public class SequenceTests(PageFixture fixture)
 
     Assert.Equal(["Main", "OrderService", "ProgressReporter", "IOrderRepository", "Order", "Logger", "late-bound"], await Lifelines(page));
     Assert.Equal(
-        ["Init", "Attach", "LoadAll", "Status", "Process", "LogInfo", "Id", "Summarise", "legacy.ExportAll", "Factorial", "LogError"],
+        ["Init", "Attach", "loop bounds: LoadAll", "value tested: Status", "Process", "LogInfo", "Id", "Summarise", "legacy.ExportAll", "Factorial", "LogError"],
         await Messages(page));
     Assert.Equal(["for", "select", "case", "case", "with", "onError"], await Frames(page));
     Assert.Equal(1, await page.Locator(Diagram + " g.seq-message.late").CountAsync());
@@ -57,7 +59,8 @@ public class SequenceTests(PageFixture fixture)
 
     await page.ClickAsync(Diagram + " .seq-frame-label:has(title:text-matches('For Each'))");
 
-    Assert.Equal(["Init", "Attach", "LoadAll", "Summarise", "legacy.ExportAll", "Factorial", "LogError"], await Messages(page));
+    // The loop's own call, repo.LoadAll, is the frame's, so it goes with it.
+    Assert.Equal(["Init", "Attach", "Summarise", "legacy.ExportAll", "Factorial", "LogError"], await Messages(page));
     Assert.Equal(1, await page.Locator(Diagram + " g.seq-frame.closed.kind-for").CountAsync());
     await page.ClickAsync("[data-calls-show='tree']");
     Assert.Equal("false", await page.GetAttributeAsync(ProcessOrders + " > ul > li.calls-block", "aria-expanded"));
@@ -72,7 +75,7 @@ public class SequenceTests(PageFixture fixture)
 
     await page.ClickAsync(Diagram + " g.seq-message[data-id='OrderService.Process'] .seq-toggle");
     var messages = await Messages(page);
-    Assert.Equal(["Process", "IsValid", "Save", "Progress", "Describe", "Status", "Status", "LogError", "Id", "LogInfo"],
+    Assert.Equal(["Process", "condition: IsValid", "Save", "Progress", "Describe", "condition: Status", "Status", "LogError", "Id", "LogInfo"],
         messages.SkipWhile(m => m != "Process").Take(10));
     Assert.Contains("if", await Frames(page));
     Assert.Contains("elseIf", await Frames(page));
@@ -138,6 +141,93 @@ public class SequenceTests(PageFixture fixture)
       const frame = document.querySelector(`#calls-sequence .seq-frame[data-key='${CSS.escape(label.dataset.seqFrame)}'] rect`);
       return guard.getBoundingClientRect().right <= frame.getBoundingClientRect().right;
     })"));
+    Assert.Empty(opened.Errors);
+  }
+
+  const string Macros = "#calls-tree li.group > ul > li";
+
+  static async Task<IPage> OpenAsSequence(OpenedPage opened, params string[] procedures)
+  {
+    var page = opened.Page;
+    await page.ClickAsync("#tab-calls");
+    foreach (var id in procedures) await page.ClickAsync($"{Macros}[data-id='{id}'] > .tree-row .tree-twisty");
+    await page.ClickAsync("[data-calls-show='sequence']");
+    await page.WaitForSelectorAsync(Diagram);
+    return page;
+  }
+
+  [Fact]
+  public async Task A_frames_own_calls_are_its_first_messages_even_when_nothing_inside_it_makes_a_call()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.ConditionsEmbedded);
+    var page = await OpenAsSequence(opened, "Conditions.CheckBoth");
+
+    // If IsA(1) Or IsB(2) Then … Else DoB … Do While IsA(x): before step L3 the If had no frame at all.
+    Assert.Equal(["if", "else", "do"], await Frames(page));
+    Assert.Equal(["condition: IsA", "condition: IsB", "DoB", "condition: IsA"], await Messages(page));
+    Assert.Equal(3, await page.Locator(Diagram + " g.seq-message.condition").CountAsync());
+    // Each is drawn inside its frame.
+    Assert.True(await page.EvaluateAsync<bool>(@"() => {
+      const frame = document.querySelector('#calls-sequence .seq-frame.kind-if rect').getBoundingClientRect();
+      return [...document.querySelectorAll('#calls-sequence g.seq-message.condition')].slice(0, 2).every(m => {
+        const r = m.querySelector('.seq-name').getBoundingClientRect();
+        return r.top >= frame.top && r.bottom <= frame.bottom;
+      });
+    }"));
+    Assert.Empty(opened.Errors);
+  }
+
+  // Each diagram's strip (its title and participants again), with where it is against the top of what scrolls.
+  const string Strips = @"() => {
+    const body = document.querySelector('#view-calls .calls-body').getBoundingClientRect();
+    return JSON.stringify([...document.querySelectorAll('#calls-sequence .seq-sticky')].map(s => {
+      const r = s.getBoundingClientRect();
+      const own = s.parentNode.querySelector('svg.calls-seq').getBoundingClientRect();
+      return { title: s.querySelector('.seq-title').textContent, lanes: [...s.querySelectorAll('.seq-lane-head text')].map(t => t.textContent),
+        top: Math.round(r.top - body.top), bottom: Math.round(r.bottom - body.top), left: Math.round(r.left - own.left) };
+    }));
+  }";
+
+  sealed record Strip(string Title, string[] Lanes, int Top, int Bottom, int Left);
+
+  static async Task<Strip[]> StripsOf(IPage page) =>
+      System.Text.Json.JsonSerializer.Deserialize<Strip[]>(await page.EvaluateAsync<string>(Strips), System.Text.Json.JsonSerializerOptions.Web)!;
+
+  [Fact]
+  public async Task Each_diagrams_participants_stay_in_view_while_it_is_scrolled_through_and_move_sideways_with_it()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.ConditionsEmbedded, width: 420, height: 500, initScript: OpenedPage.WithoutExplorer);
+    var page = await OpenAsSequence(opened, "Conditions.CheckBoth", "Conditions.ManyCalls");
+    Assert.Equal(2, await page.Locator(Diagram).CountAsync()); // a diagram for each, with its own participants
+
+    // At the top, each strip sits exactly over its diagram's own title and participants.
+    var strips = await StripsOf(page);
+    Assert.Equal(["Calls from Conditions.CheckBoth", "Calls from Conditions.ManyCalls"], strips.Select(s => s.Title));
+    Assert.Equal(["Conditions", "Logger"], strips[1].Lanes);
+    Assert.True(strips[0].Top > 0);
+
+    // Scrolled well into the second diagram: its participants are at the top of the view, and the first's have gone.
+    await page.EvaluateAsync("() => { const b = document.querySelector('#view-calls .calls-body'); b.scrollTop = b.scrollHeight - b.clientHeight - 40; }");
+    strips = await StripsOf(page);
+    Assert.Equal(0, strips[1].Top);
+    Assert.True(strips[0].Bottom <= 0, "the first diagram's participants stay with their own diagram");
+    Assert.True(await page.EvaluateAsync<bool>(@"() => {
+      const body = document.querySelector('#view-calls .calls-body').getBoundingClientRect();
+      const own = [...document.querySelectorAll('#calls-sequence svg.calls-seq')][1].querySelector('.seq-title').getBoundingClientRect();
+      return own.bottom < body.top;   // the diagram's own title is scrolled away: it's the strip that shows
+    }"));
+
+    // Sideways, the strip goes with the diagram.
+    await page.EvaluateAsync("() => { document.querySelector('#view-calls .calls-body').scrollLeft = 60; }");
+    Assert.True(await page.EvaluateAsync<int>("() => document.querySelector('#view-calls .calls-body').scrollLeft") > 0, "the diagram should be wider than the view");
+    strips = await StripsOf(page);
+    Assert.Equal(0, strips[1].Left);
+    Assert.Equal(0, strips[1].Top);
+
+    // A participant in the strip selects its module, as the diagram's own does.
+    await page.EvaluateAsync("() => { document.querySelector('#view-calls .calls-body').scrollLeft = 0; }");
+    await page.Locator("#calls-sequence .seq-sticky").Nth(1).Locator(".seq-lane-head[data-seq-module='Conditions']").ClickAsync();
+    Assert.Equal("Conditions", await page.EvaluateAsync<string?>("() => window.vbadoc.selection()"));
     Assert.Empty(opened.Errors);
   }
 }

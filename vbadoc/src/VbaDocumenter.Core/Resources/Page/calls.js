@@ -16,6 +16,11 @@
 // loop, a With or an On Error handler holds the calls made inside it, in order, open to begin with. A block with no
 // calls in it isn't shown, and its text is cut to about 60 characters. Turned round, a caller says which block the
 // call is in.
+//
+// A call made by a block's own statement (step L3 of the generalisation plan), such as an If's condition or a loop's
+// bounds, is that block's: it comes first in the block's row, marked as the condition's, so "If A() Or B() Then" shows
+// as an If row holding A and B even when nothing inside the If makes a call. Turned round, the caller says the call
+// is in the block's condition.
 (function () {
   "use strict";
 
@@ -40,13 +45,13 @@
   // ---- What calls what ----
 
   var callsFrom = new Map();  // procedure -> its calls, in order
-  var callsTo = new Map();    // procedure -> [{ from, line, block }]
+  var callsTo = new Map();    // procedure -> [{ from, line, block, condition }]
   data.calls.forEach(function (c) {
     if (!callsFrom.has(c.from)) callsFrom.set(c.from, []);
     callsFrom.get(c.from).push(c);
     if (!c.to) return;
     if (!callsTo.has(c.to)) callsTo.set(c.to, []);
-    callsTo.get(c.to).push({ from: c.from, line: c.line, block: c.block });
+    callsTo.get(c.to).push({ from: c.from, line: c.line, block: c.block, condition: c.condition });
   });
 
   var blocksOf = new Map();   // procedure -> its blocks, by id
@@ -56,6 +61,13 @@
   });
 
   var BLOCK_TEXT_LENGTH = 60;
+
+  // What a block's own statement works out, by the block's kind: what a call made there is marked as.
+  var CONDITION_WORDS = {
+    "if": "condition", elseIf: "condition", "do": "condition", "while": "condition", select: "value tested", "case": "case value",
+    "for": "loop bounds", "with": "with object"
+  };
+  function conditionWord(block) { return CONDITION_WORDS[block.kind] || "condition"; }
   function cut(text, length) { return text.length > length ? text.slice(0, length - 1) + "…" : text; }
 
   // Interface members and their implementations, events and their WithEvents handlers.
@@ -79,7 +91,8 @@
   function byName(a, b) { var x = nameOf(a).toLowerCase(), y = nameOf(b).toLowerCase(); return x < y ? -1 : x > y ? 1 : 0; }
 
   // A node's children, turned the way the tree is: { rows, leftOut }. Each row is { id, line, lineIn, relation, within },
-  // { lateBound, line, lineIn } or a block, { block, line, lineIn, rows }; lineIn is the procedure whose line it is.
+  // { lateBound, line, lineIn } or a block, { block, line, lineIn, rows }; lineIn is the procedure whose line it is. A
+  // call made by a block's own statement has condition, what that statement works out ("condition", "loop bounds").
   function childrenOf(id) {
     var rows = [];
     var leftOut = 0;
@@ -102,14 +115,20 @@
       }
       (callsFrom.get(id) || []).forEach(function (c) {
         if (c.to && !shown(c.to)) { leftOut++; return; }
-        rowsOf(c.block).push(c.to ? { id: c.to, line: c.line, lineIn: id } : { lateBound: c.lateBound, line: c.line, lineIn: id });
+        var row = c.to ? { id: c.to, line: c.line, lineIn: id } : { lateBound: c.lateBound, line: c.line, lineIn: id };
+        // A call in a block's own statement goes in the block's row, which this makes if it's the block's first.
+        var own = c.condition !== null && c.condition !== undefined ? blocks[c.condition] : null;
+        if (own) row.condition = conditionWord(own);
+        rowsOf(own ? own.id : c.block).push(row);
       });
     } else {
       if (implementedMember.has(id)) push({ id: implementedMember.get(id), relation: "implements" });
       if (handledEvent.has(id)) push({ id: handledEvent.get(id), relation: "handles" });
       (callsTo.get(id) || []).forEach(function (c) {
-        var block = c.block !== null && c.block !== undefined && blocksOf.has(c.from) ? blocksOf.get(c.from)[c.block] : null;
-        push({ id: c.from, line: c.line, lineIn: c.from, within: block ? block.text : null });
+        var blocks = blocksOf.get(c.from) || [];
+        var own = c.condition !== null && c.condition !== undefined ? blocks[c.condition] : null;
+        var block = own || (c.block !== null && c.block !== undefined ? blocks[c.block] : null);
+        push({ id: c.from, line: c.line, lineIn: c.from, within: block ? block.text : null, condition: own ? conditionWord(own) : null });
       });
     }
     return { rows: rows, leftOut: leftOut };
@@ -215,7 +234,7 @@
     }
     if (row.lateBound !== undefined) {
       return li + " class=\"calls-late\"><div class=\"tree-row\" style=\"--depth:" + depth + "\"><span class=\"tree-twisty\"></span>" +
-        "<code class=\"tree-label\">" + escapeHtml(row.lateBound) + "</code> <span class=\"tree-detail\" title=\"Called on an Object or Variant, so what it calls can't be known without running the code\">late-bound</span>" +
+        conditionTag(row) + "<code class=\"tree-label\">" + escapeHtml(row.lateBound) + "</code> <span class=\"tree-detail\" title=\"Called on an Object or Variant, so what it calls can't be known without running the code\">late-bound</span>" +
         lineButton(row) + "</div></li>";
     }
     var recursive = path.indexOf(row.id) >= 0;
@@ -227,16 +246,23 @@
       (expandable ? " aria-expanded=\"" + isOpen + "\"" : "") + (isOpen ? "" : " class=\"collapsed\"") + ">" +
       "<div class=\"tree-row\" style=\"--depth:" + depth + "\"><span class=\"tree-twisty\" aria-hidden=\"true\"></span>" +
       (row.relation ? "<span class=\"calls-relation\">" + escapeHtml(row.relation) + "</span> " : "") +
+      (row.within === undefined ? conditionTag(row) : "") +
       "<a href=\"#\" class=\"tree-label calls-name\" data-call-select=\"" + escapeHtml(row.id) + "\">" + escapeHtml(nameOf(row.id)) + "</a>" +
       " <span class=\"tree-detail\">" + escapeHtml(kindOf(row.id)) + "</span>" +
       (member && member.role !== "none" && depth === 0 ? " <span class=\"tree-badge\">" + escapeHtml(vb.roleLabel(member.role)) + "</span>" : "") +
       (recursive ? " <span class=\"calls-recursion\" title=\"Already open above, on this branch: recursion\">↻</span>" : "") +
       lineButton(row) +
-      (row.within ? " <span class=\"calls-within muted\" title=\"" + escapeHtml("The call is inside " + row.within) + "\">in " +
-        escapeHtml(cut(row.within, 40)) + "</span>" : "") +
+      (row.within ? " <span class=\"calls-within muted\" title=\"" + escapeHtml("The call is " + (row.condition ? "in the " + row.condition + " of " : "inside ") + row.within) + "\">in " +
+        (row.condition ? "the " + escapeHtml(row.condition) + " of " : "") + escapeHtml(cut(row.within, 40)) + "</span>" : "") +
       (expandable ? OPEN_ALL_BUTTON.replace("<button ", "<button data-open-all=\"" + escapeHtml(key) + "\" ") : "") + "</div>";
     if (isOpen) html += childrenHtml(row.id, depth + 1, key, path.concat([row.id]));
     return html + "</li>";
+  }
+
+  // Marks a call made by its block's own statement, in the tree turned the usual way.
+  function conditionTag(row) {
+    return row.condition ? "<span class=\"calls-relation calls-condition\" title=\"Called by the block's own statement, before anything inside it\">" +
+      escapeHtml(row.condition) + "</span> " : "";
   }
 
   function rowsHtml(rows, depth, key, path) {
@@ -336,6 +362,10 @@
   // late-bound calls to a lifeline of their own; and the blocks around calls as frames. The tree and the diagram share
   // what's open: a message's ▸ opens its calls, a frame's label closes or opens it, and either narrows both. Drawn with
   // d3 and set out by the page, so text is only ever text.
+  //
+  // Each starting procedure is a diagram of its own, with its own participants. A copy of its title and participants
+  // stays at the top of the view while that diagram is scrolled through, and moves sideways with it (step L3 of the
+  // generalisation plan). A call made by a frame's own statement is the frame's first message, marked as its condition's.
 
   var showing = loadSetting("vbadoc-calls-show", "tree") === "sequence" ? "sequence" : "tree";
   var sequenceBox = document.getElementById("calls-sequence");
@@ -383,7 +413,7 @@
           return;
         }
         if (row.lateBound !== undefined) {
-          items.push({ type: "message", from: from, to: lane("late-bound", true), label: row.lateBound, late: true, line: row.line, lineIn: callerId });
+          items.push({ type: "message", from: from, to: lane("late-bound", true), label: row.lateBound, late: true, condition: row.condition, line: row.line, lineIn: callerId });
           return;
         }
         var recursive = path.indexOf(row.id) >= 0;
@@ -392,8 +422,8 @@
         var isOpen = expandable && open.has(rowKey);
         var to = lane(moduleOf(row.id));
         items.push({
-          type: "message", from: from, to: to, label: memberName(row.id), id: row.id, relation: row.relation, recursive: recursive,
-          expandable: expandable, open: isOpen, key: rowKey, line: row.line, lineIn: row.lineIn
+          type: "message", from: from, to: to, label: memberName(row.id), id: row.id, relation: row.relation, condition: row.condition,
+          recursive: recursive, expandable: expandable, open: isOpen, key: rowKey, line: row.line, lineIn: row.lineIn
         });
         if (isOpen) {
           items.push({ type: "activationStart", lane: to });
@@ -416,7 +446,7 @@
     lanes.forEach(function (l) { width = Math.max(width, l.name.length * CHAR + 32); });
     items.forEach(function (item) {
       if (item.type !== "message") return;
-      var text = ((item.relation ? item.relation + ": " : "") + item.label + (item.recursive ? " ↻" : "")).length + (item.expandable ? 2 : 0);
+      var text = (messagePrefix(item) + item.label + (item.recursive ? " ↻" : "")).length + (item.expandable ? 2 : 0);
       var span = Math.abs(item.to - item.from);
       width = Math.max(width, span === 0 ? text * CHAR + 56 : (text * CHAR + 28) / span);
     });
@@ -463,6 +493,9 @@
     return { messages: messages, frames: frames, activations: activations, height: y + 20 };
   }
 
+  // What a message's name is said with: how it's reached, or that it's called by its frame's own statement.
+  function messagePrefix(item) { return item.relation ? item.relation + ": " : item.condition ? item.condition + ": " : ""; }
+
   function laneX(index) { return MARGIN + LANE / 2 + index * LANE; }
   function fit(text, width) { var most = Math.max(4, Math.floor(width / CHAR)); return text.length > most ? text.slice(0, most - 1) + "…" : text; }
 
@@ -489,30 +522,53 @@
     }
     var models = starts.map(sequenceModel);
     var layouts = models.map(sequenceLayout);
-    var height = d3.sum(layouts, function (l) { return l.height; });
-    var svg = box.append("svg").attr("class", "calls-seq").attr("height", height)
-      .attr("role", "img").attr("aria-label", "Sequence diagram of the open calls");
-    var defs = svg.append("defs");
+    // The arrowheads, once, for every diagram.
+    var defs = box.append("svg").attr("class", "seq-defs").attr("width", 0).attr("height", 0).attr("aria-hidden", "true").append("defs");
     [["seq-arrow", "M0,-4L9,0L0,4Z"], ["seq-arrow-open", "M0,-4L9,0L0,4"]].forEach(function (m) {
       defs.append("marker").attr("id", m[0]).attr("viewBox", "0 -5 10 10").attr("refX", 9).attr("refY", 0)
         .attr("markerWidth", 8).attr("markerHeight", 8).attr("markerUnits", "userSpaceOnUse").attr("orient", "auto")
         .append("path").attr("d", m[1]);
     });
-    var top = 0;
-    var width = 0;
     models.forEach(function (model, n) {
-      width = Math.max(width, drawOneSequence(svg.append("g").attr("class", "seq-diagram").attr("data-start", model.start.id)
-        .attr("transform", "translate(0," + top + ")"), model, layouts[n]));
-      top += layouts[n].height;
+      var diagram = box.append("div").attr("class", "seq-diagram-box");
+      // The title and the participants again, in a strip that sticks to the top of the view while this diagram is
+      // scrolled through. It takes no room of its own, so until then it sits exactly over the diagram's own.
+      var strip = diagram.append("svg").attr("class", "seq-sticky").attr("height", STRIP).attr("aria-hidden", "true")
+        .style("margin-bottom", -STRIP + "px");
+      var svg = diagram.append("svg").attr("class", "calls-seq").attr("height", layouts[n].height)
+        .attr("role", "img").attr("aria-label", "Sequence diagram of the calls from " + nameOf(model.start.id));
+      var width = drawOneSequence(svg.append("g").attr("class", "seq-diagram").attr("data-start", model.start.id), model, layouts[n]) + MARGIN;
+      svg.attr("width", width);
+      strip.attr("width", width);
+      strip.append("rect").attr("class", "seq-sticky-back").attr("width", width).attr("height", STRIP);
+      drawTitle(strip, model);
+      drawHeads(strip.selectAll("g.seq-lane").data(model.lanes).join("g").attr("class", function (l) { return "seq-lane" + (l.late ? " late" : ""); }));
     });
-    svg.attr("width", width + MARGIN);
+  }
+
+  var STRIP = TITLE + HEAD + 6; // the height of a diagram's title and participants
+
+  function drawTitle(g, model) {
+    g.append("text").attr("class", "seq-title").attr("x", MARGIN).attr("y", 16).text("Calls from " + nameOf(model.start.id));
+  }
+
+  // The participants' boxes, one in each lane's group. LANE is the diagram's lane width.
+  function drawHeads(lanes) {
+    var head = lanes.append("g").attr("class", "seq-lane-head").attr("data-seq-module", function (l) { return l.late ? null : l.name; });
+    head.append("rect").attr("x", function (l, i) { return laneX(i) - LANE / 2 + 8; }).attr("y", TITLE)
+      .attr("width", LANE - 16).attr("height", HEAD).attr("rx", 3);
+    head.append("text").attr("x", function (l, i) { return laneX(i); }).attr("y", TITLE + HEAD / 2 + 4).attr("text-anchor", "middle")
+      .text(function (l) { return fit(l.name, LANE - 24); });
+    head.append("title").text(function (l) {
+      return l.late ? "Late-bound calls: on an Object or Variant, so what they call can't be known without running the code" : l.name;
+    });
   }
 
   // Draws one diagram and returns how wide it is.
   function drawOneSequence(g, model, layout) {
     LANE = model.lane;
     var bottom = layout.height - 10;
-    g.append("text").attr("class", "seq-title").attr("x", MARGIN).attr("y", 16).text("Calls from " + nameOf(model.start.id));
+    drawTitle(g, model);
 
     // Frames' outlines first, so lifelines and messages draw over them; their labels last, over everything.
     var frameLayer = g.append("g").attr("class", "seq-frames");
@@ -523,14 +579,7 @@
       .attr("data-lane", function (l) { return l.name; });
     lanes.append("line").attr("x1", function (l, i) { return laneX(i); }).attr("x2", function (l, i) { return laneX(i); })
       .attr("y1", TITLE + HEAD).attr("y2", bottom);
-    var head = lanes.append("g").attr("class", "seq-lane-head").attr("data-seq-module", function (l) { return l.late ? null : l.name; });
-    head.append("rect").attr("x", function (l, i) { return laneX(i) - LANE / 2 + 8; }).attr("y", TITLE)
-      .attr("width", LANE - 16).attr("height", HEAD).attr("rx", 3);
-    head.append("text").attr("x", function (l, i) { return laneX(i); }).attr("y", TITLE + HEAD / 2 + 4).attr("text-anchor", "middle")
-      .text(function (l) { return fit(l.name, LANE - 24); });
-    head.append("title").text(function (l) {
-      return l.late ? "Late-bound calls: on an Object or Variant, so what they call can't be known without running the code" : l.name;
-    });
+    drawHeads(lanes);
 
     // Activations: how long each opened procedure runs.
     layout.activations.forEach(function (a) {
@@ -542,7 +591,7 @@
     layout.messages.forEach(function (m) {
       var item = m.item;
       var x1 = laneX(item.from) + 4 + m.fromOffset, x2 = laneX(item.to) - 4;
-      var message = g.append("g").attr("class", "seq-message" + (item.relation ? " relation" : "") + (item.late ? " late" : "") +
+      var message = g.append("g").attr("class", "seq-message" + (item.relation ? " relation" : "") + (item.condition ? " condition" : "") + (item.late ? " late" : "") +
         (item.id && item.id === vb.selection() ? " selected" : "")).attr("data-id", item.id || null).attr("data-key", item.key || null);
       var label = message.append("text").attr("class", "seq-label");
       if (item.from === item.to) {
@@ -561,9 +610,10 @@
           .append("title").text((item.open ? "Close" : "Open") + " its calls; Shift+click to open everything below it");
       }
       label.append("tspan").attr("class", "seq-name").attr("data-seq-select", item.id || null)
-        .text(fit((item.relation ? item.relation + ": " : "") + item.label, room) + (item.recursive ? " ↻" : ""));
+        .text(fit(messagePrefix(item) + item.label, room) + (item.recursive ? " ↻" : ""));
       message.append("title").text((item.late ? "Late-bound: " + item.label : nameOf(item.id) + (item.recursive ? " (recursion: already open above)" : "")) +
-        (item.line ? ", line " + item.line + " of " + nameOf(item.lineIn) : ""));
+        (item.line ? ", line " + item.line + " of " + nameOf(item.lineIn) : "") +
+        (item.condition ? ". Called by the frame's own statement (its " + item.condition + "), before anything inside it" : ""));
     });
 
     // Each frame is wide enough for its label and its whole guard, and holds the frames inside it.
@@ -640,6 +690,8 @@
       showing = button.getAttribute("data-calls-show");
       saveSetting("vbadoc-calls-show", showing);
       draw();
+      // How far the tree was scrolled means nothing in the diagram, or the other way round.
+      view.querySelector(".calls-body").scrollTop = 0;
     });
   });
 

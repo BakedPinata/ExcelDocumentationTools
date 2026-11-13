@@ -6,6 +6,8 @@ namespace VbaDocumenter.BrowserTests;
 /// The Calls tab (steps E2 and E3 of the feedback plan): the procedures an entry point calls, in the order of its code,
 /// opened one level at a time, inside the blocks around them, with recursion, calls through interfaces and events,
 /// hidden items counted, late-bound calls, Calls / Called by, and links to procedures and to the lines of their calls.
+/// A call made by a block's own statement, such as an If's condition, is that block's (step L3 of the generalisation
+/// plan).
 /// </summary>
 [Collection("Browser")]
 public class CallsTests(PageFixture fixture)
@@ -46,9 +48,10 @@ public class CallsTests(PageFixture fixture)
         await page.Locator("#calls-tree > li.group > .tree-row .tree-label").AllInnerTextsAsync());
     await Open(page, ProcessOrders);
 
-    // Calls inside a block are in its row (step E3); the If around the repository's choice has no calls, so it isn't there.
+    // Calls inside a block are in its row (step E3), with what its own statement calls first (step L3): repo.LoadAll is
+    // the loop's. The If around the repository's choice has no calls, so it isn't there.
     Assert.Equal(
-        ["OrderService.Init line 18", "ProgressReporter.Attach line 19", "IOrderRepository.LoadAll line 21", "For Each o In repo.LoadAll line 21",
+        ["OrderService.Init line 18", "ProgressReporter.Attach line 19", "For Each o In repo.LoadAll line 21",
          "With svc line 32", "legacy.ExportAll line 37", "Main.Factorial line 38", "On error: ErrHandler line 40"],
         await ChildNames(page, ProcessOrders));
     Assert.Equal("late-bound", await page.InnerTextAsync(ProcessOrders + " > ul > li.calls-late .tree-detail"));
@@ -69,7 +72,7 @@ public class CallsTests(PageFixture fixture)
     Assert.Equal(1, await page.Locator(again + " .calls-recursion").CountAsync());
     Assert.Null(await page.GetAttributeAsync(again, "aria-expanded"));
 
-    var loadAll = Child(ProcessOrders, "IOrderRepository.LoadAll");
+    var loadAll = Under(ProcessOrders, "IOrderRepository.LoadAll"); // in the loop's row, as its bounds
     await Open(page, loadAll);
     Assert.Equal(["CsvOrderRepository.IOrderRepository_LoadAll", "SheetOrderRepository.IOrderRepository_LoadAll"],
         await page.Locator(loadAll + " > ul > li .calls-name").AllInnerTextsAsync());
@@ -188,10 +191,13 @@ public class CallsTests(PageFixture fixture)
     var page = await OpenCalls(opened);
     await Open(page, ProcessOrders);
 
+    // What a block's own statement calls comes first in its row, marked: the loop's bounds, the Select's value.
     var loop = Block(ProcessOrders, "For Each o In repo.LoadAll");
-    Assert.Equal(["Order.Status line 22", "Select Case o.Status line 22"], await ChildNames(page, loop)); // the Select's own line is in the loop
+    Assert.Equal(["IOrderRepository.LoadAll line 21", "Select Case o.Status line 22"], await ChildNames(page, loop));
+    Assert.Equal("loop bounds", await page.InnerTextAsync(Child(loop, "IOrderRepository.LoadAll") + " > .tree-row .calls-condition"));
     var select = Block(loop, "Select Case o.Status");
-    Assert.Equal(["Case \"NEW\" line 23", "Case \"HOLD\" line 25"], await ChildNames(page, select)); // Case Else has no calls
+    Assert.Equal(["Order.Status line 22", "Case \"NEW\" line 23", "Case \"HOLD\" line 25"], await ChildNames(page, select)); // Case Else has no calls
+    Assert.Equal("value tested", await page.InnerTextAsync(Child(select, "Order.Status[Get]") + " > .tree-row .calls-condition"));
     Assert.Equal(["OrderService.Process line 24"], await ChildNames(page, Block(select, "Case \"NEW\"")));
     Assert.Equal(["Logger.LogInfo line 26", "Order.Id line 26"], await ChildNames(page, Block(select, "Case \"HOLD\"")));
     Assert.Equal(["Logger.LogError line 41"], await ChildNames(page, Block(ProcessOrders, "On error: ErrHandler")));
@@ -200,9 +206,38 @@ public class CallsTests(PageFixture fixture)
     var process = Under(ProcessOrders, "OrderService.Process");
     await Open(page, process);
     Assert.Equal(
-        ["Order.IsValid line 18", "If o.IsValid Then line 18", "Order.Status line 22", "ElseIf o.Status = \"DRAFT\" Then line 22", "Else line 24"],
+        ["If o.IsValid Then line 18", "ElseIf o.Status = \"DRAFT\" Then line 22", "Else line 24"],
         await ChildNames(page, process));
-    Assert.Equal(["Order.Status line 23"], await ChildNames(page, Block(process, "ElseIf o.Status = \"DRAFT\" Then")));
+    var branch = Block(process, "If o.IsValid Then");
+    Assert.Equal("Order.IsValid line 18", (await ChildNames(page, branch))[0]);
+    Assert.Equal("condition", await page.InnerTextAsync(Child(branch, "Order.IsValid") + " > .tree-row .calls-condition"));
+    // The ElseIf's condition reads Status, and its body sets it.
+    Assert.Equal(["Order.Status line 22", "Order.Status line 23"], await ChildNames(page, Block(process, "ElseIf o.Status = \"DRAFT\" Then")));
+    Assert.Equal(1, await page.Locator(Block(process, "ElseIf o.Status = \"DRAFT\" Then") + " > ul > li .calls-condition").CountAsync());
+    Assert.Empty(opened.Errors);
+  }
+
+  [Fact]
+  public async Task An_If_whose_condition_makes_calls_shows_even_when_nothing_inside_it_does()
+  {
+    await using var opened = await OpenedPage.OpenAsync(fixture, fixture.ConditionsEmbedded);
+    var page = await OpenCalls(opened);
+    const string check = "#calls-tree li.group > ul > li[data-id='Conditions.CheckBoth']";
+    await Open(page, check);
+
+    // Before step L3, IsA and IsB showed loose above the Else, and there was no If row.
+    Assert.Equal(["If IsA(1) Or IsB(2) Then line 6", "Else line 8", "Do While IsA(x) line 11"], await ChildNames(page, check));
+    var branch = Block(check, "If IsA(1) Or IsB(2) Then");
+    Assert.Equal(["Conditions.IsA line 6", "Conditions.IsB line 6"], await ChildNames(page, branch));
+    Assert.Equal(["condition", "condition"], await page.Locator(branch + " > ul > li > .tree-row .calls-condition").AllInnerTextsAsync());
+    Assert.Equal(["Conditions.DoB line 9"], await ChildNames(page, Block(check, "Else")));
+    Assert.Equal(["Conditions.IsA line 11"], await ChildNames(page, Block(check, "Do While IsA(x)")));
+
+    // Turned round, the caller says the call is in the block's condition.
+    await opened.SelectAsync("Conditions.IsB");
+    await page.ClickAsync("[data-calls-direction='calledBy']");
+    Assert.Equal("in the condition of If IsA(1) Or IsB(2) Then",
+        await page.InnerTextAsync("#calls-tree > li[data-id='Conditions.IsB'] > ul > li[data-id='Conditions.CheckBoth'] > .tree-row .calls-within"));
     Assert.Empty(opened.Errors);
   }
 

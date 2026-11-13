@@ -46,6 +46,8 @@ public sealed class PageFixture : IAsyncLifetime
     UserSizedEmbedded = Generate(SyntheticWorkbook.Xlsm(UserSizedProject()), "UserSized.xlsm", "user-sized-embedded", embedSource: true);
     PredeclaredEmbedded = Generate(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules().Append(PredeclaredSettings)), "Predeclared.xlsm",
         "predeclared-embedded", embedSource: true);
+    ConditionsEmbedded = Generate(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules().Append(Conditions)), "Conditions.xlsm",
+        "conditions-embedded", embedSource: true);
     ReferencesEmbedded = Generate(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules(), references:
         [
           ("stdole", @"*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\system32\stdole2.tlb#OLE Automation"),
@@ -94,6 +96,45 @@ public sealed class PageFixture : IAsyncLifetime
 
   /// <summary>SampleVba with a class that has a default instance (VB_PredeclaredId = True), used by its name.</summary>
   public string PredeclaredEmbedded { get; private set; } = "";
+
+  /// <summary>
+  /// The sample with a module whose blocks call things in their own statements (step L3 of the generalisation plan):
+  /// an If with an Or condition and nothing called inside it, a loop's condition, and a long run of calls, for
+  /// scrolling a sequence diagram.
+  /// </summary>
+  public string ConditionsEmbedded { get; private set; } = "";
+
+  static readonly SyntheticModule Conditions = new("Conditions", VbaModuleKind.Standard, string.Join("\r\n",
+      "Attribute VB_Name = \"Conditions\"",
+      "Option Explicit",
+      "",
+      "Public Sub CheckBoth()",
+      "    Dim x As Long",
+      "    If IsA(1) Or IsB(2) Then",
+      "        x = 1",
+      "    Else",
+      "        DoB",
+      "    End If",
+      "    Do While IsA(x)",
+      "        x = x - 1",
+      "    Loop",
+      "End Sub",
+      "",
+      "Public Sub ManyCalls()",
+      string.Join("\r\n", Enumerable.Range(0, 40).Select(i => i % 2 == 0 ? "    DoB" : "    Logger.LogInfo \"step\"")),
+      "End Sub",
+      "",
+      "Private Function IsA(ByVal n As Long) As Boolean",
+      "    IsA = n > 0",
+      "End Function",
+      "",
+      "Private Function IsB(ByVal n As Long) As Boolean",
+      "    IsB = n > 1",
+      "End Function",
+      "",
+      "Private Sub DoB()",
+      "End Sub",
+      ""));
 
   static readonly SyntheticModule PredeclaredSettings = new("Settings", VbaModuleKind.Class, string.Join("\r\n",
       "Attribute VB_Name = \"Settings\"",

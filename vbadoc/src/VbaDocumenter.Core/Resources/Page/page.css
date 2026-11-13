@@ -86,8 +86,14 @@ html[data-theme="light"] {
 /* The sequence diagram: colours from the page's variables, so it follows the theme. */
 .calls-sequence { padding: 0 8px 16px; }
 .calls-sequence[hidden] { display: none; }
-.calls-seq { display: block; font: 12px var(--font-ui, system-ui), sans-serif; }
-.calls-seq text { fill: var(--text); }
+.calls-seq, .seq-sticky { display: block; font: 12px var(--font-ui, system-ui), sans-serif; }
+.calls-seq text, .seq-sticky text { fill: var(--text); }
+/* Each diagram's title and participants again, staying at the top of the view while the diagram is scrolled through. */
+.seq-diagram-box { position: relative; width: max-content; }
+.seq-defs { position: absolute; }
+/* -4px: up into .calls-body's top padding, which sticky positions are measured inside, so nothing shows above it. */
+.seq-sticky { position: sticky; top: -4px; z-index: 1; }
+.seq-sticky-back { fill: var(--bg); }
 .seq-title { font-weight: 600; }
 .seq-lane line { stroke: var(--border); stroke-dasharray: 4 4; }
 .seq-lane-head rect { fill: var(--surface-2); stroke: var(--border); }
