@@ -359,7 +359,8 @@
     memberEdgesByModules.get(key).push(e);
   });
 
-  // Where member edges' references are: each line once, in order, in the member that holds it.
+  // Where member edges' references are: each line once, in order, in the member that holds it. A preview of one
+  // (the shell's Peek) can show all of that member: its lines.
   function referencesOf(edges) {
     var seen = new Set();
     var refs = [];
@@ -369,7 +370,9 @@
         if (seen.has(key)) return;
         seen.add(key);
         var member = membersById.get(e.from);
-        refs.push({ "in": e.from, source: moduleOfId(e.from), line: line, inName: member ? member.module + "." + member.name : e.from });
+        var ref = { "in": e.from, source: moduleOfId(e.from), line: line, inName: member ? member.module + "." + member.name : e.from };
+        if (member) { ref.first = member.start; ref.last = member.end; }
+        refs.push(ref);
       });
     });
     return refs.sort(function (a, b) { return a.line - b.line; });

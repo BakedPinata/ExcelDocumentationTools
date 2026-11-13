@@ -102,10 +102,15 @@
 //                                      code view, with a button that copies those lines; lines from marked.first to
 //                                      marked.last are marked
 //   shell.references.listHtml(entries, empty)   a Uses or Used by list: each entry { id, name, detail, tags: [{ label,
-//                                      title, className }], hidden, refs: [{ in, source, line, inName }] } once, its
-//                                      name selecting it, and opening it lists refs: the lines where it's referenced,
-//                                      with their text when source `source` is there. Choosing one selects `in` and
-//                                      shows the line in the side panel's source, marked. empty is the text for none
+//                                      title, className }], hidden, refs: [{ in, source, line, inName, first, last }] }
+//                                      once, its name selecting it, and opening it lists refs: the lines where it's
+//                                      referenced, with their text when source `source` is there. A click on one
+//                                      peeks: a preview opens under it, of the line and 5 either side, without leaving
+//                                      the selection, with a button to show all of what holds it (lines first to last
+//                                      of `source`; the whole source when they're left out) and Go to. Go to, or
+//                                      Ctrl+click on the line, selects `in` and shows the line in the side panel's
+//                                      source, marked. Any number can be open; a click on its line closes one, and Esc
+//                                      the last opened. empty is the text for none
 //   shell.source.showLine(line)        scrolls the side panel's source to a line and marks it, if it's shown
 //   shell.views.part(name, { save(), apply(value), ids(value) })   a part of every saved view, for one of the tool's
 //                                      views: save() gives what to keep (JSON, or null for nothing), apply(value)
@@ -127,7 +132,9 @@
 //                                      description }]), and what to show the command writing to, such as "--new
 //                                      Shared.xlsm", or nothing for a bundle. Call it after explorer.setLayouts and
 //                                      before start
-//   A button with id "load-folder-prompt" anywhere in the page opens Load folder.
+//   A button with id "load-folder-prompt", or the attribute data-load-folder, anywhere in the page opens Load folder.
+//   A button with data-ref-select and data-ref-line anywhere in the page (a query's steps, say) selects the item and
+//   shows the line, as Go to does.
 (function () {
   "use strict";
 
@@ -302,7 +309,7 @@
 
     // The side panel offers Load folder where the source would be.
     document.addEventListener("click", function (event) {
-      if (event.target.closest && event.target.closest("#load-folder-prompt")) folderInput.click();
+      if (event.target.closest && event.target.closest("#load-folder-prompt, [data-load-folder]")) folderInput.click();
     });
 
     function highlightedLines(id) {
@@ -348,7 +355,7 @@
     // ---- Uses / Used by ----
     //
     // Each item once, with tags for the kinds of link (the tool's), and the lines where it's referenced inside: the line
-    // number, and its text when the source is there. Choosing a line selects what holds it and shows the line.
+    // number, and its text when the source is there. A click on a line peeks at it (below); Ctrl+click goes to it.
 
     var LINE_TEXT_LENGTH = 120;
 
@@ -369,21 +376,133 @@
           "<ol class=\"ref-lines\">" + refs.map(function (ref) {
             var text = sources.has(ref.source) ? String(sources.get(ref.source)[ref.line - 1] || "").trim() : null;
             if (text !== null && text.length > LINE_TEXT_LENGTH) text = text.slice(0, LINE_TEXT_LENGTH - 1) + "…";
-            return "<li><button type=\"button\" class=\"ref-line\" data-ref-select=\"" + escapeHtml(ref["in"]) + "\" data-ref-line=\"" +
-              ref.line + "\" title=\"Show line " + ref.line + (ref.inName ? " of " + escapeHtml(ref.inName) : "") + "\">" +
+            return "<li><button type=\"button\" class=\"ref-line\" data-peek aria-expanded=\"false\" data-ref-select=\"" + escapeHtml(ref["in"]) +
+              "\" data-ref-line=\"" + ref.line + "\" data-ref-source=\"" + escapeHtml(ref.source) + "\"" +
+              (ref.first ? " data-ref-first=\"" + ref.first + "\"" : "") + (ref.last ? " data-ref-last=\"" + ref.last + "\"" : "") +
+              (ref.inName ? " data-ref-name=\"" + escapeHtml(ref.inName) + "\"" : "") +
+              " title=\"Peek at line " + ref.line + (ref.inName ? " of " + escapeHtml(ref.inName) : "") + ", here. Ctrl+click goes to it\">" +
               "<span class=\"ref-ln\">" + ref.line + "</span>" + (text !== null ? "<code>" + escapeHtml(text) + "</code>" : "") +
               "</button></li>";
           }).join("") + "</ol></details></li>";
       }).join("") + "</ul>";
     }
 
-    // Choosing a line: select what holds it (which draws its source), then show the line.
+    // Going to a line: select what holds it (which draws its source), then show the line.
+    function goToLine(button, other) {
+      selectItem(button.getAttribute("data-ref-select"), other);
+      showLine(parseInt(button.getAttribute("data-ref-line"), 10));
+    }
+
+    // ---- Peek ----
+    //
+    // A click on a line in a Uses / Used by list opens a preview under it: the code around the line, highlighted, with
+    // the line marked. The selection, the views and the panel's own source stay as they are, so a reference can be
+    // read without losing your place. Go to in the preview, or Ctrl+click on the line (the other thing, as everywhere),
+    // selects what holds the line and shows it. The preview shows the line and PEEK_CONTEXT lines either side, never
+    // beyond what holds it, and can show all of that. Any number can be open: a click on its line closes one, and
+    // Esc closes the last opened. It reads the same source the panel does, and says how to load it when it isn't
+    // there. Previews belong to the list as drawn, so they go when the tool draws the list again.
+
+    var PEEK_CONTEXT = 5;
+    var openPeeks = []; // the lines whose previews are open, in the order opened
+
+    function peekOf(button) { return button.parentNode.querySelector(":scope > .ref-peek"); }
+
+    // A list with a preview open is marked, so a tool that keeps its lists short can give that one the room.
+    function markPeeks(button) {
+      var list = button.closest(".ref-list");
+      if (list) list.classList.toggle("has-peek", !!list.querySelector(".ref-peek"));
+    }
+
+    function renderPeek(button, whole) {
+      var peek = peekOf(button);
+      var id = button.getAttribute("data-ref-source");
+      var line = parseInt(button.getAttribute("data-ref-line"), 10);
+      var name = button.getAttribute("data-ref-name") || button.getAttribute("data-ref-select");
+      var go = "<button type=\"button\" class=\"link-button\" data-peek-go title=\"Select " + escapeHtml(name) + " and show line " + line +
+        " in the " + escapeHtml(options.panel) + " panel. Ctrl+click on the line does the same\">Go to</button>";
+      peek.setAttribute("aria-label", "Line " + line + " of " + name);
+      if (!sources.has(id)) {
+        var why = source && source.mode === "folder"
+          ? "The source isn't loaded yet, so there's no code to show here. <button type=\"button\" class=\"link-button\" data-load-folder>Load folder</button>"
+          : "There's no source for " + escapeHtml(name) + " in this page.";
+        peek.innerHTML = "<div class=\"ref-peek-bar\"><span class=\"ref-peek-note muted\">" + why + "</span>" + go + "</div>";
+        return;
+      }
+      var lines = highlightedLines(id);
+      var lowest = Math.min(Math.max(1, parseInt(button.getAttribute("data-ref-first"), 10) || 1), line);
+      var highest = Math.max(Math.min(lines.length, parseInt(button.getAttribute("data-ref-last"), 10) || lines.length), line);
+      var more = lowest < line - PEEK_CONTEXT || highest > line + PEEK_CONTEXT;
+      var first = whole ? lowest : Math.max(lowest, line - PEEK_CONTEXT);
+      var last = whole ? highest : Math.min(highest, line + PEEK_CONTEXT);
+      var html = [];
+      for (var n = first; n <= last; n++) {
+        html.push("<div class=\"line" + (n === line ? " peek-target" : "") + "\" data-peek-line=\"" + n + "\"><span class=\"ln\">" + n +
+          "</span><span class=\"lt\">" + (lines[n - 1] || " ") + "</span></div>");
+      }
+      peek.innerHTML = "<div class=\"ref-peek-bar\"><span class=\"ref-peek-where muted\">" + escapeHtml(name) + "</span>" + go +
+        (more ? "<button type=\"button\" class=\"link-button\" data-peek-whole aria-pressed=\"" + whole + "\" title=\"" +
+          (whole ? "Show only the line and " + PEEK_CONTEXT + " lines either side" : "Show all of " + escapeHtml(name) + " here") + "\">" +
+          (whole ? "Show less" : "Show all of it") + "</button>" : "") + "</div>" +
+        "<div class=\"code peek-code\" role=\"region\" aria-label=\"Code around line " + line + "\" tabindex=\"0\">" + html.join("") + "</div>";
+      // All of it can be long: it scrolls in its own box, starting with the line in the middle.
+      var code = peek.querySelector(".peek-code");
+      var target = code.querySelector(".peek-target");
+      if (target) code.scrollTop = Math.max(0, target.offsetTop - code.offsetTop - (code.clientHeight - target.offsetHeight) / 2);
+    }
+
+    function openPeek(button) {
+      var peek = document.createElement("div");
+      peek.className = "ref-peek";
+      peek.setAttribute("role", "group");
+      button.parentNode.appendChild(peek);
+      button.setAttribute("aria-expanded", "true");
+      openPeeks = openPeeks.filter(function (other) { return other !== button && document.contains(other); });
+      openPeeks.push(button);
+      markPeeks(button);
+      renderPeek(button, false);
+      peek.scrollIntoView({ block: "nearest" });
+    }
+
+    function closePeek(button) {
+      var peek = peekOf(button);
+      var hadFocus = peek && peek.contains(document.activeElement);
+      if (peek) peek.remove();
+      markPeeks(button);
+      button.setAttribute("aria-expanded", "false");
+      openPeeks = openPeeks.filter(function (other) { return other !== button; });
+      if (hadFocus) button.focus();
+    }
+
+    // Esc closes the last preview opened that's still in the page. Returns whether there was one.
+    function closeLastPeek() {
+      openPeeks = openPeeks.filter(function (button) { return document.contains(button) && peekOf(button); });
+      if (openPeeks.length === 0) return false;
+      closePeek(openPeeks[openPeeks.length - 1]);
+      return true;
+    }
+
     document.addEventListener("click", function (event) {
-      var button = event.target.closest && event.target.closest("[data-ref-line]");
+      if (!event.target.closest) return;
+      var inPeek = event.target.closest(".ref-peek");
+      if (inPeek) {
+        var line = inPeek.parentNode.querySelector(":scope > [data-ref-line]");
+        if (event.target.closest("[data-peek-go]")) goToLine(line, false);
+        else if (event.target.closest("[data-peek-whole]")) {
+          renderPeek(line, event.target.closest("[data-peek-whole]").getAttribute("aria-pressed") !== "true");
+          var again = inPeek.querySelector("[data-peek-whole]");
+          if (again) again.focus();
+        }
+        return;
+      }
+      var button = event.target.closest("[data-ref-line]");
       if (!button) return;
       event.preventDefault();
-      selectItem(button.getAttribute("data-ref-select"), event.ctrlKey || event.metaKey);
-      showLine(parseInt(button.getAttribute("data-ref-line"), 10));
+      var other = event.ctrlKey || event.metaKey;
+      if (!button.hasAttribute("data-peek")) goToLine(button, other); // a line that isn't a reference: a query's step, say
+      else if (other) goToLine(button, false);
+      else if (peekOf(button)) closePeek(button);
+      else openPeek(button);
     });
 
     // ---- Copying the source ----
@@ -664,13 +783,16 @@
     }
 
     // Esc clears the selection wherever it's pressed. An open menu takes it first, and so does a box with text in it,
-    // which empties instead; this runs in the capture phase, before their own handlers close or empty them.
+    // which empties instead, then an open preview of a reference (see Peek), which closes; this runs in the capture
+    // phase, before their own handlers close or empty them.
     document.addEventListener("keydown", function (event) {
-      if (event.key !== "Escape" || selected === null) return;
+      if (event.key !== "Escape") return;
       if (document.querySelector("details.dropdown[open]")) return;
       var target = event.target;
       if (target && target.matches && target.matches("input:not([type=checkbox]), textarea, select") && target.value) return;
-      selectItem(null);
+      // Nothing else is cleared by this press: the views' own Esc handlers are on the document too, after this one.
+      if (closeLastPeek()) { event.stopImmediatePropagation(); return; }
+      if (selected !== null) selectItem(null);
     }, true);
 
     // Drop-down menus (<details class="dropdown">), in the explorer and the views' toolbars, close when you press

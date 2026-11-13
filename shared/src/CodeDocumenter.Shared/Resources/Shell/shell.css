@@ -557,6 +557,16 @@ button.tree-action[aria-pressed="true"] { border-color: var(--accent); color: va
 }
 .code .lt { padding-right: 16px; }
 
+/* Peek: a preview of a reference under its line, in a box of its own that scrolls. */
+.ref-line[aria-expanded="true"] { background: var(--surface-2); }
+.ref-peek { margin: 2px 0 6px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); overflow: hidden; }
+.ref-peek-bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; padding: 3px 8px; font-size: 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+.ref-peek-where { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-code); }
+.ref-peek-note { flex: 1 1 100%; }
+.code.peek-code { min-width: 0; max-height: 40vh; overflow: auto; padding: 4px 0; font-size: 12px; }
+.code.peek-code .line { min-width: max-content; }
+.code .line.peek-target { background: var(--line-target, rgba(255, 196, 0, 0.22)); box-shadow: inset 3px 0 0 var(--warn); }
+
 /* Syntax highlighting, with the same classes from each tool's highlighter (vba-highlight.js, m-highlight.js). */
 .tok-keyword { color: var(--syn-keyword); }
 .tok-string { color: var(--syn-string); }

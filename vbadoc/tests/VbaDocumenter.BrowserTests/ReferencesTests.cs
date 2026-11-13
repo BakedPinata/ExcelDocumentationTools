@@ -4,7 +4,8 @@ namespace VbaDocumenter.BrowserTests;
 
 /// <summary>
 /// Uses / Used by with references (step E1 of the feedback plan): each item once, whatever the kinds of link, and the
-/// lines where it's referenced, which select what holds them and show the line in the source panel.
+/// lines where it's referenced. Going to one (Ctrl+click, since a click peeks: see <see cref="PeekTests"/>) selects what
+/// holds it and shows the line in the source panel.
 /// </summary>
 [Collection("Browser")]
 public class ReferencesTests(PageFixture fixture)
@@ -20,6 +21,8 @@ public class ReferencesTests(PageFixture fixture)
       page.Locator(entry + " .ref-line .ref-ln").AllInnerTextsAsync().ContinueWith(t => t.Result.ToArray());
 
   const string Marked = "#side-panel .code .line.target";
+
+  static readonly LocatorClickOptions CtrlClick = new() { Modifiers = [KeyboardModifier.Control] };
 
   [Fact]
   public async Task An_item_linked_in_two_ways_is_listed_once_with_both_kinds()
@@ -37,7 +40,7 @@ public class ReferencesTests(PageFixture fixture)
   }
 
   [Fact]
-  public async Task Opening_an_item_lists_its_lines_and_choosing_one_selects_what_holds_it_and_marks_the_line()
+  public async Task Opening_an_item_lists_its_lines_and_going_to_one_selects_what_holds_it_and_marks_the_line()
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded, initScript: OpenedPage.WithoutFocusOnClick);
     var page = opened.Page;
@@ -49,7 +52,7 @@ public class ReferencesTests(PageFixture fixture)
     Assert.Equal(["8", "13"], await Lines(page, appInit));
     Assert.Equal("Logger.LogInfo \"Settings loaded\"", await page.InnerTextAsync(appInit + " .ref-line[data-ref-line='13'] code"));
 
-    await page.ClickAsync(appInit + " .ref-line[data-ref-line='13']");
+    await page.Locator(appInit + " .ref-line[data-ref-line='13']").ClickAsync(CtrlClick);
 
     Assert.Equal("AppInit.LoadSettings", await page.EvaluateAsync<string?>("() => window.vbadoc.selection()"));
     Assert.Equal(["13"], await page.Locator(Marked).EvaluateAllAsync<string[]>("ls => ls.map(l => l.dataset.line)"));
@@ -62,7 +65,7 @@ public class ReferencesTests(PageFixture fixture)
   }
 
   [Fact]
-  public async Task A_members_own_references_are_its_lines_and_choosing_one_keeps_it_selected()
+  public async Task A_members_own_references_are_its_lines_and_going_to_one_keeps_it_selected()
   {
     await using var opened = await OpenedPage.OpenAsync(fixture, fixture.SampleEmbedded);
     var page = opened.Page;
@@ -71,7 +74,7 @@ public class ReferencesTests(PageFixture fixture)
     var logInfo = Entry("uses", "Logger.LogInfo");
 
     await page.ClickAsync(logInfo + " > details > summary .ref-count");
-    await page.ClickAsync(logInfo + " .ref-line[data-ref-line='13']");
+    await page.Locator(logInfo + " .ref-line[data-ref-line='13']").ClickAsync(CtrlClick);
 
     Assert.Equal("AppInit.LoadSettings", await page.EvaluateAsync<string?>("() => window.vbadoc.selection()"));
     Assert.Equal(1, await page.Locator(Marked + "[data-line='13']").CountAsync());
@@ -97,7 +100,7 @@ public class ReferencesTests(PageFixture fixture)
       await page.ClickAsync(appInit + " > details > summary .ref-count");
     Assert.Equal("Logger.LogInfo \"Application started\"", await page.InnerTextAsync(appInit + " .ref-line[data-ref-line='8'] code"));
 
-    await page.ClickAsync(appInit + " .ref-line[data-ref-line='8']");
+    await page.Locator(appInit + " .ref-line[data-ref-line='8']").ClickAsync(CtrlClick);
     Assert.Equal("AppInit.Startup", await page.EvaluateAsync<string?>("() => window.vbadoc.selection()"));
     Assert.Equal(1, await page.Locator(Marked + "[data-line='8']").CountAsync());
     Assert.Empty(opened.Errors);
