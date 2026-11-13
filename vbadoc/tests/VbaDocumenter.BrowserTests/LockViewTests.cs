@@ -126,6 +126,7 @@ public class LockViewTests(PageFixture fixture)
     Assert.True(await page.IsCheckedAsync(TreeBox("Utils")));
     Assert.False(await page.IsCheckedAsync(TreeBox("Order")));
     Assert.StartsWith("Locked: 2 of ", await page.InnerTextAsync("#view-graph .view-filter-note span"));
+    Assert.Equal("Unlock", await page.InnerTextAsync("#view-graph .view-filter-note [data-filter-clear]"));
     Assert.True(await page.IsDisabledAsync("#graph-focus"));
 
     // A tick still adds an item, and the ones there stay where they are.
@@ -145,6 +146,7 @@ public class LockViewTests(PageFixture fixture)
     Assert.False(await page.IsCheckedAsync(TreeBox("Order")));
     Assert.False(await page.IsDisabledAsync("#graph-focus"));
     Assert.StartsWith("Filtered: 2 of ", await page.InnerTextAsync("#view-graph .view-filter-note span"));
+    Assert.Equal("Clear", await page.InnerTextAsync("#view-graph .view-filter-note [data-filter-clear]"));
     Assert.Empty(opened.Errors);
   }
 
@@ -188,7 +190,7 @@ public class LockViewTests(PageFixture fixture)
     await CloseLegends(page);
     await page.ClickAsync("#tab-classes");
     await WaitForClasses(page);
-    await page.ClickAsync(ClassBox("Order") + " .box-outline");
+    await page.ClickAsync(ClassBox("Order") + " .box-name");
     await WaitForClasses(page);
     var boxes = await page.Locator("#classes-svg g.class-box").EvaluateAllAsync<string[]>("ns => ns.map(n => n.dataset.module).sort()");
     Assert.True(boxes.Length > 1);
@@ -200,7 +202,7 @@ public class LockViewTests(PageFixture fixture)
     Assert.Equal("true", await page.GetAttributeAsync(GraphLock, "aria-pressed"));
 
     var other = boxes.First(id => id != "Order");
-    await page.ClickAsync(ClassBox(other) + " .box-outline");
+    await page.ClickAsync(ClassBox(other) + " .box-name");
     Assert.Equal(other, await Selection(page));
     await WaitForClasses(page);
     Assert.Equal(before, await ClassesPicture(page));

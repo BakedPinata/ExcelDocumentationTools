@@ -154,6 +154,8 @@ public class FocusTests(PageFixture fixture)
     Assert.Equal(0, await page.Locator("#view-graph [data-reach]").CountAsync());
     await page.ClickAsync("#graph-settings summary");
     Assert.Equal("transitive", await page.InputValueAsync("#graph-setting-reach"));
-    Assert.Equal("graph-focus", await page.EvaluateAsync<string>("() => document.querySelector('#view-graph .view-toolbar > *').id"));
+    // Focus starts the toolbar, after the shell's Lock view.
+    Assert.True(await page.EvaluateAsync<bool>("() => document.querySelector('#view-graph .view-toolbar > *').hasAttribute('data-lock-view')"));
+    Assert.Equal("graph-focus", await page.EvaluateAsync<string>("() => document.querySelector('#view-graph .view-toolbar > [data-lock-view] + *').id"));
   }
 }

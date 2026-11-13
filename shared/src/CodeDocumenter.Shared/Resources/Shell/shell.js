@@ -1400,6 +1400,12 @@
         note.hidden = !active;
         note.firstChild.textContent = text;
       });
+      // The way back from a locked view is to unlock it, which puts the ticks back; clearing them would show
+      // everything, still locked.
+      document.querySelectorAll("[data-filter-clear]").forEach(function (button) {
+        button.textContent = viewLock !== null ? "Unlock" : "Clear";
+        button.title = viewLock !== null ? "Unlock the view, and put the explorer's ticks back as they were" : "";
+      });
       updateChecks();
       updateExportFromFilter();
     }
@@ -1469,7 +1475,8 @@
     }
 
     document.addEventListener("click", function (event) {
-      if (event.target.closest && event.target.closest("[data-filter-clear]")) setTicked([], []);
+      if (!event.target.closest || !event.target.closest("[data-filter-clear]")) return;
+      if (viewLock !== null) setViewLock(false); else setTicked([], []);
     });
 
     // ---- Lock view ----
