@@ -10,7 +10,7 @@ it. Add to this file whenever a new decision is agreed. Conventions shared with 
   designer, which matters because the work machine can only build from the command line. Windows only, which is the
   only platform the tools are used on.
 - **The name is `xldocui`,** in a folder of that name, with `ExcelDocumenter.Desktop` for the code. `xldoc` is kept for
-  the combined tool in the feedback plan's Later section.
+  the combined tool in the generalisation plan's Later section.
 - **The target is the root's with `-windows` added,** in `xldocui/Directory.Build.props`, so moving .NET is still one
   change. Only this folder targets Windows.
 - **The first version is 0.1.0.**

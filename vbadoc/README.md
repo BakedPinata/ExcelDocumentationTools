@@ -17,7 +17,7 @@ See [Requirements.md](Requirements.md) for the full specification.
 ## Status
 
 Work in progress. Exporting the source files, analysing dependencies, the page's source browser, the dependency graph
-and the class diagram work. What comes next is in the [feedback plan](../FEEDBACK-PLAN.md).
+and the class diagram work. What comes next is in the [generalisation plan](../GENERALISATION-PLAN.md).
 See [docs/PLAN.md](docs/PLAN.md) for the stages and progress, and [docs/DECISIONS.md](docs/DECISIONS.md)
 for the design decisions behind them.
 

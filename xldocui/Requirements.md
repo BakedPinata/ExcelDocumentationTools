@@ -1,7 +1,7 @@
 # xldocui requirements
 
 A desktop app that gives vbadoc's and pqdoc's command lines a window. Steps I1 to I4 of the
-[feedback plan](../FEEDBACK-PLAN.md) set out why, and how it's built.
+feedback plan (in the repository's history, at the tag `feedback-plan-final`) set out why, and how it was built.
 
 ## 1. Scope
 

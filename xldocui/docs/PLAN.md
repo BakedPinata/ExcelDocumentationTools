@@ -1,10 +1,11 @@
 # Build plan
 
-The app is built in steps of the [feedback plan](../../FEEDBACK-PLAN.md), phase I. Each ends with passing tests, a
-commit and a pause for review.
+The app was built in steps of the feedback plan, phase I (in the repository's history, at the tag
+`feedback-plan-final`). Each ended with passing tests, a commit and a pause for review.
 
 **Current state:** version 0.3.0, with the Document and Import tabs, which finishes phase I, and add-ins in the Import
-tab's file pickers (step J2). **Next:** the checks the feedback plan lists after phase I.
+tab's file pickers (step J2). **Next:** the [generalisation plan](../../GENERALISATION-PLAN.md), which renames the app
+and widens what it runs.
 
 | Step | Scope | Status |
 |---|---|---|
