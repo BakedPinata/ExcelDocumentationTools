@@ -83,6 +83,7 @@ public sealed class HtmlExporter : IExporter
       FaviconSvg = Favicon.Value,
       Stylesheet = Stylesheet.Value,
       DataJson = SerialiseGraph(graph, context),
+      ViewsJson = context.ViewsJson ?? string.Empty,
       SourcesHtml = context.EmbedSource && context.Sources is not null ? EmbeddedSources(context.Sources) : string.Empty,
       ScriptAssembly = Resources,
       Scripts = PageScripts,

@@ -61,6 +61,42 @@ public sealed class CliRunnerTests : IDisposable
     Assert.Contains(app.Log.Messages(LogEventLevel.Information), m => m.StartsWith("Done.", StringComparison.Ordinal));
   }
 
+  private const string ViewsFileText = "{\n  \"formatVersion\": 1,\n  \"tool\": \"pqdoc\",\n  \"views\": [\n    { \"name\": \"Orders\", \"filter\": [\"Orders\", \"Source\"] }\n  ],\n  \"workbook\": \"queries\"\n}\n";
+
+  [Fact]
+  public async Task FR_HTML_23_a_views_file_in_the_output_folder_is_built_into_the_page_and_left_as_it_was()
+  {
+    await File.WriteAllTextAsync(QueryFile("pqdoc-views.json"), ViewsFileText, TestContext.Current.CancellationToken);
+    using var app = App();
+
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(Queries));
+
+    var page = await File.ReadAllTextAsync(QueryFile("queries-powerquery.html"), TestContext.Current.CancellationToken);
+    Assert.Contains("<script type=\"application/json\" id=\"pqdoc-views\">", page, StringComparison.Ordinal);
+    Assert.Contains("\"name\": \"Orders\"", page, StringComparison.Ordinal);
+    Assert.Equal(ViewsFileText, await File.ReadAllTextAsync(QueryFile("pqdoc-views.json"), TestContext.Current.CancellationToken));
+    Assert.Contains(app.Log.Messages(LogEventLevel.Information), m => m.Contains("1 saved view(s)", StringComparison.Ordinal));
+
+    // Running again with the same file gives the same page, so nothing is asked about or refused.
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(Queries));
+    Assert.Equal(ViewsFileText, await File.ReadAllTextAsync(QueryFile("pqdoc-views.json"), TestContext.Current.CancellationToken));
+  }
+
+  [Fact]
+  public async Task FR_HTML_23_a_views_file_that_cant_be_used_is_a_warning_and_other_formats_dont_read_it()
+  {
+    await File.WriteAllTextAsync(QueryFile("pqdoc-views.json"), "{ \"formatVersion\": 1, \"tool\": \"vbadoc\", \"views\": [] }", TestContext.Current.CancellationToken);
+    using var app = App();
+
+    Assert.Equal(ExitCodes.Success, await app.RunAsync(Queries));
+    Assert.Contains(app.Log.Messages(LogEventLevel.Warning), m => m.StartsWith("pqdoc-views.json wasn't built into the page: it holds vbadoc's views", StringComparison.Ordinal));
+    Assert.DoesNotContain("id=\"pqdoc-views\"", await File.ReadAllTextAsync(QueryFile("queries-powerquery.html"), TestContext.Current.CancellationToken), StringComparison.Ordinal);
+
+    using var csvOnly = App();
+    Assert.Equal(ExitCodes.Success, await csvOnly.RunAsync(Queries, "-f", "csv"));
+    Assert.DoesNotContain(csvOnly.Log.Messages(LogEventLevel.Warning), m => m.Contains("views", StringComparison.Ordinal));
+  }
+
   [Fact]
   public async Task AC2_csv_puml_and_html_are_written_side_by_side()
   {

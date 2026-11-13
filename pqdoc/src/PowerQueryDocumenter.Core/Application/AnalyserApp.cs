@@ -1,5 +1,6 @@
 using CodeDocumenter.Shared;
 using CodeDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Pages;
 using CodeDocumenter.Shared.Workbooks;
 using PowerQueryDocumenter.Core.Analysis;
 using PowerQueryDocumenter.Core.Configuration;
@@ -77,7 +78,7 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
     // The text outputs are made before asking, so one that would be written unchanged isn't asked about, as vbadoc's
     // page isn't. Images come from the PlantUML server, so they're only made when they're written.
     var sources = SourceFiles(queries, analysis);
-    var context = new ExportContext(options.Title, saved, sources, options.EmbedSource, Details(queries, sources));
+    var context = new ExportContext(options.Title, saved, sources, options.EmbedSource, Details(queries, sources), SavedViews(options));
     var made = await MakeTextOutputsAsync(graph, context, registry, planned, cancellationToken).ConfigureAwait(false);
     var resolution = new OverwriteResolver(logger, services.Interaction).Resolve(
       planned,
@@ -175,6 +176,31 @@ public sealed class AnalyserApp(ILogger logger, AppServices services)
         logger.Warning("Could not delete {File}, an older output from pqdoc: {Reason}", path, ex.Message);
       }
     }
+  }
+
+  /// <summary>
+  /// The saved views kept in the output folder, <c>pqdoc-views.json</c>, to build into the page (FR-HTML-23). A file
+  /// that can't be used is a warning, never a failure, and pqdoc only reads it.
+  /// </summary>
+  private string? SavedViews(AnalyserOptions options)
+  {
+    if (!options.Formats.Contains(OutputFormat.Html))
+    {
+      return null;
+    }
+
+    var views = ViewsFile.Read(options.OutputFolder, "pqdoc", options.Title);
+    if (views.Warning is not null)
+    {
+      logger.Warning("{Warning:l}", views.Warning);
+    }
+
+    if (views.Count > 0)
+    {
+      logger.Information("Building {Count} saved view(s) into the page, from {File}", views.Count, ViewsFile.FileName("pqdoc"));
+    }
+
+    return views.Json;
   }
 
   private void LogQueryFiles(SourceFolderResult result, string folder)

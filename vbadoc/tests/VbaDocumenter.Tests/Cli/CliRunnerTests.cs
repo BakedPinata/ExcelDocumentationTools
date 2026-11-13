@@ -75,6 +75,54 @@ public sealed class CliRunnerTests : IDisposable
     Assert.Contains(_log.Messages(LogEventLevel.Information), m => m.Contains("deleted") && m.Contains("index.html"));
   }
 
+  const string ViewsFileText = "{\n  \"formatVersion\": 1,\n  \"tool\": \"vbadoc\",\n  \"views\": [\n    { \"name\": \"Just the macro\", \"filter\": [\"Module1\"] }\n  ],\n  \"workbook\": \"SimpleMacro.xlsm\"\n}\n";
+
+  string ViewsPath => Path.Combine(Output, "vbadoc-views.json");
+
+  [Fact]
+  public void A_views_file_in_the_output_folder_is_built_into_the_page_and_left_as_it_was()
+  {
+    Directory.CreateDirectory(Output);
+    File.WriteAllText(ViewsPath, ViewsFileText);
+
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output));
+
+    var page = File.ReadAllText(Page);
+    Assert.Contains("<script type=\"application/json\" id=\"vbadoc-views\">", page);
+    Assert.Contains("\"name\": \"Just the macro\"", page);
+    Assert.Equal(ViewsFileText, File.ReadAllText(ViewsPath)); // read, never written or deleted
+    Assert.Contains(_log.Messages(LogEventLevel.Information), m => m.Contains("1 saved view(s)") && m.Contains("vbadoc-views.json"));
+    Assert.Empty(_log.Messages(LogEventLevel.Warning));
+
+    // Running again with the same file gives the same page, so it isn't written again.
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output));
+    Assert.Contains(_log.Messages(LogEventLevel.Information), m => m.Contains("SimpleMacro-vba.html") && m.Contains("unchanged"));
+    Assert.Equal(ViewsFileText, File.ReadAllText(ViewsPath));
+  }
+
+  [Fact]
+  public void Without_a_views_file_the_page_has_no_views_of_its_own()
+  {
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output));
+
+    Assert.DoesNotContain("id=\"vbadoc-views\"", File.ReadAllText(Page));
+    Assert.False(File.Exists(ViewsPath));
+  }
+
+  [Fact]
+  public void A_views_file_that_cant_be_read_is_a_warning_not_a_failure()
+  {
+    Directory.CreateDirectory(Output);
+    File.WriteAllText(ViewsPath, "{ this isn't JSON");
+
+    Assert.Equal(ExitCodes.Success, Run(Workbook, "--output", Output));
+
+    Assert.True(File.Exists(Page));
+    Assert.DoesNotContain("id=\"vbadoc-views\"", File.ReadAllText(Page));
+    Assert.Contains(_log.Messages(LogEventLevel.Warning), m => m.StartsWith("vbadoc-views.json wasn't built into the page: it isn't valid JSON"));
+    Assert.Equal("{ this isn't JSON", File.ReadAllText(ViewsPath));
+  }
+
   [Fact]
   public void Quiet_hides_the_report_but_still_exports()
   {

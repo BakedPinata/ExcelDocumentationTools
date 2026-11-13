@@ -81,6 +81,20 @@ public sealed class ShellPageTests
   }
 
   [Fact]
+  public void Saved_views_go_in_a_block_of_their_own_which_they_cannot_end()
+  {
+    var html = Page(p => p with { ViewsJson = "{\"views\":[{\"name\":\"</script><b>\"}]}" }).Render();
+
+    Assert.Contains("<script type=\"application/json\" id=\"pqdoc-views\">\n{\"views\":[{\"name\":\"\\u003C/script\\u003E\\u003Cb\\u003E\"}]}\n</script>", html, StringComparison.Ordinal);
+  }
+
+  [Fact]
+  public void Without_saved_views_there_is_no_block_for_them()
+  {
+    Assert.DoesNotContain("id=\"pqdoc-views\"", Page().Render(), StringComparison.Ordinal);
+  }
+
+  [Fact]
   public void The_shells_stylesheet_comes_before_the_tools()
   {
     var html = Page().Render();

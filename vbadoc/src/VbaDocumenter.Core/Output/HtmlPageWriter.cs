@@ -48,10 +48,17 @@ public static class HtmlPageWriter
 
   static Assembly Resources => typeof(HtmlPageWriter).Assembly;
 
+  /// <summary>
+  /// The saved views file in an output folder, <c>vbadoc-views.json</c>, to build into the page: the views, and a
+  /// warning when the file is there but can't be used. vbadoc only reads the file.
+  /// </summary>
+  public static ViewsFileResult ReadViews(string outputFolder, string title) => ViewsFile.Read(outputFolder, "vbadoc", title);
+
   /// <summary>The build of vbadoc that writes the page, shown in its top bar.</summary>
   public static ToolVersion Version { get; } = ToolVersion.Of(typeof(HtmlPageWriter).Assembly);
 
-  public static string Build(DependencyModel model, VbaProject project, string title, bool embedSource)
+  /// <param name="viewsJson">Saved views to build into the page, from <see cref="ViewsFile.Read"/>, or null for none.</param>
+  public static string Build(DependencyModel model, VbaProject project, string title, bool embedSource, string? viewsJson = null)
   {
     var data = PageData.From(model, project, title, embedSource);
     var page = new ShellPage
@@ -71,6 +78,7 @@ public static class HtmlPageWriter
       FaviconSvg = EmbeddedResources.ReadText(Resources, "Page/favicon.svg"),
       Stylesheet = EmbeddedResources.ReadText(Resources, "Page/page.css"),
       DataJson = data.ToJson(),
+      ViewsJson = viewsJson ?? "",
       SourcesHtml = embedSource ? EmbeddedSources(project) : "",
       ScriptAssembly = Resources,
       Scripts = PageScripts,

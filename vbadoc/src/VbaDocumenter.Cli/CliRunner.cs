@@ -4,6 +4,7 @@ using System.CommandLine.Invocation;
 using CodeDocumenter.Shared;
 using CodeDocumenter.Shared.CommandLine;
 using CodeDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Pages;
 using CodeDocumenter.Shared.Workbooks;
 using Serilog;
 using VbaDocumenter.Core.Analysis;
@@ -104,8 +105,14 @@ public static class CliRunner
     var dependencies = Timed(logger, "Analysing", () => DependencyAnalyser.Analyse(parsed));
     ConsoleReport.WriteDependencies(dependencies, logger);
 
+    // Saved views kept in the output folder are built into the page. A file that can't be used is only a warning.
+    var title = Path.GetFileName(options.WorkbookPath);
+    var views = HtmlPageWriter.ReadViews(options.OutputFolder, title);
+    if (views.Warning != null) logger.Warning("{Warning:l}", views.Warning);
+    if (views.Count > 0) logger.Information("Building {Count} saved view(s) into the page, from {File}", views.Count, ViewsFile.FileName("vbadoc"));
+
     var html = Timed(logger, "Building the page",
-        () => HtmlPageWriter.Build(dependencies, project, Path.GetFileName(options.WorkbookPath), options.EmbedSource));
+        () => HtmlPageWriter.Build(dependencies, project, title, options.EmbedSource, views.Json));
     cancellationToken.ThrowIfCancellationRequested();
 
     // The page is asked about before anything is written, so quitting or refusing changes nothing on disk. A page that

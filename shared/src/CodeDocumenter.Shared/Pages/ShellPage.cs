@@ -84,6 +84,12 @@ public sealed partial record ShellPage
   /// <summary>The page's data as JSON. It is made safe inside its script element here.</summary>
   public required string DataJson { get; init; }
 
+  /// <summary>
+  /// The saved views to build into the page, as <see cref="ViewsFile.Read"/> gives them (<see cref="ViewsFileResult.Json"/>),
+  /// or empty for none. It is made safe inside its script element here.
+  /// </summary>
+  public string ViewsJson { get; init; } = string.Empty;
+
   /// <summary>For --embed-source, the hidden &lt;pre&gt; elements holding the source; otherwise empty.</summary>
   public string SourcesHtml { get; init; } = string.Empty;
 
@@ -124,6 +130,9 @@ public sealed partial record ShellPage
       ["BEFORE_LAYOUT"] = BeforeLayoutHtml.TrimEnd(),
       ["VIEWS"] = ViewsHtml.TrimEnd(),
       ["DATA"] = PageBuilder.EscapeForScriptElement(DataJson),
+      ["SAVED_VIEWS"] = ViewsJson.Length == 0
+        ? string.Empty
+        : $"<script type=\"application/json\" id=\"{Tool}-views\">\n{PageBuilder.EscapeForScriptElement(ViewsJson)}\n</script>",
       ["SOURCES"] = SourcesHtml,
       ["SCRIPTS"] = PageBuilder.Scripts(ScriptAssembly, Scripts),
     };

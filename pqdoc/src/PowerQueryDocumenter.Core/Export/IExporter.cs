@@ -14,12 +14,15 @@ namespace PowerQueryDocumenter.Core.Export;
 /// <param name="Sources">The queries' .m files, for the page's source view, or null when there are none.</param>
 /// <param name="EmbedSource">Whether the page holds the files' text (<c>--embed-source</c>) or loads them from a folder.</param>
 /// <param name="Details">Each query's kind and group, for the page's explorer, or null when not known.</param>
+/// <param name="ViewsJson">Saved views to build into the page, from <c>pqdoc-views.json</c> in the output folder
+/// (FR-HTML-23), or null for none.</param>
 public sealed record ExportContext(
   string Title,
   DateTimeOffset? WorkbookSaved,
   IReadOnlyList<QueryFile>? Sources = null,
   bool EmbedSource = false,
-  IReadOnlyList<QueryDetails>? Details = null);
+  IReadOnlyList<QueryDetails>? Details = null,
+  string? ViewsJson = null);
 
 /// <summary>What the page says about a query besides its dependencies (FR-HTML-11).</summary>
 /// <param name="Query">The query's name.</param>
