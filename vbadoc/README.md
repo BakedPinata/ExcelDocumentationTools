@@ -230,8 +230,9 @@ that mentions something the workbook no longer has still opens, and says what's 
 The **Calls** tab follows the execution path: start from a macro, event handler or worksheet function (or a
 favourite, or Ctrl+click any procedure) and open its calls one level at a time, in the order of the code. Each call
 links to its line. Calls through an interface open to the implementations, RaiseEvent to its handlers, and **Called by**
-turns the tree round to show what leads to a procedure. The Ifs, loops, Select Cases, Withs and error handlers around the calls show as rows holding them, and **Sequence**
-draws what's open as a sequence diagram, with modules as lifelines and the blocks as frames. The button that shows on a
+turns the tree round to show what leads to a procedure. The Ifs, loops, Select Cases, Withs and error handlers around the calls show as rows holding them, with what the
+If's condition or the loop's bounds call first, marked. **Sequence** draws what's open as a sequence diagram, with
+modules as lifelines and the blocks as frames; the row of modules stays in view as you scroll down a long one. The button that shows on a
 row (or `*`) opens everything below it, to read or draw a whole entry point at once. The tree can't see
 `Application.Run` or `OnAction`.
 

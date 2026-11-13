@@ -41,7 +41,7 @@ step K0. The progress table says where the work is.
 | [K3](#step-k3-the-repositorys-name) | The repository's name on GitHub and on disk, `PATH`, and Claude's memory folder | You, then Claude | Not started: yours to begin, and nothing in L1–L6 waits for it |
 | [L1](#step-l1-lock-the-view) | Lock view: what's shown stays as it is while you click around, and only the source changes | Claude | Done |
 | [L2](#step-l2-peek-at-a-reference) | Peek: a line in Uses / Used by opens a preview of the code around it, without leaving the selection | Claude | Done |
-| [L3](#step-l3-calls-tab-follow-ups-e5b) | Calls tab follow-ups (E5b): Ifs whose conditions make calls, and the sequence diagram's participants staying in view | Claude | Not started |
+| [L3](#step-l3-calls-tab-follow-ups-e5b) | Calls tab follow-ups (E5b): Ifs whose conditions make calls, and the sequence diagram's participants staying in view | Claude | Done; your real example is still to be checked |
 | [L4](#step-l4-views-file-built-into-the-page-g2) | A views file in the output folder is built into the page (G2) | Claude | Not started |
 | [L5](#step-l5-printing-and-descriptions-g3) | Printing a view or every view, with descriptions (G3) | Claude, then you on a work machine | Not started |
 | [L6](#step-l6-copy-a-view-as-text-g4) | Copy a view as text, to paste into a chat (G4) | Claude | Not started |
@@ -609,6 +609,17 @@ Two things to know when you try it:
   the source panel scrolls once it takes up most of the panel.
 
 ### Step L3: Calls tab follow-ups (E5b)
+
+Done on 2026-11-13, but for one thing that's yours: **the fix is for the likely cause below, and hasn't been seen
+against your real example,** which I don't have. Open that workbook's page with vbadoc 0.34.0 and look at the
+procedure: the If should now be a row holding the calls its condition makes, marked "condition". If it still isn't
+there, there's another cause, and the procedure's text (or its shape, with the names changed) is what's needed to
+find it. On the private workbook here, 13 blocks now show that didn't, none of them with `Or` or `And`.
+
+What was built: a call made by a block's own statement (an If's or ElseIf's condition, a Select Case's value, a
+Case's values, a loop's bounds or condition, a With's object) is that block's, first in its row in the tree and in
+its frame in the sequence diagram, and marked. Each starting procedure's title and participants stay at the top of
+the view while its diagram is scrolled through, and move sideways with it.
 
 Raised on 2026-11-06 while H1 was under way.
 

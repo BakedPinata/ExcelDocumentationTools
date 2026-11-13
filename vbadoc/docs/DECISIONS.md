@@ -606,6 +606,37 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Calls tab follow-ups (0.34.0, step L3 of the generalisation plan)
+
+- **The missing Ifs.** Raised on 2026-11-06: Ifs with `Or` or `And` conditions seemed not to show, only the Else or
+  ElseIf after them. The cause was as the plan guessed, and `Or` had nothing to do with it: a call in a condition
+  belonged to the block around the If, and a block row was drawn only when its body held a call. So an If whose body
+  made no call had no row, and its condition's calls sat loose above the Else.
+- **A statement says which block it opens** (`Statement.Opens`, from `BlockTracker`), and a call made by it carries
+  that block as `Call.Condition`, `condition` in the page's data. `Block` is unchanged, the block around the
+  statement, since that's where the condition runs, and the unit tests that say so still pass. An Else opens a block
+  but has nothing to work out, so it has no `Opens`.
+- **Every kind of block, not only If:** a Select Case's value, a Case's values, a For's bounds or collection, a Do's
+  or While's condition and a With's object are worked out by the block's own statement, and a call there was loose in
+  the same way. Each is marked with what it is: condition, value tested, case value, loop bounds, with object.
+- **`Loop While …` and `Loop Until …` stay inside their loop,** as closing statements always have, so their calls are
+  the loop's last and need no mark.
+- **The tree and the diagram put the condition's calls first in the block,** which is the order they run in. Closing
+  the row or frame hides them with the rest; the block's text still shows the condition.
+- **Called by says "in the condition of If …",** where it said nothing of the If at all: before, such a call was
+  reported as being in the block around the If.
+- **Checked on the private workbook:** 25 of its 213 calls are made by a block's own statement (14 Ifs, 10 loops, an
+  ElseIf), and 13 blocks have a row only because of them. None of those has `Or` or `And`, so the user's own example
+  is still to be looked at.
+- **The participants row stays in view.** Each starting procedure's diagram is an SVG of its own now (one SVG held
+  them all), in a box with a second, short SVG: its title and participants again, `position: sticky` at the top of
+  what scrolls, with a negative bottom margin so it takes no room and sits exactly over the diagram's own until the
+  diagram is scrolled. Sticky keeps it within its own diagram's box, so the row showing is always that of the diagram
+  being scrolled through, and being in the same box it moves sideways with the diagram. No script follows the
+  scrolling. A participant in the strip selects its module, as the diagram's own does.
+- **Switching between Tree and Sequence starts at the top,** since how far one was scrolled means nothing in the
+  other. Found while testing the strip.
+
 ### Peek (0.33.0, step L2 of the generalisation plan)
 
 - **Peek is the shell's** (see `shared/README.md`), so the Dependencies list changed only in what a click on a line

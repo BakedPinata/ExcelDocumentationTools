@@ -16,8 +16,9 @@ rather than repeating it.
   reference. Its progress table says which step is next. K0 is done: the user's answers are in its section 1, and
   the plan is revised for them. K1 is done: the root solution is `CodeDocumentationTools.sln` and the shared library
   `CodeDocumenter.Shared`. K2 is done: the desktop app is `codedocui`. K3 (the repository's own name) is the user's
-  to start, and nothing waits for it. L1 is done: Lock view. L2 is done: Peek.
-- **vbadoc 0.33.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+  to start, and nothing waits for it. L1 is done: Lock view. L2 is done: Peek. L3 is done: the Calls tab's follow-ups, with the user's
+  real example of the missing Ifs still to be checked.
+- **vbadoc 0.34.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the generalisation plan. Since 0.31.0 (step J2) it writes into add-ins (`.xlam`) as into workbooks.
@@ -45,6 +46,20 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-13: Step L3, Calls tab follow-ups (E5b)
+
+- A call made by a block's own statement is that block's: an If whose condition makes calls has a row, and a frame
+  in the sequence diagram, even when nothing inside it makes a call, with those calls first and marked. The same for
+  a Select Case's value, a Case's values, a loop's bounds or condition and a With's object. The parser says which
+  block a statement opens (`Statement.Opens`), and a call carries it (`Call.Condition`).
+- The sequence diagram's participants stay in view: each starting procedure's diagram is its own SVG, with a sticky
+  copy of its title and participants. No script follows the scrolling.
+- Not checked against the user's real example of the missing Ifs, which isn't here; the plan says what to look for.
+  On the private workbook, 13 blocks now show that didn't.
+- Checked: every test passes (two new unit tests, three new browser tests), and screenshots of the tree, the diagram
+  and the strip in both themes.
+- vbadoc 0.34.0.
 
 ### 2026-11-13: Step L2, Peek
 
