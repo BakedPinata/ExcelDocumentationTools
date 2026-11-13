@@ -64,6 +64,20 @@ public sealed class PageFixture : IAsyncLifetime
   /// <summary>M code that would run if the page ever treated source as markup.</summary>
   public const string HostileSource = "let\r\n    Html = \"</pre><script>window.injected = true</script>\"\r\nin\r\n    Html\r\n";
 
+  /// <summary>The sample, made in a folder that holds a views file, so its "Orders and its source" view is in the page.</summary>
+  public string ViewsBuiltInPage { get; private set; } = string.Empty;
+
+  private const string BuiltInViewsFile = """
+    {
+      "formatVersion": 1,
+      "tool": "pqdoc",
+      "workbook": "sales-model",
+      "views": [
+        { "name": "Orders and its source", "description": "Where orders come from", "filter": ["Orders", "Source"], "hidden": [], "show": { "off": [], "radios": {} } }
+      ]
+    }
+    """;
+
   public async ValueTask InitializeAsync()
   {
     var exitCode = Microsoft.Playwright.Program.Main(["install", "chromium"]);
@@ -80,6 +94,13 @@ public sealed class PageFixture : IAsyncLifetime
     SamplePage = Generate(sample, "sales-model");
     AwkwardPage = Generate(AwkwardGraph(), "R&D <draft>");
     LargePage = Generate(LargeGraph(300), "large-model");
+
+    // A views file in the output folder is built into the page (FR-HTML-23), as the tool does.
+    var viewsFolder = Path.Combine(root, "views-built-in");
+    Directory.CreateDirectory(viewsFolder);
+    File.WriteAllText(Path.Combine(viewsFolder, "pqdoc-views.json"), BuiltInViewsFile);
+    ViewsBuiltInPage = Generate(sample, "sales-model", folder: viewsFolder,
+      viewsJson: CodeDocumenter.Shared.Pages.ViewsFile.Read(viewsFolder, "pqdoc", "sales-model").Json);
 
     SourceFolder = CopyOfSources();
     var sources = SourcesIn(SourceFolder);
@@ -187,9 +208,10 @@ public sealed class PageFixture : IAsyncLifetime
     IReadOnlyList<QueryFile>? sources = null,
     bool embed = false,
     string? folder = null,
-    IReadOnlyList<QueryDetails>? details = null)
+    IReadOnlyList<QueryDetails>? details = null,
+    string? viewsJson = null)
   {
-    var context = new ExportContext(outputName, new DateTimeOffset(2026, 10, 2, 10, 3, 0, TimeSpan.FromHours(8)), sources, embed, details);
+    var context = new ExportContext(outputName, new DateTimeOffset(2026, 10, 2, 10, 3, 0, TimeSpan.FromHours(8)), sources, embed, details, viewsJson);
     var path = Path.Combine(folder ?? root, $"{Guid.NewGuid():N}.html");
     File.WriteAllText(path, HtmlExporter.Render(graph, context), new UTF8Encoding(false));
     return path;

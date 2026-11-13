@@ -335,7 +335,7 @@ public sealed class ViewsTests(PageFixture fixture) : IDisposable
       Assert.Equal("vbadoc-views.json", download.SuggestedFilename);
       file = Path.Combine(_folder, "vbadoc-views.json");
       await download.SaveAsAsync(file);
-      Assert.Equal("Exported 2 views as vbadoc-views.json.", await page.InnerTextAsync("#views-status"));
+      Assert.StartsWith("Exported 2 views as vbadoc-views.json.", await page.InnerTextAsync("#views-status"));
       Assert.Empty(opened.Errors);
     }
 

@@ -389,6 +389,8 @@ body.resizing { cursor: col-resize; user-select: none; }
 .views-open:hover .views-name { text-decoration: underline; }
 .views-name { font-weight: 600; overflow-wrap: anywhere; }
 .views-changed { margin-left: 4px; padding: 0 6px; font-size: 11px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; }
+/* Where a view comes from: built into the page, or the person's own version of one that is. */
+.views-tag { margin-left: 4px; padding: 0 6px; font-size: 11px; font-weight: 400; color: var(--text-muted); border: 1px solid var(--border); border-radius: 999px; white-space: nowrap; }
 .views-description { display: block; color: var(--text-muted); white-space: pre-line; overflow-wrap: anywhere; }
 .views-item-actions { display: flex; flex: none; gap: 10px; padding: 3px 0; font-size: 12px; white-space: nowrap; }
 .views-none { margin: 0 0 4px; }

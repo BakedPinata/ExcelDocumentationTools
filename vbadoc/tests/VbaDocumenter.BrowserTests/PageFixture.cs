@@ -48,6 +48,7 @@ public sealed class PageFixture : IAsyncLifetime
         "predeclared-embedded", embedSource: true);
     ConditionsEmbedded = Generate(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules().Append(Conditions)), "Conditions.xlsm",
         "conditions-embedded", embedSource: true);
+    ViewsBuiltIn = Generate(sample, "SampleVba.xlsm", "views-built-in", embedSource: true, viewsFile: BuiltInViewsFile);
     ReferencesEmbedded = Generate(SyntheticWorkbook.Xlsm(Fixtures.SampleVbaModules(), references:
         [
           ("stdole", @"*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\system32\stdole2.tlb#OLE Automation"),
@@ -96,6 +97,30 @@ public sealed class PageFixture : IAsyncLifetime
 
   /// <summary>SampleVba with a class that has a default instance (VB_PredeclaredId = True), used by its name.</summary>
   public string PredeclaredEmbedded { get; private set; } = "";
+
+  /// <summary>
+  /// The sample, made in a folder that holds a views file (step L4 of the generalisation plan), so its views are built
+  /// into the page: "Orders", and "Old logging", which mentions a module the workbook doesn't have.
+  /// </summary>
+  public string ViewsBuiltIn { get; private set; } = "";
+
+  /// <summary>The "Orders" view of <see cref="ViewsBuiltIn"/>, as the page keeps it, for a browser's own copy of it.</summary>
+  public const string OrdersView = """
+      { "name": "Orders", "description": "The classes that handle an order", "tab": "classes", "filter": ["Order", "OrderService"], "hidden": [], "show": { "off": [], "radios": {} } }
+      """;
+
+  const string BuiltInViewsFile = """
+      {
+        "formatVersion": 1,
+        "tool": "vbadoc",
+        "workbook": "SampleVba.xlsm",
+        "views": [
+      """ + OrdersView + """
+          ,
+          { "name": "Old logging", "filter": ["Logger", "Retired"], "hidden": [], "show": { "off": [], "radios": {} } }
+        ]
+      }
+      """;
 
   /// <summary>
   /// The sample with a module whose blocks call things in their own statements (step L3 of the generalisation plan):
@@ -241,13 +266,16 @@ public sealed class PageFixture : IAsyncLifetime
   }
 
   /// <summary>Runs the same steps as the vbadoc console app and returns the output folder.</summary>
-  string Generate(byte[] workbook, string title, string folderName, bool embedSource)
+  string Generate(byte[] workbook, string title, string folderName, bool embedSource, string? viewsFile = null)
   {
     var folder = Path.Combine(_root, folderName);
     var project = WorkbookReader.Read(workbook);
     var model = DependencyAnalyser.Analyse(ProjectParser.Parse(project));
     ProjectExporter.Export(project, folder);
-    HtmlPageWriter.Write(folder, HtmlPageWriter.FileName(HtmlPageWriter.DefaultName(title)), HtmlPageWriter.Build(model, project, title, embedSource));
+    // A views file in the output folder is built into the page, as the tool does.
+    if (viewsFile != null) File.WriteAllText(Path.Combine(folder, "vbadoc-views.json"), viewsFile);
+    var views = HtmlPageWriter.ReadViews(folder, title);
+    HtmlPageWriter.Write(folder, HtmlPageWriter.FileName(HtmlPageWriter.DefaultName(title)), HtmlPageWriter.Build(model, project, title, embedSource, views.Json));
     return folder;
   }
 

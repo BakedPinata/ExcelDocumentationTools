@@ -119,6 +119,9 @@
 //                                      the workbook no longer has can be listed. name can't be one of the shell's own:
 //                                      name, description, tab, filter, alone, lock, hidden, show, selection, focus,
 //                                      explorer or panel
+//   Views built into the page: a tool that finds <tool>-views.json in its output folder puts its views in the page
+//   (ShellPage.ViewsJson, a JSON block with the id <tool>-views), and the Views menu lists them before the person's
+//   own, marked "in the page". Nothing more is needed from the tool's script.
 //   shell.onViewApplied(fn)            called once a saved view has been opened, with the view's selection (an id, or
 //                                      null), in place of onFilterChange, onHiddenChange and onChoicesChange, so the
 //                                      tool draws its views once. The shell has already taken the selection, its focus
@@ -947,7 +950,9 @@
       alone = new Set(loadIds(aloneKey()));
       viewLock = loadLock();
       hiddenIds = loadIds(hiddenKey());
+      builtInViews = loadBuiltInViews();
       savedViews = loadViews();
+      if (dropRedundantViews()) storeViews(); // so an old copy can't come back over a newer page's view
       updateLock();
       updateFilter();
       updateNotes();
@@ -1906,6 +1911,13 @@
     // them in a file, <tool>-views.json, which works offline in a page opened from disk. The file is JSON with a format
     // version and the workbook's name, written with sorted keys and 2-space indentation so its diffs are small.
     //
+    // Views can also be built into the page (step L4 of the generalisation plan): a tool that finds <tool>-views.json
+    // in its output folder puts the file's views in the page, in a JSON block with the id <tool>-views, so everyone
+    // who opens the page has them and the file is versioned with the source. The menu lists them first, marked "in
+    // the page". They can't be changed there, only in the file: Save over one makes the person's own version of it,
+    // kept in the browser and marked "yours", which shows in its place until it's deleted. A version that's the same
+    // as the page's isn't kept, so once an exported file has been built in, the browser's copies give way to it.
+    //
     // Opening a view sets everything at once, the selection included, telling the tool through onViewApplied rather
     // than the selection's, the filter's, hiding's and the choices' own events, so each view is drawn once. What it
     // mentions that the workbook no longer has is left out and listed, in the page and on the console, never treated
@@ -1915,7 +1927,8 @@
     var VIEW_NAME_LENGTH = 80;
     var SHELL_PARTS = ["name", "description", "tab", "filter", "alone", "lock", "hidden", "show", "selection", "focus", "explorer", "panel"];
     var viewParts = [];          // { name, save(), apply(value), ids(value) }, from the tool
-    var savedViews = [];         // in the menu's order
+    var savedViews = [];         // the person's own, kept in the browser, in the order saved
+    var builtInViews = [];       // those built into the page from <tool>-views.json, in the file's order
     var currentView = null;      // the name of the view last opened or saved, or null
     var currentArrangement = null; // how the page was arranged then, to tell whether it's changed since
     var undoState = null;        // while Undo is offered: the list as it was, and what to say once it's put back
@@ -1991,6 +2004,59 @@
         var stored = JSON.parse(settings.load(viewsKey()) || "[]");
         return Array.isArray(stored) ? stored.map(cleanView).filter(function (view) { return view !== null; }) : [];
       } catch (e) { return []; }
+    }
+
+    // The views built into the page. A later view of the same name takes an earlier one's place, as on import.
+    function loadBuiltInViews() {
+      var block = $(tool + "-views");
+      if (!block) return [];
+      var views = [];
+      try {
+        var file = JSON.parse(block.textContent);
+        (Array.isArray(file.views) ? file.views : []).map(cleanView).forEach(function (view) {
+          if (view === null) return;
+          var at = views.map(function (v) { return v.name.toLowerCase(); }).indexOf(view.name.toLowerCase());
+          if (at >= 0) views[at] = view; else views.push(view);
+        });
+      } catch (e) { console.warn(tool + ": the views built into this page couldn't be read"); }
+      return views;
+    }
+
+    function builtInNamed(name) {
+      var wanted = name.toLowerCase();
+      return builtInViews.filter(function (view) { return view.name.toLowerCase() === wanted; })[0] || null;
+    }
+
+    // A view by name, whatever its case: the person's own first, then the page's.
+    function viewNamed(name) {
+      var at = indexOfView(name);
+      return at >= 0 ? savedViews[at] : builtInNamed(name);
+    }
+
+    function sameView(a, b) {
+      return a.description === b.description && arrangementOf(cleanView(a)) === arrangementOf(cleanView(b));
+    }
+
+    // Takes out the person's views that are the same as the page's view of that name. Returns whether there were any.
+    function dropRedundantViews() {
+      var kept = savedViews.filter(function (view) {
+        var inPage = builtInNamed(view.name);
+        return !inPage || !sameView(inPage, view);
+      });
+      var dropped = kept.length < savedViews.length;
+      savedViews = kept;
+      return dropped;
+    }
+
+    // What the menu lists: the page's views, each replaced by the person's own version if there is one, then the
+    // person's other views. { view, own (it's the person's), page (the page's view of that name, or null) }
+    function listedViews() {
+      var listed = builtInViews.map(function (inPage) {
+        var at = indexOfView(inPage.name);
+        return at >= 0 ? { view: savedViews[at], own: true, page: inPage } : { view: inPage, own: false, page: inPage };
+      });
+      savedViews.forEach(function (view) { if (!builtInNamed(view.name)) listed.push({ view: view, own: true, page: null }); });
+      return listed;
     }
 
     // Returns whether the browser kept them.
@@ -2191,29 +2257,40 @@
     // it was when the view was opened or saved.
     function renderViewsMenu() {
       renderedChanged = currentView !== null && arrangementOf(captureView()) !== currentArrangement;
-      viewsList.innerHTML = savedViews.map(function (view, i) {
+      var listed = listedViews();
+      var fileName = tool + "-views.json";
+      viewsList.innerHTML = listed.map(function (entry, i) {
+        var view = entry.view;
         var current = view.name === currentView;
         // The view showing has Save changes instead, below.
-        var saveOver = current ? "" : "<button type=\"button\" class=\"link-button\" data-view-save=\"" + i +
-          "\" title=\"Save how the page is arranged now into this view, in place of what it holds, keeping its name and description\">Save over</button> ";
+        var saveOver = current ? "" : "<button type=\"button\" class=\"link-button\" data-view-save=\"" + i + "\" title=\"" +
+          (entry.own ? "Save how the page is arranged now into this view, in place of what it holds, keeping its name and description"
+            : "Save how the page is arranged now as your own version of this view, kept in this browser, in place of the page's") +
+          "\">Save over</button> ";
+        var tag = !entry.own ? " <span class=\"views-tag\" title=\"Built into this page from " + fileName + " in its folder, so everyone who opens the page has it. Change the file and run " +
+            tool + " again to change it\">in the page</span>"
+          : entry.page ? " <span class=\"views-tag yours\" title=\"Your own version, kept in this browser, in place of the one built into the page. Delete it to go back to the page's\">yours</span>" : "";
         return "<li class=\"views-item" + (current ? " current" : "") + "\">" +
           "<button type=\"button\" class=\"views-open\" data-view-open=\"" + i + "\"" + (current ? " aria-current=\"true\"" : "") +
-          " title=\"Show the page as this view has it\"><span class=\"views-name\">" + escapeHtml(view.name) + "</span>" +
+          " title=\"Show the page as this view has it\"><span class=\"views-name\">" + escapeHtml(view.name) + "</span>" + tag +
           (current && renderedChanged ? " <span class=\"views-changed\">changed</span>" : "") +
           (view.description ? "<span class=\"views-description\">" + escapeHtml(view.description) + "</span>" : "") + "</button>" +
-          "<span class=\"views-item-actions\">" + saveOver + "<button type=\"button\" class=\"link-button\" data-view-edit=\"" + i +
+          "<span class=\"views-item-actions\">" + saveOver + (entry.own ? "<button type=\"button\" class=\"link-button\" data-view-edit=\"" + i +
           "\" title=\"Rename it or change its description\">Edit</button> <button type=\"button\" class=\"link-button\" data-view-delete=\"" + i +
-          "\" title=\"Delete this view\">Delete</button></span></li>";
+          "\" title=\"" + (entry.page ? "Delete your version, and go back to the one built into the page" : "Delete this view") + "\">Delete</button>" : "") + "</span></li>";
       }).join("");
-      $("views-none").hidden = savedViews.length > 0;
+      $("views-none").hidden = listed.length > 0;
       var update = $("views-update");
-      var at = currentView === null ? -1 : indexOfView(currentView);
-      update.hidden = at < 0 || !renderedChanged;
-      update.textContent = at < 0 ? "" : "Save changes to “" + savedViews[at].name + "”";
-      update.title = "Save how the page is arranged now into this view, keeping its name and description";
+      var showing = currentView === null ? null : viewNamed(currentView);
+      update.hidden = showing === null || !renderedChanged;
+      update.textContent = showing === null ? "" : "Save changes to “" + showing.name + "”";
+      update.title = showing !== null && indexOfView(showing.name) < 0
+        ? "Save how the page is arranged now as your own version of this view, kept in this browser, in place of the page's"
+        : "Save how the page is arranged now into this view, keeping its name and description";
       var exportButton = $("views-export");
-      exportButton.disabled = savedViews.length === 0;
-      exportButton.title = savedViews.length === 0 ? "There are no views to export yet" : "Download the views as " + tool + "-views.json";
+      exportButton.disabled = listed.length === 0;
+      exportButton.title = listed.length === 0 ? "There are no views to export yet"
+        : "Download the views as " + fileName + ". Put it in the page's folder and run " + tool + " again to build them into the page";
       updateViewsSummary();
     }
 
@@ -2242,14 +2319,19 @@
       return { views: savedViews.slice(), current: currentView, arrangement: currentArrangement, undone: undone };
     }
 
-    // Saves the page as it is now into the view at `at`, keeping its name, and its description unless given one. It's
-    // then the view showing, as a new one would be.
-    function saveOver(at, statusText, description) {
-      var before = listBefore("Put “" + savedViews[at].name + "” back as it was.");
+    // Saves the page as it is now into the view of that name, keeping its name, and its description unless given one.
+    // Over one of the page's, that makes the person's own version of it. It's then the view showing, as a new one
+    // would be.
+    function saveOver(name, statusText, description) {
+      var at = indexOfView(name);
+      var existing = at >= 0 ? savedViews[at] : builtInNamed(name);
+      if (!existing) return;
+      var before = listBefore("Put “" + existing.name + "” back as it was.");
       var view = captureView();
-      view.name = savedViews[at].name;
-      view.description = description !== undefined ? description : savedViews[at].description;
-      savedViews[at] = view;
+      view.name = existing.name;
+      view.description = description !== undefined ? description : existing.description;
+      if (at >= 0) savedViews[at] = view; else savedViews.push(view);
+      dropRedundantViews(); // saved as the page has it: the page's will do
       currentView = view.name;
       currentArrangement = arrangementOf(view);
       closeForm();
@@ -2283,7 +2365,9 @@
       var other = editing === "new" ? null : editing;
       viewsError.hidden = false;
       if (name === "") { viewsError.textContent = "Give the view a name."; viewsName.focus(); return; }
-      if (indexOfView(name, other) >= 0) {
+      // One of the page's views counts, unless this is the person's own version of it keeping its name.
+      var inPage = builtInNamed(name);
+      if (indexOfView(name, other) >= 0 || (inPage && !(other && other.name.toLowerCase() === name.toLowerCase()))) {
         viewsError.textContent = "There's already a view called “" + name + "”.";
         // A new view can go in its place instead.
         if (editing === "new") {
@@ -2320,17 +2404,17 @@
     // Save over it, from the form's note that the name is taken: the description typed, if any, replaces the view's.
     viewsError.addEventListener("click", function (event) {
       if (!event.target.closest("#views-save-over")) return;
-      var at = indexOfView(viewsName.value.trim().slice(0, VIEW_NAME_LENGTH));
-      if (at < 0) return;
+      var existing = viewNamed(viewsName.value.trim().slice(0, VIEW_NAME_LENGTH));
+      if (!existing) return;
       var description = viewsDescription.value.trim();
-      saveOver(at, "Saved over “" + savedViews[at].name + "”.", description === "" ? undefined : description);
+      saveOver(existing.name, "Saved over “" + existing.name + "”.", description === "" ? undefined : description);
     });
 
     $("views-new").addEventListener("click", function () { openForm(null); });
 
     $("views-update").addEventListener("click", function () {
-      var at = indexOfView(currentView);
-      if (at >= 0) saveOver(at, "Saved the changes to “" + savedViews[at].name + "”.");
+      var showing = currentView === null ? null : viewNamed(currentView);
+      if (showing) saveOver(showing.name, "Saved the changes to “" + showing.name + "”.");
     });
 
     viewsList.addEventListener("click", function (event) {
@@ -2338,25 +2422,29 @@
       var save = event.target.closest("[data-view-save]");
       var edit = event.target.closest("[data-view-edit]");
       var remove = event.target.closest("[data-view-delete]");
+      var listed = listedViews();
+      function entryOf(button, attribute) { return listed[Number(button.getAttribute(attribute))] || null; }
       if (open) {
-        var view = savedViews[Number(open.getAttribute("data-view-open"))];
+        var opened = entryOf(open, "data-view-open");
         viewsBox.open = false;
         setViewsStatus("");
-        if (view) openView(view);
+        if (opened) openView(opened.view);
       } else if (save) {
-        var target = Number(save.getAttribute("data-view-save"));
-        if (savedViews[target]) saveOver(target, "Saved over “" + savedViews[target].name + "”.");
+        var target = entryOf(save, "data-view-save");
+        if (target) saveOver(target.view.name, target.own ? "Saved over “" + target.view.name + "”." : "Saved your own version of “" + target.view.name + "”.");
       } else if (edit) {
-        openForm(savedViews[Number(edit.getAttribute("data-view-edit"))]);
+        var edited = entryOf(edit, "data-view-edit");
+        if (edited && edited.own) openForm(edited.view);
       } else if (remove) {
-        var at = Number(remove.getAttribute("data-view-delete"));
-        var name = savedViews[at].name;
+        var removed = entryOf(remove, "data-view-delete");
+        if (!removed || !removed.own) return;
+        var name = removed.view.name;
         var before = listBefore("Brought back “" + name + "”.");
-        savedViews.splice(at, 1);
+        savedViews.splice(savedViews.indexOf(removed.view), 1);
         if (currentView === name) currentView = null;
         closeForm();
         renderViewsMenu();
-        setViewsStatus("Deleted “" + name + "”." + storeViewsAndSay(), false, before);
+        setViewsStatus((removed.page ? "Deleted your version of “" + name + "”. The page's own shows again." : "Deleted “" + name + "”.") + storeViewsAndSay(), false, before);
         $("views-undo").focus();
       }
     });
@@ -2399,13 +2487,17 @@
 
     // The workbook's name goes in the file, so an import into another workbook's page can say so first.
     function exportViews() {
-      var file = { formatVersion: VIEWS_FORMAT, tool: tool, views: savedViews };
+      // Every view listed, the page's among them with the person's versions in their place, so the file can take the
+      // place of the one the page was made with.
+      var views = listedViews().map(function (entry) { return entry.view; });
+      var file = { formatVersion: VIEWS_FORMAT, tool: tool, views: views };
       if (favouriteSource) file.workbook = favouriteSource.workbook;
       downloadJson(tool + "-views.json", file);
-      setViewsStatus("Exported " + viewsText(savedViews.length) + " as " + tool + "-views.json.", false);
+      setViewsStatus("Exported " + viewsText(views.length) + " as " + tool + "-views.json. In the page's folder, " + tool +
+        " builds them into the page the next time it runs.", false);
     }
 
-    $("views-export").addEventListener("click", function () { if (savedViews.length > 0) exportViews(); });
+    $("views-export").addEventListener("click", function () { if (listedViews().length > 0) exportViews(); });
     $("views-import-button").addEventListener("click", function () { viewsInput.click(); });
 
     viewsInput.addEventListener("change", function () {
@@ -2482,6 +2574,7 @@
             " that this workbook doesn't have: " + notHere.join(", "));
         }
       });
+      dropRedundantViews(); // those the page has already, as they are
       renderViewsMenu();
       var skipped = reading.skipped;
       setViewsStatus("Imported " + viewsText(reading.views.length) + " from " + reading.fileName +
