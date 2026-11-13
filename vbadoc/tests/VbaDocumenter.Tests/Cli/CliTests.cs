@@ -1,6 +1,6 @@
 using System.CommandLine.Help;
 using System.CommandLine.Invocation;
-using ExcelDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Files;
 using VbaDocumenter.Cli;
 using VbaDocumenter.Cli.Logging;
 

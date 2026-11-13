@@ -92,7 +92,7 @@ Agreed on 2026-11-13. Until a tool says otherwise:
   as where a page went, is added to the tool.
 - Each tool's folder has a `README.md`, `Requirements.md`, `CLAUDE.md`, `docs/PLAN.md`, `docs/DECISIONS.md`, its
   solution, `src/` and `tests/`.
-- **Code both tools need lives once, in `shared/`** (`ExcelDocumenter.Shared`, with `ExcelDocumenter.Shared.Tests` and
+- **Code both tools need lives once, in `shared/`** (`CodeDocumenter.Shared`, with `CodeDocumenter.Shared.Tests` and
   its own solution). It holds only what is duplicated or needed by both: opening a workbook, exit codes, the build
   stamp, writing a source folder and atomic writes, asking before overwriting (`--on-exists`, `--force`), the page
   shell and its helpers, and vendored d3. The tools' Core
@@ -181,7 +181,7 @@ Agreed on 2026-11-13. Until a tool says otherwise:
 - **Each tool keeps its own global, data block and stored settings** (`window.vbadoc`, `#vbadoc-data`, `vbadoc-…`),
   so its views talk to the tool, not the shell, and a setting remembered before the shell keeps working.
 - **Generated pages never load anything from the network.**
-- Vendored libraries are stored once, byte-for-byte unchanged, in `shared/src/ExcelDocumenter.Shared/Resources/Vendor/`
+- Vendored libraries are stored once, byte-for-byte unchanged, in `shared/src/CodeDocumenter.Shared/Resources/Vendor/`
   with their licence files, and are inlined into each page with the licence as a comment.
 - Colours are validated with the dataviz palette validator, not eyeballed.
 
@@ -220,7 +220,7 @@ Agreed on 2026-11-13. Until a tool says otherwise:
   that the licence is still allowed (see above). Then merge it.
 - Dependabot doesn't check licences, and it doesn't update the .NET SDK, because moving to a new .NET version is a
   deliberate decision. Vendored d3 isn't a package dependency, so it's still updated by hand, following the `README.md`
-  in `shared/src/ExcelDocumenter.Shared/Resources/Vendor/`.
+  in `shared/src/CodeDocumenter.Shared/Resources/Vendor/`.
 
 ## Claude Code sessions
 

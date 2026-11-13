@@ -3,8 +3,8 @@ using System.CommandLine.Parsing;
 using ExcelDocumenter.Desktop.Documenting;
 using ExcelDocumenter.Desktop.Importing;
 using ExcelDocumenter.Desktop.Running;
-using ExcelDocumenter.Shared.Files;
-using ExcelDocumenter.Shared.Importing;
+using CodeDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Importing;
 using PqCli = PowerQueryDocumenter.Cli;
 using VbaCli = VbaDocumenter.Cli;
 

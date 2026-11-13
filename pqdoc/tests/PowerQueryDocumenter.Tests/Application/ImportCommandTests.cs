@@ -1,4 +1,4 @@
-using ExcelDocumenter.Shared;
+using CodeDocumenter.Shared;
 using PowerQueryDocumenter.Tests.TestSupport;
 using Serilog.Events;
 

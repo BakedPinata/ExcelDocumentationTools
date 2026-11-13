@@ -1,5 +1,5 @@
-using ExcelDocumenter.Shared.Files;
-using ExcelDocumenter.Shared.Importing;
+using CodeDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Importing;
 
 namespace VbaDocumenter.Tests.Support;
 

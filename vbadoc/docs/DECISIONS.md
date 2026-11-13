@@ -17,7 +17,7 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **d3 7.9.0**, the latest. It is the only vendored script since 0.7.0, when the class diagram moved from Mermaid to d3
   (step F1 of the feedback plan; see "Built in stage 5").
 - Vendored scripts are stored **byte-for-byte unchanged** with their licence files (see
-  `shared/src/ExcelDocumenter.Shared/Resources/Vendor/README.md` since step C1). The page writer adds each licence as a
+  `shared/src/CodeDocumenter.Shared/Resources/Vendor/README.md` since step C1). The page writer adds each licence as a
   comment above its script, and must refuse a script containing `<script` or `</script`, which would break inlining.
 - **Central Package Management.** Every NuGet version is in the root `Directory.Packages.props`, and `PackageReference`
   items in the projects have no `Version`. Add or upgrade a package there, and keep a comment beside any version chosen for a reason.

@@ -21,8 +21,8 @@ Code with the C# Dev Kit.
 From the repository root:
 
 ```
-dotnet build ExcelDocumentationTools.sln                      # build every tool
-dotnet test --solution ExcelDocumentationTools.sln            # run every test
+dotnet build CodeDocumentationTools.sln                      # build every tool
+dotnet test --solution CodeDocumentationTools.sln            # run every test
 dotnet test --project vbadoc/tests/VbaDocumenter.Tests        # run one test project
 ```
 
@@ -61,7 +61,7 @@ dotnet publish xldocui/src/ExcelDocumenter.Desktop -c Release -p:PublishProfile=
 
 Each tool becomes a single self-contained executable for 64-bit Windows, so the machine it runs on needs no .NET
 runtime. Publishing the desktop app also needs the Windows desktop runtime pack, which `dotnet publish` gets from
-NuGet. They all go in one folder, `%USERPROFILE%\source\Executables\ExcelDocumentationTools\`, so adding that folder
+NuGet. They all go in one folder, `%USERPROFILE%\source\Executables\CodeDocumentationTools\`, so adding that folder
 to your `PATH` adds every tool, including any added later.
 
 ## Licence

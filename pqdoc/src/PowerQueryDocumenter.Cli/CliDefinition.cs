@@ -1,7 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
-using ExcelDocumenter.Shared.CommandLine;
-using ExcelDocumenter.Shared.Files;
+using CodeDocumenter.Shared.CommandLine;
+using CodeDocumenter.Shared.Files;
 using PowerQueryDocumenter.Core.Configuration;
 
 namespace PowerQueryDocumenter.Cli;

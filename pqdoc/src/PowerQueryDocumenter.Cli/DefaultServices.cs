@@ -1,4 +1,4 @@
-using ExcelDocumenter.Shared.CommandLine;
+using CodeDocumenter.Shared.CommandLine;
 using PowerQueryDocumenter.Core.Application;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Cli.Logging;

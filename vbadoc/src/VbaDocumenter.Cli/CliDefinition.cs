@@ -1,6 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
-using ExcelDocumenter.Shared.CommandLine;
+using CodeDocumenter.Shared.CommandLine;
 
 namespace VbaDocumenter.Cli;
 

@@ -2,8 +2,8 @@ using ExcelDocumenter.Desktop.Documenting;
 using ExcelDocumenter.Desktop.Importing;
 using ExcelDocumenter.Desktop.Running;
 using ExcelDocumenter.Desktop.Settings;
-using ExcelDocumenter.Shared.Files;
-using ExcelDocumenter.Shared.Importing;
+using CodeDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Importing;
 using PowerQueryDocumenter.Core.Configuration;
 
 namespace ExcelDocumenter.Desktop.Tests.Settings;

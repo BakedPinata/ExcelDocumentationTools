@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
-using ExcelDocumenter.Shared;
-using ExcelDocumenter.Shared.Pages;
+using CodeDocumenter.Shared;
+using CodeDocumenter.Shared.Pages;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Core.Export;
 using PowerQueryDocumenter.Core.Extraction;

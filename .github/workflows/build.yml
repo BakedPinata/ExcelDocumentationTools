@@ -25,7 +25,7 @@ jobs:
           global-json-file: global.json
 
       - name: Build
-        run: dotnet build ExcelDocumentationTools.sln -warnaserror
+        run: dotnet build CodeDocumentationTools.sln -warnaserror
 
       # The browser tests would install Chromium themselves, but a failed download then only shows as "exit code 1".
       # As a step of its own, the reason appears in the log.
@@ -34,4 +34,4 @@ jobs:
 
       - name: Test
         # global.json switches dotnet test to the Microsoft Testing Platform, which takes the solution as --solution.
-        run: dotnet test --solution ExcelDocumentationTools.sln --no-build
+        run: dotnet test --solution CodeDocumentationTools.sln --no-build

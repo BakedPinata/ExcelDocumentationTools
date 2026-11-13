@@ -1,6 +1,6 @@
 using ExcelDocumenter.Desktop.Running;
-using ExcelDocumenter.Shared.Importing;
-using ExcelDocumenter.Shared.Workbooks;
+using CodeDocumenter.Shared.Importing;
+using CodeDocumenter.Shared.Workbooks;
 using PqCli = PowerQueryDocumenter.Cli;
 using VbaCli = VbaDocumenter.Cli;
 

@@ -1,5 +1,5 @@
-using ExcelDocumenter.Shared.Files;
-using ExcelDocumenter.Shared.Workbooks;
+using CodeDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Workbooks;
 using PowerQueryDocumenter.Core.Extraction;
 
 namespace PowerQueryDocumenter.Core.Output;

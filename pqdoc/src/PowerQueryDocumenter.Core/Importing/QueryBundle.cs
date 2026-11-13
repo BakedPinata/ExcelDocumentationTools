@@ -1,5 +1,5 @@
 using System.Text;
-using ExcelDocumenter.Shared.Importing;
+using CodeDocumenter.Shared.Importing;
 using PowerQueryDocumenter.Core.Model;
 
 namespace PowerQueryDocumenter.Core.Importing;

@@ -32,7 +32,7 @@
 (function () {
   "use strict";
 
-  var shell = window.ExcelDocumenterShell.create({ tool: "vbadoc", panel: "source", rememberView: true });
+  var shell = window.CodeDocumenterShell.create({ tool: "vbadoc", panel: "source", rememberView: true });
   var data = shell.data;
   var modulesById = new Map();
   var membersById = new Map();

@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text;
-using ExcelDocumenter.Shared;
-using ExcelDocumenter.Shared.Files;
-using ExcelDocumenter.Shared.Pages;
+using CodeDocumenter.Shared;
+using CodeDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Pages;
 using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Extraction;
 

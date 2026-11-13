@@ -1,7 +1,7 @@
 using ExcelDocumenter.Desktop.Importing;
 using ExcelDocumenter.Desktop.Running;
-using ExcelDocumenter.Shared.Importing;
-using ExcelDocumenter.Shared.Workbooks;
+using CodeDocumenter.Shared.Importing;
+using CodeDocumenter.Shared.Workbooks;
 
 namespace ExcelDocumenter.Desktop.Tests.Importing;
 

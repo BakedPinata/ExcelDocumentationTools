@@ -1,8 +1,8 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using ExcelDocumenter.Shared;
-using ExcelDocumenter.Shared.Files;
+using CodeDocumenter.Shared;
+using CodeDocumenter.Shared.Files;
 using PowerQueryDocumenter.Core.Application;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Core.Export;

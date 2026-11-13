@@ -1,4 +1,4 @@
-using ExcelDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Files;
 using VbaDocumenter.Cli.Logging;
 
 namespace VbaDocumenter.Cli;

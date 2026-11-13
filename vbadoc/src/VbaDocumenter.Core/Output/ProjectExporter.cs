@@ -1,6 +1,6 @@
 using System.Text;
-using ExcelDocumenter.Shared.Files;
-using ExcelDocumenter.Shared.Workbooks;
+using CodeDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Workbooks;
 using VbaDocumenter.Core.Extraction;
 
 namespace VbaDocumenter.Core.Output;

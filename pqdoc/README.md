@@ -367,7 +367,7 @@ analyser does not change.
 | `Microsoft.Playwright` | Browser tests only |
 
 The `.env` reader is a small hand-written parser rather than a package. D3.js v7.9.0 is vendored
-once for both tools in `shared/src/ExcelDocumenter.Shared/Resources/Vendor` (ISC licence, see
+once for both tools in `shared/src/CodeDocumenter.Shared/Resources/Vendor` (ISC licence, see
 `d3.LICENSE.txt`) and embedded into the HTML output.
 
 ## Tests

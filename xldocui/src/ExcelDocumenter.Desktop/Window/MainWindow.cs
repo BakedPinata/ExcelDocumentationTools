@@ -5,7 +5,7 @@ using ExcelDocumenter.Desktop.Documenting;
 using ExcelDocumenter.Desktop.Importing;
 using ExcelDocumenter.Desktop.Running;
 using ExcelDocumenter.Desktop.Settings;
-using ExcelDocumenter.Shared;
+using CodeDocumenter.Shared;
 using PowerQueryDocumenter.Core.Export;
 using PqCli = PowerQueryDocumenter.Cli;
 using VbaCli = VbaDocumenter.Cli;

@@ -1,9 +1,9 @@
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
-using ExcelDocumenter.Shared;
-using ExcelDocumenter.Shared.Importing;
-using ExcelDocumenter.Shared.Workbooks;
+using CodeDocumenter.Shared;
+using CodeDocumenter.Shared.Importing;
+using CodeDocumenter.Shared.Workbooks;
 using PowerQueryDocumenter.Core.Extraction;
 using PowerQueryDocumenter.Tests.TestSupport;
 using Serilog.Events;

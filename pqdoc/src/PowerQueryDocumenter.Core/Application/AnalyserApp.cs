@@ -1,6 +1,6 @@
-using ExcelDocumenter.Shared;
-using ExcelDocumenter.Shared.Files;
-using ExcelDocumenter.Shared.Workbooks;
+using CodeDocumenter.Shared;
+using CodeDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Workbooks;
 using PowerQueryDocumenter.Core.Analysis;
 using PowerQueryDocumenter.Core.Configuration;
 using PowerQueryDocumenter.Core.Export;

@@ -1,10 +1,10 @@
 using System.CommandLine;
 using System.Diagnostics;
 using System.CommandLine.Invocation;
-using ExcelDocumenter.Shared;
-using ExcelDocumenter.Shared.CommandLine;
-using ExcelDocumenter.Shared.Files;
-using ExcelDocumenter.Shared.Workbooks;
+using CodeDocumenter.Shared;
+using CodeDocumenter.Shared.CommandLine;
+using CodeDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Workbooks;
 using Serilog;
 using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Extraction;

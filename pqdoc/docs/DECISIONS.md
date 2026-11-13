@@ -27,7 +27,7 @@ or that change it. Add to this file whenever a new decision is agreed. Conventio
 - **An environment variable or `.env` file, not .NET user secrets**, configures the integration tests. The tool already
   reads both, they work the same way locally and in a CI pipeline, and they need no extra packages.
 - **The PlantUML user agent is `pqdoc/<version>`**, with the version read from the assembly, so it can't drift.
-- **d3 7.9.0** is vendored byte-for-byte, once for both tools, in `shared/src/ExcelDocumenter.Shared/Resources/Vendor/`
+- **d3 7.9.0** is vendored byte-for-byte, once for both tools, in `shared/src/CodeDocumenter.Shared/Resources/Vendor/`
   since step C1. Until then pqdoc had its own copy, the same file as vbadoc's.
 - **The shared library** (1.5.1, step C1 of the feedback plan). Opening a workbook, exit codes, `ToolVersion`,
   `ExtractionException`, `AtomicFileWriter`, the folder writer behind `QueryFileExporter`, the page-building helpers and

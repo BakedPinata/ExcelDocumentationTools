@@ -1,4 +1,4 @@
-# ExcelDocumenter.Shared
+# CodeDocumenter.Shared
 
 The code both tools need, kept once. vbadoc's and pqdoc's Core libraries use it; it never uses them, and they never use
 each other. It isn't a product: it has no command line, no version of its own, and changes to it change both tools'
@@ -22,9 +22,9 @@ build stamps. See "Structure" in [docs/GUIDELINES.md](../docs/GUIDELINES.md) for
 Run these from the repository root, so both tools build and test against any change here.
 
 ```bash
-dotnet build ExcelDocumentationTools.sln -warnaserror
-dotnet test --project shared/tests/ExcelDocumenter.Shared.Tests   # this library's own tests
-dotnet test --solution ExcelDocumentationTools.sln                # everything, since both tools depend on it
+dotnet build CodeDocumentationTools.sln -warnaserror
+dotnet test --project shared/tests/CodeDocumenter.Shared.Tests   # this library's own tests
+dotnet test --solution CodeDocumentationTools.sln                # everything, since both tools depend on it
 ```
 
 ## Decisions

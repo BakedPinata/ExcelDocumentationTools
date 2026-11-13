@@ -31,7 +31,7 @@
 
   function $(id) { return document.getElementById(id); }
 
-  var shell = window.ExcelDocumenterShell.create({ tool: "pqdoc", panel: "details", rememberView: false });
+  var shell = window.CodeDocumenterShell.create({ tool: "pqdoc", panel: "details", rememberView: false });
   var data = shell.data;
   var queriesById = new Map();
   var uses = new Map();

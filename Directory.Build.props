@@ -11,7 +11,7 @@
     <Deterministic>true</Deterministic>
     <!-- Where every tool's folder publish profile puts its executable. One folder, so adding it to PATH adds them
          all. Only those profiles read it; pass -p:PublishDir=<folder> to publish somewhere else. -->
-    <ToolsPublishDir>$(USERPROFILE)\source\Executables\ExcelDocumentationTools\</ToolsPublishDir>
+    <ToolsPublishDir>$(USERPROFILE)\source\Executables\CodeDocumentationTools\</ToolsPublishDir>
   </PropertyGroup>
 
 </Project>

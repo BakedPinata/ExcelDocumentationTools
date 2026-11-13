@@ -1,5 +1,5 @@
-using ExcelDocumenter.Shared.CommandLine;
-using ExcelDocumenter.Shared.Files;
+using CodeDocumenter.Shared.CommandLine;
+using CodeDocumenter.Shared.Files;
 using Serilog;
 using VbaDocumenter.Core.Extraction;
 using VbaDocumenter.Core.Importing;

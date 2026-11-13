@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using ExcelDocumenter.Shared.Importing;
+using CodeDocumenter.Shared.Importing;
 using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Extraction;
 using VbaDocumenter.Core.Parsing;

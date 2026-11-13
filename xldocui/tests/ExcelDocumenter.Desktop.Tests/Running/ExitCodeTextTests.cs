@@ -1,6 +1,6 @@
 using System.Reflection;
 using ExcelDocumenter.Desktop.Running;
-using ExcelDocumenter.Shared;
+using CodeDocumenter.Shared;
 
 namespace ExcelDocumenter.Desktop.Tests.Running;
 

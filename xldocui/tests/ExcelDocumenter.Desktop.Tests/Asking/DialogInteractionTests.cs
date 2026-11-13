@@ -1,7 +1,7 @@
 using ExcelDocumenter.Desktop.Asking;
-using ExcelDocumenter.Shared.CommandLine;
-using ExcelDocumenter.Shared.Files;
-using ExcelDocumenter.Shared.Importing;
+using CodeDocumenter.Shared.CommandLine;
+using CodeDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Importing;
 
 namespace ExcelDocumenter.Desktop.Tests.Asking;
 

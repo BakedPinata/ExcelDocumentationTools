@@ -1,4 +1,4 @@
-using ExcelDocumenter.Shared.Workbooks;
+using CodeDocumenter.Shared.Workbooks;
 using PowerQueryDocumenter.Core.Analysis;
 
 namespace PowerQueryDocumenter.Core.Extraction;

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using ExcelDocumenter.Shared;
-using ExcelDocumenter.Shared.Pages;
+using CodeDocumenter.Shared;
+using CodeDocumenter.Shared.Pages;
 using VbaDocumenter.Core.Analysis;
 using VbaDocumenter.Core.Extraction;
 using VbaDocumenter.Core.Output;

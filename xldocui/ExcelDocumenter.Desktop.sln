@@ -5,7 +5,7 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{4F52FD11-658E-A102-6CD3-7D7C16FFA15B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelDocumenter.Shared", "..\shared\src\ExcelDocumenter.Shared\ExcelDocumenter.Shared.csproj", "{FC3C2AD5-39D1-49F1-892C-AC719B42000D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeDocumenter.Shared", "..\shared\src\CodeDocumenter.Shared\CodeDocumenter.Shared.csproj", "{FC3C2AD5-39D1-49F1-892C-AC719B42000D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "vbadoc", "vbadoc", "{41F2DAE3-1ED9-537F-0AB9-45CA0074D379}"
 EndProject

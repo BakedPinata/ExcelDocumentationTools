@@ -3,7 +3,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
-using ExcelDocumenter.Shared.Workbooks;
+using CodeDocumenter.Shared.Workbooks;
 using Serilog;
 
 namespace PowerQueryDocumenter.Core.Extraction;

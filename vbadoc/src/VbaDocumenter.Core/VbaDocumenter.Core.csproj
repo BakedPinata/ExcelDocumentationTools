@@ -6,7 +6,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\shared\src\ExcelDocumenter.Shared\ExcelDocumenter.Shared.csproj" />
+    <ProjectReference Include="..\..\..\shared\src\CodeDocumenter.Shared\CodeDocumenter.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

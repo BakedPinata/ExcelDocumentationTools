@@ -17,7 +17,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerQueryDocumenter.Browse
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{4F52FD11-658E-A102-6CD3-7D7C16FFA15B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelDocumenter.Shared", "..\shared\src\ExcelDocumenter.Shared\ExcelDocumenter.Shared.csproj", "{45912E64-8A3E-44AA-B7A7-69AB4F7DC07F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeDocumenter.Shared", "..\shared\src\CodeDocumenter.Shared\CodeDocumenter.Shared.csproj", "{45912E64-8A3E-44AA-B7A7-69AB4F7DC07F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerQueryDocumenter.Cli", "src\PowerQueryDocumenter.Cli\PowerQueryDocumenter.Cli.csproj", "{D02B7F9A-26B4-4087-800B-592C7395C9F9}"
 EndProject

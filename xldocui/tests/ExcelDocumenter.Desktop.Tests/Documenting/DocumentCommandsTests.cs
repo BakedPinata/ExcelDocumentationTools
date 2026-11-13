@@ -2,7 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Parsing;
 using ExcelDocumenter.Desktop.Documenting;
 using ExcelDocumenter.Desktop.Running;
-using ExcelDocumenter.Shared.Files;
+using CodeDocumenter.Shared.Files;
 using PowerQueryDocumenter.Core.Configuration;
 using PqCli = PowerQueryDocumenter.Cli;
 using VbaCli = VbaDocumenter.Cli;
