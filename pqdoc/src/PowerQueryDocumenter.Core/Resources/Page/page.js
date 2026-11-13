@@ -13,6 +13,8 @@
 //   pqdoc.hidden() / isHidden(id) / toggleHidden(id)   the queries hidden from the graph
 //   pqdoc.shows(id) / shownKey() / onShownChange(fn)   whether the graph shows a query: kept by the Show… choices, in
 //                                     the filter and not hidden. The key changes with any of them
+//   pqdoc.preparePrint(which, options) / finishPrint()   the shell's print document, made without printing it, and
+//                                     the page put back afterwards: for tests
 //   pqdoc.locked() / onLockChange(fn) / lockSource(view, fn)   the shell's Lock view: whether it's on; fn(on) when it
 //                                     changes, just before onShownChange; and a view's say in what locking ticks:
 //                                     fn() gives { ids } for what it shows now, when it's the open view
@@ -408,6 +410,8 @@
     shows: shows,
     shownKey: shownKey,
     onShownChange: function (fn) { listeners.shown.push(fn); },
+    preparePrint: shell.print.prepare,
+    finishPrint: shell.print.finish,
     locked: shell.lock.on,
     onLockChange: function (fn) { listeners.lock.push(fn); },
     lockSource: function (view, fn) { lockSources[view] = fn; },
@@ -454,6 +458,35 @@
     pickFor: function (id) { return id; },
     references: [],
     writeTo: "--new Shared.xlsx"
+  });
+
+  // Printing: the shell makes the document; pqdoc says when the graph is still, that it's the diagram, and what
+  // there is to say about a query.
+  shell.print.init({
+    ready: function () {
+      return new Promise(function (resolve) {
+        var tries = 0;
+        (function check() {
+          window.setTimeout(function () {
+            if ((window.pqdocGraph && !window.pqdocGraph.moving()) || ++tries > 80) resolve(); else check();
+          }, 100);
+        })();
+      });
+    },
+    element: function () { return shell.activeView() === "graph" ? $("graph-svg") : null; },
+    describe: function (id) {
+      var query = queriesById.get(id);
+      if (!query) return null;
+      return {
+        name: query.id,
+        kind: query.kind === "function" ? "Function" : "Query",
+        note: ROLE_TEXT[query.role] + (query.inCycle ? " Part of a circular dependency." : ""),
+        description: query.description || "",
+        uses: uses.get(id).slice().sort(byName),
+        usedBy: usedBy.get(id).slice().sort(byName),
+        source: { id: query.id }
+      };
+    }
   });
   shell.start();
   renderDetails();

@@ -389,6 +389,49 @@ body.resizing { cursor: col-resize; user-select: none; }
 .views-open:hover .views-name { text-decoration: underline; }
 .views-name { font-weight: 600; overflow-wrap: anywhere; }
 .views-changed { margin-left: 4px; padding: 0 6px; font-size: 11px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; }
+/* ---- Printing (shell.js): the Print menu, and the document it makes, which only print shows ---- */
+
+.print-menu { position: relative; }
+.print-menu > summary { padding: 6px 12px; }
+.print-menu[hidden] { display: none; }
+.print-menu .menu { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; width: min(320px, 90vw); padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); font-size: 13px; }
+.print-menu h3 { margin: 2px 0 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.print-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.print-actions .button { padding: 3px 8px; }
+.print-actions .button:disabled { opacity: 0.55; cursor: default; }
+.print-option { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.print-status { margin: 8px 0 0; }
+.print-status:empty { display: none; }
+.print-document { display: none; }
+
+@media print {
+  @page { margin: 14mm; }
+  html.printing, html.printing body { height: auto; overflow: visible; }
+  html.printing body { display: block; background: #fff; color: #000; }
+  html.printing body > *:not(.print-document) { display: none !important; }
+  html.printing .print-document { display: block; font: 10.5pt/1.4 var(--font-ui); color: #000; }
+  .print-header { margin-bottom: 14pt; padding-bottom: 8pt; border-bottom: 1px solid #999; }
+  .print-header h1 { margin: 0 0 4pt; font-size: 18pt; }
+  .print-header p { margin: 0; color: #444; }
+  .print-view + .print-view { break-before: page; }
+  .print-view h2 { margin: 0 0 4pt; font-size: 14pt; }
+  .print-view h3 { margin: 14pt 0 6pt; font-size: 11pt; break-after: avoid; }
+  .print-what { margin: 0 0 10pt; color: #444; font-size: 9.5pt; }
+  .print-description { margin: 0 0 6pt; white-space: pre-line; }
+  .print-diagram { margin: 0 0 10pt; break-inside: avoid; overflow: hidden; }
+  .print-diagram .seq-sticky, .print-diagram .calls-open-all { display: none; }
+  .print-item { margin: 0 0 10pt; padding-top: 6pt; border-top: 1px solid #ccc; break-inside: avoid; }
+  .print-item h4 { margin: 0 0 2pt; font-size: 11pt; break-after: avoid; }
+  .print-kind { margin-left: 4pt; font-size: 9pt; font-weight: 400; color: #555; }
+  .print-signature { margin: 0 0 3pt; font: 9pt var(--font-code); color: #333; overflow-wrap: anywhere; }
+  .print-note { margin: 0 0 3pt; font-size: 9.5pt; color: #444; }
+  .print-links { margin: 0 0 2pt; font-size: 9.5pt; overflow-wrap: anywhere; }
+  .print-more { margin: 4pt 0; color: #555; font-style: italic; }
+  .print-item:has(.print-code) { break-inside: auto; }
+  .code.print-code { min-width: 0; margin-top: 4pt; padding: 4pt 0; font-size: 8pt; border: 1px solid #ccc; }
+  .code.print-code .line { white-space: pre-wrap; overflow-wrap: anywhere; }
+}
+
 /* Where a view comes from: built into the page, or the person's own version of one that is. */
 .views-tag { margin-left: 4px; padding: 0 6px; font-size: 11px; font-weight: 400; color: var(--text-muted); border: 1px solid var(--border); border-radius: 999px; white-space: nowrap; }
 .views-description { display: block; color: var(--text-muted); white-space: pre-line; overflow-wrap: anywhere; }

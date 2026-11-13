@@ -30,6 +30,8 @@
 //                                     lines, and "unconnected" for items with no connections
 //   vbadoc.focusFavourites() / setFocusFavourites(on)   whether the views show only the favourites and what they use
 //                                     (with the focused selection's); changes come through onFocusChange
+//   vbadoc.preparePrint(which, options) / finishPrint()   the shell's print document, made without printing it, and
+//                                     the page put back afterwards: for tests
 //   vbadoc.viewPart(name, part)       a view's part of every saved view (the shell's views.part): its save(),
 //                                     apply(value) and ids(value). Opening a saved view sets each part and the
 //                                     selection, then the views hear of it through onShownChange, once, and read
@@ -743,7 +745,9 @@
     choicesCount: shell.choices.count,
     onChoicesChange: shell.onChoicesChange,
     onFavouritesChange: shell.onFavouritesChange,
-    viewPart: shell.views.part
+    viewPart: shell.views.part,
+    preparePrint: shell.print.prepare,
+    finishPrint: shell.print.finish
   };
 
   // Favourites and the filter are per workbook. In the explorer's Favourites group a member shows its module, as it
@@ -796,6 +800,61 @@
     references: data.project.references,
     writeTo: "--new Shared.xlsm"
   });
+  // ---- Printing ----
+  //
+  // The shell makes the document (see shell.js); vbadoc says when the open view is drawn and still, which element is
+  // its diagram, and what there is to say about an item.
+
+  // Kept once the test passes, looked at ten times a second, or after eight seconds whatever it says.
+  function whenStill(test) {
+    return new Promise(function (resolve) {
+      var tries = 0;
+      (function check() {
+        window.setTimeout(function () { if (test() || ++tries > 80) resolve(); else check(); }, 100);
+      })();
+    });
+  }
+
+  function namesAt(edges, otherEnd, ownModule) {
+    var names = new Set();
+    (edges || []).forEach(function (e) { if (e.from !== e.to) names.add(nodeText(otherEnd(e), ownModule).name); });
+    return Array.from(names).sort(byLowerName);
+  }
+
+  shell.print.init({
+    ready: function () {
+      var view = shell.activeView();
+      return whenStill(function () {
+        if (view === "graph") return !!window.vbadocGraph && !window.vbadocGraph.moving() && !window.vbadocGraph.sliding();
+        if (view === "classes") return !!window.vbadocClasses && window.vbadocClasses.drawn() && !window.vbadocClasses.moving();
+        return true;
+      });
+    },
+    element: function () {
+      var view = shell.activeView();
+      if (view === "graph") return $("graph-svg");
+      if (view === "classes") return $("classes-svg");
+      if (view === "calls") return $("calls-sequence").hidden ? $("calls-tree") : $("calls-sequence");
+      return null;
+    },
+    describe: function (id) {
+      var member = membersById.get(id);
+      var module = modulesById.get(member ? member.module : id);
+      if (!module) return null;
+      var index = member ? memberEdges : moduleEdges;
+      var own = member ? module.id : null;
+      return {
+        name: member ? module.id + "." + member.name : module.id,
+        kind: member ? KIND_LABELS[member.kind] || member.kind : moduleKindLabel(module),
+        signature: member ? member.signature : module.file + " · " + module.lines + " lines",
+        description: (member || module).description || "",
+        uses: namesAt(index.uses.get(id), function (e) { return e.to; }, own),
+        usedBy: namesAt(index.usedBy.get(id), function (e) { return e.from; }, own),
+        source: member ? { id: module.id, first: member.start, last: member.end } : { id: module.id }
+      };
+    }
+  });
+
   shell.start();
   // The views read the selection when they first draw, so an address's selection is made before they do.
   if (idFromAddress() !== null) followAddress();

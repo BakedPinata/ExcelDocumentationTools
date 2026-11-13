@@ -71,6 +71,18 @@
     </div>
   </details>
   <input type="file" id="views-import" accept=".json,application/json" hidden>
+  <details class="dropdown print-menu" id="print" hidden>
+    <summary class="button" title="Print the page as a document, or save it as a PDF from the browser's print dialog">Print</summary>
+    <div class="menu" id="print-menu">
+      <h3>Print, or save as PDF</h3>
+      <div class="print-actions">
+        <button type="button" class="button" id="print-current" title="A document of what the page shows now: the view's diagram, then each item with its description and what it uses">This view</button>
+        <button type="button" class="button" id="print-all" title="The same for every saved view, each starting on a new page">Every saved view</button>
+      </div>
+      <label class="print-option"><input type="checkbox" id="print-source"> Include each item's source</label>
+      <p class="print-status muted" id="print-status" role="status"></p>
+    </div>
+  </details>
   <div class="search">
 {{SEARCH}}
   </div>
@@ -162,6 +174,8 @@
 {{SAVED_VIEWS}}
 <!-- With --embed-source, each source file's text, HTML-escaped. Without it, nothing: Load folder reads the files. -->
 {{SOURCES}}
+<!-- The document the Print menu makes, shown only when printing. -->
+<div class="print-document" id="print-document"></div>
 <!-- Short messages for screen readers, such as "Copied". -->
 <div class="visually-hidden" id="announcer" aria-live="polite"></div>
 {{SCRIPTS}}

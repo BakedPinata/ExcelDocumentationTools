@@ -127,6 +127,19 @@
 //                                      tool draws its views once. The shell has already taken the selection, its focus
 //                                      and the panels as the view has them, so the tool takes it as its own without
 //                                      calling selectionChanged. Then onViewChange tells of the view's tab
+//   shell.print.init({ ready(), element(), describe(id) })   the Print menu in the top bar, which makes a document
+//                                      of the view showing, or of every saved view in turn, and hands it to the
+//                                      browser's Print (and so to Save as PDF). ready() gives a promise kept once the
+//                                      open view is drawn and still; element() gives what to copy as its diagram (an
+//                                      SVG with a g.viewport is fitted to the page; anything else is copied as it is),
+//                                      or null; describe(id) gives { name, kind, signature (shown as code), note (as
+//                                      text), description, uses: [names], usedBy: [names], source: { id, first, last } }
+//                                      for an item, or null. The items
+//                                      listed are those items.init's shown() gives for the open view; without that,
+//                                      the ticked items, or the selection. Call it before start
+//   shell.print.prepare(which, options) / finish()   make the document without printing it ("current" or "all";
+//                                      options.source includes each item's source), giving a promise, and put the
+//                                      page back afterwards: what the menu does around window.print(), for tests
 //   shell.exports.init({ what, whyNot(id), uses(id), needs(id), offers(id), pickFor(id), references, writeTo })   the Export tab,
 //                                      which lists the explorer's items: what they are ("modules and classes"), why an
 //                                      item can't be picked (null when it can), the items it uses that can come, what
@@ -2931,6 +2944,245 @@
         missing.length > 0 || other !== "", before);
     }
 
+    // ---- Printing ----
+    //
+    // The Print menu makes a document and gives it to the browser's Print, whose Save as PDF makes the PDF: the
+    // title, the page's summary and the build stamp, then for each view its name and description, its diagram fitted
+    // to the page, and its items with their kind, signature, description and Uses / Used by, and their source if
+    // asked. It prints the view showing, or every saved view, each from a new page, by opening each in turn and
+    // putting the page back as it was. The document is its own element, shown only in print while html.printing is
+    // set, so the browser's own Print still prints the page as it looks.
+    //
+    // A diagram is copied as it's drawn: each SVG element's computed style is written onto the copy, so it needs none
+    // of the page's rules, in the light theme whatever the page is in, with its ids renamed so its arrowheads are its
+    // own. An SVG with a g.viewport (the graphs) loses its pan and zoom and gets a viewBox around what it shows.
+
+    var printSource = null;
+    var printBox = $("print-document");
+    var printMenu = $("print");
+    var printStatus = $("print-status");
+    var printCopies = 0;
+    var themeBeforePrint = null;
+    var PRINT_ITEMS = 200;        // the most items listed for one view
+    var PRINT_SOURCE_LINES = 300; // the most lines of source shown for one item
+    var SVG_STYLE = ["display", "visibility", "opacity", "fill", "fill-opacity", "stroke", "stroke-width", "stroke-opacity",
+      "stroke-dasharray", "stroke-linecap", "stroke-linejoin", "font-family", "font-size", "font-weight", "font-style",
+      "text-anchor", "dominant-baseline", "text-decoration", "paint-order", "marker-start", "marker-mid", "marker-end"];
+
+    function initPrint(config) {
+      printSource = config;
+      printMenu.hidden = false;
+      $("print-source").checked = settings.load("print-source") === "true";
+    }
+
+    function ownReferences(value, prefix) {
+      return value.replace(/url\(\s*["']?#([^"')]+)["']?\s*\)/g, function (all, id) { return "url(\"#" + prefix + id + "\")"; });
+    }
+
+    // A copy of an element that looks the same wherever it's put: see above.
+    function printCopy(element) {
+      var prefix = "print" + (++printCopies) + "-";
+      var copy = element.cloneNode(true);
+      var originals = [element].concat(Array.prototype.slice.call(element.querySelectorAll("*")));
+      var copies = [copy].concat(Array.prototype.slice.call(copy.querySelectorAll("*")));
+      copies.forEach(function (node, i) {
+        var original = originals[i];
+        var isSvg = original instanceof SVGElement;
+        if (isSvg) {
+          var computed = window.getComputedStyle(original);
+          SVG_STYLE.forEach(function (property) {
+            var value = computed.getPropertyValue(property);
+            if (value) node.style.setProperty(property, ownReferences(value, prefix));
+          });
+          ["marker-start", "marker-mid", "marker-end", "clip-path", "mask", "filter", "fill", "stroke"].forEach(function (name) {
+            if (node.hasAttribute(name)) node.setAttribute(name, ownReferences(node.getAttribute(name), prefix));
+          });
+          ["href", "xlink:href"].forEach(function (name) {
+            var target = node.getAttribute(name);
+            if (target && target.charAt(0) === "#") node.setAttribute(name, "#" + prefix + target.slice(1));
+          });
+        }
+        if (node.id) { if (isSvg) node.id = prefix + node.id; else node.removeAttribute("id"); }
+        node.removeAttribute("tabindex");
+      });
+
+      // An SVG that's drawn at a fixed size scales down to the page.
+      function scaled(svg, original) {
+        var width = original.width.baseVal.value, height = original.height.baseVal.value;
+        if (!svg.hasAttribute("viewBox") && width > 0 && height > 0) svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+        svg.style.setProperty("max-width", "100%");
+        svg.style.setProperty("height", "auto");
+      }
+
+      if (element instanceof SVGSVGElement) {
+        var viewport = element.querySelector(":scope > g.viewport");
+        if (viewport) {
+          var box = viewport.getBBox();
+          if (box.width === 0 || box.height === 0) return null;
+          var pad = 12;
+          copy.querySelector(":scope > g.viewport").removeAttribute("transform");
+          copy.setAttribute("viewBox", [box.x - pad, box.y - pad, box.width + 2 * pad, box.height + 2 * pad].join(" "));
+          copy.removeAttribute("width");
+          copy.removeAttribute("height");
+          // No wider than it's drawn at full size, and no taller than a page.
+          copy.setAttribute("style", "display:block;width:100%;max-width:" + Math.ceil(box.width + 2 * pad) + "px;max-height:230mm;margin:0 auto");
+        } else {
+          scaled(copy, element);
+        }
+        copy.setAttribute("class", "print-svg");
+      } else {
+        var svgs = element.querySelectorAll("svg");
+        Array.prototype.forEach.call(copy.querySelectorAll("svg"), function (svg, i) { scaled(svg, svgs[i]); });
+      }
+      return copy;
+    }
+
+    function tabLabel(name) {
+      var tab = tabs.filter(function (t) { return viewOf(t) === name; })[0];
+      return tab ? tab.textContent.trim() : name;
+    }
+
+    // The ids of the items a printed view lists: what the open view shows if it can say, otherwise what's ticked, or
+    // the selection.
+    function printedItems() {
+      var shown = favouriteSource && favouriteSource.shown ? favouriteSource.shown() : null;
+      var ids = shown ? stringList(shown.ids).concat(stringList(shown.alone)) : filterActive() ? filterIds().concat(aloneIds()) : selected !== null ? [selected] : [];
+      var seen = new Set();
+      return ids.filter(function (id) { if (seen.has(id)) return false; seen.add(id); return true; });
+    }
+
+    function printedItemHtml(item, withSource) {
+      var html = "<article class=\"print-item\"><h4>" + escapeHtml(item.name) +
+        (item.kind ? " <span class=\"print-kind\">" + escapeHtml(item.kind) + "</span>" : "") + "</h4>" +
+        (item.signature ? "<p class=\"print-signature\">" + escapeHtml(item.signature) + "</p>" : "") +
+        (item.note ? "<p class=\"print-note\">" + escapeHtml(item.note) + "</p>" : "") +
+        (item.description ? "<p class=\"print-description\">" + escapeHtml(item.description) + "</p>" : "");
+      [["Uses", item.uses], ["Used by", item.usedBy]].forEach(function (list) {
+        if (list[1] && list[1].length > 0) html += "<p class=\"print-links\"><strong>" + list[0] + ":</strong> " + escapeHtml(list[1].join(", ")) + "</p>";
+      });
+      if (withSource && item.source && sources.has(item.source.id)) {
+        var lines = highlightedLines(item.source.id);
+        var first = Math.max(1, item.source.first || 1);
+        var last = Math.min(lines.length, item.source.last || lines.length);
+        var end = Math.min(last, first + PRINT_SOURCE_LINES - 1);
+        var code = [];
+        for (var n = first; n <= end; n++) {
+          code.push("<div class=\"line\"><span class=\"ln\">" + n + "</span><span class=\"lt\">" + (lines[n - 1] || " ") + "</span></div>");
+        }
+        html += "<div class=\"code print-code\">" + code.join("") + "</div>" +
+          (end < last ? "<p class=\"print-more\">… and " + (last - end) + " more lines, to line " + last + ".</p>" : "");
+      }
+      return html + "</article>";
+    }
+
+    // One view's part of the document, from the page as it is now. Gives a promise of its element.
+    function printedView(name, description, withSource) {
+      return Promise.resolve(printSource.ready ? printSource.ready() : null).then(function () {
+        var section = document.createElement("section");
+        section.className = "print-view";
+        var what = [tabLabel(activeView)];
+        if (filterActive() && favouriteSource.describeFilter) what.push((viewLock !== null ? "locked: " : "filtered: ") + favouriteSource.describeFilter(filterIds().concat(aloneIds())));
+        if (hiddenList().length > 0) what.push(hiddenList().length + " hidden");
+        if (choicesCount() > 0) what.push(choicesCount() + " of the Show… choices leave things out");
+        if (selected !== null) what.push("selected: " + selected + (focused && viewLock === null ? " (focused)" : ""));
+        section.innerHTML = "<h2>" + escapeHtml(name) + "</h2>" +
+          (description ? "<p class=\"print-description\">" + escapeHtml(description) + "</p>" : "") +
+          "<p class=\"print-what\">" + escapeHtml(what.join(" · ")) + "</p>";
+
+        var element = printSource.element ? printSource.element() : null;
+        var copy = element ? printCopy(element) : null;
+        if (copy) {
+          var figure = document.createElement("div");
+          figure.className = "print-diagram";
+          figure.appendChild(copy);
+          section.appendChild(figure);
+        }
+
+        var ids = printedItems();
+        var items = ids.slice(0, PRINT_ITEMS).map(function (id) { return printSource.describe(id); }).filter(function (item) { return !!item; });
+        if (items.length > 0) {
+          var list = document.createElement("div");
+          list.className = "print-items";
+          list.innerHTML = "<h3>" + itemsText(ids.length) + "</h3>" + items.map(function (item) { return printedItemHtml(item, withSource); }).join("") +
+            (ids.length > PRINT_ITEMS ? "<p class=\"print-more\">… and " + (ids.length - PRINT_ITEMS) + " more, not listed. Tick fewer items to list them all.</p>" : "");
+          section.appendChild(list);
+        }
+        return section;
+      });
+    }
+
+    // Makes the document: of the page as it is ("current") or of every view the menu lists ("all"), opening each in
+    // turn and putting the page back as it was. Gives a promise, kept once the document is ready to print.
+    function preparePrint(which, printOptions) {
+      if (!printSource) return Promise.reject(new Error("This page has nothing to print."));
+      var withSource = !!(printOptions && printOptions.source);
+      finishPrint();
+      themeBeforePrint = currentTheme();
+      root.classList.add("printing");
+      if (themeBeforePrint !== "light") { root.setAttribute("data-theme", "light"); emit("theme", "light"); } // not remembered
+
+      var summary = $("page-summary");
+      printBox.innerHTML = "<header class=\"print-header\"><h1>" + escapeHtml($("page-title").textContent) + "</h1>" +
+        (summary ? "<p>" + escapeHtml(summary.textContent) + "</p>" : "") +
+        "<p class=\"print-stamp\">" + escapeHtml($("tool-version").textContent.trim()) + "</p></header>";
+
+      var done;
+      if (which === "all") {
+        var views = listedViews().map(function (entry) { return entry.view; });
+        var before = captureView();
+        done = views.reduce(function (chain, view, i) {
+          return chain.then(function () {
+            printStatus.textContent = "Preparing view " + (i + 1) + " of " + views.length + "…";
+            applyView(view);
+            return printedView(view.name, view.description, withSource);
+          }).then(function (section) { printBox.appendChild(section); });
+        }, Promise.resolve()).then(function () {
+          before.show = before.show || { off: [], radios: {} };
+          applyView(cleanView(Object.assign({ name: "before printing" }, before)));
+        });
+      } else {
+        var showing = currentView !== null && arrangementOf(captureView()) === currentArrangement ? viewNamed(currentView) : null;
+        done = printedView(showing ? showing.name : "The page as it is now", showing ? showing.description : "", withSource)
+          .then(function (section) { printBox.appendChild(section); });
+      }
+      return done.then(function () { printStatus.textContent = ""; }, function (error) { finishPrint(); throw error; });
+    }
+
+    // Puts the page back as it was before the document was made.
+    function finishPrint() {
+      root.classList.remove("printing");
+      printBox.innerHTML = "";
+      if (themeBeforePrint !== null && themeBeforePrint !== currentTheme()) { root.setAttribute("data-theme", themeBeforePrint); emit("theme", themeBeforePrint); }
+      themeBeforePrint = null;
+    }
+
+    function printNow(which) {
+      $("print-current").disabled = $("print-all").disabled = true;
+      printStatus.textContent = "Preparing…";
+      preparePrint(which, { source: $("print-source").checked }).then(function () {
+        printMenu.open = false;
+        window.addEventListener("afterprint", finishPrint, { once: true });
+        window.print();
+      }, function (error) {
+        console.error(error);
+        printStatus.textContent = "Couldn't make the document to print.";
+      }).then(updatePrintMenu);
+    }
+
+    function updatePrintMenu() {
+      var count = favouriteSource ? listedViews().length : 0;
+      $("print-current").disabled = false;
+      $("print-all").disabled = count === 0;
+      $("print-all").textContent = count === 0 ? "Every saved view" : "Every saved view (" + count + ")";
+      $("print-all").title = count === 0 ? "There are no saved views yet: save some with Views"
+        : "A document of every saved view, each starting on a new page. The page opens each in turn, then goes back to how it is now";
+    }
+
+    printMenu.querySelector("summary").addEventListener("click", function () { if (!printMenu.open) { printStatus.textContent = ""; updatePrintMenu(); } });
+    $("print-current").addEventListener("click", function () { printNow("current"); });
+    $("print-all").addEventListener("click", function () { printNow("all"); });
+    $("print-source").addEventListener("change", function () { settings.save("print-source", $("print-source").checked ? "true" : "false"); });
+
     // ---- Tabs ----
 
     var tabs = Array.prototype.slice.call(document.querySelectorAll(".tabs [role=\"tab\"]"));
@@ -3036,6 +3288,7 @@
       views: { part: addViewPart },
       onViewApplied: function (fn) { listeners.applied.push(fn); },
       exports: { init: initExport },
+      print: { init: initPrint, prepare: preparePrint, finish: finishPrint },
       source: {
         init: initSource,
         has: function (id) { return sources.has(id); },
