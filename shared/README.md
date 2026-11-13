@@ -164,6 +164,27 @@ dotnet test --solution CodeDocumentationTools.sln                # everything, s
   result reaches `AtomicFileWriter.Replace`, which uses `File.Replace` so the file keeps its permissions and creation
   time. A move would give it the folder's.
 
+### Lock view (step L1 of the generalisation plan)
+
+- **Lock view is the filter, plus a hold on the views,** so there's no second idea of what's shown. The shell puts
+  the button at the start of every `.view-toolbar` (`[data-lock-view]`), one lock for the page. Locking asks the tool
+  what the open view shows (`items.init`'s `shown()`, giving `{ ids, alone }` or null), ticks those, and keeps the
+  ticks from before; unlocking puts them back. With null (a view that can't say, such as vbadoc's Calls tab) the
+  ticks stay as they are and only the hold applies.
+- **The hold:** `focused()` and `focusFavourites()` are false while it's on, so every view that follows them stops
+  focusing without knowing of the lock. What else a view does on a click (lighting, fitting, centring) is its own to
+  stop, by asking `lock.on()`.
+- **`onLockChange(fn)` is told in place of `onFilterChange`,** once the filter and the lock have both changed, so a
+  tool draws once.
+- **"Alone":** an item in the filter by itself, without what it holds (`filter.alone(id)`, `aloneIds()`). A tick
+  never makes one; only locking does, for an item shown without all it holds. Its box is half ticked, and a click on
+  it drops it. `filter.active()` counts them.
+- **Never silent:** the filter's notes read "Locked: …" in place of "Filtered: …", with Unlock in place of Clear
+  (clearing the ticks would show everything, still locked), the button is pressed in every toolbar, and
+  `html.view-locked` is there for a view's styles.
+- **Remembered per workbook** as `<tool>-lock|<workbook>` (the ticks to go back to) and `<tool>-filter-alone|<workbook>`.
+  A saved view keeps `lock` and `alone`, only when it has them, so views saved before don't change.
+
 ### Saved views (step G1)
 
 - **The Views menu is the shell's,** in the top bar after the tabs: Save as a new view (a name, unique whatever its

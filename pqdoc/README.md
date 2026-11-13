@@ -126,6 +126,8 @@ left to right by depth (how many queries feed them). You can:
   panel listing what it uses and what uses it, and its M code (see below); click the background or
   press Esc to clear. With **Focus** on (as it is to begin with) only those queries stay shown; Ctrl+click
   (Cmd+click on a Mac) does the other thing for that click;
+- keep the graph as it is with **Lock view**, beside Focus: the queries shown are ticked in the explorer and stay
+  where they are, and a click only outlines a query and shows its details, until you unlock;
 - search by name (press `/` to jump to the search box, Enter to select the first match);
 - resize or hide the explorer and the details panel, with the buttons at the two ends of the top bar; the details
   panel opens when you select a query and closes when you clear it, unless you lock it open with its padlock;
@@ -141,8 +143,8 @@ left to right by depth (how many queries feed them). You can:
   them all at once;
 - hide queries from the graph with the eye beside their star, and show them again from the Hidden group at the bottom
   of the explorer; **Focus** on the Favourites group shows only the favourites and what they use;
-- save how the page is arranged (what's selected and focused, what's ticked, hidden and chosen in Show…, the panels,
-  and where you've dragged queries) as a named view with **Views** in the top bar, open it again later, save over
+- save how the page is arranged (what's selected and focused, what's ticked, hidden and chosen in Show…, the lock,
+  the panels, and where you've dragged queries) as a named view with **Views** in the top bar, open it again later, save over
   any view, and **Export** your views as `pqdoc-views.json` or **Import** them, to keep with the source or share;
   a file from another workbook says so before it's imported;
 - reset the view.

@@ -38,8 +38,8 @@ step K0. The progress table says where the work is.
 | [K0](#step-k0-settle-the-questions) | Settle the questions in section 1; close the feedback plan | You, then Claude | Done |
 | [K1](#step-k1-names-inside-the-repository) | Names inside the repository: the root solution, the shared library, the shell's global, the publish folder, the documents | Claude | Done |
 | [K2](#step-k2-the-desktop-apps-name) | The desktop app becomes `codedocui` | Claude | Done |
-| [K3](#step-k3-the-repositorys-name) | The repository's name on GitHub and on disk, `PATH`, and Claude's memory folder | You, then Claude | Not started |
-| [L1](#step-l1-lock-the-view) | Lock view: what's shown stays as it is while you click around, and only the source changes | Claude | Not started |
+| [K3](#step-k3-the-repositorys-name) | The repository's name on GitHub and on disk, `PATH`, and Claude's memory folder | You, then Claude | Not started: yours to begin, and nothing in L1–L6 waits for it |
+| [L1](#step-l1-lock-the-view) | Lock view: what's shown stays as it is while you click around, and only the source changes | Claude | Done |
 | [L2](#step-l2-peek-at-a-reference) | Peek: a line in Uses / Used by opens a preview of the code around it, without leaving the selection | Claude | Not started |
 | [L3](#step-l3-calls-tab-follow-ups-e5b) | Calls tab follow-ups (E5b): Ifs whose conditions make calls, and the sequence diagram's participants staying in view | Claude | Not started |
 | [L4](#step-l4-views-file-built-into-the-page-g2) | A views file in the output folder is built into the page (G2) | Claude | Not started |
@@ -582,9 +582,18 @@ Then Claude: the pages' repository link, the READMEs, and a check that a fresh c
 
 ### Step L1: Lock the view
 
-As 1.3 and 5.9 set out, in the shell and in vbadoc's graph and class diagram and pqdoc's graph. Browser tests: with
-the lock on, clicks on items and on empty space leave every node's place, the zoom and the set shown unchanged, and
-change the source panel; unlocking puts the ticks back; a saved view keeps the lock. Screenshots in both themes.
+Done on 2026-11-13, as 1.3 and 5.9 set out, in the shell and in vbadoc's graph and class diagram and pqdoc's graph.
+Browser tests: with the lock on, clicks on items and on empty space leave every node's place, the zoom and the set
+shown unchanged, and change the source panel; unlocking puts the ticks back; a saved view keeps the lock. Screenshots
+looked at in both themes.
+
+Three things to know when you try it:
+
+- **Locking a focused graph can add lines.** A focused graph draws only the lines on the way to the selection; a
+  locked one draws every line between the items ticked, which is what ticking everything shown by hand gives.
+- **A module kept on its own.** At the graph's member level, a module's own node can be shown while its members
+  aren't. A tick on the module would bring them all, so locking keeps that module by itself, its box half ticked.
+- **The note's link is Unlock, not Clear,** while locked: clearing the ticks would show everything, still locked.
 
 ### Step L2: Peek at a reference
 

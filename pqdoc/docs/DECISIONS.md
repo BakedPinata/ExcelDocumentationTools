@@ -235,6 +235,16 @@ The commands and what they promise are in Requirements.md (FR-IMP-7 to FR-IMP-16
   check, because a token's kind also shows in its text (quotes, `//`, digits, `#`). In the light theme numbers and type
   names are close in colour, in vbadoc too; left for C2, which gives both pages one set of tokens.
 
+## Lock view (1.22.0, step L1 of the generalisation plan)
+
+- **The lock is the shell's** (FR-HTML-21; see `shared/README.md`), and works as vbadoc's does. `pqdoc.locked()`,
+  `onLockChange` and `lockSource` are shaped like vbadoc's, and the graph says what it shows: the queries not out of
+  focus.
+- **Locked, the graph only outlines the selection:** nothing is lit upstream or downstream, dimmed, fitted or centred.
+  Its queries are laid out once, in columns, and a focus or filter only hides some, so nothing has to be carried over
+  to keep them where they are. Focus is disabled.
+- **Ticking a query in or out while locked** shows or hides it without fitting, so the rest stay put.
+
 ## Explorer (1.6.0, step D1 of the feedback plan)
 
 - **Groups come from the metadata** (`Extraction/QueryMetadata`): the `QueryGroups` list and each query's

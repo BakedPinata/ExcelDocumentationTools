@@ -170,6 +170,12 @@ Agreed on 2026-11-13. Until a tool says otherwise:
   menu or a box with text in it. A new view follows `focused()` from the shell. The one exception, agreed with the
   user for vbadoc's Calls tab: a click in its tree only selects, so the path opened stays put, and Ctrl+click focuses;
   a focused selection still starts the tree there, wherever it was made.
+- **Lock view is the shell's, one for the page:** a button at the start of every view's toolbar that keeps what the
+  views show where it is. Locking ticks everything the open view shows in the explorer, so the filter says what's
+  kept and a tick still adds or drops an item, and unlocking puts the ticks back as they were. While it's on, a click
+  only selects: the item is outlined and the side panel shows it, and nothing is focused, lit, dimmed, laid out
+  again, fitted or centred. A new view follows `locked()` from its tool, and says what it shows through
+  `lockSource`. A saved view keeps the lock.
 - **A page never says when it was made,** so the same workbook gives the same page and git diffs show only real
   changes. The top bar's summary says when the workbook was last saved instead, from its own document properties.
 - **The side panel follows the selection** unless locked open: it opens when something is selected and closes when

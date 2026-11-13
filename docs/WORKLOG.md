@@ -15,12 +15,13 @@ rather than repeating it.
   library and the desktop app, and starts with what the feedback plan parked, a Lock view button and a peek at a
   reference. Its progress table says which step is next. K0 is done: the user's answers are in its section 1, and
   the plan is revised for them. K1 is done: the root solution is `CodeDocumentationTools.sln` and the shared library
-  `CodeDocumenter.Shared`.
-- **vbadoc 0.31.1:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+  `CodeDocumenter.Shared`. K2 is done: the desktop app is `codedocui`. K3 (the repository's own name) is the user's
+  to start, and nothing waits for it. L1 is done: Lock view.
+- **vbadoc 0.32.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the generalisation plan. Since 0.31.0 (step J2) it writes into add-ins (`.xlam`) as into workbooks.
-- **pqdoc 1.21.3**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.22.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -44,6 +45,20 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-13: Step L1, Lock view
+
+- A Lock view button at the start of every view's toolbar, the shell's, one for the page: it ticks what the open view
+  shows in the explorer and holds focus off, so a click only outlines the item and shows it in the side panel.
+  Unlocking (the button, or Unlock in the "Locked: …" note) puts the ticks back. Remembered per workbook, and kept in
+  a saved view. In vbadoc's graph and class diagram and pqdoc's graph.
+- vbadoc's graph and class diagram carry their nodes' places from one drawing to the next while locked, since locking
+  changes what decides the drawing. At member level a module shown without its members is kept "alone", half ticked.
+- Known and accepted: locking a focused graph can add lines, as a locked graph draws every line between what's
+  ticked.
+- Started in one session and finished in the next, with a handover file between them, since deleted.
+- Checked: every test passes (nine new browser tests), and screenshots of both pages locked, in both themes.
+- vbadoc 0.32.0, pqdoc 1.22.0.
 
 ### 2026-11-13: Step K2, the desktop app's name
 

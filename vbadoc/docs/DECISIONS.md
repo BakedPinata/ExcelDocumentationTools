@@ -606,6 +606,32 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Lock view (0.32.0, step L1 of the generalisation plan)
+
+- **The lock is the shell's,** one for the page (see `shared/README.md`): it ticks what the open view shows and holds
+  focus off. vbadoc's views ask `vbadoc.locked()` as they draw, hear of a change through `onLockChange` (just before
+  `onShownChange`, so each draws once), and say what they show through `lockSource(view, fn)`: the graph gives its
+  nodes, the class diagram its boxes. The Calls tab has no say, so locking from it leaves the ticks as they are.
+- **The graph carries its nodes' places into the next drawing while locked** (`carriedPositions`, `placeAt`), and
+  doesn't fit. Locking changes what decides the drawing (the filter, in place of the focus), so the graph is built
+  again, and without this it would be laid out afresh. A node ticked in later is placed beside what it's linked to,
+  and the rest stay put.
+- **A module kept on its own.** At member level a focus can show a module's own node (something refers to the module
+  itself) without its members. A tick on the module would bring every member, so locking keeps such a module "alone"
+  (`shell.filter.alone`), its box half ticked, and `vbadoc.showsItself(id)` says whether the member level shows a
+  module's own node: locked, only one ticked or kept alone, where unlocked a ticked member brings it.
+- **Only the selection's outline changes on a click:** the highlight outlines it and lights or dims nothing, a click
+  on the background clears only the selection, and the view isn't centred on it. Focus and ★ Path are disabled, as
+  both change what's lit or shown.
+- **Dragging moves only what's dragged** while locked, whatever Rearrange while dragging says, since the rest is
+  meant to stay where it is.
+- **A locked graph can show more lines than the focus it was locked from.** A focused graph draws only the lines on
+  the way to the selection; a locked one draws every line between the items ticked, as any filter does. That's what
+  ticking everything shown by hand would give, which is how the user described the feature. Accepted.
+- **The class diagram does the same with its boxes:** their places are carried over, it isn't laid out again or
+  fitted, and a click only outlines.
+- **The browser tests close the legends first,** as a locked view doesn't move a node out from under one.
+
 ### Follow-ups after G1's review (0.28.0, step G1a of the feedback plan)
 
 - **A view keeps everything the page shows,** as the user asked: the selection and whether it's focused, Focus on

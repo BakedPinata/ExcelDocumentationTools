@@ -200,6 +200,12 @@ diagram show only that, and a note in the explorer and each view's toolbar says 
 its members. Ticking doesn't select, so you can still click around inside what's shown. The buttons beside the filter
 box expand or collapse every folder.
 
+**Lock view**, beside Focus, keeps what the graph and the class diagram show exactly where it is, so you can click
+around and read the source without the picture changing. Locking ticks everything shown in the explorer: untick an
+item to drop it, or tick another to add it. While it's locked a click only outlines the item and shows its source,
+and dragging still moves a node. Unlock with the button again, and the ticks go back to what they were. A locked
+graph draws every line between the items it shows, so locking a focused graph can add some.
+
 Star a module or member to make it a favourite, with the star on its row in the explorer or beside its name in the
 source panel. Favourites are listed at the top of the explorer and starred in the graph, and **★ Path** shows the
 shortest chain of dependencies between the selection and the nearest favourite. **Focus** on the Favourites group shows
@@ -214,8 +220,8 @@ struck through, and is listed in the Hidden group at the bottom, where you can s
 what's hidden, and the source panel says when what you've selected uses something hidden.
 
 **Views**, in the top bar, saves how the page is arranged as a named view with a description: the tab, what's
-selected and whether it's focused, Focus on click, what's ticked, hidden and chosen in Show…, whether the explorer and
-source panel are shown and how wide, the graph's level, direction and settings, where you've moved things in the graph
+selected and whether it's focused, Focus on click, whether the view is locked, what's ticked, hidden and chosen in
+Show…, whether the explorer and source panel are shown and how wide, the graph's level, direction and settings, where you've moved things in the graph
 and the class diagram (focused or not), and what's open in the Calls tab. Open a view to come back to it, or **Save
 over** any view with the page as it is now; Undo puts it back. **Export** downloads your views as `vbadoc-views.json`,
 to keep with the source or share, and **Import** reads one back, saying first if it's from another workbook. A view
