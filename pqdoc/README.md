@@ -133,7 +133,9 @@ left to right by depth (how many queries feed them). You can:
   panel opens when you select a query and closes when you clear it, unless you lock it open with its padlock;
 - copy a query's M code with the button over it;
 - read a query's steps in the details panel, above its M code, each with what it uses and a link to its line;
-- open a query in the details panel's Uses or Used by list to see the lines that name it, and jump to one;
+- open a query in the details panel's Uses or Used by list to see the lines that name it; click a line to peek at the
+  code around it without leaving the query you've selected, and use **Go to** in the preview (or Ctrl+click on the
+  line) to jump to it;
 - star queries as favourites, from the explorer or the details panel, to list them at the top of the explorer;
 - tick queries or groups in the explorer to show only those in the graph (Clear in the note it shows puts them all
   back), and expand or collapse every group at once;

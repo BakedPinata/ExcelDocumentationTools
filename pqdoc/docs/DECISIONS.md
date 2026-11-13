@@ -235,6 +235,15 @@ The commands and what they promise are in Requirements.md (FR-IMP-7 to FR-IMP-16
   check, because a token's kind also shows in its text (quotes, `//`, digits, `#`). In the light theme numbers and type
   names are close in colour, in vbadoc too; left for C2, which gives both pages one set of tokens.
 
+## Peek (1.23.0, step L2 of the generalisation plan)
+
+- **Peek is the shell's** (FR-HTML-22; see `shared/README.md`), and works as vbadoc's does: a click on a line in Uses
+  or Used by opens a preview, and Ctrl+click or the preview's Go to goes there, which is what a click did.
+- **A reference is previewed within its query's file,** which is the whole of what holds it, so pqdoc gives no lines
+  of its own. Show all of it shows the whole query, when it's longer than the preview.
+- **A step's line still goes straight there** (FR-HTML-20): it's a line of the selected query, already in the panel
+  below, so there's nothing to preview.
+
 ## Lock view (1.22.0, step L1 of the generalisation plan)
 
 - **The lock is the shell's** (FR-HTML-21; see `shared/README.md`), and works as vbadoc's does. `pqdoc.locked()`,

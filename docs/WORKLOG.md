@@ -16,12 +16,12 @@ rather than repeating it.
   reference. Its progress table says which step is next. K0 is done: the user's answers are in its section 1, and
   the plan is revised for them. K1 is done: the root solution is `CodeDocumentationTools.sln` and the shared library
   `CodeDocumenter.Shared`. K2 is done: the desktop app is `codedocui`. K3 (the repository's own name) is the user's
-  to start, and nothing waits for it. L1 is done: Lock view.
-- **vbadoc 0.32.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
+  to start, and nothing waits for it. L1 is done: Lock view. L2 is done: Peek.
+- **vbadoc 0.33.0:** stages 0–5e are done, the class diagram is drawn with d3 (no Mermaid), and the page is
   `<workbook>-vba.html`, with an explorer of modules and members, in `'@Folder` folders or by kind. It asks
   before overwriting a page that would change (`--on-exists`, `--force`), as pqdoc does. Stage 6 (UserForms) is parked;
   stage 7 waits for the generalisation plan. Since 0.31.0 (step J2) it writes into add-ins (`.xlam`) as into workbooks.
-- **pqdoc 1.22.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
+- **pqdoc 1.23.0**, plus stages 3b–3d: reads a workbook's queries directly, or a folder of hand-exported `.m` files,
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
@@ -45,6 +45,18 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-13: Step L2, Peek
+
+- A click on a line in a Uses / Used by list opens a preview of the code around it, under the line: the line and 5
+  either side, highlighted, never beyond what holds it, with Show all of it. The selection, the views and the source
+  below stay as they are. Go to, or Ctrl+click on the line, goes there, as a click did before. Any number can be open,
+  and Esc closes the last opened. The shell's, so both tools have it.
+- vbadoc gives each reference its member's lines, and lets a list with a preview open grow.
+- Changed: a click on a reference's line no longer selects. The tests that relied on it use Ctrl+click.
+- Checked: every test passes (eight new browser tests), and screenshots of previews in both pages and both themes,
+  with and without the source.
+- vbadoc 0.33.0, pqdoc 1.23.0.
 
 ### 2026-11-13: Step L1, Lock view
 

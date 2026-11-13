@@ -40,7 +40,7 @@ step K0. The progress table says where the work is.
 | [K2](#step-k2-the-desktop-apps-name) | The desktop app becomes `codedocui` | Claude | Done |
 | [K3](#step-k3-the-repositorys-name) | The repository's name on GitHub and on disk, `PATH`, and Claude's memory folder | You, then Claude | Not started: yours to begin, and nothing in L1–L6 waits for it |
 | [L1](#step-l1-lock-the-view) | Lock view: what's shown stays as it is while you click around, and only the source changes | Claude | Done |
-| [L2](#step-l2-peek-at-a-reference) | Peek: a line in Uses / Used by opens a preview of the code around it, without leaving the selection | Claude | Not started |
+| [L2](#step-l2-peek-at-a-reference) | Peek: a line in Uses / Used by opens a preview of the code around it, without leaving the selection | Claude | Done |
 | [L3](#step-l3-calls-tab-follow-ups-e5b) | Calls tab follow-ups (E5b): Ifs whose conditions make calls, and the sequence diagram's participants staying in view | Claude | Not started |
 | [L4](#step-l4-views-file-built-into-the-page-g2) | A views file in the output folder is built into the page (G2) | Claude | Not started |
 | [L5](#step-l5-printing-and-descriptions-g3) | Printing a view or every view, with descriptions (G3) | Claude, then you on a work machine | Not started |
@@ -597,8 +597,16 @@ Three things to know when you try it:
 
 ### Step L2: Peek at a reference
 
-As 1.4 and 5.9 set out, in the shell's Uses / Used by list. Browser tests in both tools: a click opens the preview
-and leaves the selection; Go to and Ctrl+click navigate; with no source loaded, the preview says how to load it.
+Done on 2026-11-13, as 1.4 and 5.9 set out, in the shell's Uses / Used by list. Browser tests in both tools: a click
+opens the preview and leaves the selection; Go to and Ctrl+click navigate; with no source loaded, the preview says
+how to load it. Screenshots looked at in both themes.
+
+Two things to know when you try it:
+
+- **The preview stops at the edges of what holds the line.** In vbadoc that's the procedure, so a line near its start
+  shows fewer than 5 lines above it, and Show all of it shows the whole procedure. In pqdoc it's the query.
+- **In vbadoc, a list with a preview open grows,** where it was kept to about eight lines' height, and the top of
+  the source panel scrolls once it takes up most of the panel.
 
 ### Step L3: Calls tab follow-ups (E5b)
 

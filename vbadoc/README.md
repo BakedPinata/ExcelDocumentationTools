@@ -235,7 +235,9 @@ draws what's open as a sequence diagram, with modules as lifelines and the block
 row (or `*`) opens everything below it, to read or draw a whole entry point at once. The tree can't see
 `Application.Run` or `OnAction`.
 
-**Dependencies**, in the source panel, lists what the selection uses and what uses it, each item once. Open an item
+**Dependencies**, in the source panel, lists what the selection uses and what uses it, each item once. Click a line
+under an item to peek at the code around it, without leaving what you've selected; **Go to** in the preview, or
+Ctrl+click on the line, goes there instead, and Esc closes the last preview you opened. Open an item
 to see every line where it's referenced, and choose one to jump to that line in the source.
 
 The source panel opens when you select something and closes when you clear the selection. Lock it open with the

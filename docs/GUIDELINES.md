@@ -176,6 +176,11 @@ Agreed on 2026-11-13. Until a tool says otherwise:
   only selects: the item is outlined and the side panel shows it, and nothing is focused, lit, dimmed, laid out
   again, fitted or centred. A new view follows `locked()` from its tool, and says what it shows through
   `lockSource`. A saved view keeps the lock.
+- **Peek is the shell's,** in every Uses / Used by list: a click on a line where something is referenced opens a
+  preview of the code around it, under the line, and leaves the selection, the views and the side panel's source as
+  they are. Go to in the preview goes there, and so does Ctrl+click on the line, which is Ctrl+click doing the other
+  thing as it does everywhere. A tool gives each reference the lines of what holds it, so the preview never runs on
+  into its neighbours.
 - **A page never says when it was made,** so the same workbook gives the same page and git diffs show only real
   changes. The top bar's summary says when the workbook was last saved instead, from its own document properties.
 - **The side panel follows the selection** unless locked open: it opens when something is selected and closes when

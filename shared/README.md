@@ -164,6 +164,30 @@ dotnet test --solution CodeDocumentationTools.sln                # everything, s
   result reaches `AtomicFileWriter.Replace`, which uses `File.Replace` so the file keeps its permissions and creation
   time. A move would give it the folder's.
 
+### Peek (step L2 of the generalisation plan)
+
+- **A click on a line in a Uses / Used by list peeks:** a preview opens under the line (`.ref-peek`, in the line's
+  list item), with the code around it from the same source the side panel reads, highlighted, and the line marked
+  (`.peek-target`). Nothing else changes: not the selection, the views or the panel's own source.
+- **Going there** is Go to in the preview (`[data-peek-go]`) or Ctrl+click on the line: the item in `refs[].in` is
+  selected and `showLine` marks the line, as a click did before. Ctrl+click no longer passes "the other thing" on to
+  the selection, since it's used up choosing between peeking and going.
+- **How much it shows:** the line and 5 either side (`PEEK_CONTEXT`), kept within `refs[].first` to `refs[].last`,
+  the lines of what holds the reference, when the tool gives them, and within the file otherwise. When there's more
+  of it, Show all of it (`[data-peek-whole]`) shows it all, in a box that scrolls to the line, and Show less goes back.
+- **Any number can be open.** A click on its line closes one. Esc closes the last opened that's still in the page,
+  after an open menu or a box with text in it and before the selection is cleared, and stops the event there, as the
+  views have Esc handlers of their own on the document.
+- **Without the source** the preview says so, and in Load folder mode offers Load folder (any button with
+  `data-load-folder` opens it, as `#load-folder-prompt` does). Go to still works.
+- **Previews belong to the list as drawn.** They aren't remembered or kept in a saved view, and they go when a tool
+  draws its list again (a new selection, Load folder, hiding something).
+- **Only a list's lines peek** (`[data-peek]`). Any other button with `data-ref-select` and `data-ref-line`, such as
+  pqdoc's steps, goes straight to its line, with Ctrl+click as the other thing for the selection.
+- **The list holding a preview is marked `has-peek`,** for a tool that caps its lists' height, as vbadoc does.
+- **A preview's lines have `data-peek-line`, not `data-line`,** so `showLine` and a tool's own look-ups of the panel's
+  source never find them.
+
 ### Lock view (step L1 of the generalisation plan)
 
 - **Lock view is the filter, plus a hold on the views,** so there's no second idea of what's shown. The shell puts
@@ -225,8 +249,9 @@ dotnet test --solution CodeDocumentationTools.sln                # everything, s
 - **The list is the shell's** (`shell.references.listHtml(entries, empty)`), each item once: its name selects it, its
   tags (the tool's: kinds of link, number of references) follow, and opening it lists the lines where it's referenced,
   with their text when the source is there. A tool keeps its own headings and containers around it.
-- **Choosing a line** selects the item that holds it (an entry's `refs[].in`), then `shell.source.showLine(line)`
-  scrolls the side panel's source to the middle and marks the line until something else is. The tool's code view must
+- **Going to a line** (since step L2, Go to in its preview or Ctrl+click; a click before) selects the item that holds
+  it (an entry's `refs[].in`), then `shell.source.showLine(line)` scrolls the side panel's source to the middle and
+  marks the line until something else is. The tool's code view must
   be drawn by `codeHtml`, whose lines carry `data-line`.
 - **Line numbers are the file's,** as the page shows it: vbadoc's exported module file, pqdoc's `.m` file.
 

@@ -606,6 +606,20 @@ Favourites below. Back and Forward stay as they are.
 - **Browser tests written for the graph's geometry** open the page without the explorer (a stored setting), because
   a narrower view moves nodes under the legend or out of view. The explorer has tests of its own.
 
+### Peek (0.33.0, step L2 of the generalisation plan)
+
+- **Peek is the shell's** (see `shared/README.md`), so the Dependencies list changed only in what a click on a line
+  does: it opens a preview, and Ctrl+click or the preview's Go to does what a click did.
+- **Each reference carries its member's lines** (`first` and `last`, from the member's start and end), so the preview
+  shows the line and 5 either side without running into the procedure before or after, and Show all of it shows the
+  whole procedure. A reference a module makes itself, outside any member, has none and is previewed within the file.
+- **A list with a preview open isn't capped.** The Uses and Used by lists are kept to about eight lines' height, so
+  the source below stays in sight; that's too little for a preview, so the list holding one grows (the shell marks it
+  `has-peek`), and the panel's header scrolls once it passes 70% of the panel, rather than push the source out.
+- **Esc closes a preview before the views clear anything.** The graph and the class diagram each listen for Esc on
+  the document, to clear their legend picks and the selection; the shell's listener comes first and stops theirs when
+  it closes a preview, so one press does one thing.
+
 ### Lock view (0.32.0, step L1 of the generalisation plan)
 
 - **The lock is the shell's,** one for the page (see `shared/README.md`): it ticks what the open view shows and holds
