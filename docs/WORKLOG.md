@@ -24,10 +24,10 @@ rather than repeating it.
   and writes HTML by default as `<workbook or folder>-powerquery.html`. From a workbook it also writes each query to a
   `.m` file, kept in step with the workbook. The page shows each query's M code, highlighted, and an explorer of the
   queries in their Excel groups, nested as Excel shows them, or as queries and functions.
-- **xldocui 0.3.0**, since steps I3, I4 and J2: the desktop app over both tools, in Windows Forms, published as one
+- **codedocui 0.4.0** (`xldocui` until step K2), since steps I3, I4 and J2: the desktop app over both tools, in Windows Forms, published as one
   compressed 50 MB file. It runs the tools' command lines in its own process, so it holds no logic of its own. The
   Document tab has every option of both main commands, and the Import tab every option of both `import`s, with Preview
-  and the tools' questions as dialogs. See `xldocui/README.md`.
+  and the tools' questions as dialogs. See `codedocui/README.md`.
 - **`shared/`** (`CodeDocumenter.Shared`, which was `ExcelDocumenter.Shared` until step K1): the code both tools use, since step C1, and the page shell both pages are
   built on, since C2. See its README.
 - **The feedback plan** (steps A0–J2, agreed on 2026-11-03) is closed and deleted. Every step is done but G2–G4 and
@@ -44,6 +44,16 @@ rather than repeating it.
 ## Log
 
 Newest first.
+
+### 2026-11-13: Step K2, the desktop app's name
+
+- `xldocui/` is `codedocui/`, and `ExcelDocumenter.Desktop` is `CodeDocumenter.Desktop`: the folder, the solution,
+  the projects, the namespaces, the executable and the window's title. `codedoc` is the name kept for a combined
+  tool, in place of `xldoc`. It still runs vbadoc and pqdoc only, until R1.
+- Its remembered settings start afresh, in `%LOCALAPPDATA%\codedocui\`, as the user agreed (the plan's 1.8). The old
+  folder, `%LOCALAPPDATA%\xldocui\`, and the old `xldocui.exe` in the old publish folder can be deleted by hand.
+- Done with VS Code open, by moving the files one at a time, which the folder lock doesn't stop.
+- codedocui 0.4.0.
 
 ### 2026-11-13: Step K1, names inside the repository
 

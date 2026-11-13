@@ -1,0 +1,18 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!-- Shown in the window's status bar. Raise it at the end of each stage. -->
+    <Version>0.4.0</Version>
+    <Product>codedocui</Product>
+    <!-- The folder the build stamp follows: see Directory.Build.targets at the root. The app is built from both tools,
+         so its stamp follows their folders too. -->
+    <ToolRoot>$(MSBuildThisFileDirectory)</ToolRoot>
+    <ToolStampPaths>:/vbadoc :/pqdoc</ToolStampPaths>
+    <!-- Windows Forms needs the Windows target, and only this folder uses it. Taken from the root's, so moving to a
+         new .NET is still one change. -->
+    <TargetFramework>$(TargetFramework)-windows</TargetFramework>
+  </PropertyGroup>
+
+</Project>
